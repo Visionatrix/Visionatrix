@@ -1,0 +1,133 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatchling>=1.18",
+]
+
+[project]
+name = "AIMediaWizard"
+description = "AI Media Processing using ComfyUI"
+readme = "README.md"
+keywords = [
+  "AI",
+  "API",
+  "Image",
+  "Video",
+  "ComfyUI",
+]
+license = "AGPLv3+"
+authors = [
+    { name = "Alexander Piskun", email = "bigcat88@icloud.com" },
+    { name = "Andrey Borysenko", email = "andrey18106@gmail.com" },
+]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Customer Service",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+  "Topic :: Multimedia :: Graphics",
+  "Topic :: Multimedia :: Video",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dynamic = [
+  "version",
+]
+dependencies = [
+  "fastapi>=0.109.2",
+  "httpx>=0.25.2",
+  "pydantic>=2.1.1",
+  "python-dotenv>=1",
+  "uvicorn[standard]>=0.23.2",
+  "huggingface_hub",
+]
+[project.optional-dependencies]
+dev = [
+  "pre-commit",
+  "pylint",
+  "pytest",
+]
+[project.urls]
+Changelog = "https://github.com/cloud-media-flows/AiMediaWizard/blob/main/CHANGELOG.md"
+Documentation = "https://cloud-media-flows.github.io/AiMediaWizard/"
+Source = "https://github.com/cloud-media-flows/AiMediaWizard"
+
+[tool.hatch.version]
+path = "AiMediaWizard/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/AiMediaWizard",
+    "/CHANGELOG.md",
+    "/README.md",
+]
+exclude = []
+
+[tool.black]
+line-length = 120
+target-versions = ["py310"]
+preview = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+lint.select = ["A", "B", "C", "E", "F", "G", "I", "S", "SIM", "PIE", "Q", "RET", "RUF", "UP" , "W"]
+lint.extend-ignore = ["I001", "RUF100"]
+
+[tool.ruff.lint.per-file-ignores]
+"AiMediaWizard/__init__.py" = ["F401"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = ["E402", "S", "UP"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 16
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint]
+master.py-version = "3.10"
+master.extension-pkg-allow-list = ["pydantic"]
+design.max-attributes = 8
+design.max-locals = 20
+design.max-branches = 16
+design.max-returns = 8
+design.max-args = 7
+basic.good-names = [
+    "a", "b", "c", "d", "e", "f", "i", "j", "k", "r", "v",
+    "_", "fp", "im", "ui",
+]
+reports.output-format = "colorized"
+similarities.ignore-imports = "yes"
+similarities.min-similarity-lines = 10
+messages_control.disable = [
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "line-too-long",
+    "too-few-public-methods",
+    "too-many-public-methods",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+log_cli = true
+addopts = "-rs --color=yes"
+asyncio_mode = "auto"
