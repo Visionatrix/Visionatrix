@@ -1,6 +1,6 @@
 # AIMediaWizard
 
-**AI**-driven media creation and editing, with a user-friendly UI and a backend API for integration with third-party services.
+**AI-driven** media creation and editing with a friendly UI and a backend API for integration with third-party services.
 
 This platform ensures effortless deployment and management of AI-powered, secure workflows, tailor-made for the efficient processing of images and videos.
 
@@ -20,13 +20,54 @@ This platform ensures effortless deployment and management of AI-powered, secure
 
 ## How to install
 
-Currently, install does not differ from installing a [ComfyUI](https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#manual-install-windows-linux).
+### Create Project Directory
 
-Main requirements is to have minimum Python `3.10` with activated virtual environment.
+```console
+mkdir AIMediaWizard && cd AIMediaWizard
+```
 
-### Install hardware accelerators
+### Setting up virtual environment
+
+```console
+python -m venv venv
+```
+
+### Activation of Virtual Environment
+
+#### Linux/macOS
+
+```console
+source env/bin/activate
+```
+
+#### Windows:
+
+```console
+.\env\Scripts\Activate.ps1
+```
+
+### Install **AIMediaWizard**
+
+#### Development version from repository
+
+```console
+pip install git+https://github.com/cloud-media-flows/AIMediaWizard.git
+```
+
+#### Stable version from [PyPi](https://pypi.org/project/AIMediaWizard/)
+
+```console
+pip install AIMediaWizard
+```
+
+### Setting Up Hardware Accelerators for Deep Learning
+
+*Currently, install does not differ from installing a [ComfyUI](https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#manual-install-windows-linux).*
 
 Install **PyTorch**:
+
+> [!NOTE]
+> *Later we have a goal to switch from **PyTorch** to [tinygrad](https://github.com/tinygrad/tinygrad) if it is possible.*
 
 #### AMD
 
@@ -47,25 +88,6 @@ pip install torch torchvision torchaudio --extra-index-url https://download.pyto
 #### macOS
 
 Instructions for `Sonoma` will appear a bit later..
-
----
-
-> [!NOTE]
-> *Later we have a goal to switch from **pytorch** to [tinygard](https://github.com/tinygrad/tinygrad) if it is possible.*
-
-### Install **AIMediaWizard**
-
-#### Development version from repository
-
-```console
-pip install git+https://github.com/cloud-media-flows/AIMediaWizard.git
-```
-
-#### Stable version from [PyPi](https://pypi.org/project/AIMediaWizard/)
-
-```console
-pip install AIMediaWizard
-```
 
 ### Perform **AIMediaWizard** initialization
 
