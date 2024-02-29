@@ -1,0 +1,48 @@
+ci:
+  skip: [pylint]
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: check-yaml
+    -   id: check-toml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: mixed-line-ending
+
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.13.0
+    hooks:
+    -   id: isort
+        files: AIMediaWizard/
+
+-   repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+    -   id: black
+        files: AIMediaWizard/
+
+-   repo: https://github.com/tox-dev/pyproject-fmt
+    rev: 1.7.0
+    hooks:
+    -   id: pyproject-fmt
+
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.7
+    hooks:
+    -   id: ruff
+
+-   repo: local
+    hooks:
+    -   id: pylint
+        name: pylint
+        entry: pylint "AIMediaWizard/"
+        language: system
+        types: [ python ]
+        pass_filenames: false
+        args:
+            [
+                "-rn", # Only display messages
+                "-sn", # Don't display the score
+            ]
