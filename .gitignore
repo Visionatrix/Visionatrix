@@ -93,3 +93,6 @@ MANIFEST
 converted/
 
 geckodriver.log
+
+amw_backend
+amw_models
