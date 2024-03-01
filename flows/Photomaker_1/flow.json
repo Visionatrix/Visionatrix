@@ -1,0 +1,46 @@
+{
+  "name": "photomaker_1_v1",
+  "display_name": "Photo from 1 image",
+  "description": "Create a new photo based on one another",
+  "author": "TencentARC",
+  "homepage": "https://huggingface.co/TencentARC/PhotoMaker",
+  "license": "https://huggingface.co/TencentARC/PhotoMaker/blob/main/LICENSE",
+  "comfy_flow": "photomaker_1_comfy.json",
+  "models": [
+    {
+      "name": "photomaker-v1.bin",
+      "save_path": "photomaker/photomaker-v1.bin",
+      "url": "https://huggingface.co/TencentARC/PhotoMaker/resolve/main/photomaker-v1.bin"
+    }
+  ],
+  "input_params": [
+    {
+      "name": "prompt",
+      "display_name": "Prompt",
+      "type": "text",
+      "optional": false,
+      "id": 0
+    },
+    {
+      "name": "image1",
+      "display_name": "Person photo",
+      "type": "image",
+      "optional": false,
+      "id": 0
+    },
+    {
+      "name": "negative_prompt",
+      "display_name": "Negative Prompt",
+      "type": "text",
+      "optional": true,
+      "id": 0
+    }
+  ],
+  "output_params": [
+    {
+      "name": "file",
+      "type": "image",
+      "id": 0
+    }
+  ]
+}

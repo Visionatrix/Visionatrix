@@ -47,10 +47,11 @@ dynamic = [
 dependencies = [
   "fastapi>=0.109.2",
   "httpx>=0.25.2",
-  "huggingface_hub",
+  "huggingface_hub==0.21.3",
   "pydantic>=2.1.1",
   "python-dotenv>=1",
   "uvicorn[standard]>=0.23.2",
+  "PyGithub==2.2.0",
 ]
 [project.optional-dependencies]
 dev = [
