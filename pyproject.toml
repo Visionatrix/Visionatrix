@@ -5,15 +5,15 @@ requires = [
 ]
 
 [project]
-name = "AIMediaWizard"
+name = "ai-media-wizard"
 description = "AI Media Processing using ComfyUI"
 readme = "README.md"
 keywords = [
   "AI",
   "API",
+  "ComfyUI",
   "Image",
   "Video",
-  "ComfyUI",
 ]
 license = "AGPLv3+"
 authors = [
@@ -23,8 +23,8 @@ authors = [
 requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 1 - Planning",
-  "Intended Audience :: Developers",
   "Intended Audience :: Customer Service",
+  "Intended Audience :: Developers",
   "Intended Audience :: End Users/Desktop",
   "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
   "Operating System :: MacOS :: MacOS X",
@@ -47,10 +47,10 @@ dynamic = [
 dependencies = [
   "fastapi>=0.109.2",
   "httpx>=0.25.2",
+  "huggingface_hub",
   "pydantic>=2.1.1",
   "python-dotenv>=1",
   "uvicorn[standard]>=0.23.2",
-  "huggingface_hub",
 ]
 [project.optional-dependencies]
 dev = [
@@ -59,16 +59,16 @@ dev = [
   "pytest",
 ]
 [project.urls]
-Changelog = "https://github.com/cloud-media-flows/AiMediaWizard/blob/main/CHANGELOG.md"
-Documentation = "https://cloud-media-flows.github.io/AiMediaWizard/"
-Source = "https://github.com/cloud-media-flows/AiMediaWizard"
+Changelog = "https://github.com/cloud-media-flows/ai_media_wizard/blob/main/CHANGELOG.md"
+Documentation = "https://cloud-media-flows.github.io/ai_media_wizard/"
+Source = "https://github.com/cloud-media-flows/ai_media_wizard"
 
 [tool.hatch.version]
-path = "AiMediaWizard/_version.py"
+path = "ai_media_wizard/_version.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/AiMediaWizard",
+    "/ai_media_wizard",
     "/CHANGELOG.md",
     "/README.md",
 ]
@@ -83,10 +83,11 @@ preview = true
 line-length = 120
 target-version = "py310"
 lint.select = ["A", "B", "C", "E", "F", "G", "I", "S", "SIM", "PIE", "Q", "RET", "RUF", "UP" , "W"]
-lint.extend-ignore = ["I001", "RUF100"]
+lint.extend-ignore = ["I001", "RUF100", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
-"AiMediaWizard/__init__.py" = ["F401"]
+"ai_media_wizard/__init__.py" = ["F401"]
+"ai_media_wizard/init/__init__.py" = ["F401"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/**/*.py" = ["E402", "S", "UP"]
@@ -113,6 +114,7 @@ reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
 similarities.min-similarity-lines = 10
 messages_control.disable = [
+    "missing-module-docstring",
     "missing-class-docstring",
     "missing-function-docstring",
     "line-too-long",

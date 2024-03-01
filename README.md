@@ -1,4 +1,5 @@
-# AIMediaWizard
+# AI-Media-Wizard
+![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
 **AI-driven** media creation and editing with a friendly UI and a backend API for integration with third-party services.
 
@@ -23,7 +24,13 @@ This platform ensures effortless deployment and management of AI-powered, secure
 ### Create Project Directory
 
 ```console
-mkdir AIMediaWizard && cd AIMediaWizard
+mkdir ai_media_wizard && cd ai_media_wizard
+```
+
+In a case when you wish to join development you can run instead:
+
+```console
+git clone https://github.com/cloud-media-flows/ai_media_wizard.git && cd ai_media_wizard
 ```
 
 ### Setting up virtual environment
@@ -51,13 +58,13 @@ source env/bin/activate
 #### Development version from repository
 
 ```console
-pip install git+https://github.com/cloud-media-flows/AIMediaWizard.git
+pip install git+https://github.com/cloud-media-flows/ai_media_wizard.git
 ```
 
 #### Stable version from [PyPi](https://pypi.org/project/AIMediaWizard/)
 
 ```console
-pip install AIMediaWizard
+pip install ai_media_wizard
 ```
 
 ### Setting Up Hardware Accelerators for Deep Learning
@@ -94,8 +101,28 @@ Instructions for `Sonoma` will appear a bit later..
 Execute it as a module with ``--init`` command:
 
 ```console
-python -m AIMediaWizard --init
+python -m AIMediaWizard init
 ```
+
+#### `init` parameters:
+
+> [!NOTE]
+> All parameters have default values, you can override them in a few ways:
+>
+> 1. Using the ".env" file, that will be read by [dotenv](https://pypi.org/project/python-dotenv/) package.
+> 2. Setting them directly in the environment
+> 3. Passing them as the arguments to the `--init` command.
+> 4. If you use `AIMediaWizard` as the imported package you can specify them during call to the `init` function.
+
+1. `backend_dir` - directory where backend(`ComfyUI`) and all it's extensions will be stored. Default: current working directory **cwd**/backend.
+2. `models_dir` - directory where `models` will be stored. Default: **cwd**/models
+
+#### `run` parameters:
+
+1. `interface`
+2. `port`
+3. `input_directory` - directory where the input data like images will be stored. Default: temp directory/AIMediaWizard/input
+4. `output_directory` - directory where the results data like images will be stored. Default: temp directory/AIMediaWizard/output
 
 ## Usage
 
