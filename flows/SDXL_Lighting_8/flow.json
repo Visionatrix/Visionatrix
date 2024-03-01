@@ -1,41 +1,39 @@
-[
-  {
-    "name": "sdxl_lighting",
-    "display_name": "SDXL Lighting",
-    "description": "Fast image generation",
-    "author": "ByteDance",
-    "homepage": "https://huggingface.co/ByteDance/SDXL-Lightning",
-    "license": "https://huggingface.co/ByteDance/SDXL-Lightning/blob/main/LICENSE.md",
-    "comfy_flow": "sdxl_lighting_8_comfy.json",
-    "models": [
-      {
-        "name": "sdxl_lightning_8step.safetensors",
-        "save_path": "checkpoints/sdxl_lightning_8step.safetensors",
-        "url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_8step.safetensors"
-      }
-    ],
-    "input_params": [
-      {
-        "name": "prompt",
-        "display_name": "Prompt",
-        "type": "text",
-        "optional": false,
-        "id": 6
-      },
-      {
-        "name": "negative_prompt",
-        "display_name": "Negative Prompt",
-        "type": "text",
-        "optional": true,
-        "id": 7
-      }
-    ],
-    "output_params": [
-      {
-        "name": "file",
-        "type": "image",
-        "id": 9
-      }
-    ]
-  }
-]
+{
+  "name": "sdxl_lighting",
+  "display_name": "SDXL Lighting",
+  "description": "Fast image generation",
+  "author": "ByteDance",
+  "homepage": "https://huggingface.co/ByteDance/SDXL-Lightning",
+  "license": "https://huggingface.co/ByteDance/SDXL-Lightning/blob/main/LICENSE.md",
+  "comfy_flow": "sdxl_lighting_8_comfy.json",
+  "models": [
+    {
+      "name": "sdxl_lightning_8step.safetensors",
+      "save_path": "checkpoints/sdxl_lightning_8step.safetensors",
+      "url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_8step.safetensors"
+    }
+  ],
+  "input_params": [
+    {
+      "name": "prompt",
+      "display_name": "Prompt",
+      "type": "text",
+      "optional": false,
+      "id": 6
+    },
+    {
+      "name": "negative_prompt",
+      "display_name": "Negative Prompt",
+      "type": "text",
+      "optional": true,
+      "id": 7
+    }
+  ],
+  "output_params": [
+    {
+      "name": "file",
+      "type": "image",
+      "id": 9
+    }
+  ]
+}
