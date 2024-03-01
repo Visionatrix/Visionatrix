@@ -101,7 +101,7 @@ Instructions for `Sonoma` will appear a bit later..
 Execute it as a module with ``--init`` command:
 
 ```console
-python -m AIMediaWizard init
+python -m ai_media_wizard init
 ```
 
 #### `init` parameters:
@@ -112,7 +112,7 @@ python -m AIMediaWizard init
 > 1. Using the ".env" file, that will be read by [dotenv](https://pypi.org/project/python-dotenv/) package.
 > 2. Setting them directly in the environment
 > 3. Passing them as the arguments to the `--init` command.
-> 4. If you use `AIMediaWizard` as the imported package you can specify them during call to the `init` function.
+> 4. If you use `ai_media_wizard` as the imported package you can specify them during call to the `init` function.
 
 1. `backend_dir` - directory where backend(`ComfyUI`) and all it's extensions will be stored. Default: current working directory **cwd**/backend.
 2. `models_dir` - directory where `models` will be stored. Default: **cwd**/models
