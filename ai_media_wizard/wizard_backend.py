@@ -1,12 +1,16 @@
+import json
 import os
 import subprocess
 from contextlib import asynccontextmanager
 
 from . import options
 from .flows import (
+    execute_comfy_flow,
     get_available_flows,
+    get_installed_flow,
     get_installed_flows,
     install_flow,
+    prepare_comfy_flow,
     uninstall_flow,
 )
 
@@ -57,9 +61,33 @@ def wizard_backend(
         uninstall_flow(flows_dir, name)
         return fastapi.responses.JSONResponse(content=[])
 
-    # @app.post("/flow")
-    # async def flow_run(name: str, request: fastapi.Request):
-    #     return fastapi.responses.JSONResponse(content={})
+    @app.post("/flow")
+    async def flow_run(
+        name: str = fastapi.Form(),
+        input_params: str = fastapi.Form(None),
+        files: list[fastapi.UploadFile] = None,  # noqa
+    ):
+        if files is None:
+            files = []
+        try:
+            input_params_list = json.loads(input_params) if input_params else []
+        except json.JSONDecodeError:
+            return fastapi.HTTPException(status_code=400, detail="Invalid JSON format for params")
+
+        comfy_flow = {}
+        flow = get_installed_flow(flows_dir, name, comfy_flow)
+        if not flow:
+            return fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.")
+
+        try:
+            comfy_flow = prepare_comfy_flow(flow, comfy_flow, input_params_list, files)
+        except RuntimeError as e:
+            raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
+
+        # connection, client_id = open_comfy_websocket()
+        client_id = "123"
+        r = execute_comfy_flow(comfy_flow, client_id)
+        return fastapi.responses.JSONResponse(content={"client_id": client_id, "prompt_id": r["prompt_id"]})
 
     @app.post("/backend-restart")
     async def backend_restart():

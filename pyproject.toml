@@ -48,11 +48,13 @@ dependencies = [
   "httpx>=0.25.2",
   "PyGithub==2.2",
   "python-dotenv>=1",
+  "websockets==12",
 ]
 [project.optional-dependencies]
 app = [
   "fastapi>=0.109.2",
   "pydantic>=2.1.1",
+  "python-multipart",
   "uvicorn[standard]>=0.23.2",
 ]
 dev = [
