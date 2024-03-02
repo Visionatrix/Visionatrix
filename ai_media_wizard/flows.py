@@ -1,12 +1,16 @@
 import builtins
 import json
 import os
+import uuid
 from pathlib import Path
 from shutil import rmtree
 from typing import Any
 
 import httpx
 from github import Github, GithubException
+from websockets.sync.client import connect
+
+from . import options
 
 
 def get_available_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
@@ -40,13 +44,27 @@ def get_available_flows(flows_dir: str, comfy_flows: list | None = None) -> list
     return possible_flows
 
 
-def get_installed_flows(flows_dir: str) -> list[dict[str, Any]]:
+def get_installed_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
     flows = [entry for entry in Path(flows_dir).iterdir() if entry.is_dir()]
     r = []
     for flow in flows:
         if (flow_fp := flow.joinpath("flow.json")).exists() is True:
-            r.append(json.loads(flow_fp.read_bytes()))
+            flow_data = json.loads(flow_fp.read_bytes())
+            if (comfy_flow_fp := flow.joinpath(flow_data["comfy_flow"])).exists() is True:
+                r.append(flow_data)
+                if comfy_flows is not None:
+                    comfy_flows.append(json.loads(comfy_flow_fp.read_bytes()))
     return r
+
+
+def get_installed_flow(flows_dir: str, flow_name: str, comfy_flow: dict) -> dict[str, Any]:
+    comfy_flows = []
+    for i, flow in enumerate(get_installed_flows(flows_dir, comfy_flows)):
+        if flow["name"] == flow_name:
+            comfy_flow.clear()
+            comfy_flow.update(comfy_flows[i])
+            return flow
+    return {}
 
 
 def install_flow(flows_dir: str, flow_name: str, models_dir: str) -> str:
@@ -86,3 +104,34 @@ def download_model(model: dict[str, str], models_dir: str) -> None:
         except Exception:  # noqa pylint: disable=broad-exception-caught
             rmtree(save_path.parent)
             raise RuntimeError(f"Error during downloading '{model['url']}'.") from None
+
+
+def prepare_comfy_flow(flow: dict, comfy_flow: dict, in_texts_params: dict, in_files_params: list) -> dict:
+    flow_params = flow["input_params"]
+    text_params = [i for i in flow_params if i["type"] == "text"]
+    _ = in_files_params
+    # files_params = [i for i in flow_params if i["type"] in ("image", "video")]
+    r = comfy_flow.copy()
+    for i in text_params:
+        v = in_texts_params.get(i["name"], None)
+        if v is None:
+            if not i.get("optional", False):
+                raise RuntimeError(f"Missing `{i['name']}` parameter.")
+            continue
+        node = r.get(str(i["id"]), {})
+        if not node:
+            raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{i['id']}` can not be found.")
+        node["inputs"]["text"] = v
+    return r
+
+
+def execute_comfy_flow(comfy_flow: dict, client_id: str) -> dict:
+    r = httpx.post(f"http://127.0.0.1:{options.COMFY_PORT}/prompt", json={"prompt": comfy_flow, "client_id": client_id})
+    if r.status_code != 200:
+        raise RuntimeError(f"ComfyUI returned status: {r.status_code}")
+    return json.loads(r.text)
+
+
+def open_comfy_websocket():
+    client_id = str(uuid.uuid4())
+    return connect(f"ws://127.0.0.1:{options.COMFY_PORT}/ws?clientId={client_id}"), client_id
