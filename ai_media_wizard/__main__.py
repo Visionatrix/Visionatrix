@@ -1,27 +1,28 @@
 import argparse
 import sys
 
-from . import install, update
-from . import options
+from . import install, run_backend, update
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
-    install_parser = subparsers.add_parser("install", help="Performs cleanup & initialization")
-    install_parser.add_argument("--backend_dir", type=str, help="Directory for the backend")
-    install_parser.add_argument("--flows_dir", type=str, help="Directory for the flows")
-    install_parser.add_argument("--models_dir", type=str, help="Directory for the models")
-
-    update_parser = subparsers.add_parser("update", help="Performs update to the latest version")
-    update_parser.add_argument("--backend_dir", type=str, help="Directory for the backend")
-    update_parser.add_argument("--flows_dir", type=str, help="Directory for the flows")
-    update_parser.add_argument("--models_dir", type=str, help="Directory for the models")
+    for i in [
+        ("install", "Performs cleanup & initialization"),
+        ("update", "Performs update to the latest version"),
+        ("run", "Starts the AI and MediaWizard backends"),
+    ]:
+        subparser = subparsers.add_parser(i[0], help=i[1])
+        subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
+        subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
+        subparser.add_argument("--models_dir", type=str, help="Directory for the models")
 
     args = parser.parse_args()
     if args.command == "install":
         sys.exit(install(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir))
     elif args.command == "update":
         sys.exit(update(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir))
+    elif args.command == "run":
+        sys.exit(run_backend(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir))
     else:
         print("Unknown command")
     sys.exit(2)

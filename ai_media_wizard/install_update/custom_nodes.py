@@ -10,7 +10,7 @@ BASIC_NODE_LIST = {
 }
 
 
-def init_base_custom_nodes(custom_nodes_dir: str) -> None:
+def install_base_custom_nodes(custom_nodes_dir: str) -> None:
     for k, v in BASIC_NODE_LIST.items():
         print(f"Cloning `{k}`")
         git_flags = v.get("git_flags", "")

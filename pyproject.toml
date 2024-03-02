@@ -45,15 +45,16 @@ dynamic = [
   "version",
 ]
 dependencies = [
-  "fastapi>=0.109.2",
   "httpx>=0.25.2",
-  "huggingface_hub==0.21.3",
-  "pydantic>=2.1.1",
+  "PyGithub==2.2",
   "python-dotenv>=1",
-  "uvicorn[standard]>=0.23.2",
-  "PyGithub==2.2.0",
 ]
 [project.optional-dependencies]
+app = [
+  "fastapi>=0.109.2",
+  "pydantic>=2.1.1",
+  "uvicorn[standard]>=0.23.2",
+]
 dev = [
   "pre-commit",
   "pylint",
@@ -88,7 +89,7 @@ lint.extend-ignore = ["I001", "RUF100", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "ai_media_wizard/__init__.py" = ["F401"]
-"ai_media_wizard/init/__init__.py" = ["F401"]
+"ai_media_wizard/install_update/__init__.py" = ["F401"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/**/*.py" = ["E402", "S", "UP"]
