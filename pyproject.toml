@@ -97,7 +97,7 @@ lint.extend-ignore = ["I001", "RUF100", "S603"]
 "tests/**/*.py" = ["E402", "S", "UP"]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 16
+max-complexity = 20
 
 [tool.isort]
 profile = "black"
