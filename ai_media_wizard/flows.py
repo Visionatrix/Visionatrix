@@ -1,7 +1,6 @@
 import builtins
 import json
 import os
-import uuid
 from pathlib import Path
 from shutil import rmtree
 from typing import Any
@@ -132,6 +131,5 @@ def execute_comfy_flow(comfy_flow: dict, client_id: str) -> dict:
     return json.loads(r.text)
 
 
-def open_comfy_websocket():
-    client_id = str(uuid.uuid4())
-    return connect(f"ws://127.0.0.1:{options.COMFY_PORT}/ws?clientId={client_id}"), client_id
+def open_comfy_websocket(request_id: str):
+    return connect(f"ws://127.0.0.1:{options.COMFY_PORT}/ws?clientId={request_id}")

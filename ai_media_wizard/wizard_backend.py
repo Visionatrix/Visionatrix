@@ -1,7 +1,10 @@
 import json
 import os
 import subprocess
+import uuid
 from contextlib import asynccontextmanager
+
+from websockets.sync.client import ClientConnection
 
 from . import options
 from .flows import (
@@ -10,6 +13,7 @@ from .flows import (
     get_installed_flow,
     get_installed_flows,
     install_flow,
+    open_comfy_websocket,
     prepare_comfy_flow,
     uninstall_flow,
 )
@@ -24,6 +28,7 @@ except ImportError as ex:
 
 
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
+PROGRESS_TRACKING = {}  # prompt_id: {queue_number: 0-9999, progress: 0.0-100.0, error: ""}
 
 
 def wizard_backend(
@@ -63,6 +68,7 @@ def wizard_backend(
 
     @app.post("/flow")
     async def flow_run(
+        b_tasks: fastapi.BackgroundTasks,
         name: str = fastapi.Form(),
         input_params: str = fastapi.Form(None),
         files: list[fastapi.UploadFile] = None,  # noqa
@@ -72,22 +78,30 @@ def wizard_backend(
         try:
             input_params_list = json.loads(input_params) if input_params else []
         except json.JSONDecodeError:
-            return fastapi.HTTPException(status_code=400, detail="Invalid JSON format for params")
+            raise fastapi.HTTPException(status_code=400, detail="Invalid JSON format for params") from None
 
         comfy_flow = {}
         flow = get_installed_flow(flows_dir, name, comfy_flow)
         if not flow:
-            return fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.")
+            raise fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.") from None
 
         try:
             comfy_flow = prepare_comfy_flow(flow, comfy_flow, input_params_list, files)
         except RuntimeError as e:
             raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
 
-        # connection, client_id = open_comfy_websocket()
-        client_id = "123"
-        r = execute_comfy_flow(comfy_flow, client_id)
-        return fastapi.responses.JSONResponse(content={"client_id": client_id, "prompt_id": r["prompt_id"]})
+        request_id = str(uuid.uuid4())
+        connection = open_comfy_websocket(request_id)
+        r = execute_comfy_flow(comfy_flow, request_id)
+        b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], comfy_flow)
+        return fastapi.responses.JSONResponse(content={"client_id": request_id, "prompt_id": r["prompt_id"]})
+
+    @app.get("/prompt-progress")
+    async def prompt_progress(prompt_id: str):
+        r = PROGRESS_TRACKING.get(prompt_id, None)
+        if r is None:
+            raise fastapi.HTTPException(status_code=404, detail=f"Prompt `{prompt_id}` was not found.")
+        return fastapi.responses.JSONResponse(content=r)
 
     @app.post("/backend-restart")
     async def backend_restart():
@@ -97,6 +111,42 @@ def wizard_backend(
     uvicorn.run(
         app, *args, host=options.get_wizard_host(wizard_host), port=options.get_wizard_port(wizard_port), **kwargs
     )
+
+
+def __track_task_progress(connection: ClientConnection, prompt_id: str, comfy_flow: dict) -> None:
+    task = {"queue_number": -1, "progress": 0, "error": ""}
+    nodes_to_execute = list(comfy_flow.keys())
+    node_percent = 100 / len(nodes_to_execute)
+    current_node = ""
+    PROGRESS_TRACKING.update({prompt_id: task})
+    while True:
+        out = connection.recv()
+        if isinstance(out, str):
+            message = json.loads(out)
+            if message["type"] == "executing":
+                data = message["data"]
+                if data["node"] is None and data["prompt_id"] == prompt_id:
+                    task["progress"] = 100
+                    break
+                if data["node"] is not None and data["prompt_id"] == prompt_id:
+                    if not current_node:
+                        current_node = data["node"]
+                    if current_node != data["node"]:
+                        task["progress"] += node_percent
+                        current_node = data["node"]
+            elif message["type"] == "progress":
+                data = message["data"]
+                if "max" in data and "value" in data:
+                    current_node = ""
+                    task["progress"] += node_percent / int(data["max"])
+            elif message["type"] == "status":
+                task["queue_number"] = message["data"]["status"]["exec_info"]["queue_remaining"]
+            elif message["type"] == "execution_start":
+                data = message["data"]
+                if data["prompt_id"] == prompt_id:
+                    task["queue_number"] = 0
+        else:
+            continue
 
 
 def run_backend(
