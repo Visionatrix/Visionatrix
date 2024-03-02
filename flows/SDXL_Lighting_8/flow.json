@@ -31,7 +31,6 @@
   ],
   "output_params": [
     {
-      "name": "file",
       "type": "image",
       "id": 9
     }

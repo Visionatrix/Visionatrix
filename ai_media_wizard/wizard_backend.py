@@ -4,6 +4,7 @@ import subprocess
 import uuid
 from contextlib import asynccontextmanager
 
+import httpx
 from websockets.sync.client import ClientConnection
 
 from . import options
@@ -28,7 +29,7 @@ except ImportError as ex:
 
 
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
-PROGRESS_TRACKING = {}  # prompt_id: {queue_number: 0-9999, progress: 0.0-100.0, error: ""}
+PROGRESS_TRACKING = {}  # task_id: {progress: 0.0-100.0, error: ""}
 
 
 def wizard_backend(
@@ -94,14 +95,32 @@ def wizard_backend(
         connection = open_comfy_websocket(request_id)
         r = execute_comfy_flow(comfy_flow, request_id)
         b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], comfy_flow)
-        return fastapi.responses.JSONResponse(content={"client_id": request_id, "prompt_id": r["prompt_id"]})
+        return fastapi.responses.JSONResponse(content={"client_id": request_id, "task_id": r["prompt_id"]})
 
-    @app.get("/prompt-progress")
-    async def prompt_progress(prompt_id: str):
-        r = PROGRESS_TRACKING.get(prompt_id, None)
+    @app.get("/flow-progress")
+    async def flow_progress(task_id: str):
+        r = PROGRESS_TRACKING.get(task_id, None)
         if r is None:
-            raise fastapi.HTTPException(status_code=404, detail=f"Prompt `{prompt_id}` was not found.")
+            raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         return fastapi.responses.JSONResponse(content=r)
+
+    @app.get("/flow-results")
+    async def flow_results(task_id: str, node_id: int):
+        r = httpx.get(f"http://127.0.0.1:{options.COMFY_PORT}/history/{task_id}")
+        if r.status_code != 200:
+            raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        result = json.loads(r.text)
+        if task_id not in result:
+            raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found in history.")
+        result_output = result[task_id]["outputs"]
+        if str(node_id) not in result_output:
+            raise fastapi.HTTPException(status_code=404, detail=f"Node `{node_id}` was not found in results.")
+        result_node = result_output[str(node_id)]
+        if "images" in result_node:
+            result_image = result_node["images"][0]
+            result_path = os.path.join(backend_dir, "output", result_image["subfolder"], result_image["filename"])
+            return fastapi.responses.FileResponse(result_path)
+        raise fastapi.HTTPException(status_code=404, detail="These node types are not currently supported.")
 
     @app.post("/backend-restart")
     async def backend_restart():
@@ -113,22 +132,22 @@ def wizard_backend(
     )
 
 
-def __track_task_progress(connection: ClientConnection, prompt_id: str, comfy_flow: dict) -> None:
-    task = {"queue_number": -1, "progress": 0, "error": ""}
+def __track_task_progress(connection: ClientConnection, task_id: str, comfy_flow: dict) -> None:
+    task = {"progress": 0, "error": ""}
     nodes_to_execute = list(comfy_flow.keys())
     node_percent = 100 / len(nodes_to_execute)
     current_node = ""
-    PROGRESS_TRACKING.update({prompt_id: task})
+    PROGRESS_TRACKING.update({task_id: task})
     while True:
         out = connection.recv()
         if isinstance(out, str):
             message = json.loads(out)
             if message["type"] == "executing":
                 data = message["data"]
-                if data["node"] is None and data["prompt_id"] == prompt_id:
+                if data["node"] is None and data["prompt_id"] == task_id:
                     task["progress"] = 100
                     break
-                if data["node"] is not None and data["prompt_id"] == prompt_id:
+                if data["node"] is not None and data["prompt_id"] == task_id:
                     if not current_node:
                         current_node = data["node"]
                     if current_node != data["node"]:
@@ -139,12 +158,6 @@ def __track_task_progress(connection: ClientConnection, prompt_id: str, comfy_fl
                 if "max" in data and "value" in data:
                     current_node = ""
                     task["progress"] += node_percent / int(data["max"])
-            elif message["type"] == "status":
-                task["queue_number"] = message["data"]["status"]["exec_info"]["queue_remaining"]
-            elif message["type"] == "execution_start":
-                data = message["data"]
-                if data["prompt_id"] == prompt_id:
-                    task["queue_number"] = 0
         else:
             continue
 
