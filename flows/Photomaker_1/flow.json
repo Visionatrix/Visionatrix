@@ -1,45 +1,65 @@
 {
-  "name": "photomaker_1_v1",
+  "name": "photomaker_1",
   "display_name": "Photo from 1 image",
   "description": "Create a new photo based on one another",
-  "author": "TencentARC",
-  "homepage": "https://huggingface.co/TencentARC/PhotoMaker",
+  "author": "Shiimizu",
+  "homepage": "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus",
   "license": "https://huggingface.co/TencentARC/PhotoMaker/blob/main/LICENSE",
-  "comfy_flow": "photomaker_1_comfy.json",
+  "comfy_flow": "photomaker_plus_1_comfy.json",
   "models": [
     {
       "name": "photomaker-v1.bin",
       "save_path": "photomaker/photomaker-v1.bin",
       "url": "https://huggingface.co/TencentARC/PhotoMaker/resolve/main/photomaker-v1.bin"
+    },
+    {
+      "name": "albedobaseXL_v13.safetensors",
+      "save_path": "checkpoints/albedobaseXL_v13.safetensors",
+      "url": "https://huggingface.co/frankjoshua/albedobaseXL_v13/resolve/main/albedobaseXL_v13.safetensors"
     }
   ],
   "input_params": [
     {
       "name": "prompt",
-      "display_name": "Prompt",
+      "display_name": "Prompt containing 'img' keyword",
       "type": "text",
       "optional": false,
-      "id": 0
+      "id": 70,
+      "dest_field_name": "positive"
     },
     {
-      "name": "image1",
+      "name": "style",
+      "display_name": "Style",
+      "type": "list",
+      "options": [
+        "Cinematic",
+        "Disney Character",
+        "Digital Art",
+        "Photographic",
+        "Fantasy Art",
+        "Neonpunk",
+        "Enhance",
+        "Comic book",
+        "Lowpoly",
+        "Line art"
+      ],
+      "optional": false,
+      "id": 70,
+      "dest_field_name": "style_name"
+    },
+    {
+      "name": "image",
       "display_name": "Person photo",
       "type": "image",
       "optional": false,
-      "id": 0
-    },
-    {
-      "name": "negative_prompt",
-      "display_name": "Negative Prompt",
-      "type": "text",
-      "optional": true,
-      "id": 0
+      "id": 32,
+      "dest_field_name": "image"
     }
   ],
   "output_params": [
     {
       "type": "image",
-      "id": 0
+      "id": 68
     }
   ]
 }
