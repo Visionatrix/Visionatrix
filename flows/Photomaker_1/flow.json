@@ -24,10 +24,16 @@
       "display_name": "Prompt",
       "type": "text",
       "optional": false,
-      "id": 6,
-      "dest_field_name": "text",
-      "modify_param": {
-        "sub": ["$", ", photomaker"]
+      "id": {
+        "6": {
+          "dest_field_name": "text"
+        },
+        "73": {
+          "dest_field_name": "text",
+          "modify_param": {
+            "sub": ["$", ", photomaker"]
+          }
+        }
       }
     },
     {
@@ -35,16 +41,22 @@
       "display_name": "Negative Prompt",
       "type": "text",
       "optional": true,
-      "id": 7,
-      "dest_field_name": "text"
+      "id": {
+        "7": {
+          "dest_field_name": "text"
+        }
+      }
     },
     {
       "name": "image",
       "display_name": "Person photo",
       "type": "image",
       "optional": false,
-      "id": 77,
-      "dest_field_name": "image"
+      "id": {
+        "77": {
+          "dest_field_name": "image"
+        }
+      }
     }
   ],
   "output_params": [
