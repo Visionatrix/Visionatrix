@@ -14,7 +14,9 @@ amw_models:
   controlnet: amw_models_root/controlnet
   diffusers: amw_models_root/diffusers
   ipadapter: amw_models_root/ipadapter
-  loras: amw_models_root/loras
+  loras: |
+    amw_models_root/loras
+    amw_models_root/photomaker
   photomaker: amw_models_root/photomaker
   sams: amw_models_root/sams
   ultratics: amw_models_root/ultratics
