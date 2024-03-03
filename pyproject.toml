@@ -15,7 +15,7 @@ keywords = [
   "Image",
   "Video",
 ]
-license = "AGPLv3+"
+license = "AGPL-3.0-or-later"
 authors = [
     { name = "Alexander Piskun", email = "bigcat88@icloud.com" },
     { name = "Andrey Borysenko", email = "andrey18106@gmail.com" },
