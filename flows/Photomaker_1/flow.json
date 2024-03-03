@@ -2,8 +2,8 @@
   "name": "photomaker_1",
   "display_name": "Photo from 1 image",
   "description": "Create a new photo based on one another",
-  "author": "Shiimizu",
-  "homepage": "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus",
+  "author": "TencentARC",
+  "homepage": "https://github.com/TencentARC/PhotoMaker",
   "license": "https://huggingface.co/TencentARC/PhotoMaker/blob/main/LICENSE",
   "comfy_flow": "photomaker_plus_1_comfy.json",
   "models": [
@@ -21,45 +21,40 @@
   "input_params": [
     {
       "name": "prompt",
-      "display_name": "Prompt containing 'img' keyword",
+      "display_name": "Prompt",
       "type": "text",
       "optional": false,
-      "id": 70,
-      "dest_field_name": "positive"
+      "id": 6,
+      "dest_field_name": "text",
+      "modify_param": {
+        "sub": ["$", ", photomaker"]
+      }
     },
     {
-      "name": "style",
-      "display_name": "Style",
-      "type": "list",
-      "options": [
-        "Cinematic",
-        "Disney Character",
-        "Digital Art",
-        "Photographic",
-        "Fantasy Art",
-        "Neonpunk",
-        "Enhance",
-        "Comic book",
-        "Lowpoly",
-        "Line art"
-      ],
-      "optional": false,
-      "id": 70,
-      "dest_field_name": "style_name"
+      "name": "negative_prompt",
+      "display_name": "Negative Prompt",
+      "type": "text",
+      "optional": true,
+      "id": 7,
+      "dest_field_name": "text"
     },
     {
       "name": "image",
       "display_name": "Person photo",
       "type": "image",
       "optional": false,
-      "id": 32,
+      "id": 77,
       "dest_field_name": "image"
     }
   ],
   "output_params": [
     {
       "type": "image",
-      "id": 68
+      "id": 76
+    },
+    {
+      "type": "image",
+      "id": 69
     }
   ]
 }

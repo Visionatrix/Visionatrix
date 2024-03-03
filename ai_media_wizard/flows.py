@@ -1,6 +1,7 @@
 import builtins
 import json
 import os
+import re
 from pathlib import Path
 from shutil import rmtree
 from typing import Any
@@ -105,11 +106,12 @@ def download_model(model: dict[str, str], models_dir: str) -> None:
             raise RuntimeError(f"Error during downloading '{model['url']}'.") from None
 
 
-def prepare_comfy_flow(flow: dict, comfy_flow: dict, in_texts_params: dict, in_files_params: list) -> dict:
+def prepare_comfy_flow(
+    flow: dict, comfy_flow: dict, in_texts_params: dict, in_files_params: list, request_id: str, backend_dir: str
+) -> dict:
     flow_params = flow["input_params"]
     text_params = [i for i in flow_params if i["type"] == "text"]
-    _ = in_files_params
-    # files_params = [i for i in flow_params if i["type"] in ("image", "video")]
+    files_params = [i for i in flow_params if i["type"] in ("image", "video")]
     r = comfy_flow.copy()
     for i in text_params:
         v = in_texts_params.get(i["name"], None)
@@ -120,7 +122,24 @@ def prepare_comfy_flow(flow: dict, comfy_flow: dict, in_texts_params: dict, in_f
         node = r.get(str(i["id"]), {})
         if not node:
             raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{i['id']}` can not be found.")
-        node["inputs"]["text"] = v
+        for mod_operation, mod_params in (i.get("modify_param", {})).items():
+            if mod_operation == "sub":
+                v = re.sub(mod_params[0], mod_params[1], v)
+            else:
+                print(f"Warning! Unknown modify param operation: {mod_operation}")
+        node["inputs"][i["dest_field_name"]] = v
+    min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
+    if len(in_files_params) < min_required_files_count:
+        raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
+    for i, v in enumerate(in_files_params):
+        file_name = os.path.join(backend_dir, "input", f"{request_id}_{i}")
+        with builtins.open(file_name, mode="wb") as fp:
+            if hasattr(v, "read"):
+                fp.write(v.read())
+            else:
+                fp.write(bytes(v))
+        node = r[str(files_params[i]["id"])]
+        node["inputs"][files_params[i]["dest_field_name"]] = f"{request_id}_{i}"
     return r
 
 

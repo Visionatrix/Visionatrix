@@ -59,7 +59,7 @@ def wizard_backend(
         return fastapi.responses.JSONResponse(content=get_available_flows(flows_dir))
 
     @app.put("/flow")
-    async def flow_install(name: str):
+    def flow_install(name: str):
         return fastapi.responses.JSONResponse(content={"error": install_flow(flows_dir, name, models_dir)})
 
     @app.delete("/flow")
@@ -68,14 +68,13 @@ def wizard_backend(
         return fastapi.responses.JSONResponse(content=[])
 
     @app.post("/flow")
-    async def flow_run(
+    def flow_run(
         b_tasks: fastapi.BackgroundTasks,
         name: str = fastapi.Form(),
         input_params: str = fastapi.Form(None),
         files: list[fastapi.UploadFile] = None,  # noqa
     ):
-        if files is None:
-            files = []
+        in_files = [i.file for i in files] if files else []
         try:
             input_params_list = json.loads(input_params) if input_params else []
         except json.JSONDecodeError:
@@ -86,12 +85,12 @@ def wizard_backend(
         if not flow:
             raise fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.") from None
 
+        request_id = str(uuid.uuid4())
         try:
-            comfy_flow = prepare_comfy_flow(flow, comfy_flow, input_params_list, files)
+            comfy_flow = prepare_comfy_flow(flow, comfy_flow, input_params_list, in_files, request_id, backend_dir)
         except RuntimeError as e:
             raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
 
-        request_id = str(uuid.uuid4())
         connection = open_comfy_websocket(request_id)
         r = execute_comfy_flow(comfy_flow, request_id)
         b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], comfy_flow)
@@ -123,7 +122,7 @@ def wizard_backend(
         raise fastapi.HTTPException(status_code=404, detail="These node types are not currently supported.")
 
     @app.post("/backend-restart")
-    async def backend_restart():
+    def backend_restart():
         run_comfy_backend(backend_dir)
         return fastapi.responses.JSONResponse(content=[])
 

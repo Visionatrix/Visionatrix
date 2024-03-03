@@ -21,10 +21,7 @@
   },
   "6": {
     "inputs": {
-      "text": [
-        "29",
-        0
-      ],
+      "text": "cinematic still close portrait of man in leather suite looking at viewer, emotional, harmonious, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, gorgeous, film grain, grainy, photomaker",
       "clip": [
         "4",
         1
@@ -37,10 +34,7 @@
   },
   "7": {
     "inputs": {
-      "text": [
-        "70",
-        1
-      ],
+      "text": "asymmetry, worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch, open mouth",
       "clip": [
         "4",
         1
@@ -49,115 +43,6 @@
     "class_type": "CLIPTextEncode",
     "_meta": {
       "title": "CLIP Text Encode (Prompt)"
-    }
-  },
-  "20": {
-    "inputs": {
-      "add_noise": "enable",
-      "noise_seed": 546422067181286,
-      "steps": 20,
-      "cfg": 5,
-      "sampler_name": "euler",
-      "scheduler": "normal",
-      "start_at_step": 0,
-      "end_at_step": 10,
-      "return_with_leftover_noise": "enable",
-      "model": [
-        "53",
-        0
-      ],
-      "positive": [
-        "6",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "latent_image": [
-        "5",
-        0
-      ]
-    },
-    "class_type": "KSamplerAdvanced",
-    "_meta": {
-      "title": "KSampler (Advanced)"
-    }
-  },
-  "21": {
-    "inputs": {
-      "add_noise": "disable",
-      "noise_seed": 546422067181286,
-      "steps": 20,
-      "cfg": 5,
-      "sampler_name": "euler",
-      "scheduler": "normal",
-      "start_at_step": 10,
-      "end_at_step": 10000,
-      "return_with_leftover_noise": "disable",
-      "model": [
-        "53",
-        0
-      ],
-      "positive": [
-        "71",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "latent_image": [
-        "20",
-        0
-      ]
-    },
-    "class_type": "KSamplerAdvanced",
-    "_meta": {
-      "title": "KSampler (Advanced)"
-    }
-  },
-  "26": {
-    "inputs": {
-      "samples": [
-        "21",
-        0
-      ],
-      "vae": [
-        "4",
-        2
-      ]
-    },
-    "class_type": "VAEDecode",
-    "_meta": {
-      "title": "VAE Decode"
-    }
-  },
-  "29": {
-    "inputs": {
-      "action": "replace",
-      "tidy_tags": "no",
-      "text_a": [
-        "70",
-        0
-      ],
-      "text_b": "/ img/",
-      "text_c": "",
-      "result": "cinematic still portrait of man in green dragon suite . emotional, harmonious, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, gorgeous, film grain, grainy"
-    },
-    "class_type": "StringFunction|pysssss",
-    "_meta": {
-      "title": "String Function 🐍"
-    }
-  },
-  "32": {
-    "inputs": {
-      "image": "frank.jpeg",
-      "upload": "image"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Load Image"
     }
   },
   "53": {
@@ -174,53 +59,107 @@
       "title": "LoraLoaderModelOnly"
     }
   },
-  "68": {
+  "59": {
+    "inputs": {
+      "conditioning_1": [
+        "60",
+        0
+      ],
+      "conditioning_2": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "ConditioningCombine",
+    "_meta": {
+      "title": "Conditioning (Combine)"
+    }
+  },
+  "60": {
+    "inputs": {
+      "start": 0,
+      "end": 0.4,
+      "conditioning": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "ConditioningSetTimestepRange"
+    }
+  },
+  "62": {
+    "inputs": {
+      "start": 0.4,
+      "end": 1,
+      "conditioning": [
+        "73",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "ConditioningSetTimestepRange"
+    }
+  },
+  "63": {
+    "inputs": {
+      "seed": 40,
+      "steps": 20,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "53",
+        0
+      ],
+      "positive": [
+        "59",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "65": {
+    "inputs": {
+      "samples": [
+        "63",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "69": {
     "inputs": {
       "filename_prefix": "ComfyUI",
       "images": [
-        "26",
+        "65",
         0
       ]
     },
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
-    }
-  },
-  "70": {
-    "inputs": {
-      "style_name": "Cinematic",
-      "positive": "portrait of man img in green dragon suite",
-      "negative": "asymmetry, worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch), open mouth"
-    },
-    "class_type": "PhotoMakerStyles",
-    "_meta": {
-      "title": "Apply PhotoMaker Style"
-    }
-  },
-  "71": {
-    "inputs": {
-      "trigger_word": "img",
-      "text": [
-        "70",
-        0
-      ],
-      "clip": [
-        "4",
-        1
-      ],
-      "photomaker": [
-        "72",
-        0
-      ],
-      "image": [
-        "32",
-        0
-      ]
-    },
-    "class_type": "PhotoMakerEncodePlus",
-    "_meta": {
-      "title": "PhotoMaker Encode Plus"
     }
   },
   "72": {
@@ -230,6 +169,96 @@
     "class_type": "PhotoMakerLoader",
     "_meta": {
       "title": "PhotoMakerLoader"
+    }
+  },
+  "73": {
+    "inputs": {
+      "text": "cinematic still close portrait of man in leather suite looking at viewer, emotional, harmonious, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, gorgeous, film grain, grainy, photomaker",
+      "photomaker": [
+        "72",
+        0
+      ],
+      "image": [
+        "77",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "PhotoMakerEncode",
+    "_meta": {
+      "title": "PhotoMakerEncode"
+    }
+  },
+  "74": {
+    "inputs": {
+      "seed": 40,
+      "steps": 20,
+      "cfg": 5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "53",
+        0
+      ],
+      "positive": [
+        "73",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "75": {
+    "inputs": {
+      "samples": [
+        "74",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "76": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "77": {
+    "inputs": {
+      "image": "input.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
     }
   }
 }
