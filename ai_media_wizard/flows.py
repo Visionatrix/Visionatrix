@@ -12,6 +12,8 @@ from websockets.sync.client import connect
 
 from . import options
 
+GH_CACHE_FLOWS = {}
+
 
 def get_available_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
     repo = Github().get_repo("cloud-media-flows/AI_Media_Wizard")
@@ -20,23 +22,34 @@ def get_available_flows(flows_dir: str, comfy_flows: list | None = None) -> list
     for flow in repo.get_contents("flows"):
         if flow.type != "dir":
             continue
-        flow_dir = f"flows/{flow.name}"
-        try:
-            flow_description = repo.get_contents(f"{flow_dir}/flow.json")
-        except GithubException:
-            print(f"Warning, can't find `flow.json` for {flow.name}, skipping.")
-            continue
-        flow_data = json.loads(flow_description.decoded_content)
-        comfy_flow = flow_data.get("comfy_flow", "")
-        if not comfy_flow:
-            print(f"Warning, broken flow file: {flow_dir}/flow.json")
-            continue
-        try:
-            comfy_flow_data = repo.get_contents(f"{flow_dir}/{comfy_flow}")
-        except GithubException:
-            print(f"Can't find `comfy flow` at ({flow_dir}/{comfy_flow}) for {flow.name}, skipping.")
-            continue
-        comfy_flow_data = json.loads(comfy_flow_data.decoded_content)
+        if flow.name in GH_CACHE_FLOWS and flow.etag == GH_CACHE_FLOWS[flow.name]["etag"]:
+            flow_data = GH_CACHE_FLOWS[flow.name]["flow_data"]
+            comfy_flow_data = GH_CACHE_FLOWS[flow.name]["comfy_flow_data"]
+        else:
+            flow_dir = f"flows/{flow.name}"
+            try:
+                flow_description = repo.get_contents(f"{flow_dir}/flow.json")
+            except GithubException:
+                print(f"Warning, can't find `flow.json` for {flow.name}, skipping.")
+                continue
+            flow_data = json.loads(flow_description.decoded_content)
+            comfy_flow = flow_data.get("comfy_flow", "")
+            if not comfy_flow:
+                print(f"Warning, broken flow file: {flow_dir}/flow.json")
+                continue
+            try:
+                comfy_flow_data = repo.get_contents(f"{flow_dir}/{comfy_flow}")
+            except GithubException:
+                print(f"Can't find `comfy flow` at ({flow_dir}/{comfy_flow}) for {flow.name}, skipping.")
+                continue
+            comfy_flow_data = json.loads(comfy_flow_data.decoded_content)
+            GH_CACHE_FLOWS.update({
+                flow.name: {
+                    "etag": flow.etag,
+                    "flow_data": flow_data,
+                    "comfy_flow_data": comfy_flow_data,
+                }
+            })
         if flow_data["name"] not in installed_flows_ids:
             possible_flows.append(flow_data)
             if comfy_flows is not None:
