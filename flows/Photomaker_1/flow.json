@@ -24,7 +24,7 @@
       "display_name": "Prompt",
       "type": "text",
       "optional": false,
-      "id": {
+      "comfy_node_id": {
         "6": {
           "dest_field_name": "text"
         },
@@ -41,7 +41,7 @@
       "display_name": "Negative Prompt",
       "type": "text",
       "optional": true,
-      "id": {
+      "comfy_node_id": {
         "7": {
           "dest_field_name": "text"
         }
@@ -52,7 +52,7 @@
       "display_name": "Person photo",
       "type": "image",
       "optional": false,
-      "id": {
+      "comfy_node_id": {
         "77": {
           "dest_field_name": "image"
         }
@@ -62,11 +62,11 @@
   "output_params": [
     {
       "type": "image",
-      "id": 76
+      "comfy_node_id": 76
     },
     {
       "type": "image",
-      "id": 69
+      "comfy_node_id": 69
     }
   ]
 }

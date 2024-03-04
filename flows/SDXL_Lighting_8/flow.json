@@ -19,7 +19,7 @@
       "display_name": "Prompt",
       "type": "text",
       "optional": false,
-      "id": {
+      "comfy_node_id": {
         "6": {
           "dest_field_name": "text"
         }
@@ -30,7 +30,7 @@
       "display_name": "Negative Prompt",
       "type": "text",
       "optional": true,
-      "id": {
+      "comfy_node_id": {
         "7": {
           "dest_field_name": "text"
         }
@@ -40,7 +40,7 @@
   "output_params": [
     {
       "type": "image",
-      "id": 9
+      "comfy_node_id": 9
     }
   ]
 }
