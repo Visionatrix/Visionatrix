@@ -1,5 +1,6 @@
 # AI-Media-Wizard
 
+[![Analysis & Coverage](https://github.com/cloud-media-flows/AI_Media_Wizard/actions/workflows/analysis-coverage.yml/badge.svg)](https://github.com/cloud-media-flows/AI_Media_Wizard/actions/workflows/analysis-coverage.yml)
 [![Docs](https://github.com/cloud-media-flows/AI_Media_Wizard/actions/workflows/docs.yml/badge.svg)](https://cloud-media-flows.github.io/AI_Media_Wizard/)
 
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
