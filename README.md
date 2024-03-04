@@ -1,4 +1,7 @@
 # AI-Media-Wizard
+
+[![Docs](https://github.com/cloud-media-flows/AI_Media_Wizard/actions/workflows/docs.yml/badge.svg)](https://cloud-media-flows.github.io/AI_Media_Wizard/)
+
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
 **AI-driven** media creation and editing with a friendly UI and a backend API for integration with third-party services.

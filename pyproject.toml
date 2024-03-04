@@ -62,6 +62,15 @@ dev = [
   "pylint",
   "pytest",
 ]
+docs = [
+  "ai-media-wizard[app]",
+  "autodoc_pydantic>=2.0.1",
+  "sphinx>=6.2",
+  "sphinx-copybutton",
+  "sphinx-inline-tabs",
+  "sphinx-issues>=3.0.1",
+  "sphinx-rtd-theme>=1",
+]
 [project.urls]
 Changelog = "https://github.com/cloud-media-flows/ai_media_wizard/blob/main/CHANGELOG.md"
 Documentation = "https://cloud-media-flows.github.io/ai_media_wizard/"
