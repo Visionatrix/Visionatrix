@@ -10,9 +10,9 @@ from websockets.sync.client import ClientConnection
 from . import options
 from .flows import (
     execute_comfy_flow,
-    get_available_flows,
     get_installed_flow,
     get_installed_flows,
+    get_not_installed_flows,
     install_flow,
     open_comfy_websocket,
     prepare_comfy_flow,
@@ -56,7 +56,7 @@ def wizard_backend(
 
     @app.get("/flows-available")
     async def flows_available():
-        return fastapi.responses.JSONResponse(content=get_available_flows(flows_dir))
+        return fastapi.responses.JSONResponse(content=get_not_installed_flows(flows_dir))
 
     @app.put("/flow")
     def flow_install(name: str):
@@ -190,6 +190,7 @@ def run_backend(
 def run_comfy_backend(backend_dir="") -> None:
     """Starts ComfyUI in a background."""
     global COMFY_PROCESS  # pylint: disable=global-statement
+
     if COMFY_PROCESS is not None:
         COMFY_PROCESS.kill()
         COMFY_PROCESS = None

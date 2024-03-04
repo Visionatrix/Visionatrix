@@ -2,6 +2,7 @@ import builtins
 import json
 import os
 import re
+import time
 from pathlib import Path
 from shutil import rmtree
 from typing import Any
@@ -14,11 +15,21 @@ from . import options
 
 GH_CACHE_FLOWS = {}
 
+CACHE_AVAILABLE_FLOWS = {
+    "update_time": time.time() - 11,
+    "flows": [],
+    "comfy_flows": [],
+}
 
-def get_available_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
+
+def get_available_flows() -> [list[dict[str, Any]], list[dict[str, Any]]]:
+    if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + 10:
+        return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["comfy_flows"]
+
+    CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
     repo = Github().get_repo("cloud-media-flows/AI_Media_Wizard")
-    installed_flows_ids = [i["name"] for i in get_installed_flows(flows_dir)]
-    possible_flows = []
+    r_flows = []
+    r_comfy_flows = []
     for flow in repo.get_contents("flows"):
         if flow.type != "dir":
             continue
@@ -50,11 +61,22 @@ def get_available_flows(flows_dir: str, comfy_flows: list | None = None) -> list
                     "comfy_flow_data": comfy_flow_data,
                 }
             })
-        if flow_data["name"] not in installed_flows_ids:
-            possible_flows.append(flow_data)
+        r_flows.append(flow_data)
+        r_comfy_flows.append(comfy_flow_data)
+    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "comfy_flows": r_comfy_flows})
+    return r_flows, r_comfy_flows
+
+
+def get_not_installed_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
+    installed_flows_ids = [i["name"] for i in get_installed_flows(flows_dir)]
+    avail_flows, avail_comfy_flows = get_available_flows()
+    r = []
+    for i, v in enumerate(avail_flows):
+        if v["name"] not in installed_flows_ids:
+            r.append(v)
             if comfy_flows is not None:
-                comfy_flows.append(comfy_flow_data)
-    return possible_flows
+                comfy_flows.append(avail_comfy_flows[i])
+    return r
 
 
 def get_installed_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
@@ -82,8 +104,8 @@ def get_installed_flow(flows_dir: str, flow_name: str, comfy_flow: dict) -> dict
 
 def install_flow(flows_dir: str, flow_name: str, models_dir: str) -> str:
     uninstall_flow(flows_dir, flow_name)
-    comfy_flows_data = []
-    for i, flow in enumerate(get_available_flows(flows_dir, comfy_flows_data)):
+    flows, comfy_flows = get_available_flows()
+    for i, flow in enumerate(flows):
         if flow["name"] == flow_name:
             for model in flow["models"]:
                 download_model(model, models_dir)
@@ -92,7 +114,7 @@ def install_flow(flows_dir: str, flow_name: str, models_dir: str) -> str:
             with builtins.open(os.path.join(local_flow_dir, "flow.json"), mode="w", encoding="utf-8") as fp:
                 json.dump(flow, fp)
             with builtins.open(os.path.join(local_flow_dir, flow["comfy_flow"]), mode="w", encoding="utf-8") as fp:
-                json.dump(comfy_flows_data[i], fp)
+                json.dump(comfy_flows[i], fp)
             return ""
     return f"Can't find `{flow_name}` flow in repository."
 
