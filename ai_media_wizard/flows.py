@@ -154,7 +154,7 @@ def prepare_comfy_flow(
             if not i.get("optional", False):
                 raise RuntimeError(f"Missing `{i['name']}` parameter.")
             continue
-        for k, k_v in i["id"].items():
+        for k, k_v in i["comfy_node_id"].items():
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
@@ -174,7 +174,7 @@ def prepare_comfy_flow(
                 fp.write(v.read())
             else:
                 fp.write(bytes(v))
-        for k, k_v in files_params[i]["id"].items():
+        for k, k_v in files_params[i]["comfy_node_id"].items():
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
