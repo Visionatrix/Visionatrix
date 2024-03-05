@@ -29,7 +29,7 @@ except ImportError as ex:
 
 
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
-PROGRESS_TRACKING = {}  # task_id: {progress: 0.0-100.0, error: ""}
+TASKS_PROGRESS = {}  # task_id: {request_id: str, progress: 0.0-100.0, error: "", flow: {}, comfy_flow: {}}
 
 
 def wizard_backend(
@@ -93,12 +93,18 @@ def wizard_backend(
 
         connection = open_comfy_websocket(request_id)
         r = execute_comfy_flow(comfy_flow, request_id)
-        b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], comfy_flow)
+        task_details = {"request_id": request_id, "progress": 0, "error": "", "flow": flow, "comfy_flow": comfy_flow}
+        TASKS_PROGRESS[r["prompt_id"]] = task_details
+        b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], task_details)
         return fastapi.responses.JSONResponse(content={"client_id": request_id, "task_id": r["prompt_id"]})
+
+    @app.get("/flows-progress")
+    async def flows_progress():
+        return fastapi.responses.JSONResponse(content=TASKS_PROGRESS)
 
     @app.get("/flow-progress")
     async def flow_progress(task_id: str):
-        r = PROGRESS_TRACKING.get(task_id, None)
+        r = TASKS_PROGRESS.get(task_id, None)
         if r is None:
             raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         return fastapi.responses.JSONResponse(content=r)
@@ -131,12 +137,10 @@ def wizard_backend(
     )
 
 
-def __track_task_progress(connection: ClientConnection, task_id: str, comfy_flow: dict) -> None:
-    task = {"progress": 0, "error": ""}
-    nodes_to_execute = list(comfy_flow.keys())
+def __track_task_progress(connection: ClientConnection, task_id: str, task_details: dict) -> None:
+    nodes_to_execute = list(task_details["comfy_flow"].keys())
     node_percent = 100 / len(nodes_to_execute)
     current_node = ""
-    PROGRESS_TRACKING.update({task_id: task})
     while True:
         out = connection.recv()
         if isinstance(out, str):
@@ -144,19 +148,19 @@ def __track_task_progress(connection: ClientConnection, task_id: str, comfy_flow
             if message["type"] == "executing":
                 data = message["data"]
                 if data["node"] is None and data["prompt_id"] == task_id:
-                    task["progress"] = 100
+                    task_details["progress"] = 100
                     break
                 if data["node"] is not None and data["prompt_id"] == task_id:
                     if not current_node:
                         current_node = data["node"]
                     if current_node != data["node"]:
-                        task["progress"] += node_percent
+                        task_details["progress"] += node_percent
                         current_node = data["node"]
             elif message["type"] == "progress":
                 data = message["data"]
                 if "max" in data and "value" in data:
                     current_node = ""
-                    task["progress"] += node_percent / int(data["max"])
+                    task_details["progress"] += node_percent / int(data["max"])
         else:
             continue
 
