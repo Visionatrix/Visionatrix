@@ -19,7 +19,7 @@ amw_models:
     amw_models_root/photomaker
   photomaker: amw_models_root/photomaker
   sams: amw_models_root/sams
-  ultratics: amw_models_root/ultratics
+  ultralytics: amw_models_root/ultralytics
   unet: amw_models_root/unet
   upscale_models: amw_models_root/upscale_models
   vae: amw_models_root/vae
