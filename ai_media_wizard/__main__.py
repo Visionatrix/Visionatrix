@@ -1,7 +1,10 @@
 import argparse
+import builtins
+import json
 import sys
 
-from . import install, run_backend, update
+from . import install, options, run_backend, update
+from .flows import install_custom_flow
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -10,9 +13,14 @@ if __name__ == "__main__":
         ("install", "Performs cleanup & initialization"),
         ("update", "Performs update to the latest version"),
         ("run", "Starts the AI and MediaWizard backends"),
+        ("install-flow", "Install flow from folder"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
-        subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
+        if i[0] == "install-flow":
+            subparser.add_argument("--flow", type=str, help="Path to `flow.json`")
+            subparser.add_argument("--comfy_flow", type=str, help="Path to `xyz_comfy.json`")
+        else:
+            subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
         subparser.add_argument("--models_dir", type=str, help="Directory for the models")
         if i[0] == "run":
@@ -34,6 +42,18 @@ if __name__ == "__main__":
                 wizard_port=args.port,
             )
         )
+    elif args.command == "install-flow":
+        with builtins.open(args.flow, "rb") as fp:
+            flow = json.loads(fp.read())
+        with builtins.open(args.comfy_flow, "rb") as fp:
+            comfy_flow = json.loads(fp.read())
+        install_custom_flow(
+            flows_dir=options.get_flows_dir(args.flows_dir),
+            models_dir=options.get_models_dir(args.models_dir),
+            flow=flow,
+            comfy_flow=comfy_flow,
+        )
+        sys.exit(0)
     else:
         print("Unknown command")
     sys.exit(2)

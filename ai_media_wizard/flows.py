@@ -103,20 +103,24 @@ def get_installed_flow(flows_dir: str, flow_name: str, comfy_flow: dict) -> dict
 
 
 def install_flow(flows_dir: str, flow_name: str, models_dir: str) -> str:
-    uninstall_flow(flows_dir, flow_name)
     flows, comfy_flows = get_available_flows()
     for i, flow in enumerate(flows):
         if flow["name"] == flow_name:
-            for model in flow["models"]:
-                download_model(model, models_dir)
-            local_flow_dir = os.path.join(flows_dir, flow_name)
-            os.mkdir(local_flow_dir)
-            with builtins.open(os.path.join(local_flow_dir, "flow.json"), mode="w", encoding="utf-8") as fp:
-                json.dump(flow, fp)
-            with builtins.open(os.path.join(local_flow_dir, flow["comfy_flow"]), mode="w", encoding="utf-8") as fp:
-                json.dump(comfy_flows[i], fp)
-            return ""
+            install_custom_flow(flows_dir, flow, comfy_flows[i], models_dir)
     return f"Can't find `{flow_name}` flow in repository."
+
+
+def install_custom_flow(flows_dir: str, flow: dir, comfy_flow: dir, models_dir: str) -> str:
+    uninstall_flow(flows_dir, flow["name"])
+    for model in flow["models"]:
+        download_model(model, models_dir)
+    local_flow_dir = os.path.join(flows_dir, flow["name"])
+    os.mkdir(local_flow_dir)
+    with builtins.open(os.path.join(local_flow_dir, "flow.json"), mode="w", encoding="utf-8") as fp:
+        json.dump(flow, fp)
+    with builtins.open(os.path.join(local_flow_dir, flow["comfy_flow"]), mode="w", encoding="utf-8") as fp:
+        json.dump(comfy_flow, fp)
+    return ""
 
 
 def uninstall_flow(flows_dir: str, flow_name: str) -> None:
