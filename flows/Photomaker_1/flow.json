@@ -2,20 +2,22 @@
   "name": "photomaker_1",
   "display_name": "Photo from 1 image",
   "description": "Create a new photo based on one another",
-  "author": "TencentARC",
-  "homepage": "https://github.com/TencentARC/PhotoMaker",
-  "license": "https://huggingface.co/TencentARC/PhotoMaker/blob/main/LICENSE",
+  "author": "bigcat88",
+  "homepage": "",
+  "license": "",
   "comfy_flow": "photomaker_plus_1_comfy.json",
   "models": [
     {
       "name": "photomaker-v1.bin",
       "save_path": "photomaker/photomaker-v1.bin",
-      "url": "https://huggingface.co/TencentARC/PhotoMaker/resolve/main/photomaker-v1.bin"
+      "url": "https://huggingface.co/TencentARC/PhotoMaker/resolve/main/photomaker-v1.bin",
+      "license": "https://huggingface.co/TencentARC/PhotoMaker/blob/main/LICENSE"
     },
     {
       "name": "albedobaseXL_v13.safetensors",
       "save_path": "checkpoints/albedobaseXL_v13.safetensors",
-      "url": "https://huggingface.co/frankjoshua/albedobaseXL_v13/resolve/main/albedobaseXL_v13.safetensors"
+      "url": "https://huggingface.co/frankjoshua/albedobaseXL_v13/resolve/main/albedobaseXL_v13.safetensors",
+      "license": ""
     }
   ],
   "input_params": [
