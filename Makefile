@@ -10,4 +10,11 @@ docs html:
 help:
 	@echo "Welcome to AI-Media-Wizard development. Please use \`make <target>\` where <target> is one of"
 	@echo "  docs               make HTML docs"
+	@echo "  build-client       build frontend client"
 	@echo " "
+
+.PHONY: build-client
+build-client:
+	@echo "Building client..."
+	@rm -rf client
+	@cd web && npm run build && cp -r .output/public ../client

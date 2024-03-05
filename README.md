@@ -135,6 +135,9 @@ python -m ai_media_wizard run --ui=client
 
 By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
+![UI](/screenshots/screenshot_1.png)
+![UI](/screenshots/screenshot_2.png)
+
 ## More Information
 
 We'll be covering more information on how to use it with third-party services, how to add your own media flow,
