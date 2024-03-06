@@ -9,13 +9,13 @@ from websockets.sync.client import ClientConnection
 
 from . import options
 from .flows import (
-    execute_comfy_flow,
+    execute_flow_comfy,
     get_installed_flow,
     get_installed_flows,
     get_not_installed_flows,
     install_flow,
     open_comfy_websocket,
-    prepare_comfy_flow,
+    prepare_flow_comfy,
     uninstall_flow,
 )
 
@@ -29,7 +29,7 @@ except ImportError as ex:
 
 
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
-TASKS_PROGRESS = {}  # task_id: {request_id: str, progress: 0.0-100.0, error: "", flow: {}, comfy_flow: {}}
+TASKS_PROGRESS = {}  # task_id: {request_id: str, progress: 0.0-100.0, error: "", flow: {}, flow_comfy: {}}
 
 
 def wizard_backend(
@@ -80,20 +80,20 @@ def wizard_backend(
         except json.JSONDecodeError:
             raise fastapi.HTTPException(status_code=400, detail="Invalid JSON format for params") from None
 
-        comfy_flow = {}
-        flow = get_installed_flow(flows_dir, name, comfy_flow)
+        flow_comfy = {}
+        flow = get_installed_flow(flows_dir, name, flow_comfy)
         if not flow:
             raise fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.") from None
 
         request_id = str(uuid.uuid4())
         try:
-            comfy_flow = prepare_comfy_flow(flow, comfy_flow, input_params_list, in_files, request_id, backend_dir)
+            flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_list, in_files, request_id, backend_dir)
         except RuntimeError as e:
             raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
 
         connection = open_comfy_websocket(request_id)
-        r = execute_comfy_flow(comfy_flow, request_id)
-        task_details = {"request_id": request_id, "progress": 0, "error": "", "flow": flow, "comfy_flow": comfy_flow}
+        r = execute_flow_comfy(flow_comfy, request_id)
+        task_details = {"request_id": request_id, "progress": 0, "error": "", "flow": flow, "flow_comfy": flow_comfy}
         TASKS_PROGRESS[r["prompt_id"]] = task_details
         b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], task_details)
         return fastapi.responses.JSONResponse(content={"client_id": request_id, "task_id": r["prompt_id"]})
@@ -138,7 +138,7 @@ def wizard_backend(
 
 
 def __track_task_progress(connection: ClientConnection, task_id: str, task_details: dict) -> None:
-    nodes_to_execute = list(task_details["comfy_flow"].keys())
+    nodes_to_execute = list(task_details["flow_comfy"].keys())
     node_percent = 100 / len(nodes_to_execute)
     current_node = ""
     while True:

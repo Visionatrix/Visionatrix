@@ -5,25 +5,28 @@
   "author": "Dennis Schöneberg",
   "homepage": "https://www.linkedin.com/in/dennis-sch%C3%B6neberg-3420a2221",
   "license": "",
-  "comfy_flow": "playground_2_5_aesthetic.json",
+  "documentation": "",
   "models": [
     {
       "name": "playground-v2.5-1024px-aesthetic.fp16.safetensors",
       "save_path": "checkpoints/playground-v2.5-1024px-aesthetic.fp16.safetensors",
       "url": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/resolve/main/playground-v2.5-1024px-aesthetic.fp16.safetensors",
-      "license": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/blob/main/LICENSE.md"
+      "homepage": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic",
+      "license": "playground-v2dot5-community"
     },
     {
       "name": "albedobaseXL_v13.safetensors",
       "save_path": "checkpoints/albedobaseXL_v13.safetensors",
       "url": "https://huggingface.co/frankjoshua/albedobaseXL_v13/resolve/main/albedobaseXL_v13.safetensors",
+      "homepage": "https://civitai.com/models/140737?modelVersionId=281176",
       "license": ""
     },
     {
       "name": "epicrealism_naturalSinRC1VAE.safetensors",
       "save_path": "checkpoints/sd15/epicrealism_naturalSinRC1VAE.safetensors",
       "url": "https://huggingface.co/Justin-Choo/epiCRealism-Natural_Sin_RC1_VAE/resolve/main/epicrealism_naturalSinRC1VAE.safetensors",
-      "license": "https://civitai.com/models/25694?modelVersionId=143906"
+      "homepage": "https://civitai.com/models/25694?modelVersionId=143906",
+      "license": "creativeml-openrail-m"
     }
   ],
   "input_params": [

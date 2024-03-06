@@ -17,8 +17,8 @@ if __name__ == "__main__":
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
         if i[0] == "install-flow":
-            subparser.add_argument("--flow", type=str, help="Path to `flow.json`")
-            subparser.add_argument("--comfy_flow", type=str, help="Path to `xyz_comfy.json`")
+            subparser.add_argument("--flow", type=str, help="Path to `flow.json`", required=True)
+            subparser.add_argument("--flow_comfy", type=str, help="Path to `xyz_comfy.json`", required=True)
         else:
             subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
@@ -45,13 +45,13 @@ if __name__ == "__main__":
     elif args.command == "install-flow":
         with builtins.open(args.flow, "rb") as fp:
             flow = json.loads(fp.read())
-        with builtins.open(args.comfy_flow, "rb") as fp:
-            comfy_flow = json.loads(fp.read())
+        with builtins.open(args.flow_comfy, "rb") as fp:
+            flow_comfy = json.loads(fp.read())
         install_custom_flow(
             flows_dir=options.get_flows_dir(args.flows_dir),
             models_dir=options.get_models_dir(args.models_dir),
             flow=flow,
-            comfy_flow=comfy_flow,
+            flow_comfy=flow_comfy,
         )
         sys.exit(0)
     else:

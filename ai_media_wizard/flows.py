@@ -18,99 +18,93 @@ GH_CACHE_FLOWS = {}
 CACHE_AVAILABLE_FLOWS = {
     "update_time": time.time() - 11,
     "flows": [],
-    "comfy_flows": [],
+    "flows_comfy": [],
 }
 
 
 def get_available_flows() -> [list[dict[str, Any]], list[dict[str, Any]]]:
     if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + 10:
-        return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["comfy_flows"]
+        return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
 
     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
     repo = Github().get_repo("cloud-media-flows/AI_Media_Wizard")
     r_flows = []
-    r_comfy_flows = []
+    r_flows_comfy = []
     for flow in repo.get_contents("flows"):
         if flow.type != "dir":
             continue
         if flow.name in GH_CACHE_FLOWS and flow.etag == GH_CACHE_FLOWS[flow.name]["etag"]:
             flow_data = GH_CACHE_FLOWS[flow.name]["flow_data"]
-            comfy_flow_data = GH_CACHE_FLOWS[flow.name]["comfy_flow_data"]
+            flow_comfy_data = GH_CACHE_FLOWS[flow.name]["flow_comfy_data"]
         else:
             flow_dir = f"flows/{flow.name}"
             try:
-                flow_description = repo.get_contents(f"{flow_dir}/flow.json")
+                flow_data = json.loads(repo.get_contents(f"{flow_dir}/flow.json").decoded_content)
             except GithubException:
-                print(f"Warning, can't find `flow.json` for {flow.name}, skipping.")
-                continue
-            flow_data = json.loads(flow_description.decoded_content)
-            comfy_flow = flow_data.get("comfy_flow", "")
-            if not comfy_flow:
-                print(f"Warning, broken flow file: {flow_dir}/flow.json")
+                print(f"Warning, can't load `flow.json` for {flow.name}, skipping.")
                 continue
             try:
-                comfy_flow_data = repo.get_contents(f"{flow_dir}/{comfy_flow}")
+                flow_comfy_data = json.loads(repo.get_contents(f"{flow_dir}/flow_comfy.json").decoded_content)
             except GithubException:
-                print(f"Can't find `comfy flow` at ({flow_dir}/{comfy_flow}) for {flow.name}, skipping.")
+                print(f"Warning, can't load `flow_comfy.json` for {flow.name}, skipping.")
                 continue
-            comfy_flow_data = json.loads(comfy_flow_data.decoded_content)
             GH_CACHE_FLOWS.update({
                 flow.name: {
                     "etag": flow.etag,
                     "flow_data": flow_data,
-                    "comfy_flow_data": comfy_flow_data,
+                    "flow_comfy_data": flow_comfy_data,
                 }
             })
         r_flows.append(flow_data)
-        r_comfy_flows.append(comfy_flow_data)
-    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "comfy_flows": r_comfy_flows})
-    return r_flows, r_comfy_flows
+        r_flows_comfy.append(flow_comfy_data)
+    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy})
+    return r_flows, r_flows_comfy
 
 
-def get_not_installed_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
+def get_not_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, Any]]:
     installed_flows_ids = [i["name"] for i in get_installed_flows(flows_dir)]
-    avail_flows, avail_comfy_flows = get_available_flows()
+    avail_flows, avail_flows_comfy = get_available_flows()
     r = []
     for i, v in enumerate(avail_flows):
         if v["name"] not in installed_flows_ids:
             r.append(v)
-            if comfy_flows is not None:
-                comfy_flows.append(avail_comfy_flows[i])
+            if flows_comfy is not None:
+                flows_comfy.append(avail_flows_comfy[i])
     return r
 
 
-def get_installed_flows(flows_dir: str, comfy_flows: list | None = None) -> list[dict[str, Any]]:
+def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, Any]]:
     flows = [entry for entry in Path(flows_dir).iterdir() if entry.is_dir()]
     r = []
     for flow in flows:
-        if (flow_fp := flow.joinpath("flow.json")).exists() is True:
-            flow_data = json.loads(flow_fp.read_bytes())
-            if (comfy_flow_fp := flow.joinpath(flow_data["comfy_flow"])).exists() is True:
-                r.append(flow_data)
-                if comfy_flows is not None:
-                    comfy_flows.append(json.loads(comfy_flow_fp.read_bytes()))
+        flow_fp = flow.joinpath("flow.json")
+        flow_comfy_fp = flow.joinpath("flow_comfy.json")
+        if flow_fp.exists() is True and flow_comfy_fp.exists() is True:
+            r.append(json.loads(flow_fp.read_bytes()))
+            if flows_comfy is not None:
+                flows_comfy.append(json.loads(flow_comfy_fp.read_bytes()))
     return r
 
 
-def get_installed_flow(flows_dir: str, flow_name: str, comfy_flow: dict) -> dict[str, Any]:
-    comfy_flows = []
-    for i, flow in enumerate(get_installed_flows(flows_dir, comfy_flows)):
+def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict) -> dict[str, Any]:
+    flows_comfy = []
+    for i, flow in enumerate(get_installed_flows(flows_dir, flows_comfy)):
         if flow["name"] == flow_name:
-            comfy_flow.clear()
-            comfy_flow.update(comfy_flows[i])
+            flow_comfy.clear()
+            flow_comfy.update(flows_comfy[i])
             return flow
     return {}
 
 
 def install_flow(flows_dir: str, flow_name: str, models_dir: str) -> str:
-    flows, comfy_flows = get_available_flows()
+    flows, flows_comfy = get_available_flows()
     for i, flow in enumerate(flows):
         if flow["name"] == flow_name:
-            install_custom_flow(flows_dir, flow, comfy_flows[i], models_dir)
+            install_custom_flow(flows_dir, flow, flows_comfy[i], models_dir)
     return f"Can't find `{flow_name}` flow in repository."
 
 
-def install_custom_flow(flows_dir: str, flow: dir, comfy_flow: dir, models_dir: str) -> str:
+def install_custom_flow(flows_dir: str, flow: dir, flow_comfy: dir, models_dir: str) -> str:
     uninstall_flow(flows_dir, flow["name"])
     for model in flow["models"]:
         download_model(model, models_dir)
@@ -118,8 +112,8 @@ def install_custom_flow(flows_dir: str, flow: dir, comfy_flow: dir, models_dir: 
     os.mkdir(local_flow_dir)
     with builtins.open(os.path.join(local_flow_dir, "flow.json"), mode="w", encoding="utf-8") as fp:
         json.dump(flow, fp)
-    with builtins.open(os.path.join(local_flow_dir, flow["comfy_flow"]), mode="w", encoding="utf-8") as fp:
-        json.dump(comfy_flow, fp)
+    with builtins.open(os.path.join(local_flow_dir, "flow_comfy.json"), mode="w", encoding="utf-8") as fp:
+        json.dump(flow_comfy, fp)
     return ""
 
 
@@ -145,13 +139,13 @@ def download_model(model: dict[str, str], models_dir: str) -> None:
             raise RuntimeError(f"Error during downloading '{model['url']}'.") from None
 
 
-def prepare_comfy_flow(
-    flow: dict, comfy_flow: dict, in_texts_params: dict, in_files_params: list, request_id: str, backend_dir: str
+def prepare_flow_comfy(
+    flow: dict, flow_comfy: dict, in_texts_params: dict, in_files_params: list, request_id: str, backend_dir: str
 ) -> dict:
     flow_params = flow["input_params"]
     text_params = [i for i in flow_params if i["type"] == "text"]
     files_params = [i for i in flow_params if i["type"] in ("image", "video")]
-    r = comfy_flow.copy()
+    r = flow_comfy.copy()
     for i in text_params:
         v = in_texts_params.get(i["name"], None)
         if v is None:
@@ -186,8 +180,8 @@ def prepare_comfy_flow(
     return r
 
 
-def execute_comfy_flow(comfy_flow: dict, client_id: str) -> dict:
-    r = httpx.post(f"http://127.0.0.1:{options.COMFY_PORT}/prompt", json={"prompt": comfy_flow, "client_id": client_id})
+def execute_flow_comfy(flow_comfy: dict, client_id: str) -> dict:
+    r = httpx.post(f"http://127.0.0.1:{options.COMFY_PORT}/prompt", json={"prompt": flow_comfy, "client_id": client_id})
     if r.status_code != 200:
         raise RuntimeError(f"ComfyUI returned status: {r.status_code}")
     return json.loads(r.text)
