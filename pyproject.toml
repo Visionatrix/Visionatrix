@@ -48,6 +48,8 @@ dependencies = [
   "httpx>=0.25.2",
   "PyGithub==2.2",
   "python-dotenv>=1",
+  "torch",
+  "torchvision",
   "websockets==12",
 ]
 [project.optional-dependencies]
