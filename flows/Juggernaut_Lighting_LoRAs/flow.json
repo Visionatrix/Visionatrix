@@ -1,0 +1,76 @@
+{
+  "name": "juggernaut_lighting_loras",
+  "display_name": "Juggernaut: Lighting LoRAs",
+  "description": "Juggernaut and LoRAs with built-in post processing",
+  "author": "Valomar",
+  "homepage": "https://comfyworkflows.com/profile/86edf4d7-d110-498d-b4e0-4cacadee750e",
+  "license": "",
+  "documentation": "",
+  "models": [
+    {
+      "name": "juggernautXL_v8Rundiffusion.safetensors",
+      "save_path": "checkpoints/juggernautXL_v8Rundiffusion.safetensors",
+      "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8/resolve/main/juggernautXL_v8Rundiffusion.safetensors",
+      "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8",
+      "license": "creativeml-openrail-m"
+    },
+    {
+      "name": "sdxl_lightning_8step_lora.safetensors",
+      "save_path": "loras/sdxl_lightning_8step_lora.safetensors",
+      "url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_8step_lora.safetensors",
+      "homepage": "https://huggingface.co/ByteDance/SDXL-Lightning",
+      "license": "openrail++"
+    },
+    {
+      "name": "sdxl_vae.safetensors",
+      "save_path": "vae/sdxl_vae.safetensors",
+      "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors",
+      "homepage": "https://huggingface.co/stabilityai/sdxl-vae",
+      "license": "MIT"
+    },
+    {
+      "name": "add-detail-xl.safetensors",
+      "save_path": "loras/add-detail-xl.safetensors",
+      "url": "https://huggingface.co/PvDeep/Add-Detail-XL/resolve/main/add-detail-xl.safetensors",
+      "homepage": "",
+      "license": ""
+    },
+    {
+      "name": "4x-UltraSharp.pth",
+      "save_path": "upscale_models/4x-UltraSharp.pth",
+      "url": "https://huggingface.co/lokCX/4x-Ultrasharp/resolve/main/4x-UltraSharp.pth",
+      "homepage": "",
+      "license": ""
+    }
+  ],
+  "input_params": [
+    {
+      "name": "prompt",
+      "display_name": "Prompt",
+      "type": "text",
+      "optional": false,
+      "comfy_node_id": {
+        "243": {
+          "dest_field_name": "text"
+        }
+      }
+    },
+    {
+      "name": "negative_prompt",
+      "display_name": "Negative Prompt",
+      "type": "text",
+      "optional": true,
+      "comfy_node_id": {
+        "242": {
+          "dest_field_name": "text"
+        }
+      }
+    }
+  ],
+  "output_params": [
+    {
+      "type": "image",
+      "comfy_node_id": 266
+    }
+  ]
+}
