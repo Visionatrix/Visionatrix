@@ -26,6 +26,7 @@ if __name__ == "__main__":
         if i[0] == "run":
             subparser.add_argument("--host", type=str, help="Host to be used by Wizard backend")
             subparser.add_argument("--port", type=str, help="Port to be used by Wizard backend")
+            subparser.add_argument("--ui", type=str, help="Folder with UI")
 
     args = parser.parse_args()
     if args.command == "install":
@@ -40,6 +41,7 @@ if __name__ == "__main__":
                 models_dir=args.models_dir,
                 wizard_host=args.host,
                 wizard_port=args.port,
+                ui_dir=args.ui,
             )
         )
     elif args.command == "install-flow":
