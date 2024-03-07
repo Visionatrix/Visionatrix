@@ -14,124 +14,113 @@ This platform ensures effortless deployment and management of AI-powered, secure
 
 ## The main goals of the project are as follows:
 
-1. To automate deployment and installation processes.
+1. To automate deployment and installation processes of ComfyUI workflows.
 2. To utilize only proven workflows and extensions for handling pictures and videos.
 3. To avoid adding anything unnecessary or questionable from a security perspective.
-4. To provide a convenient external API for external services.
+4. To provide a convenient API for external services.
 5. To ensure an easy and simple user interface for individual users.
-6. To focus on the use of ComfyUI at this stage.
 
 *Main principles are: reliability, safety, and simplicity.*
 
-## How to install
+## Easy installation for home use (**in progress, coming soon**)
 
-### Create Project Directory
+Requirements:
+
+- Python `3.10` or higher
+- Available `git` command
+
+Download and execute `easy_install.py` script:
 
 ```console
-mkdir ai_media_wizard && cd ai_media_wizard
+wget -qO- https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py | python -
 ```
 
-In a case when you wish to join development you can run instead:
+Answer the questions, and then everything should work in most cases.
+
+## Manual installation from repository
+
+**Clone repository:**
 
 ```console
 git clone https://github.com/cloud-media-flows/ai_media_wizard.git && cd ai_media_wizard
 ```
 
-### Setting up virtual environment
+**Set up virtual environment:**
 
 ```console
 python -m venv venv
 ```
 
-### Activation of Virtual Environment
+**Activate Virtual Environment:**
 
-#### Linux/macOS
+_Linux/macOS:_
 
 ```console
 source env/bin/activate
 ```
 
-#### Windows:
+_Windows:_
 
 ```console
 .\env\Scripts\Activate.ps1
 ```
 
-### Install **AIMediaWizard**
+### Install **PyTorch**:
 
-#### Development version from repository
-
-```console
-pip install git+https://github.com/cloud-media-flows/ai_media_wizard.git
-```
-
-#### Stable version from [PyPi](https://pypi.org/project/AIMediaWizard/)
-
-```console
-pip install ai_media_wizard
-```
-
-### Setting Up Hardware Accelerators for Deep Learning
-
-*Currently, install does not differ from installing a [ComfyUI](https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#manual-install-windows-linux).*
-
-Install **PyTorch**:
-
-> [!NOTE]
-> *Later we have a goal to switch from **PyTorch** to [tinygrad](https://github.com/tinygrad/tinygrad) if it is possible.*
-
-#### AMD
+#### AMD (Linux)
 
 Development version of `PyTorch` is preferred for AMD graphic-cards at this moment:
 
 ```console
-pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/rocm6.0
+pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/rocm6.0
 ```
 
-#### NVIDIA
+#### AMD (Windows)
+
+```console
+pip install torch-directml
+```
+
+#### NVIDIA (Linux, Windows)
 
 Stable version of `PyTorch` is preferred for NVIDIA graphic-cards:
 
 ```console
-pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu121
+pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
 #### macOS
 
-Instructions for `Sonoma` will appear a bit later..
+_No action needed :)_
+
+### Install MediaWizard using **pip** from sources:
+
+```console
+pip install ".[app]"
+```
 
 ### Perform **AIMediaWizard** initialization
 
-Execute it as a module with ``--init`` command:
+Execute it as a Python Module with ``install`` command:
 
 ```console
-python -m ai_media_wizard init
+python -m ai_media_wizard install
 ```
 
-#### `init` parameters:
+### Run **AIMediaWizard**
 
-> [!NOTE]
-> All parameters have default values, you can override them in a few ways:
->
-> 1. Using the ".env" file, that will be read by [dotenv](https://pypi.org/project/python-dotenv/) package.
-> 2. Setting them directly in the environment
-> 3. Passing them as the arguments to the `--init` command.
-> 4. If you use `ai_media_wizard` as the imported package you can specify them during call to the `init` function.
+```console
+python -m ai_media_wizard run --ui=client
+```
 
-1. `backend_dir` - directory where backend(`ComfyUI`) and all it's extensions will be stored. Default: current working directory **cwd**/backend.
-2. `models_dir` - directory where `models` will be stored. Default: **cwd**/models
+## Support
 
-#### `run` parameters:
+- ⭐️ Star our work (it really motivates)
+- ❗️ Create an Issue or Feature Request (bring to us an excellent idea)
+- 💁 Resolve some Issue or create a Pull Request (contribute to this project)
+- 🙏 Add a Flow or help us improve documentation in any way.
 
-1. `interface`
-2. `port`
-3. `input_directory` - directory where the input data like images will be stored. Default: temp directory/AIMediaWizard/input
-4. `output_directory` - directory where the results data like images will be stored. Default: temp directory/AIMediaWizard/output
+## More Information
 
-## Usage
-
-To-do
-
-## Integration in External Service
-
-To-do
+We'll be covering more information on how to use it with third-party services, how to add your own media flow,
+or how to use it as a Python package in your application in the documentation that will start appearing soon.

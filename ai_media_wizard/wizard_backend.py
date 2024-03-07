@@ -21,6 +21,7 @@ from .flows import (
 
 try:
     import fastapi
+    import fastapi.staticfiles
     import uvicorn
 except ImportError as ex:
     from ._deffered_error import DeferredError
@@ -43,9 +44,12 @@ def wizard_backend(
 ):
     flows_dir = options.get_flows_dir(flows_dir)
     models_dir = options.get_models_dir(models_dir)
+    ui_dir = kwargs.pop("ui_dir", "")
 
     @asynccontextmanager
     async def lifespan(_app: fastapi.FastAPI):
+        if ui_dir:
+            _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
         yield
 
     app = fastapi.FastAPI(lifespan=lifespan)
