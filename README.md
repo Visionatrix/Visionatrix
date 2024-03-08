@@ -10,7 +10,7 @@
 This platform ensures effortless deployment and management of AI-powered, secure workflows, tailor-made for the efficient processing of images and videos.
 
 > [!NOTE]
-> The project is currently in the planning stage.
+> The project is currently in the planning-development stage, first release will arrive soon.
 
 ## The main goals of the project are as follows:
 
