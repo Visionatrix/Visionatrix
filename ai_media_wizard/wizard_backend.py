@@ -1,9 +1,12 @@
 import contextlib
 import json
+import logging
 import os
 import subprocess
+import sys
 import uuid
 from contextlib import asynccontextmanager
+from importlib.metadata import PackageNotFoundError, version
 
 import httpx
 from websockets.sync.client import ClientConnection
@@ -31,6 +34,7 @@ except ImportError as ex:
     uvicorn = fastapi = DeferredError(ex)
 
 
+LOGGER = logging.getLogger("ai_media_wizard")
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
 FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
 TASKS_PROGRESS = {}  # task_id: {request_id: str, progress: 0.0-100.0, error: "", flow: {}, flow_comfy: {}}
@@ -227,6 +231,8 @@ def run_comfy_backend(backend_dir="") -> None:
     stop_comfy()
     COMFY_PROCESS = None
     run_cmd = f"python {os.path.join(options.get_backend_dir(backend_dir), 'main.py')}".split()
+    if need_directml_flag():
+        run_cmd += ["--directml"]
     COMFY_PROCESS = subprocess.Popen(run_cmd)  # pylint: disable=consider-using-with
 
 
@@ -234,6 +240,19 @@ def stop_comfy() -> None:
     if COMFY_PROCESS is not None:
         with contextlib.suppress(BaseException):
             COMFY_PROCESS.kill()
+
+
+def need_directml_flag() -> bool:
+    if sys.platform.lower() != "win32":
+        return False
+
+    try:
+        version("torch-directml")
+        LOGGER.info("DirectML package is present.")
+        return True
+    except PackageNotFoundError:
+        LOGGER.info("No DirectML package found.")
+        return False
 
 
 def __progress_install_callback(name: str, progress: float, error: str) -> None:
