@@ -56,13 +56,13 @@ python -m venv venv
 _Linux/macOS:_
 
 ```console
-source env/bin/activate
+source venv/bin/activate
 ```
 
 _Windows:_
 
 ```console
-.\env\Scripts\Activate.ps1
+.\venv\Scripts\Activate.ps1
 ```
 
 ### Install **PyTorch**:
