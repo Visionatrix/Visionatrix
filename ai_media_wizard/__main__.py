@@ -62,19 +62,17 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
     if args.command == "install":
-        sys.exit(install(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir))
+        install(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir)
     elif args.command == "update":
-        sys.exit(update(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir))
+        update(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir)
     elif args.command == "run":
-        sys.exit(
-            run_backend(
-                backend_dir=args.backend_dir,
-                flows_dir=args.flows_dir,
-                models_dir=args.models_dir,
-                wizard_host=args.host,
-                wizard_port=args.port,
-                ui_dir=args.ui,
-            )
+        run_backend(
+            backend_dir=args.backend_dir,
+            flows_dir=args.flows_dir,
+            models_dir=args.models_dir,
+            wizard_host=args.host,
+            wizard_port=args.port,
+            ui_dir=args.ui,
         )
     elif args.command == "install-flow":
         with builtins.open(args.flow, "rb") as fp:
@@ -88,7 +86,7 @@ if __name__ == "__main__":
             flow_comfy=flow_comfy,
             progress_callback=__progress_callback,
         )
-        sys.exit(0)
     else:
         logging.getLogger("ai_media_wizard").error("Unknown command")
-    sys.exit(2)
+        sys.exit(2)
+    sys.exit(0)

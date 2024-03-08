@@ -103,6 +103,7 @@ lint.extend-ignore = ["I001", "RUF100", "S603"]
 [tool.ruff.lint.per-file-ignores]
 "ai_media_wizard/__init__.py" = ["F401"]
 "ai_media_wizard/install_update/__init__.py" = ["F401"]
+"scripts/easy_install.py" = ["S602", "S607"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/**/*.py" = ["E402", "S", "UP"]
@@ -124,7 +125,7 @@ design.max-args = 7
 design.max-statements = 90
 basic.good-names = [
     "a", "b", "c", "d", "e", "f", "i", "j", "k", "r", "v",
-    "_", "fp", "im", "ui",
+    "_", "fp", "im", "ui", "q",
 ]
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"

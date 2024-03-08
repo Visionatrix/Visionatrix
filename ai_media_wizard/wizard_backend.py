@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 import subprocess
@@ -51,8 +52,13 @@ def wizard_backend(
     @asynccontextmanager
     async def lifespan(_app: fastapi.FastAPI):
         if ui_dir:
-            _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
+            try:
+                _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
+            except RuntimeError:
+                stop_comfy()
+                raise
         yield
+        stop_comfy()
 
     app = fastapi.FastAPI(lifespan=lifespan)
 
@@ -218,11 +224,16 @@ def run_comfy_backend(backend_dir="") -> None:
     """Starts ComfyUI in a background."""
     global COMFY_PROCESS  # pylint: disable=global-statement
 
-    if COMFY_PROCESS is not None:
-        COMFY_PROCESS.kill()
-        COMFY_PROCESS = None
+    stop_comfy()
+    COMFY_PROCESS = None
     run_cmd = f"python {os.path.join(options.get_backend_dir(backend_dir), 'main.py')}".split()
     COMFY_PROCESS = subprocess.Popen(run_cmd)  # pylint: disable=consider-using-with
+
+
+def stop_comfy() -> None:
+    if COMFY_PROCESS is not None:
+        with contextlib.suppress(BaseException):
+            COMFY_PROCESS.kill()
 
 
 def __progress_install_callback(name: str, progress: float, error: str) -> None:
