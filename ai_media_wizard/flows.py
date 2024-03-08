@@ -12,6 +12,7 @@ from github import Github, GithubException
 from websockets.sync.client import connect
 
 from . import options
+from .models import install_model
 
 GH_CACHE_FLOWS = {}
 
@@ -107,7 +108,7 @@ def install_flow(flows_dir: str, flow_name: str, models_dir: str) -> str:
 def install_custom_flow(flows_dir: str, flow: dir, flow_comfy: dir, models_dir: str) -> str:
     uninstall_flow(flows_dir, flow["name"])
     for model in flow["models"]:
-        download_model(model, models_dir)
+        install_model(model, models_dir)
     local_flow_dir = os.path.join(flows_dir, flow["name"])
     os.mkdir(local_flow_dir)
     with builtins.open(os.path.join(local_flow_dir, "flow.json"), mode="w", encoding="utf-8") as fp:
@@ -119,24 +120,6 @@ def install_custom_flow(flows_dir: str, flow: dir, flow_comfy: dir, models_dir: 
 
 def uninstall_flow(flows_dir: str, flow_name: str) -> None:
     rmtree(os.path.join(flows_dir, flow_name), ignore_errors=True)
-
-
-def download_model(model: dict[str, str], models_dir: str) -> None:
-    save_path = Path(models_dir).joinpath(model["save_path"])
-    if save_path.exists():
-        print(f"`{save_path}` already exists, skipping.")
-        return
-    with httpx.stream("GET", model["url"], follow_redirects=True) as response:
-        if not response.is_success:
-            raise RuntimeError(f"Downloading of '{model['url']}' returned {response.status_code} status.")
-        os.makedirs(save_path.parent, exist_ok=True)
-        try:
-            with builtins.open(save_path, "wb") as file:
-                for chunk in response.iter_bytes(5 * 1024 * 1024):
-                    file.write(chunk)
-        except Exception:  # noqa pylint: disable=broad-exception-caught
-            rmtree(save_path.parent)
-            raise RuntimeError(f"Error during downloading '{model['url']}'.") from None
 
 
 def prepare_flow_comfy(

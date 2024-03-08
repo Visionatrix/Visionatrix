@@ -12,21 +12,24 @@
       "save_path": "checkpoints/playground-v2.5-1024px-aesthetic.fp16.safetensors",
       "url": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/resolve/main/playground-v2.5-1024px-aesthetic.fp16.safetensors",
       "homepage": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic",
-      "license": "playground-v2dot5-community"
+      "license": "playground-v2dot5-community",
+      "hash": "bcaa7dd6780974f000b17b5a6c63e6f867a75c51ffa85c67d6b196882c69b992"
     },
     {
       "name": "albedobaseXL_v13.safetensors",
       "save_path": "checkpoints/albedobaseXL_v13.safetensors",
       "url": "https://huggingface.co/frankjoshua/albedobaseXL_v13/resolve/main/albedobaseXL_v13.safetensors",
       "homepage": "https://civitai.com/models/140737?modelVersionId=281176",
-      "license": ""
+      "license": "",
+      "hash": "a40d817f46acc25c88ee0b6f6efa474004cea3fa1868e09a13192342c5bf4df9"
     },
     {
       "name": "epicrealism_naturalSinRC1VAE.safetensors",
       "save_path": "checkpoints/sd15/epicrealism_naturalSinRC1VAE.safetensors",
       "url": "https://huggingface.co/Justin-Choo/epiCRealism-Natural_Sin_RC1_VAE/resolve/main/epicrealism_naturalSinRC1VAE.safetensors",
       "homepage": "https://civitai.com/models/25694?modelVersionId=143906",
-      "license": "creativeml-openrail-m"
+      "license": "creativeml-openrail-m",
+      "hash": "84d76a0328ee5a1a2a1d466ba7478ab59183e3fea385441528aa4c5d567fd43e"
     }
   ],
   "input_params": [
