@@ -31,8 +31,14 @@ Requirements:
 
 Download and execute `easy_install.py` script:
 
+With **wget**:
 ```console
-wget -qO- https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py | python -
+wget -O easy_install.py https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py && python3 easy_install.py
+```
+
+or with **curl**:
+```console
+curl -o easy_install.py https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py && python3 easy_install.py
 ```
 
 Answer the questions, and then everything should work in most cases.

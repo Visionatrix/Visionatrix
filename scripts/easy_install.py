@@ -33,7 +33,7 @@ def venv_run(command: str) -> None:
     if sys.platform.lower() == "win32":
         command = f"call venv/Scripts/activate.bat && {command}"
     else:
-        command = f"source venv/bin/activate && {command}"
+        command = f". venv/bin/activate && {command}"
     try:
         print(f"executing(pwf={os.getcwd()}): {command}")
         subprocess.check_call(command, cwd="ai_media_wizard", shell=True)
@@ -63,7 +63,9 @@ def install_graphics_card_packages():
 
 
 if __name__ == "__main__":
+    print()
     print("Greetings from Media-Wizard easy install script")
+    print()
     print()
     if Path("ai_media_wizard").exists():
         c = input("ai_media_wizard folder already exists. Remove it? (Y/N): ").lower()
