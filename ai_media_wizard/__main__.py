@@ -20,6 +20,13 @@ def get_log_level(log_level_str):
     return log_levels.get(log_level_str.upper(), logging.INFO)
 
 
+def __progress_callback(name: str, progress: float, error: str) -> None:
+    if not error:
+        logging.info("`%s` installation: %s", name, progress)
+    else:
+        logging.error("`%s` installation failed: %s", name, error)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -79,6 +86,7 @@ if __name__ == "__main__":
             models_dir=options.get_models_dir(args.models_dir),
             flow=flow,
             flow_comfy=flow_comfy,
+            progress_callback=__progress_callback,
         )
         sys.exit(0)
     else:

@@ -4,9 +4,9 @@ import logging
 import os
 import re
 import time
+import typing
 from pathlib import Path
 from shutil import rmtree
-from typing import Any
 
 import httpx
 from github import Github, GithubException
@@ -25,7 +25,7 @@ CACHE_AVAILABLE_FLOWS = {
 }
 
 
-def get_available_flows() -> [list[dict[str, Any]], list[dict[str, Any]]]:
+def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing.Any]]]:
     if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + 10:
         return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
 
@@ -64,7 +64,7 @@ def get_available_flows() -> [list[dict[str, Any]], list[dict[str, Any]]]:
     return r_flows, r_flows_comfy
 
 
-def get_not_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, Any]]:
+def get_not_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, typing.Any]]:
     installed_flows_ids = [i["name"] for i in get_installed_flows(flows_dir)]
     avail_flows, avail_flows_comfy = get_available_flows()
     r = []
@@ -76,7 +76,7 @@ def get_not_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> 
     return r
 
 
-def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, Any]]:
+def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, typing.Any]]:
     flows = [entry for entry in Path(flows_dir).iterdir() if entry.is_dir()]
     r = []
     for flow in flows:
@@ -89,7 +89,7 @@ def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list
     return r
 
 
-def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict) -> dict[str, Any]:
+def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict) -> dict[str, typing.Any]:
     flows_comfy = []
     for i, flow in enumerate(get_installed_flows(flows_dir, flows_comfy)):
         if flow["name"] == flow_name:
@@ -99,25 +99,36 @@ def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict) -> dict
     return {}
 
 
-def install_flow(flows_dir: str, flow_name: str, models_dir: str) -> str:
-    flows, flows_comfy = get_available_flows()
-    for i, flow in enumerate(flows):
-        if flow["name"] == flow_name:
-            install_custom_flow(flows_dir, flow, flows_comfy[i], models_dir)
-    return f"Can't find `{flow_name}` flow in repository."
-
-
-def install_custom_flow(flows_dir: str, flow: dir, flow_comfy: dir, models_dir: str) -> str:
+def install_custom_flow(
+    flows_dir: str,
+    flow: dir,
+    flow_comfy: dir,
+    models_dir: str,
+    progress_callback: typing.Callable[[str, float, str], None] | None = None,
+) -> None:
     uninstall_flow(flows_dir, flow["name"])
+    progress_info = {
+        "name": flow["name"],
+        "current": 1.0,
+        "progress_for_model": 97 / len(flow["models"]),
+    }
+    if progress_callback is not None:
+        progress_callback(flow["name"], progress_info["current"], "")
     for model in flow["models"]:
-        install_model(model, models_dir)
+        if not install_model(model, models_dir, progress_info, progress_callback):
+            return
     local_flow_dir = os.path.join(flows_dir, flow["name"])
     os.mkdir(local_flow_dir)
+    progress_info["current"] = 99.0
+    if progress_callback is not None:
+        progress_callback(flow["name"], progress_info["current"], "")
     with builtins.open(os.path.join(local_flow_dir, "flow.json"), mode="w", encoding="utf-8") as fp:
         json.dump(flow, fp)
     with builtins.open(os.path.join(local_flow_dir, "flow_comfy.json"), mode="w", encoding="utf-8") as fp:
         json.dump(flow_comfy, fp)
-    return ""
+    progress_info["current"] = 100.0
+    if progress_callback is not None:
+        progress_callback(flow["name"], progress_info["current"], "")
 
 
 def uninstall_flow(flows_dir: str, flow_name: str) -> None:

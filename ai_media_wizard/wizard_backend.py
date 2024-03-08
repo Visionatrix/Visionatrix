@@ -10,10 +10,11 @@ from websockets.sync.client import ClientConnection
 from . import options
 from .flows import (
     execute_flow_comfy,
+    get_available_flows,
     get_installed_flow,
     get_installed_flows,
     get_not_installed_flows,
-    install_flow,
+    install_custom_flow,
     open_comfy_websocket,
     prepare_flow_comfy,
     uninstall_flow,
@@ -30,6 +31,7 @@ except ImportError as ex:
 
 
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
+FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
 TASKS_PROGRESS = {}  # task_id: {request_id: str, progress: 0.0-100.0, error: "", flow: {}, flow_comfy: {}}
 
 
@@ -63,8 +65,25 @@ def wizard_backend(
         return fastapi.responses.JSONResponse(content=get_not_installed_flows(flows_dir))
 
     @app.put("/flow")
-    def flow_install(name: str):
-        return fastapi.responses.JSONResponse(content={"error": install_flow(flows_dir, name, models_dir)})
+    def flow_install(b_tasks: fastapi.BackgroundTasks, name: str):
+        flows, flows_comfy = get_available_flows()
+        for i, flow in enumerate(flows):
+            if flow["name"] == name:
+                FLOW_INSTALL_STATUS[name] = {"progress": 0.0, "error": ""}
+                b_tasks.add_task(
+                    install_custom_flow,
+                    flows_dir,
+                    flow,
+                    flows_comfy[i],
+                    models_dir,
+                    __progress_install_callback,
+                )
+                return fastapi.responses.JSONResponse(content={"error": ""})
+        return fastapi.responses.JSONResponse(content={"error": f"Can't find `{name}` flow."})
+
+    @app.get("/flow-progress-install")
+    def flow_progress_install():
+        return fastapi.responses.JSONResponse(content=FLOW_INSTALL_STATUS)
 
     @app.delete("/flow")
     async def flow_delete(name: str):
@@ -204,3 +223,7 @@ def run_comfy_backend(backend_dir="") -> None:
         COMFY_PROCESS = None
     run_cmd = f"python {os.path.join(options.get_backend_dir(backend_dir), 'main.py')}".split()
     COMFY_PROCESS = subprocess.Popen(run_cmd)  # pylint: disable=consider-using-with
+
+
+def __progress_install_callback(name: str, progress: float, error: str) -> None:
+    FLOW_INSTALL_STATUS[name] = {"progress": progress, "error": error}
