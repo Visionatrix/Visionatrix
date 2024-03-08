@@ -1,6 +1,7 @@
 import builtins
 import logging
 import os
+import stat
 from shutil import rmtree
 from subprocess import run
 
@@ -29,22 +30,28 @@ amw_models:
 """
 
 
+def remove_readonly(func, path, _):
+    """Clear the readonly bit and reattempt the removal."""
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
 def install(backend_dir="", flows_dir="", models_dir="") -> None:
     """Performs clean installation."""
     flows_dir = options.get_flows_dir(flows_dir)
     if os.path.exists(flows_dir) is True:
         LOGGER.info("Removing existing Flows directory: %s", flows_dir)
-        rmtree(flows_dir)
+        rmtree(flows_dir, onerror=remove_readonly)
     os.makedirs(flows_dir)
     models_dir = options.get_models_dir(models_dir)
     if os.path.exists(models_dir) is True:
         LOGGER.info("Removing existing Models directory: %s", models_dir)
-        rmtree(models_dir)
+        rmtree(models_dir, onerror=remove_readonly)
     os.makedirs(models_dir)
     backend_dir = options.get_backend_dir(backend_dir)
     if os.path.exists(backend_dir) is True:
         LOGGER.info("Removing existing Backend directory: %s", backend_dir)
-        rmtree(backend_dir)
+        rmtree(backend_dir, onerror=remove_readonly)
     os.makedirs(backend_dir)
     run(f"git clone https://github.com/cloud-media-flows/ComfyUI.git {backend_dir}".split(), check=True)
     run(f"python -m pip install -r {os.path.join(backend_dir, 'requirements.txt')}".split(), check=True)
