@@ -1,5 +1,6 @@
 import builtins
 import json
+import logging
 import os
 import re
 import time
@@ -14,6 +15,7 @@ from websockets.sync.client import connect
 from . import options
 from .models import install_model
 
+LOGGER = logging.getLogger("ai_media_wizard")
 GH_CACHE_FLOWS = {}
 
 CACHE_AVAILABLE_FLOWS = {
@@ -42,12 +44,12 @@ def get_available_flows() -> [list[dict[str, Any]], list[dict[str, Any]]]:
             try:
                 flow_data = json.loads(repo.get_contents(f"{flow_dir}/flow.json").decoded_content)
             except GithubException:
-                print(f"Warning, can't load `flow.json` for {flow.name}, skipping.")
+                LOGGER.warning("Can't load `flow.json` for %s, skipping.", flow.name)
                 continue
             try:
                 flow_comfy_data = json.loads(repo.get_contents(f"{flow_dir}/flow_comfy.json").decoded_content)
             except GithubException:
-                print(f"Warning, can't load `flow_comfy.json` for {flow.name}, skipping.")
+                LOGGER.warning("Can't load `flow_comfy.json` for %s, skipping.", flow.name)
                 continue
             GH_CACHE_FLOWS.update({
                 flow.name: {
@@ -143,7 +145,7 @@ def prepare_flow_comfy(
                 if mod_operation == "sub":
                     v = re.sub(mod_params[0], mod_params[1], v)
                 else:
-                    print(f"Warning! Unknown modify param operation: {mod_operation}")
+                    LOGGER.warning("Unknown modify param operation: %s", mod_operation)
             node["inputs"][k_v["dest_field_name"]] = v
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
     if len(in_files_params) < min_required_files_count:

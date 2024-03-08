@@ -1,4 +1,5 @@
 import builtins
+import logging
 import os
 from shutil import rmtree
 from subprocess import run
@@ -6,6 +7,7 @@ from subprocess import run
 from .. import options
 from .custom_nodes import install_base_custom_nodes
 
+LOGGER = logging.getLogger("ai_media_wizard")
 EXTRA_MODEL_PATHS = """
 amw_models:
   checkpoints: amw_models_root/checkpoints
@@ -31,17 +33,17 @@ def install(backend_dir="", flows_dir="", models_dir="") -> None:
     """Performs clean installation."""
     flows_dir = options.get_flows_dir(flows_dir)
     if os.path.exists(flows_dir) is True:
-        print("Removing existing Flows directory")
+        LOGGER.info("Removing existing Flows directory: %s", flows_dir)
         rmtree(flows_dir)
     os.makedirs(flows_dir)
     models_dir = options.get_models_dir(models_dir)
     if os.path.exists(models_dir) is True:
-        print("Removing existing Models directory")
+        LOGGER.info("Removing existing Models directory: %s", models_dir)
         rmtree(models_dir)
     os.makedirs(models_dir)
     backend_dir = options.get_backend_dir(backend_dir)
     if os.path.exists(backend_dir) is True:
-        print("Removing existing Backend directory")
+        LOGGER.info("Removing existing Backend directory: %s", backend_dir)
         rmtree(backend_dir)
     os.makedirs(backend_dir)
     run(f"git clone https://github.com/cloud-media-flows/ComfyUI.git {backend_dir}".split(), check=True)

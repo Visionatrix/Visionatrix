@@ -1,17 +1,20 @@
 import builtins
 import hashlib
+import logging
 import os
 from pathlib import Path
 
 import httpx
 
 DOWNLOAD_RETRY_COUNT = 3
+LOGGER = logging.getLogger("ai_media_wizard")
 
 
 def install_model(model: dict[str, str], models_dir: str) -> None:
     save_path = Path(models_dir).joinpath(model["save_path"])
+    LOGGER.debug("model=%s --> save_path=%s", model["name"], save_path)
     if save_path.exists():
-        print(f"`{save_path}` already exists, skipping.")
+        LOGGER.info("`%s` already exists, skipping.", save_path)
         return
 
     os.makedirs(save_path.parent, exist_ok=True)
@@ -33,10 +36,7 @@ def download_model(model: dict[str, str], save_path: Path) -> bool:
                 linked_etag = response.headers.get("X-Linked-ETag", response.headers.get("ETag", ""))
             linked_etag = linked_etag.strip('"')
             if linked_etag != model["hash"]:
-                raise RuntimeError(
-                    f"Model at '{model['url']}' has different hash({linked_etag}!={model['hash']}). Please, report"
-                    " about this."
-                )
+                raise RuntimeError(f"Model hash mismatch: {linked_etag}!={model['hash']}, please, report about this.")
             if not response.is_success:
                 raise RuntimeError(f"Downloading of '{model['url']}' returned {response.status_code} status.")
             with builtins.open(save_path, "wb") as file:
@@ -51,6 +51,9 @@ def download_model(model: dict[str, str], save_path: Path) -> bool:
             return True
     except Exception as e:  # noqa pylint: disable=broad-exception-caught
         save_path.unlink(missing_ok=True)
-        print(e)
-        # raise RuntimeError(f"Error during downloading '{model['url']}': {e}") from None
+        LOGGER.warning("Error during downloading %s", model["name"], exc_info=e)
         return False
+    except KeyboardInterrupt:
+        save_path.unlink(missing_ok=True)
+        LOGGER.warning("Received SIGINT, download terminated")
+        raise

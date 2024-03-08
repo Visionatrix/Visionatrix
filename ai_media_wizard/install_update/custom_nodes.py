@@ -1,7 +1,9 @@
+import logging
 import os
 from pathlib import Path
 from subprocess import run
 
+LOGGER = logging.getLogger("ai_media_wizard")
 BASIC_NODE_LIST = {
     "ComfyUI-Impact-Pack": {},
     "ComfyUI_UltimateSDUpscale": {
@@ -12,7 +14,7 @@ BASIC_NODE_LIST = {
 
 def install_base_custom_nodes(custom_nodes_dir: str) -> None:
     for k, v in BASIC_NODE_LIST.items():
-        print(f"Cloning `{k}`")
+        LOGGER.info("Cloning `%s`", k)
         git_flags = v.get("git_flags", "")
         run(
             f"git clone https://github.com/cloud-media-flows/{k}.git {git_flags} {os.path.join(custom_nodes_dir, k)}"
@@ -21,5 +23,5 @@ def install_base_custom_nodes(custom_nodes_dir: str) -> None:
         )
         node_install_script = Path(os.path.join(custom_nodes_dir, k, "install.py"))
         if node_install_script.exists() is True:
-            print(f"Running `{k}` install script")
+            LOGGER.info("Running `%s` install script", k)
             run(f"python {node_install_script}".split(), check=True)
