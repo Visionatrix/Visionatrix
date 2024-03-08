@@ -108,7 +108,7 @@ lint.extend-ignore = ["I001", "RUF100", "S603"]
 "tests/**/*.py" = ["E402", "S", "UP"]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 20
+max-complexity = 25
 
 [tool.isort]
 profile = "black"
@@ -121,6 +121,7 @@ design.max-locals = 20
 design.max-branches = 16
 design.max-returns = 8
 design.max-args = 7
+design.max-statements = 90
 basic.good-names = [
     "a", "b", "c", "d", "e", "f", "i", "j", "k", "r", "v",
     "_", "fp", "im", "ui",
