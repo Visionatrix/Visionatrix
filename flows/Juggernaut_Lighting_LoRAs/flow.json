@@ -78,11 +78,11 @@
       "optional": true,
       "comfy_node_id": {
         "27": {
-          "dest_field_name": ["inputs", "steps"],
+          "dest_field_name": ["inputs", "seed"],
           "internal_type": "int"
         },
         "263": {
-          "dest_field_name": ["inputs", "steps"],
+          "dest_field_name": ["inputs", "seed"],
           "internal_type": "int"
         }
       }
