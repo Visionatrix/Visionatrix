@@ -102,6 +102,7 @@ lint.extend-ignore = ["I001", "RUF100", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "ai_media_wizard/__init__.py" = ["F401"]
+"ai_media_wizard/wizard_backend.py" = ["C901"]
 "ai_media_wizard/install_update/__init__.py" = ["F401"]
 "scripts/easy_install.py" = ["S602", "S607"]
 
@@ -117,11 +118,11 @@ profile = "black"
 [tool.pylint]
 master.py-version = "3.10"
 master.extension-pkg-allow-list = ["pydantic"]
-design.max-attributes = 8
-design.max-locals = 20
-design.max-branches = 16
+design.max-attributes = 10
+design.max-locals = 28
+design.max-branches = 18
 design.max-returns = 8
-design.max-args = 7
+design.max-args = 8
 design.max-statements = 90
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"

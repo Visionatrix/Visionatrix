@@ -2,6 +2,7 @@ import contextlib
 import json
 import logging
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -167,6 +168,16 @@ def wizard_backend(
     def backend_restart():
         run_comfy_backend(backend_dir)
         return fastapi.responses.JSONResponse(content=[])
+
+    def __shutdown_wizard():
+        time.sleep(1.0)
+        os.kill(os.getpid(), signal.SIGINT)
+
+    @app.post("/shutdown")
+    def shutdown(b_tasks: fastapi.BackgroundTasks):
+        stop_comfy()
+        b_tasks.add_task(__shutdown_wizard)
+        return fastapi.responses.JSONResponse(content={"error": ""})
 
     uvicorn.run(app, *args, host=wizard_host, port=wizard_port, **kwargs)
 
