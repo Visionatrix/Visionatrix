@@ -56,7 +56,7 @@
       "optional": false,
       "comfy_node_id": {
         "243": {
-          "dest_field_name": "text"
+          "dest_field_name": ["inputs", "text"]
         }
       }
     },
@@ -67,7 +67,23 @@
       "optional": true,
       "comfy_node_id": {
         "242": {
-          "dest_field_name": "text"
+          "dest_field_name": ["inputs", "text"]
+        }
+      }
+    },
+    {
+      "name": "seed",
+      "display_name": "Seed",
+      "type": "text",
+      "optional": true,
+      "comfy_node_id": {
+        "27": {
+          "dest_field_name": ["inputs", "steps"],
+          "internal_type": "int"
+        },
+        "263": {
+          "dest_field_name": ["inputs", "steps"],
+          "internal_type": "int"
         }
       }
     }

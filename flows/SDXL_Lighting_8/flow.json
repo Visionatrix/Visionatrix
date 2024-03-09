@@ -24,7 +24,7 @@
       "optional": false,
       "comfy_node_id": {
         "6": {
-          "dest_field_name": "text"
+          "dest_field_name": ["inputs", "text"]
         }
       }
     },
@@ -35,7 +35,19 @@
       "optional": true,
       "comfy_node_id": {
         "7": {
-          "dest_field_name": "text"
+          "dest_field_name": ["inputs", "text"]
+        }
+      }
+    },
+    {
+      "name": "seed",
+      "display_name": "Seed",
+      "type": "text",
+      "optional": true,
+      "comfy_node_id": {
+        "3": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
         }
       }
     }
