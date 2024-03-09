@@ -157,7 +157,14 @@ def prepare_flow_comfy(
                     v = re.sub(mod_params[0], mod_params[1], v)
                 else:
                     LOGGER.warning("Unknown modify param operation: %s", mod_operation)
-            node["inputs"][k_v["dest_field_name"]] = v
+            if convert_type := k_v.get("internal_type", ""):
+                if convert_type == "int":
+                    v = int(v)
+                elif convert_type == "float":
+                    v = float(v)
+                else:
+                    raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
+            set_node_value(node, k_v["dest_field_name"], v)
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
     if len(in_files_params) < min_required_files_count:
         raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
@@ -172,7 +179,7 @@ def prepare_flow_comfy(
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
-            node["inputs"][k_v["dest_field_name"]] = f"{request_id}_{i}"
+            set_node_value(node, k_v["dest_field_name"], f"{request_id}_{i}")
     return r
 
 
@@ -185,3 +192,9 @@ def execute_flow_comfy(flow_comfy: dict, client_id: str) -> dict:
 
 def open_comfy_websocket(request_id: str):
     return connect(f"ws://{options.get_comfy_address()}/ws?clientId={request_id}")
+
+
+def set_node_value(node: dict, path: list[str], value: str | int | float):
+    for key in path[:-1]:
+        node = node[key]
+    node[path[-1]] = value

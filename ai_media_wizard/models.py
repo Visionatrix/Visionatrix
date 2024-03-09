@@ -25,6 +25,7 @@ def install_model(
             LOGGER.info("`%s` already exists.", save_path)
             if progress_callback is not None:
                 progress_info["current"] += progress_info["progress_for_model"]
+                progress_info["current"] = math.floor(progress_info["current"] * 10) / 10
                 progress_callback(progress_info["name"], progress_info["current"], "")
             return True
         LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", model["name"])
