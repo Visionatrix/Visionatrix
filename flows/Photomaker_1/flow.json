@@ -60,14 +60,14 @@
       "optional": false,
       "comfy_node_id": {
         "77": {
-          "dest_field_name": ["inputs", "text"]
+          "dest_field_name": ["inputs", "input"]
         }
       }
     },
     {
       "name": "seed",
       "display_name": "Seed",
-      "type": "text",
+      "type": "number",
       "optional": true,
       "comfy_node_id": {
         "63": {

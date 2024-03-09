@@ -139,7 +139,7 @@ def prepare_flow_comfy(
     flow: dict, flow_comfy: dict, in_texts_params: dict, in_files_params: list, request_id: str, backend_dir: str
 ) -> dict:
     flow_params = flow["input_params"]
-    text_params = [i for i in flow_params if i["type"] == "text"]
+    text_params = [i for i in flow_params if i["type"] in ("text", "number")]
     files_params = [i for i in flow_params if i["type"] in ("image", "video")]
     r = flow_comfy.copy()
     for i in text_params:
@@ -169,8 +169,8 @@ def prepare_flow_comfy(
     if len(in_files_params) < min_required_files_count:
         raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
     for i, v in enumerate(in_files_params):
-        file_name = os.path.join(backend_dir, "input", f"{request_id}_{i}")
-        with builtins.open(file_name, mode="wb") as fp:
+        file_name = f"{request_id}_{i}"
+        with builtins.open(os.path.join(backend_dir, "input", file_name), mode="wb") as fp:
             if hasattr(v, "read"):
                 fp.write(v.read())
             else:
@@ -179,7 +179,7 @@ def prepare_flow_comfy(
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
-            set_node_value(node, k_v["dest_field_name"], f"{request_id}_{i}")
+            set_node_value(node, k_v["dest_field_name"], file_name)
     return r
 
 
