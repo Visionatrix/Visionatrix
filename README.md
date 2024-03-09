@@ -139,3 +139,6 @@ By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 We'll be covering more information on how to use it with third-party services, how to add your own media flow,
 or how to use it as a Python package in your application in the documentation that will start appearing soon.
+
+- [Documentation](https://cloud-media-flows.github.io/AI_Media_Wizard/)
+  - [Available Flows](https://cloud-media-flows.github.io/AI_Media_Wizard/Flows/index.html)
