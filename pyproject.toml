@@ -123,10 +123,6 @@ design.max-branches = 16
 design.max-returns = 8
 design.max-args = 7
 design.max-statements = 90
-basic.good-names = [
-    "a", "b", "c", "d", "e", "f", "i", "j", "k", "r", "v",
-    "_", "fp", "im", "ui", "q",
-]
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
 similarities.min-similarity-lines = 10
@@ -137,6 +133,7 @@ messages_control.disable = [
     "line-too-long",
     "too-few-public-methods",
     "too-many-public-methods",
+    "invalid-name",
 ]
 
 [tool.pytest.ini_options]

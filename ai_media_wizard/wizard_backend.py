@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 import uuid
 from contextlib import asynccontextmanager
 from importlib.metadata import PackageNotFoundError, version
@@ -52,6 +53,8 @@ def wizard_backend(
     flows_dir = options.get_flows_dir(flows_dir)
     models_dir = options.get_models_dir(models_dir)
     ui_dir = kwargs.pop("ui_dir", "")
+    wizard_host = options.get_wizard_host(wizard_host)
+    wizard_port = options.get_wizard_port(wizard_port)
 
     @asynccontextmanager
     async def lifespan(_app: fastapi.FastAPI):
@@ -165,9 +168,7 @@ def wizard_backend(
         run_comfy_backend(backend_dir)
         return fastapi.responses.JSONResponse(content=[])
 
-    uvicorn.run(
-        app, *args, host=options.get_wizard_host(wizard_host), port=options.get_wizard_port(wizard_port), **kwargs
-    )
+    uvicorn.run(app, *args, host=wizard_host, port=wizard_port, **kwargs)
 
 
 def __track_task_progress(connection: ClientConnection, task_id: str, task_details: dict) -> None:
@@ -230,10 +231,25 @@ def run_comfy_backend(backend_dir="") -> None:
 
     stop_comfy()
     COMFY_PROCESS = None
-    run_cmd = f"python {os.path.join(options.get_backend_dir(backend_dir), 'main.py')}".split()
+    comfy_port = options.get_comfy_port()
+    run_cmd = [
+        "python",
+        os.path.join(options.get_backend_dir(backend_dir), "main.py"),
+        "--port",
+        str(comfy_port),
+    ]
     if need_directml_flag():
         run_cmd += ["--directml"]
-    COMFY_PROCESS = subprocess.Popen(run_cmd)  # pylint: disable=consider-using-with
+    stdout = None if LOGGER.getEffectiveLevel == logging.DEBUG or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
+    COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout)  # pylint: disable=consider-using-with
+    for _ in range(15):
+        with contextlib.suppress(httpx.NetworkError):
+            r = httpx.get(f"http://127.0.0.1:{comfy_port}")
+            if r.status_code == 200:
+                return
+        time.sleep(0.5)
+    stop_comfy()
+    raise RuntimeError("Error connecting to ComfyUI")
 
 
 def stop_comfy() -> None:

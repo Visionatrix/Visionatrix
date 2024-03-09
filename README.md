@@ -10,7 +10,7 @@
 This platform ensures effortless deployment and management of AI-powered, secure workflows, tailor-made for the efficient processing of images and videos.
 
 > [!NOTE]
-> The project is currently in the planning-development stage, first release will arrive soon.
+> The project is currently in the planning-development stage, expect breaking changes.
 
 ## The main goals of the project are as follows:
 
@@ -46,13 +46,13 @@ curl -o easy_install.py https://raw.githubusercontent.com/cloud-media-flows/AI_M
 ### Windows
 
 > [!NOTE]
-> If you plan to use `Direct-ML`*(ex. with AMD graphic card)* - **Python3.10** is the only currently supported version by it.
+> If you plan to use `Direct-ML` - **Python3.10** is the only currently supported version by it.
 
 ```console
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py" -OutFile "easy_install.py"; python3 easy_install.py
 ```
 
-*I was not able to run it on the last **alpha** version of PyTorch(2.0) with DirectML. I know that it can be run using **conda** but I will not add that to the **easy_install** script.
+*I was not able to run it on the last **alpha** version of PyTorch(2.0) with DirectML. I know that it can be run using **conda**, but I will not add that to the **easy_install** script.
 Who need this right now can use **conda** until Microsoft will publish fix for the last version.*
 
 ### After that, answer the script's questions and in most cases everything should work.
@@ -133,12 +133,7 @@ python -m ai_media_wizard install
 python -m ai_media_wizard run --ui=client
 ```
 
-## Support
-
-- ⭐️ Star our work (it really motivates)
-- ❗️ Create an Issue or Feature Request (bring to us an excellent idea)
-- 💁 Resolve some Issue or create a Pull Request (contribute to this project)
-- 🙏 Add a Flow or help us improve documentation in any way.
+By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 ## More Information
 
