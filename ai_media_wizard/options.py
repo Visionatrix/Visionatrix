@@ -51,3 +51,9 @@ def get_wizard_port(port: str | None) -> int:
 
 def get_comfy_port(port: str | None = None) -> int:
     return int(port if port else COMFY_PORT)
+
+
+def get_comfy_address(host: str | None = None, port: str | None = None) -> str:
+    if not host or host == "0.0.0.0":  # noqa
+        host = "127.0.0.1"
+    return f"{host}:{get_comfy_port(port)}"

@@ -148,7 +148,7 @@ def wizard_backend(
 
     @app.get("/flow-results")
     async def flow_results(task_id: str, node_id: int):
-        r = httpx.get(f"http://127.0.0.1:{options.COMFY_PORT}/history/{task_id}")
+        r = httpx.get(f"http://{options.get_comfy_address()}/history/{task_id}")
         if r.status_code != 200:
             raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         result = json.loads(r.text)
@@ -178,6 +178,12 @@ def wizard_backend(
         stop_comfy()
         b_tasks.add_task(__shutdown_wizard)
         return fastapi.responses.JSONResponse(content={"error": ""})
+
+    @app.get("/system_stats")
+    async def system_stats():
+        return fastapi.responses.JSONResponse(
+            content=json.loads(httpx.get(f"http://{options.get_comfy_address()}/system_stats").content)
+        )
 
     uvicorn.run(app, *args, host=wizard_host, port=wizard_port, **kwargs)
 
@@ -242,12 +248,11 @@ def run_comfy_backend(backend_dir="") -> None:
 
     stop_comfy()
     COMFY_PROCESS = None
-    comfy_port = options.get_comfy_port()
     run_cmd = [
         "python",
         os.path.join(options.get_backend_dir(backend_dir), "main.py"),
         "--port",
-        str(comfy_port),
+        str(options.get_comfy_port()),
     ]
     if need_directml_flag():
         run_cmd += ["--directml"]
@@ -255,7 +260,7 @@ def run_comfy_backend(backend_dir="") -> None:
     COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout)  # pylint: disable=consider-using-with
     for _ in range(15):
         with contextlib.suppress(httpx.NetworkError):
-            r = httpx.get(f"http://127.0.0.1:{comfy_port}")
+            r = httpx.get(f"http://{options.get_comfy_address()}")
             if r.status_code == 200:
                 return
         time.sleep(0.5)
