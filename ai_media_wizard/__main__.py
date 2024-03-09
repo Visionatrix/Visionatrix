@@ -21,6 +21,17 @@ def get_log_level(log_level_str):
     return log_levels.get(log_level_str.upper(), logging.INFO)
 
 
+def get_higher_log_level(current_level):
+    level_mapping = {
+        logging.DEBUG: logging.INFO,
+        logging.INFO: logging.WARNING,
+        logging.WARNING: logging.ERROR,
+        logging.ERROR: logging.CRITICAL,
+        logging.CRITICAL: logging.CRITICAL,
+    }
+    return level_mapping.get(current_level, logging.WARNING)
+
+
 def __progress_callback(name: str, progress: float, error: str) -> None:
     if not error:
         logging.info("`%s` installation: %s", name, progress)
@@ -57,11 +68,13 @@ if __name__ == "__main__":
             subparser.add_argument("--ui", type=str, help="Folder with UI")
 
     args = parser.parse_args()
+    defined_loglvl = get_log_level(args.loglevel)
     logging.basicConfig(
-        level=get_log_level(args.loglevel),
+        level=defined_loglvl,
         format="%(asctime)s: [%(funcName)s]:%(levelname)s: %(message)s",
         datefmt="%H:%M:%S",
     )
+    logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
     flows_dir = options.get_flows_dir(args.flows_dir)
     models_dir = options.get_models_dir(args.models_dir)
     if args.command == "install":
