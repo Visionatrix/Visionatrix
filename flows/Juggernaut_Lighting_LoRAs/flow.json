@@ -74,7 +74,7 @@
     {
       "name": "seed",
       "display_name": "Seed",
-      "type": "text",
+      "type": "number",
       "optional": true,
       "comfy_node_id": {
         "27": {
