@@ -102,7 +102,7 @@ def wizard_backend(
     @app.delete("/flow")
     async def flow_delete(name: str):
         uninstall_flow(flows_dir, name)
-        return fastapi.responses.JSONResponse(content=[])
+        return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/flow")
     def flow_run(
@@ -167,7 +167,7 @@ def wizard_backend(
     @app.post("/backend-restart")
     def backend_restart():
         run_comfy_backend(backend_dir)
-        return fastapi.responses.JSONResponse(content=[])
+        return fastapi.responses.JSONResponse(content={"error": ""})
 
     def __shutdown_wizard():
         time.sleep(1.0)
@@ -182,7 +182,9 @@ def wizard_backend(
     @app.get("/system_stats")
     async def system_stats():
         return fastapi.responses.JSONResponse(
-            content=json.loads(httpx.get(f"http://{options.get_comfy_address()}/system_stats").content)
+            content=json.loads(
+                (await httpx.AsyncClient().get(url=f"http://{options.get_comfy_address()}/system_stats")).content
+            )
         )
 
     uvicorn.run(app, *args, host=wizard_host, port=wizard_port, **kwargs)
