@@ -25,3 +25,13 @@ def install_base_custom_nodes(custom_nodes_dir: str) -> None:
         if node_install_script.exists() is True:
             LOGGER.info("Running `%s` install script", k)
             run(f"python {node_install_script}".split(), check=True)
+
+
+def update_base_custom_nodes(custom_nodes_dir: str) -> None:
+    for k in BASIC_NODE_LIST:
+        LOGGER.info("Updating `%s`", k)
+        run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, k))
+        node_install_script = Path(os.path.join(custom_nodes_dir, k, "install.py"))
+        if node_install_script.exists() is True:
+            LOGGER.info("Running `%s` install script", k)
+            run(f"python {node_install_script}".split(), check=True)

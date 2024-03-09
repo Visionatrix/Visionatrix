@@ -14,6 +14,7 @@ MODELS_DIR = environ.get("MODELS_DIR", "")
 WIZARD_HOST = environ.get("WIZARD_HOST", "127.0.0.1")
 WIZARD_PORT = environ.get("WIZARD_PORT", "8288")
 COMFY_PORT = environ.get("COMFY_PORT", "8188")
+COMFY_DEBUG = environ.get("COMFY_DEBUG", "0")
 
 
 def get_backend_dir(backend_dir: str | None) -> str:
@@ -48,5 +49,5 @@ def get_wizard_port(port: str | None) -> int:
     return int(port if port else WIZARD_PORT)
 
 
-def get_comfy_port(port: str | None) -> int:
+def get_comfy_port(port: str | None = None) -> int:
     return int(port if port else COMFY_PORT)

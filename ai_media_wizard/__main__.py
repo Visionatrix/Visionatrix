@@ -3,6 +3,7 @@ import builtins
 import json
 import logging
 import sys
+from pathlib import Path
 
 from . import install, options, run_backend, update
 from .flows import install_custom_flow
@@ -61,10 +62,25 @@ if __name__ == "__main__":
         format="%(asctime)s: [%(funcName)s]:%(levelname)s: %(message)s",
         datefmt="%H:%M:%S",
     )
+    flows_dir = options.get_flows_dir(args.flows_dir)
+    models_dir = options.get_models_dir(args.models_dir)
     if args.command == "install":
-        install(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir)
+        backend_dir = options.get_backend_dir(args.backend_dir)
+        if Path(models_dir).exists():
+            c = input("Do you want to clear models folder? (Y/N): ").lower()
+            if c != "y":
+                models_dir = ""
+        if Path(flows_dir).exists():
+            c = input("Do you want to clear flows folder? (Y/N): ").lower()
+            if c != "y":
+                flows_dir = ""
+        if Path(backend_dir).exists():
+            c = input("Do you want to reinstall backend(ComfyUI) folder? (Y/N): ").lower()
+            if c != "y":
+                backend_dir = ""
+        install(backend_dir=backend_dir, flows_dir=flows_dir, models_dir=models_dir)
     elif args.command == "update":
-        update(backend_dir=args.backend_dir, flows_dir=args.flows_dir, models_dir=args.models_dir)
+        update(backend_dir=options.get_backend_dir(args.backend_dir), flows_dir=flows_dir, models_dir=models_dir)
     elif args.command == "run":
         run_backend(
             backend_dir=args.backend_dir,
@@ -80,8 +96,8 @@ if __name__ == "__main__":
         with builtins.open(args.flow_comfy, "rb") as fp:
             flow_comfy = json.loads(fp.read())
         install_custom_flow(
-            flows_dir=options.get_flows_dir(args.flows_dir),
-            models_dir=options.get_models_dir(args.models_dir),
+            flows_dir=flows_dir,
+            models_dir=models_dir,
             flow=flow,
             flow_comfy=flow_comfy,
             progress_callback=__progress_callback,
