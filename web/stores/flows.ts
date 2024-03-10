@@ -411,6 +411,9 @@ interface Model {
 	name: string
 	save_path: string
 	url: string
+	license: string
+	homepage: string
+	hash: string
 }
 
 interface FlowInputParam {

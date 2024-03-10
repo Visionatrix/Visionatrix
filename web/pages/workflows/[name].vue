@@ -78,7 +78,7 @@ const collapsedCard = ref(false)
 									color="white"
 									variant="solid">
 									<a class="hover:underline underline-offset-4"
-										:href="model.url"
+										:href="model.homepage"
 										rel="noopener" target="_blank">
 										{{ model.name }}
 									</a>
