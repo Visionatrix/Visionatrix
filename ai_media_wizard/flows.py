@@ -186,6 +186,7 @@ def prepare_flow_comfy(
 def execute_flow_comfy(flow_comfy: dict, client_id: str) -> dict:
     r = httpx.post(f"http://{options.get_comfy_address()}/prompt", json={"prompt": flow_comfy, "client_id": client_id})
     if r.status_code != 200:
+        LOGGER.error("ComfyUI rejected flow: %s", flow_comfy)
         raise RuntimeError(f"ComfyUI returned status: {r.status_code}")
     return json.loads(r.text)
 
