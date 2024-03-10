@@ -151,8 +151,8 @@ def prepare_flow_comfy(
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
+            v_copy = get_node_value(node, k_v["src_field_name"]) if "src_field_name" in k_v else v
             for mod_operations in k_v.get("modify_param", []):
-                v_copy = get_node_value(node, k_v["src_field_name"]) if "src_field_name" in k_v else v
                 for mod_operation, mod_params in mod_operations.items():
                     if mod_operation == "sub":
                         v_copy = re.sub(mod_params[0], mod_params[1], v_copy)
@@ -162,14 +162,14 @@ def prepare_flow_comfy(
                                 v_copy = re.sub(mod_params[0], v_copy, z)
                     else:
                         LOGGER.warning("Unknown modify param operation: %s", mod_operation)
-                if convert_type := k_v.get("internal_type", ""):
-                    if convert_type == "int":
-                        v_copy = int(v_copy)
-                    elif convert_type == "float":
-                        v_copy = float(v_copy)
-                    else:
-                        raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
-                set_node_value(node, k_v["dest_field_name"], v_copy)
+            if convert_type := k_v.get("internal_type", ""):
+                if convert_type == "int":
+                    v_copy = int(v_copy)
+                elif convert_type == "float":
+                    v_copy = float(v_copy)
+                else:
+                    raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
+            set_node_value(node, k_v["dest_field_name"], v_copy)
     prepare_flow_comfy_files_params(flow, in_files_params, request_id, backend_dir, r)
     LOGGER.debug("Prepared flow data: %s", r)
     return r

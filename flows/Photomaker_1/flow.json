@@ -32,20 +32,10 @@
       "optional": false,
       "comfy_node_id": {
         "6": {
-          "dest_field_name": ["inputs", "text"],
-          "modify_param": [
-            {
-              "sub": ["^(.*)$", "\\1"]
-            }
-          ]
+          "dest_field_name": ["inputs", "text"]
         },
         "73": {
-          "dest_field_name": ["inputs", "text"],
-          "modify_param": [
-            {
-              "sub": ["^(.*)$", "\\1, photomaker"]
-            }
-          ]
+          "dest_field_name": ["inputs", "text"]
         }
       }
     },
@@ -56,12 +46,7 @@
       "optional": true,
       "comfy_node_id": {
         "7": {
-          "dest_field_name": ["inputs", "text"],
-          "modify_param": [
-            {
-              "sub": ["^(.*)$", "\\1"]
-            }
-          ]
+          "dest_field_name": ["inputs", "text"]
         }
       }
     },
