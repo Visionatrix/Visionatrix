@@ -135,6 +135,7 @@ messages_control.disable = [
     "too-few-public-methods",
     "too-many-public-methods",
     "invalid-name",
+    "too-many-nested-blocks",
 ]
 
 [tool.pytest.ini_options]
