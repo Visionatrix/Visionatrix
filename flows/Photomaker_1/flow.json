@@ -60,7 +60,7 @@
       "optional": false,
       "comfy_node_id": {
         "77": {
-          "dest_field_name": ["inputs", "input"]
+          "dest_field_name": ["inputs", "image"]
         }
       }
     },
