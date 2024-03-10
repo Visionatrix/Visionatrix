@@ -21,7 +21,7 @@
   },
   "6": {
     "inputs": {
-      "text": "cinematic still close portrait of man in leather suite looking at viewer, emotional, harmonious, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, gorgeous, film grain, grainy, photomaker",
+      "text": "",
       "clip": [
         "4",
         1
@@ -34,7 +34,7 @@
   },
   "7": {
     "inputs": {
-      "text": "asymmetry, worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch, open mouth",
+      "text": "",
       "clip": [
         "4",
         1
@@ -173,7 +173,7 @@
   },
   "73": {
     "inputs": {
-      "text": "cinematic still close portrait of man in leather suite looking at viewer, emotional, harmonious, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, gorgeous, film grain, grainy, photomaker",
+      "text": "",
       "photomaker": [
         "72",
         0

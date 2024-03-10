@@ -232,7 +232,7 @@ def run_backend(
     ..note:: If you use AI-Media-Wizard as a Python library you should use ``run_comfy_backend`` instead of this.
     """
 
-    run_comfy_backend(backend_dir)
+    # run_comfy_backend(backend_dir)
     wizard_backend(
         *args,
         backend_dir=options.get_backend_dir(backend_dir),

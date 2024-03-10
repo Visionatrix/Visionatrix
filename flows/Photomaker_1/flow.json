@@ -1,11 +1,11 @@
 {
   "name": "photomaker_1",
   "display_name": "Photo from 1 image",
-  "description": "Create a new photo based on one another",
-  "author": "bigcat88",
-  "homepage": "",
+  "description": "Customizing Realistic Human Photos",
+  "author": "shiimizu",
+  "homepage": "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus",
   "license": "",
-  "documentation": "",
+  "documentation": "https://cloud-media-flows.github.io/AI_Media_Wizard/Flows/Photomaker_1.html",
   "models": [
     {
       "name": "photomaker-v1.bin",
@@ -32,13 +32,20 @@
       "optional": false,
       "comfy_node_id": {
         "6": {
-          "dest_field_name": ["inputs", "text"]
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["^(.*)$", "\\1"]
+            }
+          ]
         },
         "73": {
           "dest_field_name": ["inputs", "text"],
-          "modify_param": {
-            "sub": ["$", ", photomaker"]
-          }
+          "modify_param": [
+            {
+              "sub": ["^(.*)$", "\\1, photomaker"]
+            }
+          ]
         }
       }
     },
@@ -49,7 +56,89 @@
       "optional": true,
       "comfy_node_id": {
         "7": {
-          "dest_field_name": ["inputs", "text"]
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["^(.*)$", "\\1"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "style",
+      "display_name": "Photo Style",
+      "type": "list",
+      "options": {
+        "Cinematic": [
+          "cinematic still {prompt} . emotional, harmonious, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, gorgeous, film grain, grainy",
+          "{negative_prompt}, anime, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured"
+        ],
+        "Disney Character": [
+          "Pixar animation character of {prompt} . pixar-style, studio anime, Disney, high-quality",
+          "{negative_prompt}, lowres, bad anatomy, bad hands, text, bad eyes, bad arms, bad legs, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, blurry, grayscale, noisy, sloppy, messy, grainy, highly detailed, ultra textured, photo"
+        ],
+        "Digital Art": [
+          "concept art {prompt} . digital artwork, illustrative, painterly, matte painting, highly detailed",
+          "{negative_prompt}, photo, photorealistic, realism, ugly"
+        ],
+        "Photographic": [
+          "cinematic photo {prompt} . 35mm photograph, film, bokeh, professional, 4k, highly detailed",
+          "{negative_prompt}, drawing, painting, crayon, sketch, graphite, impressionist, noisy, blurry, soft, deformed, ugly"
+        ],
+        "Fantasy art": [
+          "ethereal fantasy concept art of {prompt} . magnificent, celestial, ethereal, painterly, epic, majestic, magical, fantasy art, cover art, dreamy",
+          "{negative_prompt}, photographic, realistic, realism, 35mm film, dslr, cropped, frame, text, deformed, glitch, noise, noisy, off-center, deformed, cross-eyed, closed eyes, bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white"
+        ],
+        "Neonpunk": [
+          "neonpunk style {prompt} . cyberpunk, vaporwave, neon, vibes, vibrant, stunningly beautiful, crisp, detailed, sleek, ultramodern, magenta highlights, dark purple shadows, high contrast, cinematic, ultra detailed, intricate, professional",
+          "{negative_prompt}, painting, drawing, illustration, glitch, deformed, mutated, cross-eyed, ugly, disfigured"
+        ],
+        "Enhance": [
+          "breathtaking {prompt} . award-winning, professional, highly detailed",
+          "{negative_prompt}, ugly, deformed, noisy, blurry, distorted, grainy"
+        ],
+        "Comic book": [
+          "comic {prompt} . graphic illustration, comic art, graphic novel art, vibrant, highly detailed",
+          "{negative_prompt}, photograph, deformed, glitch, noisy, realistic, stock photo"
+        ],
+        "Lowpoly": [
+          "low-poly style {prompt} . low-poly game art, polygon mesh, jagged, blocky, wireframe edges, centered composition",
+          "{negative_prompt}, noisy, sloppy, messy, grainy, highly detailed, ultra textured, photo"
+        ],
+        "Line art": [
+          "line art drawing {prompt} . professional, sleek, modern, minimalist, graphic, line art, vector graphics",
+          "{negative_prompt}, anime, photorealistic, 35mm film, deformed, glitch, blurry, noisy, off-center, deformed, cross-eyed, closed eyes, bad anatomy, ugly, disfigured, mutated, realism, realistic, impressionism, expressionism, oil, acrylic"
+        ]
+      },
+      "optional": false,
+      "comfy_node_id": {
+        "6": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub-options": ["{prompt}"]
+            }
+          ]
+        },
+        "73": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub-options": ["{prompt}"]
+            }
+          ]
+        },
+        "7": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub-options": ["{negative_prompt}"]
+            }
+          ]
         }
       }
     },

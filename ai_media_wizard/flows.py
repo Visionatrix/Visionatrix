@@ -138,48 +138,40 @@ def uninstall_flow(flows_dir: str, flow_name: str) -> None:
 def prepare_flow_comfy(
     flow: dict, flow_comfy: dict, in_texts_params: dict, in_files_params: list, request_id: str, backend_dir: str
 ) -> dict:
-    flow_params = flow["input_params"]
-    text_params = [i for i in flow_params if i["type"] in ("text", "number")]
-    files_params = [i for i in flow_params if i["type"] in ("image", "video")]
     r = flow_comfy.copy()
-    for i in text_params:
+    for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list")]:
         v = in_texts_params.get(i["name"], None)
         if v is None:
             if not i.get("optional", False):
                 raise RuntimeError(f"Missing `{i['name']}` parameter.")
             continue
+        if i["type"] == "list":  # for `list` type we need associated values
+            v = i["options"][v]
         for k, k_v in i["comfy_node_id"].items():
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
-            for mod_operation, mod_params in (k_v.get("modify_param", {})).items():
-                if mod_operation == "sub":
-                    v = re.sub(mod_params[0], mod_params[1], v)
-                else:
-                    LOGGER.warning("Unknown modify param operation: %s", mod_operation)
-            if convert_type := k_v.get("internal_type", ""):
-                if convert_type == "int":
-                    v = int(v)
-                elif convert_type == "float":
-                    v = float(v)
-                else:
-                    raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
-            set_node_value(node, k_v["dest_field_name"], v)
-    min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
-    if len(in_files_params) < min_required_files_count:
-        raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
-    for i, v in enumerate(in_files_params):
-        file_name = f"{request_id}_{i}"
-        with builtins.open(os.path.join(backend_dir, "input", file_name), mode="wb") as fp:
-            if hasattr(v, "read"):
-                fp.write(v.read())
-            else:
-                fp.write(bytes(v))
-        for k, k_v in files_params[i]["comfy_node_id"].items():
-            node = r.get(k, {})
-            if not node:
-                raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
-            set_node_value(node, k_v["dest_field_name"], file_name)
+            for mod_operations in k_v.get("modify_param", []):
+                v_copy = get_node_value(node, k_v["src_field_name"]) if "src_field_name" in k_v else v
+                for mod_operation, mod_params in mod_operations.items():
+                    if mod_operation == "sub":
+                        v_copy = re.sub(mod_params[0], mod_params[1], v_copy)
+                    elif mod_operation == "sub-options":
+                        for z in v:
+                            if re.search(mod_params[0], z) is not None:
+                                v_copy = re.sub(mod_params[0], v_copy, z)
+                    else:
+                        LOGGER.warning("Unknown modify param operation: %s", mod_operation)
+                if convert_type := k_v.get("internal_type", ""):
+                    if convert_type == "int":
+                        v_copy = int(v_copy)
+                    elif convert_type == "float":
+                        v_copy = float(v_copy)
+                    else:
+                        raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
+                set_node_value(node, k_v["dest_field_name"], v_copy)
+    prepare_flow_comfy_files_params(flow, in_files_params, request_id, backend_dir, r)
+    LOGGER.debug("Prepared flow data: %s", r)
     return r
 
 
@@ -195,7 +187,34 @@ def open_comfy_websocket(request_id: str):
     return connect(f"ws://{options.get_comfy_address()}/ws?clientId={request_id}")
 
 
-def set_node_value(node: dict, path: list[str], value: str | int | float):
+def get_node_value(node: dict, path: list[str]) -> str | int | float:
+    for key in path:
+        node = node[key]
+    return node
+
+
+def set_node_value(node: dict, path: list[str], value: str | int | float) -> None:
     for key in path[:-1]:
         node = node[key]
     node[path[-1]] = value
+
+
+def prepare_flow_comfy_files_params(
+    flow: dict, in_files_params: list, request_id: str, backend_dir: str, r: dict
+) -> None:
+    files_params = [i for i in flow["input_params"] if i["type"] in ("image", "video")]
+    min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
+    if len(in_files_params) < min_required_files_count:
+        raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
+    for i, v in enumerate(in_files_params):
+        file_name = f"{request_id}_{i}"
+        with builtins.open(os.path.join(backend_dir, "input", file_name), mode="wb") as fp:
+            if hasattr(v, "read"):
+                fp.write(v.read())
+            else:
+                fp.write(bytes(v))
+        for k, k_v in files_params[i]["comfy_node_id"].items():
+            node = r.get(k, {})
+            if not node:
+                raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
+            set_node_value(node, k_v["dest_field_name"], file_name)
