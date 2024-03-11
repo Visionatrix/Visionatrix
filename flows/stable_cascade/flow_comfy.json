@@ -152,7 +152,7 @@
       "width": 1024,
       "height": 576,
       "compression": 32,
-      "batch_size": 4
+      "batch_size": 1
     },
     "class_type": "StableCascade_EmptyLatentImage",
     "_meta": {
