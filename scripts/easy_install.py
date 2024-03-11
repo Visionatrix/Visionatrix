@@ -67,10 +67,11 @@ def update_wizard():
 
 def install_all_flows():
     flows = [
-        "SDXL_Lighting_8",
-        "Playground_2_5_aesthetic",
-        "Photomaker_1",
-        "Juggernaut_Lighting_LoRAs",
+        "sdxl_lighting_8",
+        "playground_2_5_aesthetic",
+        "photomaker_1",
+        "juggernaut_lighting_loras",
+        "stable_cascade",
     ]
 
     for i in flows:
