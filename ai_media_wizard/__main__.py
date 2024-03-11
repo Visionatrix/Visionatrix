@@ -79,19 +79,20 @@ if __name__ == "__main__":
     models_dir = options.get_models_dir(args.models_dir)
     if args.command == "install":
         backend_dir = options.get_backend_dir(args.backend_dir)
+        operations_mask = [True, True, True]
         if Path(models_dir).exists():
             c = input("Do you want to clear models folder? (Y/N): ").lower()
             if c != "y":
-                models_dir = ""
+                operations_mask[2] = False
         if Path(flows_dir).exists():
             c = input("Do you want to clear flows folder? (Y/N): ").lower()
             if c != "y":
-                flows_dir = ""
+                operations_mask[1] = False
         if Path(backend_dir).exists():
             c = input("Do you want to reinstall backend(ComfyUI) folder? (Y/N): ").lower()
             if c != "y":
-                backend_dir = ""
-        install(backend_dir=backend_dir, flows_dir=flows_dir, models_dir=models_dir)
+                operations_mask[0] = False
+        install(backend_dir, flows_dir, models_dir, operations_mask)
     elif args.command == "update":
         update(backend_dir=options.get_backend_dir(args.backend_dir), flows_dir=flows_dir, models_dir=models_dir)
     elif args.command == "run":
