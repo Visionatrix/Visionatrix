@@ -28,6 +28,7 @@ from .flows import (
 
 try:
     import fastapi
+    import fastapi.middleware.cors
     import fastapi.staticfiles
     import uvicorn
 except ImportError as ex:
@@ -69,6 +70,14 @@ def wizard_backend(
         stop_comfy()
 
     app = fastapi.FastAPI(lifespan=lifespan)
+    if cors_origins := os.getenv("CORS_ORIGINS", "").split():
+        app.add_middleware(
+            fastapi.middleware.cors.CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     @app.get("/flows-installed")
     async def flows_installed():
@@ -232,7 +241,7 @@ def run_backend(
     ..note:: If you use AI-Media-Wizard as a Python library you should use ``run_comfy_backend`` instead of this.
     """
 
-    run_comfy_backend(backend_dir)
+    # run_comfy_backend(backend_dir)
     wizard_backend(
         *args,
         backend_dir=options.get_backend_dir(backend_dir),
