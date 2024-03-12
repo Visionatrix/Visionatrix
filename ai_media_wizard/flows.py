@@ -1,25 +1,26 @@
 import builtins
+import io
 import json
 import logging
 import os
 import re
 import time
 import typing
+import zipfile
 from pathlib import Path
 from shutil import rmtree
 
 import httpx
-from github import Github, GithubException
 from websockets.sync.client import connect
 
 from . import options
 from .models import install_model
 
 LOGGER = logging.getLogger("ai_media_wizard")
-GH_CACHE_FLOWS = {}
-
+FLOW_URL = "https://cloud-media-flows.github.io/AI_Media_Wizard/flows.zip"
 CACHE_AVAILABLE_FLOWS = {
     "update_time": time.time() - 11,
+    "etag": "",
     "flows": [],
     "flows_comfy": [],
 }
@@ -30,37 +31,25 @@ def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing
         return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
 
     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
-    repo = Github().get_repo("cloud-media-flows/AI_Media_Wizard")
+    r = httpx.get(FLOW_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
+    if r.status_code == 304:
+        return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
+    if r.status_code != 200:
+        LOGGER.error("Request to get flows returned: %s", r.status_code)
+        return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
     r_flows = []
     r_flows_comfy = []
-    for flow in repo.get_contents("flows"):
-        if flow.type != "dir":
-            continue
-        if flow.name in GH_CACHE_FLOWS and flow.etag == GH_CACHE_FLOWS[flow.name]["etag"]:
-            flow_data = GH_CACHE_FLOWS[flow.name]["flow_data"]
-            flow_comfy_data = GH_CACHE_FLOWS[flow.name]["flow_comfy_data"]
-        else:
-            flow_dir = f"flows/{flow.name}"
-            try:
-                flow_data = json.loads(repo.get_contents(f"{flow_dir}/flow.json").decoded_content)
-            except GithubException:
-                LOGGER.warning("Can't load `flow.json` for %s, skipping.", flow.name)
-                continue
-            try:
-                flow_comfy_data = json.loads(repo.get_contents(f"{flow_dir}/flow_comfy.json").decoded_content)
-            except GithubException:
-                LOGGER.warning("Can't load `flow_comfy.json` for %s, skipping.", flow.name)
-                continue
-            GH_CACHE_FLOWS.update({
-                flow.name: {
-                    "etag": flow.etag,
-                    "flow_data": flow_data,
-                    "flow_comfy_data": flow_comfy_data,
-                }
-            })
-        r_flows.append(flow_data)
-        r_flows_comfy.append(flow_comfy_data)
-    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy})
+    with zipfile.ZipFile(io.BytesIO(r.content)) as zip_file:
+        files_list = zip_file.namelist()
+        directories = {name for name in zip_file.namelist() if name.endswith("/")}
+        for directory in directories:
+            flow_path = f"{directory}flow.json"
+            flow_comfy_path = f"{directory}flow_comfy.json"
+            if flow_path in files_list and flow_comfy_path in files_list:
+                with zip_file.open(flow_path) as flow_file, zip_file.open(flow_comfy_path) as flow_comfy_file:
+                    r_flows.append(json.loads(flow_file.read()))
+                    r_flows_comfy.append(json.loads(flow_comfy_file.read()))
+    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy, "etag": r.headers.get("etag", "")})
     return r_flows, r_flows_comfy
 
 

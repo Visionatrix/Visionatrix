@@ -19,6 +19,9 @@ jobs:
       - name: Install Docs dependencies
         run: python3 -m pip install ".[docs]"
 
+      - name: Zip the flows folder
+        run: zip -r flows.zip flows
+
       - name: Build and push Docs
         run: |
           export CHANGES_DATE=`date -d"@$(git log -1 --pretty=%ct)" --iso-8601=seconds`
@@ -27,6 +30,7 @@ jobs:
           git config --global user.email "bigcat88@users.noreply.github.com"
           docroot=`mktemp -d`
           rsync -av "docs/_build/html/" "${docroot}/"
+          rsync -av "flows.zip" "${docroot}/"
           pushd "${docroot}"
           git init
           git remote add deploy "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
