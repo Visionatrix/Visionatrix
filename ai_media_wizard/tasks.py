@@ -95,16 +95,16 @@ def track_task_progress(
 
 
 def save_tasks():
-    with builtins.open("tasks.json", mode="w", encoding="UTF-8") as file:
+    with builtins.open("tasks_history.json", mode="w", encoding="UTF-8") as file:
         json.dump(TASKS_STORAGE, file)
     LOGGER.info("Saved %s tasks.", len(TASKS_STORAGE))
 
 
 def load_tasks():
-    if os.path.exists("tasks.json"):
-        with builtins.open("tasks.json", mode="r", encoding="UTF-8") as file:
+    if os.path.exists("tasks_history.json"):
+        with builtins.open("tasks_history.json", mode="r", encoding="UTF-8") as file:
             for k, v in json.load(file).items():
                 TASKS_STORAGE.update({int(k): v})
         LOGGER.info("Loaded %s tasks", len(TASKS_STORAGE))
     else:
-        LOGGER.info("No `tasks.json` to load.")
+        LOGGER.info("No `tasks_history.json` to load.")
