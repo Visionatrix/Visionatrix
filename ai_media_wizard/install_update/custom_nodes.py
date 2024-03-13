@@ -17,8 +17,7 @@ def install_base_custom_nodes(custom_nodes_dir: str) -> None:
         LOGGER.info("Cloning `%s`", k)
         git_flags = v.get("git_flags", "")
         run(
-            f"git clone https://github.com/cloud-media-flows/{k}.git {git_flags} {os.path.join(custom_nodes_dir, k)}"
-            .split(),
+            f"git clone https://github.com/cloud-media-flows/{k}.git {git_flags} {os.path.join(custom_nodes_dir, k)}".split(),
             check=True,
         )
         node_install_script = Path(os.path.join(custom_nodes_dir, k, "install.py"))
