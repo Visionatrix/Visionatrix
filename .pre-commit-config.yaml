@@ -12,13 +12,13 @@ repos:
     -   id: mixed-line-ending
 
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.13.0
+    rev: 5.13.2
     hooks:
     -   id: isort
         files: ai_media_wizard/
 
 -   repo: https://github.com/psf/black
-    rev: 23.11.0
+    rev: 24.2.0
     hooks:
     -   id: black
         files: ai_media_wizard/
@@ -29,7 +29,7 @@ repos:
     -   id: pyproject-fmt
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.7
+    rev: v0.3.2
     hooks:
     -   id: ruff
 
