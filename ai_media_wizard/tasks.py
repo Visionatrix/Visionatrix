@@ -74,7 +74,7 @@ def track_task_progress(
                 data = message["data"]
                 if data["node"] is None and data["prompt_id"] == prompt_id:
                     task_details["progress"] = 100
-                    remove_task_files(task_id, backend_dir, ["inputs"])
+                    remove_task_files(task_id, backend_dir, ["input"])
                     break
                 if data["node"] is not None and data["prompt_id"] == prompt_id:
                     if not current_node:
