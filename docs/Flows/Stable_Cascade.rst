@@ -15,7 +15,7 @@ Hardware
 Time to generate 1 image:
 
 - AMD 7900 XTX: **11.8 sec** / **36 sec** (2 pass)
-- NVIDIA RTX 3060 (12 GB): **x sec** / **x sec** (2 pass)
+- NVIDIA RTX 3060 (12 GB): **17 sec** / **49 sec** (2 pass)
 
 Examples
 """"""""
