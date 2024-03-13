@@ -53,6 +53,15 @@ def clear_unfinished_tasks() -> None:
         TASKS_STORAGE.pop(i, None)
 
 
+def clear_unfinished_task(task_id: int) -> str:
+    if task_id not in TASKS_STORAGE:
+        return "not found"
+    if TASKS_STORAGE[task_id]["progress"] == 100.0:
+        return "already finished"
+    TASKS_STORAGE.pop(task_id, None)
+    return ""
+
+
 def remove_task(task_id: int, backend_dir: str) -> None:
     TASKS_STORAGE.pop(task_id, None)
     remove_task_files(task_id, backend_dir, ["output", "input"])
