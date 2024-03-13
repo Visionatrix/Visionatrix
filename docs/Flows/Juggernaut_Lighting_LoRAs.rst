@@ -10,7 +10,7 @@ Although it sometimes has problems with eyes or hands, in most cases the quality
 Hardware
 """"""""
 
-- **Required memory: 11-12 GB**
+- **Required memory: works on 10 GB**
 
 Time to generate 1 image:
 

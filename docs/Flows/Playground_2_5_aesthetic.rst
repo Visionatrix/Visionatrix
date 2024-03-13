@@ -15,7 +15,7 @@ Playground v2.5 outperforms widely-used models and even some closed-source syste
 Hardware
 """"""""
 
-- **Required memory: 10-11 GB**
+- **Required memory: works on 10 GB**
 
 Time to generate 1 image:
 

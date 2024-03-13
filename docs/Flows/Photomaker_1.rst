@@ -11,7 +11,7 @@ The person's face in the incoming image should preferably occupy most of the scr
 Hardware
 """"""""
 
-- **Required memory: 10-11 GB**
+- **Required memory: works on 10 GB**
 
 Time to generate 1 image:
 
@@ -28,12 +28,12 @@ Examples
 .. image:: /FlowsResults/Photomaker_1_1_1.png
 .. image:: /FlowsResults/Photomaker_1_1_2.png
 
-Prompt: "*portrait of man photomaker in green suite with dragons*" Style: Cinematic (seed: 2)
+Prompt: "*portrait of man photomaker in green suite with dragons*"  Style: Cinematic (seed: 2)
 
 .. image:: /FlowsResults/Photomaker_1_2_1.png
 .. image:: /FlowsResults/Photomaker_1_2_2.png
 
-*Prompt: "*portrait of man photomaker looking at viewer from the dark, fire and flames*" Style: Neonpunk (seed: 3)
+*Prompt: "*portrait of man photomaker looking at viewer from the dark, fire and flames*"  Style: Neonpunk (seed: 3)
 
 .. image:: /FlowsResults/Photomaker_1_3_1.png
 .. image:: /FlowsResults/Photomaker_1_3_2.png
