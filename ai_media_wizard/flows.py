@@ -17,7 +17,6 @@ from . import options
 from .models import install_model
 
 LOGGER = logging.getLogger("ai_media_wizard")
-FLOW_URL = "https://cloud-media-flows.github.io/AI_Media_Wizard/flows.zip"
 CACHE_AVAILABLE_FLOWS = {
     "update_time": time.time() - 11,
     "etag": "",
@@ -31,7 +30,7 @@ def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing
         return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
 
     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
-    r = httpx.get(FLOW_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
+    r = httpx.get(options.FLOWS_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
     if r.status_code == 304:
         return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
     if r.status_code != 200:
@@ -128,19 +127,20 @@ def prepare_flow_comfy(
     flow: dict, flow_comfy: dict, in_texts_params: dict, in_files_params: list, request_id: str, backend_dir: str
 ) -> dict:
     r = flow_comfy.copy()
-    for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list")]:
-        v = in_texts_params.get(i["name"], None)
+    for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list", "bool")]:
+        v = prepare_flow_comfy_get_input_value(in_texts_params, i)
         if v is None:
-            if not i.get("optional", False):
-                raise RuntimeError(f"Missing `{i['name']}` parameter.")
             continue
-        if i["type"] == "list":  # for `list` type we need associated values
-            v = i["options"][v]
         for k, k_v in i["comfy_node_id"].items():
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
-            v_copy = get_node_value(node, k_v["src_field_name"]) if "src_field_name" in k_v else v
+            if i["type"] == "bool":
+                v_copy = k_v["value"]
+            elif "src_field_name" in k_v:
+                v_copy = get_node_value(node, k_v["src_field_name"])
+            else:
+                v_copy = v
             for mod_operations in k_v.get("modify_param", []):
                 for mod_operation, mod_params in mod_operations.items():
                     if mod_operation == "sub":
@@ -186,6 +186,26 @@ def set_node_value(node: dict, path: list[str], value: str | int | float) -> Non
     for key in path[:-1]:
         node = node[key]
     node[path[-1]] = value
+
+
+def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict):
+    v = in_texts_params.get(i["name"], None)
+    if v is None:
+        if "default" in i:
+            v = i["default"]
+        elif not i.get("optional", False):
+            raise RuntimeError(f"Missing `{i['name']}` parameter.")
+        else:
+            return None
+    if i["type"] == "list":  # for `list` type we need associated values
+        v = i["options"][v]
+    elif i["type"] == "bool":
+        if isinstance(v, str):
+            v = int(v)
+        v = bool(v)
+        if not v:
+            return None  # we perform action from "bool" only when condition is True, skip otherwise
+    return v
 
 
 def prepare_flow_comfy_files_params(

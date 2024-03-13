@@ -65,6 +65,7 @@
       "display_name": "Negative Prompt",
       "type": "text",
       "optional": true,
+      "advanced": true,
       "comfy_node_id": {
         "242": {
           "dest_field_name": ["inputs", "text"]
@@ -76,6 +77,7 @@
       "display_name": "Seed",
       "type": "number",
       "optional": true,
+      "advanced": true,
       "comfy_node_id": {
         "27": {
           "dest_field_name": ["inputs", "seed"],

@@ -28,6 +28,7 @@ from .flows import (
 
 try:
     import fastapi
+    import fastapi.middleware.cors
     import fastapi.staticfiles
     import uvicorn
 except ImportError as ex:
@@ -69,6 +70,14 @@ def wizard_backend(
         stop_comfy()
 
     app = fastapi.FastAPI(lifespan=lifespan)
+    if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
+        app.add_middleware(
+            fastapi.middleware.cors.CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     @app.get("/flows-installed")
     async def flows_installed():
@@ -141,7 +150,7 @@ def wizard_backend(
 
     @app.get("/flow-progress")
     async def flow_progress(task_id: str):
-        r = TASKS_PROGRESS.get(task_id, None)
+        r = TASKS_PROGRESS.get(task_id)
         if r is None:
             raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         return fastapi.responses.JSONResponse(content=r)
