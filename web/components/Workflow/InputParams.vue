@@ -20,7 +20,7 @@ const advancedCollapsed = ref(!props.advanced)
 		<h4 class="text-md font-bold cursor-pointer select-none flex items-center mb-3"@click="() => {
 			advancedCollapsed = !advancedCollapsed
 		}">
-			<UIcon :name="advancedCollapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+			<UIcon :name="!advancedCollapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
 			Advanced options
 		</h4>

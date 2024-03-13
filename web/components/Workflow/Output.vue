@@ -29,7 +29,7 @@ const collapsed = ref(false)
 </script>
 
 <template>
-	<div class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md">
+	<div class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md my-10">
 		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
 			@click="() => {
 				collapsed = !collapsed
@@ -46,7 +46,7 @@ const collapsed = ref(false)
 				:page-count="flowStore.$state.resultsPageSize"
 				:total="results.length" />
 			<div class="progress-queue">
-				<UProgress v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name).reverse()"
+				<UProgress v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name)"
 					class="mb-10"
 					:value="running?.progress"
 					indicator />

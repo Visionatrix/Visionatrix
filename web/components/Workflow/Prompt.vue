@@ -4,7 +4,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	if (input_param.type === 'text') {
 		return ({
 			[input_param.name]: {
-				value: <any>'',
+				value: <string>input_param.default || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -14,7 +14,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
-				value: <any>0,
+				value: <number>input_param.default || 0,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -24,7 +24,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	else if (input_param.type === 'image') {
 		return ({
 			[input_param.name]: {
-				value: <any>{},
+				value: <any>input_param.default || {},
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -43,7 +43,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'bool') {
 		return ({
 			[input_param.name]: {
-				value: <any>false,
+				value: <boolean>input_param.default || false,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
