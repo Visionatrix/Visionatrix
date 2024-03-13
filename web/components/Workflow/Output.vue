@@ -64,7 +64,7 @@ const collapsed = ref(false)
 						}" />
 					<UCarousel v-else class="mb-3 rounded-lg" v-slot="{ item }" :items="flowResult.output_params.map((result_output_param) => {
 						return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id }
-					})" :ui="{ item: 'basis-full' }" arrows indicators>
+					})" :ui="{ item: 'basis-full md:basis-1/2' }" arrows indicators>
 						<NuxtImg class="w-full cursor-pointer" :src="outputImgSrc(item)"
 							draggable="false"
 							@click="() => {
