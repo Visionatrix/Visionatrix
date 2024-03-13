@@ -423,6 +423,8 @@ interface FlowInputParam {
 	type: string
 	optional: boolean
 	options?: any[]
+	advanced?: boolean
+	default?: any
 }
 
 interface FlowOutputParam {
