@@ -135,7 +135,7 @@ def wizard_backend(
         if not flow:
             raise fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.") from None
 
-        task_id, task_details = create_new_task(input_params_list, backend_dir)
+        task_id, task_details = create_new_task(name, input_params_list, backend_dir)
         try:
             flow_comfy = prepare_flow_comfy(
                 flow, flow_comfy, input_params_list, in_files, task_id, task_details, backend_dir

@@ -18,11 +18,12 @@ def get_new_task_id() -> int:
     return 999999999999
 
 
-def create_new_task(input_params: dict, backend_dir: str) -> [int, dict]:
+def create_new_task(name: str, input_params: dict, backend_dir: str) -> [int, dict]:
     task_details = {
         "input_params": input_params,
         "progress": 0.0,
         "error": "",
+        "name": name,
         "input_files": [],
         "outputs": [],
     }
