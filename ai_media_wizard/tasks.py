@@ -1,8 +1,11 @@
+import builtins
 import json
+import logging
 import os
 
 from websockets.sync.client import ClientConnection
 
+LOGGER = logging.getLogger("ai_media_wizard")
 TASKS_STORAGE = {}
 """{task_id: {progress: 0.0-100.0, error: "", name: "", input_params: "", input_files: [str], outputs: [int]}}"""
 
@@ -89,3 +92,19 @@ def track_task_progress(
                     task_details["progress"] += node_percent / int(data["max"])
         else:
             continue
+
+
+def save_tasks():
+    with builtins.open("tasks.json", mode="w", encoding="UTF-8") as file:
+        json.dump(TASKS_STORAGE, file)
+    LOGGER.info("Saved %s tasks.", len(TASKS_STORAGE))
+
+
+def load_tasks():
+    if os.path.exists("tasks.json"):
+        with builtins.open("tasks.json", mode="r", encoding="UTF-8") as file:
+            for k, v in json.load(file).items():
+                TASKS_STORAGE.update({int(k): v})
+        LOGGER.info("Loaded %s tasks", len(TASKS_STORAGE))
+    else:
+        LOGGER.info("No `tasks.json` to load.")

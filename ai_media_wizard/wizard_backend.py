@@ -27,7 +27,9 @@ from .tasks import (
     create_new_task,
     get_task,
     get_tasks,
+    load_tasks,
     remove_task,
+    save_tasks,
     track_task_progress,
 )
 
@@ -70,8 +72,11 @@ def wizard_backend(
             except RuntimeError:
                 stop_comfy()
                 raise
+            load_tasks()
         yield
         stop_comfy()
+        if ui_dir:
+            save_tasks()
 
     app = fastapi.FastAPI(lifespan=lifespan)
     if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
@@ -193,6 +198,8 @@ def wizard_backend(
     @app.post("/shutdown")
     def shutdown(b_tasks: fastapi.BackgroundTasks):
         stop_comfy()
+        if ui_dir:
+            save_tasks()
         b_tasks.add_task(__shutdown_wizard)
         return fastapi.responses.JSONResponse(content={"error": ""})
 

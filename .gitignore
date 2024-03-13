@@ -98,3 +98,4 @@ amw_backend
 amw_flows
 amw_models
 scripts/ai_media_wizard
+tasks.json
