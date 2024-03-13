@@ -17,3 +17,4 @@
 # Files to exclude from GitHub Languages statistics
 *.h linguist-vendored=true
 *.Dockerfile linguist-vendored=true
+client/* linguist-vendored=true binary

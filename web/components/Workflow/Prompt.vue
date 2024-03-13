@@ -1,34 +1,33 @@
 <script setup lang="ts">
-defineProps({
-	prompt: Object
-})
-
 const flowStore  = useFlowsStore()
 const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_param => {
 	if (input_param.type === 'text') {
 		return ({
 			[input_param.name]: {
-				value: <any>'',
+				value: <string>input_param.default || '',
 				type: input_param.type,
 				optional: input_param.optional,
+				advanced: input_param.advanced || false,
 			}
 		})
 	}
 	else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
-				value: <any>0,
+				value: <number>input_param.default || 0,
 				type: input_param.type,
 				optional: input_param.optional,
+				advanced: input_param.advanced || false,
 			}
 		})
 	}
 	else if (input_param.type === 'image') {
 		return ({
 			[input_param.name]: {
-				value: <any>{},
+				value: <any>input_param.default || {},
 				type: input_param.type,
 				optional: input_param.optional,
+				advanced: input_param.advanced || false,
 			}
 		})
 	} else if (input_param.type === 'list') {
@@ -38,6 +37,16 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				type: input_param.type,
 				optional: input_param.optional,
 				options: input_param.options,
+				advanced: input_param.advanced || false,
+			}
+		})
+	} else if (input_param.type === 'bool') {
+		return ({
+			[input_param.name]: {
+				value: <boolean>input_param.default || false,
+				type: input_param.type,
+				optional: input_param.optional,
+				advanced: input_param.advanced || false,
 			}
 		})
 	}
@@ -60,54 +69,10 @@ const collapsed = ref(false)
 		</h2>
 
 		<template v-if="!collapsed">
-			<UFormGroup v-for="inputParam, index in flowStore.currentFlow.input_params"
-				:label="inputParam.display_name">
-				<template #hint>
-					<span v-if="!inputParam.optional" class="text-red-300">required</span>
-				</template>
-
-				<UTextarea v-if="inputParam.type === 'text'"
-					class="mb-3"
-					size="md"
-					:placeholder="inputParam.display_name"
-					:required="!inputParam.optional"
-					:resize="true"
-					:label="inputParam.display_name"
-					:value="inputParamsMap[index][inputParam.name].value"
-					variant="outline" @input="(event: InputEvent) => {
-						const input = event.target as HTMLTextAreaElement
-						inputParamsMap[index][inputParam.name].value = input.value
-					}" />
-
-				<UInput v-if="inputParam.type === 'number'"
-					type="number"
-					class="mb-3"
-					:label="inputParam.display_name"
-					:required="!inputParam.optional"
-					:value="inputParamsMap[index][inputParam.name].value"
-					variant="outline" @input="(event: InputEvent) => {
-						const input = event.target as HTMLInputElement
-						inputParamsMap[index][inputParam.name].value = input.value
-					}" />
-
-				<UInput v-if="inputParam.type === 'image'"
-					type="file"
-					class="mb-3"
-					accept="image/*"
-					:label="inputParam.display_name"
-					@change="(event: Event) => {
-						const input = event.target as HTMLInputElement
-						const file = input.files?.[0]
-						inputParamsMap[index][inputParam.name].value = <File>file
-						console.debug('inputParamsMap', inputParamsMap)
-					}" />
-
-				<USelectMenu v-if="inputParam.type === 'list'"
-					class="mb-3"
-					v-model="inputParamsMap[index][inputParam.name].value"
-					:placeholder="inputParam.display_name"
-					:options="Object.keys(<object>inputParam.options)" />
-			</UFormGroup>
+			<WorkflowInputParams :input-params-map.sync="inputParamsMap" :advanced="false" />
+			<WorkflowInputParams v-if="flowStore.currentFlow.input_params.some((input_param: any) => input_param.advanced)"
+				:input-params-map.sync="inputParamsMap"
+				:advanced="true" />
 
 			<UFormGroup label="Batch prompts size">
 				<UInput type="number"

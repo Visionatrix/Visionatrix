@@ -29,7 +29,7 @@ const collapsed = ref(false)
 </script>
 
 <template>
-	<div class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md">
+	<div class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md my-10">
 		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
 			@click="() => {
 				collapsed = !collapsed
@@ -45,10 +45,12 @@ const collapsed = ref(false)
 				v-model="flowStore.$state.resultsPage"
 				:page-count="flowStore.$state.resultsPageSize"
 				:total="results.length" />
-			<UProgress v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name).reverse()"
-				class="mb-10"
-				:value="running?.progress"
-				indicator />
+			<div class="progress-queue">
+				<UProgress v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name)"
+					class="mb-10"
+					:value="running?.progress"
+					indicator />
+			</div>
 			<div class="results overflow-auto" v-if="hasOutputResult">
 				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
 					class="flex flex-col justify-center w-full mx-auto mb-5">
@@ -62,7 +64,7 @@ const collapsed = ref(false)
 						}" />
 					<UCarousel v-else class="mb-3 rounded-lg" v-slot="{ item }" :items="flowResult.output_params.map((result_output_param) => {
 						return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id }
-					})" :ui="{ item: 'basis-full' }" arrows indicators>
+					})" :ui="{ item: 'basis-full md:basis-1/2' }" arrows indicators>
 						<NuxtImg class="w-full cursor-pointer" :src="outputImgSrc(item)"
 							draggable="false"
 							@click="() => {
@@ -107,5 +109,11 @@ const collapsed = ref(false)
 	height: 100%;
 	min-height: 30vh;
 	max-height: 75dvh;
+}
+
+.progress-queue {
+	height: 100%;
+	max-height: 25dvh;
+	overflow-y: auto;
 }
 </style>

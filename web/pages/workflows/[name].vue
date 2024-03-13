@@ -22,8 +22,8 @@ const collapsedCard = ref(false)
 <template>
 	<AppContainer class="lg:h-dvh">
 		<template v-if="!flowStore.loading.flows_available && !flowStore.loading.flows_installed && flowStore.currentFlow">
-			<div class="flex flex-col items-center lg:flex-row lg:items-start justify-between">
-				<div class="flex flex-col w-full lg:mr-5">
+			<div class="flex flex-col lg:flex-row flex-grow items-start w-full">
+				<div class="card-wrapper w-full lg:pr-5">
 					<UCard as="div" class="w-full mb-5">
 						<template #header>
 							<h2 class="text-xl font-bold cursor-pointer select-none flex items-center" @click="() => {
@@ -127,15 +127,16 @@ const collapsedCard = ref(false)
 							</div>
 						</template>
 					</UCard>
-					<div class="prompt-wrapper">
-						<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
-						<!-- <WorkflowPromptHistory v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" /> -->
-					</div>
 				</div>
-				<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
+				<div class="prompt-wrapper w-full">
+					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
+					<!-- <WorkflowPromptHistory v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" /> -->
+				</div>
 			</div>
+			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
 		</template>
 		<template v-else>
+			<UProgress class="mb-3" />
 			<USkeleton class="w-full h-80" />
 		</template>
 	</AppContainer>
