@@ -45,10 +45,12 @@ const collapsed = ref(false)
 				v-model="flowStore.$state.resultsPage"
 				:page-count="flowStore.$state.resultsPageSize"
 				:total="results.length" />
-			<UProgress v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name).reverse()"
-				class="mb-10"
-				:value="running?.progress"
-				indicator />
+			<div class="progress-queue">
+				<UProgress v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name).reverse()"
+					class="mb-10"
+					:value="running?.progress"
+					indicator />
+			</div>
 			<div class="results overflow-auto" v-if="hasOutputResult">
 				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
 					class="flex flex-col justify-center w-full mx-auto mb-5">
@@ -107,5 +109,11 @@ const collapsed = ref(false)
 	height: 100%;
 	min-height: 30vh;
 	max-height: 75dvh;
+}
+
+.progress-queue {
+	height: 100%;
+	max-height: 25dvh;
+	overflow-y: auto;
 }
 </style>
