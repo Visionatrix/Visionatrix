@@ -42,7 +42,7 @@
     },
     {
       "name": "seed",
-      "display_name": "Seed",
+      "display_name": "Random seed",
       "type": "number",
       "optional": true,
       "advanced": true,
