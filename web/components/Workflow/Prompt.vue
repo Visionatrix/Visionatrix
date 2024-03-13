@@ -74,7 +74,7 @@ const collapsed = ref(false)
 				:input-params-map.sync="inputParamsMap"
 				:advanced="true" />
 
-			<UFormGroup label="Batch prompts size">
+			<UFormGroup label="Number of images">
 				<UInput type="number"
 					min="1"
 					max="50"

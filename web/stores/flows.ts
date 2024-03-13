@@ -11,6 +11,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		installing: <FlowInstalling[]>[],
 		resultsPage: 1,
 		resultsPageSize: 5,
+		flow_results_filter: '',
 		flow_results: <FlowResult[]>[],
 		flows_available: <Flow[]>[],
 		flows_installed: <Flow[]>[],
@@ -37,12 +38,20 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return (name: string) => this.flows.find(flow => flow.name === name)
 		},
 		flowResultsByName(state) {
-			return (name: string) => state.flow_results.filter(flow => flow.flow_name === name)
+			return (name: string) => {
+				if (state.flow_results_filter !== '') {
+					return state.flow_results.filter(flow => flow.flow_name === name && flow.prompt.includes(state.flow_results_filter))
+				}
+				return state.flow_results.filter(flow => flow.flow_name === name)
+			}
 		},
 		flowResultsByNamePaginated(state) {
 			return (name: string) => {
 				const start = (state.resultsPage - 1) * state.resultsPageSize
 				const end = start + state.resultsPageSize
+				if (state.flow_results_filter !== '') {
+					return state.flow_results.filter(flow => flow.flow_name === name && flow.prompt.includes(state.flow_results_filter)).reverse().slice(start, end)
+				}
 				return state.flow_results.filter(flow => flow.flow_name === name).reverse().slice(start, end)
 			}
 		},
@@ -131,6 +140,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		getFlowResults() {
 			// Load previous flow results from localStorage
+			// TODO: Change to fetching from backend
 			const flowsResults = localStorage.getItem('flows_results')
 			if (flowsResults) {
 				this.flow_results = JSON.parse(flowsResults)
@@ -234,7 +244,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 
 
-			return await $fetch(`${config.app.backendApiUrl}/flow`, {
+			return await $fetch(`${config.app.backendApiUrl}/task`, {
 				method: 'POST',
 				headers: {
 					'Access-Control-Allow-Origin': '*',
@@ -247,7 +257,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					task_id: res?.task_id,
 					flow_name: flow.name,
 					progress: 0,
-					input_prompt: input_params_mapped['prompt']
+					input_prompt: input_params_mapped['prompt'],
+					seed: input_params_mapped['seed'] ?? '',
 				})
 				// Save running flows to localStorage
 				localStorage.setItem('running_flows', JSON.stringify(this.running))
@@ -264,9 +275,36 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
+		async cancelRunningFlows(running: FlowRunning[]) {
+			return Promise.all(running.map(flow => this.cancelRunningFlow(flow)))
+		},
+
+		async cancelRunningFlow(running: FlowRunning) {
+			const config = useRuntimeConfig()
+			return $fetch(`${config.app.backendApiUrl}/task-queue?task_id=${running.task_id}`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			}).then((res: any) => {
+				if (res.error !== '') {
+					const toast = useToast()
+					toast.add({
+						title: 'Failed to cancel running flow',
+						description: res.error,
+						timeout: 5000,
+					})
+					return
+				}
+				this.running = this.running.filter(flow => flow.task_id !== running.task_id)
+				localStorage.setItem('running_flows', JSON.stringify(this.running))
+				// TODO: Cancel polling
+			})
+		},
+
 		async getFlowProgress(task_id: string): Promise<FlowProgress> {
 			const config = useRuntimeConfig()
-			return await $fetch(`${config.app.backendApiUrl}/flow-progress?task_id=${task_id}`, {
+			return await $fetch(`${config.app.backendApiUrl}/task-progress?task_id=${task_id}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -380,8 +418,25 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		deleteFlowHistory(task_id: string) {
-			this.flow_results = this.flow_results.filter(flow => flow.task_id !== task_id)
-			localStorage.setItem('flows_results', JSON.stringify(this.flow_results))
+			const config = useRuntimeConfig()
+			$fetch(`${config.app.backendApiUrl}/task?task_id=${task_id}`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			}).then((res: any) => {
+				if (res.error !== '') {
+					const toast = useToast()
+					toast.add({
+						title: 'Failed to delete flow history item',
+						description: res.error,
+						timeout: 5000,
+					})
+					return
+				}
+				this.flow_results = this.flow_results.filter(flow => flow.task_id !== task_id)
+				localStorage.setItem('flows_results', JSON.stringify(this.flow_results))
+			})
 		},
 	}
 })
@@ -444,10 +499,10 @@ interface FlowRunning {
 	flow_name: string
 	input_prompt?: any
 	progress: number
+	seed?: string
 }
 
 interface FlowProgress {
-	request_id: string
 	progress: number
 	error?: string
 	flow?: any
@@ -458,7 +513,7 @@ interface FlowResult {
 	task_id: string
 	flow_name: string
 	output_params: FlowOutputParam[]
-	prompt?: any // TODO: Will be needed to restore prompt
+	prompt?: any
 }
 
 interface FlowHistoryPrompt {

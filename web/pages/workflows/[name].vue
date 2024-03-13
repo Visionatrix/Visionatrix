@@ -133,6 +133,7 @@ const collapsedCard = ref(false)
 					<!-- <WorkflowPromptHistory v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" /> -->
 				</div>
 			</div>
+			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
 			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
 		</template>
 		<template v-else>
