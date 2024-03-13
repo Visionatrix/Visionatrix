@@ -6,12 +6,10 @@ import signal
 import subprocess
 import sys
 import time
-import uuid
 from contextlib import asynccontextmanager
 from importlib.metadata import PackageNotFoundError, version
 
 import httpx
-from websockets.sync.client import ClientConnection
 
 from . import options
 from .flows import (
@@ -24,6 +22,13 @@ from .flows import (
     open_comfy_websocket,
     prepare_flow_comfy,
     uninstall_flow,
+)
+from .tasks import (
+    create_new_task,
+    get_task,
+    get_tasks,
+    remove_task,
+    track_task_progress,
 )
 
 try:
@@ -40,7 +45,6 @@ except ImportError as ex:
 LOGGER = logging.getLogger("ai_media_wizard")
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
 FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
-TASKS_PROGRESS = {}  # task_id: {request_id: str, progress: 0.0-100.0, error: "", flow: {}, flow_comfy: {}}
 
 
 def wizard_backend(
@@ -113,8 +117,8 @@ def wizard_backend(
         uninstall_flow(flows_dir, name)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
-    @app.post("/flow")
-    def flow_run(
+    @app.post("/task")
+    def task_run(
         b_tasks: fastapi.BackgroundTasks,
         name: str = fastapi.Form(),
         input_params: str = fastapi.Form(None),
@@ -131,47 +135,50 @@ def wizard_backend(
         if not flow:
             raise fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.") from None
 
-        request_id = str(uuid.uuid4())
+        task_id, task_details = create_new_task(input_params_list, backend_dir)
         try:
-            flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_list, in_files, request_id, backend_dir)
+            flow_comfy = prepare_flow_comfy(
+                flow, flow_comfy, input_params_list, in_files, task_id, task_details, backend_dir
+            )
         except RuntimeError as e:
+            remove_task(task_id, "")
             raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
 
-        connection = open_comfy_websocket(request_id)
-        r = execute_flow_comfy(flow_comfy, request_id)
-        task_details = {"request_id": request_id, "progress": 0, "error": "", "flow": flow, "flow_comfy": flow_comfy}
-        TASKS_PROGRESS[r["prompt_id"]] = task_details
-        b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], task_details)
-        return fastapi.responses.JSONResponse(content={"client_id": request_id, "task_id": r["prompt_id"]})
+        connection = open_comfy_websocket(str(task_id))
+        r = execute_flow_comfy(flow_comfy, str(task_id))
+        b_tasks.add_task(
+            track_task_progress,
+            connection,
+            r["prompt_id"],
+            task_id,
+            task_details,
+            len(list(flow_comfy.keys()), backend_dir),
+        )
+        return fastapi.responses.JSONResponse(content={"task_id": str(task_id)})
 
-    @app.get("/flows-progress")
-    async def flows_progress():
-        return fastapi.responses.JSONResponse(content=TASKS_PROGRESS)
+    @app.get("/tasks-progress")
+    async def tasks_progress():
+        return fastapi.responses.JSONResponse(content=get_tasks())
 
-    @app.get("/flow-progress")
-    async def flow_progress(task_id: str):
-        r = TASKS_PROGRESS.get(task_id)
-        if r is None:
+    @app.get("/task-progress")
+    async def task_progress(task_id: str):
+        if (r := get_task(int(task_id))) is None:
             raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         return fastapi.responses.JSONResponse(content=r)
 
-    @app.get("/flow-results")
-    async def flow_results(task_id: str, node_id: int):
-        r = httpx.get(f"http://{options.get_comfy_address()}/history/{task_id}")
-        if r.status_code != 200:
-            raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-        result = json.loads(r.text)
-        if task_id not in result:
-            raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found in history.")
-        result_output = result[task_id]["outputs"]
-        if str(node_id) not in result_output:
-            raise fastapi.HTTPException(status_code=404, detail=f"Node `{node_id}` was not found in results.")
-        result_node = result_output[str(node_id)]
-        if "images" in result_node:
-            result_image = result_node["images"][0]
-            result_path = os.path.join(backend_dir, "output", result_image["subfolder"], result_image["filename"])
-            return fastapi.responses.FileResponse(result_path)
-        raise fastapi.HTTPException(status_code=404, detail="These node types are not currently supported.")
+    @app.delete("/task")
+    async def task_remove(task_id: str):
+        remove_task(int(task_id), backend_dir)
+        return fastapi.responses.JSONResponse(content={"error": ""})
+
+    @app.get("/task-results")
+    async def task_results(task_id: str, node_id: int):
+        result_prefix = f"{task_id}_{node_id}_"
+        output_directory = os.path.join(backend_dir, "output")
+        for filename in os.listdir(output_directory):
+            if filename.startswith(result_prefix):
+                return fastapi.responses.FileResponse(os.path.join(output_directory, filename))
+        raise fastapi.HTTPException(status_code=404, detail=f"Missing result for task={task_id} and node={node_id}.")
 
     @app.post("/backend-restart")
     def backend_restart():
@@ -197,34 +204,6 @@ def wizard_backend(
         )
 
     uvicorn.run(app, *args, host=wizard_host, port=wizard_port, **kwargs)
-
-
-def __track_task_progress(connection: ClientConnection, task_id: str, task_details: dict) -> None:
-    nodes_to_execute = list(task_details["flow_comfy"].keys())
-    node_percent = 100 / len(nodes_to_execute)
-    current_node = ""
-    while True:
-        out = connection.recv()
-        if isinstance(out, str):
-            message = json.loads(out)
-            if message["type"] == "executing":
-                data = message["data"]
-                if data["node"] is None and data["prompt_id"] == task_id:
-                    task_details["progress"] = 100
-                    break
-                if data["node"] is not None and data["prompt_id"] == task_id:
-                    if not current_node:
-                        current_node = data["node"]
-                    if current_node != data["node"]:
-                        task_details["progress"] += node_percent
-                        current_node = data["node"]
-            elif message["type"] == "progress":
-                data = message["data"]
-                if "max" in data and "value" in data:
-                    current_node = ""
-                    task_details["progress"] += node_percent / int(data["max"])
-        else:
-            continue
 
 
 def run_backend(

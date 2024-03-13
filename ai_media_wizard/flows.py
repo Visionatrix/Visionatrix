@@ -124,7 +124,13 @@ def uninstall_flow(flows_dir: str, flow_name: str) -> None:
 
 
 def prepare_flow_comfy(
-    flow: dict, flow_comfy: dict, in_texts_params: dict, in_files_params: list, request_id: str, backend_dir: str
+    flow: dict,
+    flow_comfy: dict,
+    in_texts_params: dict,
+    in_files_params: list,
+    task_id: int,
+    task_details: dict,
+    backend_dir: str,
 ) -> dict:
     r = flow_comfy.copy()
     for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list", "bool")]:
@@ -159,7 +165,8 @@ def prepare_flow_comfy(
                 else:
                     raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
             set_node_value(node, k_v["dest_field_name"], v_copy)
-    prepare_flow_comfy_files_params(flow, in_files_params, request_id, backend_dir, r)
+    prepare_flow_comfy_files_params(flow, in_files_params, task_id, task_details, backend_dir, r)
+    prepare_output_params(flow, task_id, task_details, r)
     LOGGER.debug("Prepared flow data: %s", r)
     return r
 
@@ -209,21 +216,32 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict):
 
 
 def prepare_flow_comfy_files_params(
-    flow: dict, in_files_params: list, request_id: str, backend_dir: str, r: dict
+    flow: dict, in_files_params: list, task_id: int, task_details: dict, backend_dir: str, r: dict
 ) -> None:
     files_params = [i for i in flow["input_params"] if i["type"] in ("image", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
     if len(in_files_params) < min_required_files_count:
         raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
     for i, v in enumerate(in_files_params):
-        file_name = f"{request_id}_{i}"
-        with builtins.open(os.path.join(backend_dir, "input", file_name), mode="wb") as fp:
-            if hasattr(v, "read"):
-                fp.write(v.read())
-            else:
-                fp.write(bytes(v))
+        file_name = f"{task_id}_{i}"
         for k, k_v in files_params[i]["comfy_node_id"].items():
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
             set_node_value(node, k_v["dest_field_name"], file_name)
+        with builtins.open(os.path.join(backend_dir, "input", file_name), mode="wb") as fp:
+            if hasattr(v, "read"):
+                fp.write(v.read())
+            else:
+                fp.write(bytes(v))
+            task_details["input_files"].append(file_name)
+
+
+def prepare_output_params(flow: dict, task_id: int, task_details: dict, r: dict) -> None:
+    for param in flow["output_params"]:
+        node_id = param["comfy_node_id"]
+        r_node = r[str(node_id)]
+        if r_node["class_type"] != "SaveImage":
+            raise RuntimeError(f"node={node_id}: only `SaveImage` nodes are supported currently as output nodes")
+        r_node["inputs"]["filename_prefix"] = f"{task_id}_{node_id}"
+        task_details["outputs"].append(node_id)
