@@ -70,7 +70,7 @@ def wizard_backend(
         stop_comfy()
 
     app = fastapi.FastAPI(lifespan=lifespan)
-    if cors_origins := os.getenv("CORS_ORIGINS", "").split():
+    if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
         app.add_middleware(
             fastapi.middleware.cors.CORSMiddleware,
             allow_origins=cors_origins,
@@ -150,7 +150,7 @@ def wizard_backend(
 
     @app.get("/flow-progress")
     async def flow_progress(task_id: str):
-        r = TASKS_PROGRESS.get(task_id, None)
+        r = TASKS_PROGRESS.get(task_id)
         if r is None:
             raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         return fastapi.responses.JSONResponse(content=r)
@@ -241,7 +241,7 @@ def run_backend(
     ..note:: If you use AI-Media-Wizard as a Python library you should use ``run_comfy_backend`` instead of this.
     """
 
-    # run_comfy_backend(backend_dir)
+    run_comfy_backend(backend_dir)
     wizard_backend(
         *args,
         backend_dir=options.get_backend_dir(backend_dir),

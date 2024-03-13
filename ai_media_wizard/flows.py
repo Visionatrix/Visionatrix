@@ -17,7 +17,6 @@ from . import options
 from .models import install_model
 
 LOGGER = logging.getLogger("ai_media_wizard")
-FLOW_URL = "https://cloud-media-flows.github.io/AI_Media_Wizard/flows.zip"
 CACHE_AVAILABLE_FLOWS = {
     "update_time": time.time() - 11,
     "etag": "",
@@ -31,7 +30,7 @@ def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing
         return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
 
     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
-    r = httpx.get(FLOW_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
+    r = httpx.get(options.FLOWS_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
     if r.status_code == 304:
         return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
     if r.status_code != 200:

@@ -16,6 +16,9 @@ WIZARD_PORT = environ.get("WIZARD_PORT", "8288")
 COMFY_PORT = environ.get("COMFY_PORT", "8188")
 COMFY_DEBUG = environ.get("COMFY_DEBUG", "0")
 
+ORG_URL = "https://github.com/cloud-media-flows/"
+FLOWS_URL = "https://cloud-media-flows.github.io/AI_Media_Wizard/flows.zip"
+
 
 def get_backend_dir(backend_dir: str | None) -> str:
     if not backend_dir:
