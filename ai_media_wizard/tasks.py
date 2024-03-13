@@ -48,6 +48,11 @@ def update_task(task_id: int, task_details: dict) -> None:
     TASKS_STORAGE[task_id] = task_details
 
 
+def clear_unfinished_tasks() -> None:
+    for i in [k for k, v in TASKS_STORAGE.items() if int(v["progress"]) != 100]:
+        TASKS_STORAGE.pop(i, None)
+
+
 def remove_task(task_id: int, backend_dir: str) -> None:
     TASKS_STORAGE.pop(task_id, None)
     remove_task_files(task_id, backend_dir, ["output", "input"])
@@ -70,13 +75,18 @@ def track_task_progress(
     node_percent = 100 / nodes_count
     current_node = ""
     while True:
-        out = connection.recv()
+        try:
+            out = connection.recv(timeout=1.0)
+        except TimeoutError:
+            if task_id in TASKS_STORAGE:
+                continue
+            break
         if isinstance(out, str):
             message = json.loads(out)
             if message["type"] == "executing":
                 data = message["data"]
                 if data["node"] is None and data["prompt_id"] == prompt_id:
-                    task_details["progress"] = 100
+                    task_details["progress"] = 100.0
                     remove_task_files(task_id, backend_dir, ["input"])
                     break
                 if data["node"] is not None and data["prompt_id"] == prompt_id:

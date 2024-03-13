@@ -24,6 +24,7 @@ from .flows import (
     uninstall_flow,
 )
 from .tasks import (
+    clear_unfinished_tasks,
     create_new_task,
     get_task,
     get_tasks,
@@ -186,17 +187,35 @@ def wizard_backend(
                 return fastapi.responses.FileResponse(os.path.join(output_directory, filename))
         raise fastapi.HTTPException(status_code=404, detail=f"Missing result for task={task_id} and node={node_id}.")
 
+    @app.post("/tasks-queue-clear")
+    async def tasks_queue_clear(b_tasks: fastapi.BackgroundTasks):
+        async def __tasks_queue_clear():
+            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"clear": True})
+            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/interrupt")
+            clear_unfinished_tasks()
+
+        b_tasks.add_task(__tasks_queue_clear)
+        return fastapi.responses.JSONResponse(content={"error": ""})
+
+    @app.post("/task-interrupt")
+    async def task_interrupt(b_tasks: fastapi.BackgroundTasks):
+        async def __interrupt_task():
+            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/interrupt")
+
+        b_tasks.add_task(__interrupt_task)
+        return fastapi.responses.JSONResponse(content={"error": ""})
+
     @app.post("/backend-restart")
     def backend_restart():
         run_comfy_backend(backend_dir)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
-    def __shutdown_wizard():
-        time.sleep(1.0)
-        os.kill(os.getpid(), signal.SIGINT)
-
     @app.post("/shutdown")
     def shutdown(b_tasks: fastapi.BackgroundTasks):
+        def __shutdown_wizard():
+            time.sleep(1.0)
+            os.kill(os.getpid(), signal.SIGINT)
+
         stop_comfy()
         if ui_dir:
             save_tasks()
