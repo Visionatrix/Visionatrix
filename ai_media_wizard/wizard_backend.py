@@ -152,7 +152,8 @@ def wizard_backend(
             r["prompt_id"],
             task_id,
             task_details,
-            len(list(flow_comfy.keys()), backend_dir),
+            len(list(flow_comfy.keys())),
+            backend_dir,
         )
         return fastapi.responses.JSONResponse(content={"task_id": str(task_id)})
 
