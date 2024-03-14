@@ -3,6 +3,7 @@ import contextlib
 import json
 import logging
 import os
+import threading
 
 import httpx
 from websockets.sync.client import ClientConnection
@@ -24,6 +25,7 @@ TASKS_STORAGE = {}
         prompt_id: ""
         }
     }"""
+TASKS_STORAGE_LOCK = threading.RLock()
 
 
 def get_new_task_id() -> int:
@@ -49,9 +51,11 @@ def create_new_task(name: str, input_params: dict, tasks_files_dir: str) -> [int
         "interrupt": False,
         "prompt_id": "",
     }
+    TASKS_STORAGE_LOCK.acquire()  # pylint: disable=consider-using-with
     task_id = get_new_task_id()
-    remove_task_files(task_id, tasks_files_dir, ["output", "input"])
     TASKS_STORAGE[task_id] = task_details
+    TASKS_STORAGE_LOCK.release()
+    remove_task_files(task_id, tasks_files_dir, ["output", "input"])
     return task_id, task_details
 
 
@@ -99,7 +103,6 @@ def track_task_progress(
         if isinstance(out, str):
             message = json.loads(out)
             LOGGER.debug("received from ComfyUI: %s", message)
-            print(message)
             data = message.get("data", {})
             if message["type"] == "execution_start" and data.get("prompt_id", "") == task_details["prompt_id"]:
                 task_details["started"] = True

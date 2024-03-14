@@ -115,7 +115,7 @@ def wizard_backend(
         return fastapi.responses.JSONResponse(content={"error": f"Can't find `{name}` flow."})
 
     @app.get("/flow-progress-install")
-    def flow_progress_install():
+    async def flow_progress_install():
         return fastapi.responses.JSONResponse(content=FLOW_INSTALL_STATUS)
 
     @app.delete("/flow")
