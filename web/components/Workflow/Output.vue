@@ -81,7 +81,6 @@ const collapsed = ref(false)
 						})" 
 						:ui="{ item: 'basis-full md:basis-1/2' }"
 						:page="1"
-						arrows
 						indicators>
 						<NuxtImg class="w-full" :src="outputImgSrc(item)"
 							draggable="false"/>
