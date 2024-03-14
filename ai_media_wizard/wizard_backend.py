@@ -300,7 +300,8 @@ def run_comfy_backend(backend_dir: str, tasks_files_dir: str) -> None:
     if need_directml_flag():
         run_cmd += ["--directml"]
     stdout = None if LOGGER.getEffectiveLevel == logging.DEBUG or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
-    COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout)  # pylint: disable=consider-using-with
+    stderr = None if LOGGER.getEffectiveLevel == logging.INFO or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
+    COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout, stderr=stderr)  # pylint: disable=consider-using-with
     for _ in range(15):
         with contextlib.suppress(httpx.NetworkError):
             r = httpx.get(f"http://{options.get_comfy_address()}")
