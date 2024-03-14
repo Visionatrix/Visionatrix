@@ -1,13 +1,28 @@
 import builtins
+import contextlib
 import json
 import logging
 import os
 
+import httpx
 from websockets.sync.client import ClientConnection
+
+from . import options
 
 LOGGER = logging.getLogger("ai_media_wizard")
 TASKS_STORAGE = {}
-"""{task_id: {progress: 0.0-100.0, error: "", name: "", input_params: "", input_files: [str], outputs: [int]}}"""
+"""{
+    task_id: {
+        progress: 0.0-100.0,
+        error: "",
+        name: "",
+        input_params: "",
+        input_files: [str],
+        outputs: [int],
+        interrupt: bool,
+        prompt_id: ""
+        }
+    }"""
 
 
 def get_new_task_id() -> int:
@@ -29,6 +44,8 @@ def create_new_task(name: str, input_params: dict, backend_dir: str) -> [int, di
         "name": name,
         "input_files": [],
         "outputs": [],
+        "interrupt": False,
+        "prompt_id": "",
     }
     task_id = get_new_task_id()
     remove_task_files(task_id, backend_dir, ["output", "input"])
@@ -48,20 +65,6 @@ def update_task(task_id: int, task_details: dict) -> None:
     TASKS_STORAGE[task_id] = task_details
 
 
-def clear_unfinished_tasks() -> None:
-    for i in [k for k, v in TASKS_STORAGE.items() if int(v["progress"]) != 100]:
-        TASKS_STORAGE.pop(i, None)
-
-
-def clear_unfinished_task(task_id: int) -> str:
-    if task_id not in TASKS_STORAGE:
-        return "not found"
-    if TASKS_STORAGE[task_id]["progress"] == 100.0:
-        return "already finished"
-    TASKS_STORAGE.pop(task_id, None)
-    return ""
-
-
 def remove_task(task_id: int, backend_dir: str) -> None:
     TASKS_STORAGE.pop(task_id, None)
     remove_task_files(task_id, backend_dir, ["output", "input"])
@@ -75,11 +78,12 @@ def remove_task_files(task_id: int, backend_dir: str, directories: list[str]) ->
         target_directory = os.path.join(backend_dir, directory)
         for filename in os.listdir(target_directory):
             if filename.startswith(result_prefix):
-                os.remove(os.path.join(target_directory, filename))
+                with contextlib.suppress(FileNotFoundError):
+                    os.remove(os.path.join(target_directory, filename))
 
 
 def track_task_progress(
-    connection: ClientConnection, prompt_id: str, task_id: int, task_details: dict, nodes_count: int, backend_dir: str
+    connection: ClientConnection, task_id: int, task_details: dict, nodes_count: int, backend_dir: str
 ) -> None:
     node_percent = 100 / nodes_count
     current_node = ""
@@ -87,18 +91,19 @@ def track_task_progress(
         try:
             out = connection.recv(timeout=1.0)
         except TimeoutError:
-            if task_id in TASKS_STORAGE:
-                continue
+            out = None
+        print(f"interrupt for {task_id}: {task_details['interrupt']}, progress={task_details['progress']}")
+        if task_id not in TASKS_STORAGE or task_details["interrupt"]:
             break
         if isinstance(out, str):
             message = json.loads(out)
+            print(message)
             if message["type"] == "executing":
                 data = message["data"]
-                if data["node"] is None and data["prompt_id"] == prompt_id:
+                if data["node"] is None and data["prompt_id"] == task_details["prompt_id"]:
                     task_details["progress"] = 100.0
-                    remove_task_files(task_id, backend_dir, ["input"])
                     break
-                if data["node"] is not None and data["prompt_id"] == prompt_id:
+                if data["node"] is not None and data["prompt_id"] == task_details["prompt_id"]:
                     if not current_node:
                         current_node = data["node"]
                     if current_node != data["node"]:
@@ -111,6 +116,13 @@ def track_task_progress(
                     task_details["progress"] += node_percent / int(data["max"])
         else:
             continue
+    if task_details["progress"] not in (0.0, 100.0):
+        print(f"interrupting: {task_id}")
+        httpx.post(url=f"http://{options.get_comfy_address()}/interrupt")
+        print(f"removing: {task_id}")
+        remove_task(task_id, backend_dir)
+        return
+    remove_task_files(task_id, backend_dir, ["input"])
 
 
 def save_tasks():

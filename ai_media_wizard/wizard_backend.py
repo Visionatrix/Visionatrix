@@ -24,8 +24,6 @@ from .flows import (
     uninstall_flow,
 )
 from .tasks import (
-    clear_unfinished_task,
-    clear_unfinished_tasks,
     create_new_task,
     get_task,
     get_tasks,
@@ -153,10 +151,10 @@ def wizard_backend(
 
         connection = open_comfy_websocket(str(task_id))
         r = execute_flow_comfy(flow_comfy, str(task_id))
+        task_details["prompt_id"] = r["prompt_id"]
         b_tasks.add_task(
             track_task_progress,
             connection,
-            r["prompt_id"],
             task_id,
             task_details,
             len(list(flow_comfy.keys())),
@@ -189,19 +187,31 @@ def wizard_backend(
         raise fastapi.HTTPException(status_code=404, detail=f"Missing result for task={task_id} and node={node_id}.")
 
     @app.delete("/tasks-queue")
-    async def tasks_queue_clear(b_tasks: fastapi.BackgroundTasks):
-        async def __tasks_queue_clear():
-            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"clear": True})
-            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/interrupt")
-            clear_unfinished_tasks()
-
-        b_tasks.add_task(__tasks_queue_clear)
+    async def tasks_queue_clear(name: str):
+        tasks = get_tasks()
+        delete_ids = []
+        delete_keys = []
+        for k, v in tasks.items():
+            if not name or v["name"] == name and v["progress"] != 100.0:
+                v["interrupt"] = True
+                delete_ids.append(v["prompt_id"])
+                delete_keys.append(k)
+        print(f"ComfyUI remove ids: {delete_ids}")
+        await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": delete_ids})
+        for k in delete_keys:
+            tasks.pop(k, None)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.delete("/task-queue")
     async def task_queue_clear(task_id: int):
-        # await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": []})
-        return fastapi.responses.JSONResponse(content={"error": clear_unfinished_task(task_id)})
+        if not (r := get_task(task_id)):
+            return fastapi.responses.JSONResponse(status_code=404, content={"error": "not found"})
+        r["interrupt"] = True
+        print(f"set interrupt for {task_id}")
+        prompt_id = r["prompt_id"]
+        get_tasks().pop(task_id, None)
+        await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": [prompt_id]})
+        return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/task-interrupt")
     async def task_interrupt(b_tasks: fastapi.BackgroundTasks):
