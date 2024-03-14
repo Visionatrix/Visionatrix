@@ -8,6 +8,7 @@ const flowStore  = useFlowsStore()
 
 const hasOutputResult = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).length > 0 || false)
 const results = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).reverse() || [])
+const resultsPerPage = computed(() => flowStore.$state.resultsPageSize)
 
 const outputImgSrc = function (result: any) {
 	return `${config.app.backendApiUrl}/task-results?task_id=${result.task_id}&node_id=${result.node_id}`
@@ -15,6 +16,15 @@ const outputImgSrc = function (result: any) {
 
 // watch for total results length and update the page to the last one
 watch(results, () => {
+	if (results.value.length <= flowStore.$state.resultsPageSize) {
+		flowStore.$state.resultsPage = 1
+	}
+	else if (flowStore.$state.resultsPage > Math.ceil(results.value.length / flowStore.$state.resultsPageSize)) {
+		flowStore.$state.resultsPage = Math.ceil(results.value.length / flowStore.$state.resultsPageSize)
+	}
+})
+
+watch(resultsPerPage, () => {
 	if (results.value.length <= flowStore.$state.resultsPageSize) {
 		flowStore.$state.resultsPage = 1
 	}
