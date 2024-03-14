@@ -68,19 +68,19 @@ const collapsed = ref(false)
 			Prompt
 		</h2>
 
-		<template v-if="!collapsed">
+		<div v-show="!collapsed">
 			<WorkflowInputParams :input-params-map.sync="inputParamsMap" :advanced="false" />
 			<WorkflowInputParams v-if="flowStore.currentFlow.input_params.some((input_param: any) => input_param.advanced)"
 				:input-params-map.sync="inputParamsMap"
 				:advanced="true" />
 
-			<UFormGroup label="Batch prompts size">
+			<UFormGroup label="Number of images">
 				<UInput type="number"
 					min="1"
 					max="50"
 					v-model="batchSize"
 					label="Batch size"
-					class="mb-3 max-w-fit" />
+					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
 			<div class="flex justify-end px-2">
 				<UButton icon="i-heroicons-sparkles-16-solid"
@@ -95,9 +95,10 @@ const collapsed = ref(false)
 								const paramName = Object.keys(inputParam)[0]
 								return paramName === 'seed'
 							})
-							if (seed) {
+							if (seed && i > 0) {
 								seed.seed.value = (Number(seed.seed.value) + 1).toString()
 							}
+
 							flowStore.runFlow(flowStore.currentFlow, inputParamsMap).then(() => {
 								if (i === batchSize - 1)
 									running = false
@@ -107,6 +108,6 @@ const collapsed = ref(false)
 						}
 				}">Run prompt</UButton>
 			</div>
-		</template>
+		</div>
 	</div>
 </template>

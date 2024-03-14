@@ -21,7 +21,7 @@ const collapsedCard = ref(false)
 
 <template>
 	<AppContainer class="lg:h-dvh">
-		<template v-if="!flowStore.loading.flows_available && !flowStore.loading.flows_installed && flowStore.currentFlow">
+		<template v-if="!flowStore.loading.flows_available && !flowStore.loading.flows_installed && flowStore.currentFlow && !flowStore.$state.loading.tasks_history">
 			<div class="flex flex-col lg:flex-row flex-grow items-start w-full">
 				<div class="card-wrapper w-full lg:pr-5">
 					<UCard as="div" class="w-full mb-5">
@@ -113,26 +113,24 @@ const collapsedCard = ref(false)
 										{{ installing ? `${installing?.progress.toFixed(0)}% Setting up` : 'Setup flow' }}
 									</UButton>
 								</UTooltip>
-								<UTooltip v-if="flowStore.isFlowInstalled(<string>route.params.name)"
-									text="Delete flow (models are kept)"
-									:popper="{ placement: 'top' }" :open-delay="500">
-									<UButton icon="i-heroicons-trash"
-										color="red"
-										variant="outline"
-										:loading="deleting"
-										@click="deleteFlow">
-										Delete flow
-									</UButton>
-								</UTooltip>
+								<UDropdown v-if="flowStore.isFlowInstalled(<string>route.params.name)" :items="[
+									[{
+										label: 'Delete flow',
+										icon: 'i-heroicons-trash',
+										click: deleteFlow,
+									}]
+								]" mode="click" label="Options" :popper="{ placement: 'bottom-end' }">
+									<UButton color="white" label="Options" trailing-icon="i-heroicons-chevron-down-20-solid" />
+								</UDropdown>
 							</div>
 						</template>
 					</UCard>
 				</div>
 				<div class="prompt-wrapper w-full">
 					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
-					<!-- <WorkflowPromptHistory v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" /> -->
 				</div>
 			</div>
+			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
 			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
 		</template>
 		<template v-else>
