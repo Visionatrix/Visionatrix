@@ -90,7 +90,6 @@ exclude = []
 
 [tool.black]
 line-length = 120
-target-versions = ["py310"]
 preview = true
 
 [tool.ruff]

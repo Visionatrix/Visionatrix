@@ -47,4 +47,5 @@ repos:
                 "-sn", # Don't display the score
             ]
 
-exclude: ^client/*
+# Exclude the client and web folders
+exclude: ^(client|web)/

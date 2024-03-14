@@ -6,12 +6,10 @@ import signal
 import subprocess
 import sys
 import time
-import uuid
 from contextlib import asynccontextmanager
 from importlib.metadata import PackageNotFoundError, version
 
 import httpx
-from websockets.sync.client import ClientConnection
 
 from . import options
 from .flows import (
@@ -24,6 +22,15 @@ from .flows import (
     open_comfy_websocket,
     prepare_flow_comfy,
     uninstall_flow,
+)
+from .tasks import (
+    create_new_task,
+    get_task,
+    get_tasks,
+    load_tasks,
+    remove_task,
+    save_tasks,
+    track_task_progress,
 )
 
 try:
@@ -40,7 +47,6 @@ except ImportError as ex:
 LOGGER = logging.getLogger("ai_media_wizard")
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
 FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
-TASKS_PROGRESS = {}  # task_id: {request_id: str, progress: 0.0-100.0, error: "", flow: {}, flow_comfy: {}}
 
 
 def wizard_backend(
@@ -48,6 +54,7 @@ def wizard_backend(
     backend_dir: str,
     flows_dir: str,
     models_dir: str,
+    tasks_files_dir: str,
     wizard_host: str,
     wizard_port: str,
     **kwargs,
@@ -66,8 +73,11 @@ def wizard_backend(
             except RuntimeError:
                 stop_comfy()
                 raise
+            load_tasks(tasks_files_dir)
         yield
         stop_comfy()
+        if ui_dir:
+            save_tasks(tasks_files_dir)
 
     app = fastapi.FastAPI(lifespan=lifespan)
     if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
@@ -105,7 +115,7 @@ def wizard_backend(
         return fastapi.responses.JSONResponse(content={"error": f"Can't find `{name}` flow."})
 
     @app.get("/flow-progress-install")
-    def flow_progress_install():
+    async def flow_progress_install():
         return fastapi.responses.JSONResponse(content=FLOW_INSTALL_STATUS)
 
     @app.delete("/flow")
@@ -113,8 +123,8 @@ def wizard_backend(
         uninstall_flow(flows_dir, name)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
-    @app.post("/flow")
-    def flow_run(
+    @app.post("/task")
+    def task_run(
         b_tasks: fastapi.BackgroundTasks,
         name: str = fastapi.Form(),
         input_params: str = fastapi.Form(None),
@@ -131,60 +141,99 @@ def wizard_backend(
         if not flow:
             raise fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.") from None
 
-        request_id = str(uuid.uuid4())
+        task_id, task_details = create_new_task(name, input_params_list, tasks_files_dir)
         try:
-            flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_list, in_files, request_id, backend_dir)
+            flow_comfy = prepare_flow_comfy(
+                flow, flow_comfy, input_params_list, in_files, task_id, task_details, tasks_files_dir
+            )
         except RuntimeError as e:
+            remove_task(task_id, "")
             raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
 
-        connection = open_comfy_websocket(request_id)
-        r = execute_flow_comfy(flow_comfy, request_id)
-        task_details = {"request_id": request_id, "progress": 0, "error": "", "flow": flow, "flow_comfy": flow_comfy}
-        TASKS_PROGRESS[r["prompt_id"]] = task_details
-        b_tasks.add_task(__track_task_progress, connection, r["prompt_id"], task_details)
-        return fastapi.responses.JSONResponse(content={"client_id": request_id, "task_id": r["prompt_id"]})
+        connection = open_comfy_websocket(str(task_id))
+        r = execute_flow_comfy(flow_comfy, str(task_id))
+        task_details["prompt_id"] = r["prompt_id"]
+        b_tasks.add_task(
+            track_task_progress,
+            connection,
+            task_id,
+            task_details,
+            len(list(flow_comfy.keys())),
+            tasks_files_dir,
+        )
+        return fastapi.responses.JSONResponse(content={"task_id": str(task_id)})
 
-    @app.get("/flows-progress")
-    async def flows_progress():
-        return fastapi.responses.JSONResponse(content=TASKS_PROGRESS)
+    @app.get("/tasks-progress")
+    async def tasks_progress():
+        return fastapi.responses.JSONResponse(content=get_tasks())
 
-    @app.get("/flow-progress")
-    async def flow_progress(task_id: str):
-        r = TASKS_PROGRESS.get(task_id)
-        if r is None:
+    @app.get("/task-progress")
+    async def task_progress(task_id: str):
+        if (r := get_task(int(task_id))) is None:
             raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         return fastapi.responses.JSONResponse(content=r)
 
-    @app.get("/flow-results")
-    async def flow_results(task_id: str, node_id: int):
-        r = httpx.get(f"http://{options.get_comfy_address()}/history/{task_id}")
-        if r.status_code != 200:
-            raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-        result = json.loads(r.text)
-        if task_id not in result:
-            raise fastapi.HTTPException(status_code=404, detail=f"Task `{task_id}` was not found in history.")
-        result_output = result[task_id]["outputs"]
-        if str(node_id) not in result_output:
-            raise fastapi.HTTPException(status_code=404, detail=f"Node `{node_id}` was not found in results.")
-        result_node = result_output[str(node_id)]
-        if "images" in result_node:
-            result_image = result_node["images"][0]
-            result_path = os.path.join(backend_dir, "output", result_image["subfolder"], result_image["filename"])
-            return fastapi.responses.FileResponse(result_path)
-        raise fastapi.HTTPException(status_code=404, detail="These node types are not currently supported.")
+    @app.delete("/task")
+    async def task_remove(task_id: str):
+        remove_task(int(task_id), tasks_files_dir)
+        return fastapi.responses.JSONResponse(content={"error": ""})
+
+    @app.get("/task-results")
+    async def task_results(task_id: str, node_id: int):
+        result_prefix = f"{task_id}_{node_id}_"
+        output_directory = os.path.join(tasks_files_dir, "output")
+        for filename in os.listdir(output_directory):
+            if filename.startswith(result_prefix):
+                return fastapi.responses.FileResponse(os.path.join(output_directory, filename))
+        raise fastapi.HTTPException(status_code=404, detail=f"Missing result for task={task_id} and node={node_id}.")
+
+    @app.delete("/tasks-queue")
+    async def tasks_queue_clear(name: str):
+        tasks = get_tasks()
+        delete_ids = []
+        delete_keys = []
+        for k, v in tasks.items():
+            if not name or v["name"] == name and v["progress"] != 100.0:
+                v["interrupt"] = True
+                delete_ids.append(v["prompt_id"])
+                delete_keys.append(k)
+        await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": delete_ids})
+        for k in delete_keys:
+            tasks.pop(k, None)
+        return fastapi.responses.JSONResponse(content={"error": ""})
+
+    @app.delete("/task-queue")
+    async def task_queue_clear(task_id: int):
+        if not (r := get_task(task_id)):
+            return fastapi.responses.JSONResponse(status_code=404, content={"error": "not found"})
+        r["interrupt"] = True
+        prompt_id = r["prompt_id"]
+        get_tasks().pop(task_id, None)
+        await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": [prompt_id]})
+        return fastapi.responses.JSONResponse(content={"error": ""})
+
+    @app.post("/task-interrupt")
+    async def task_interrupt(b_tasks: fastapi.BackgroundTasks):
+        async def __interrupt_task():
+            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/interrupt")
+
+        b_tasks.add_task(__interrupt_task)
+        return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/backend-restart")
     def backend_restart():
-        run_comfy_backend(backend_dir)
+        run_comfy_backend(backend_dir, tasks_files_dir)
         return fastapi.responses.JSONResponse(content={"error": ""})
-
-    def __shutdown_wizard():
-        time.sleep(1.0)
-        os.kill(os.getpid(), signal.SIGINT)
 
     @app.post("/shutdown")
     def shutdown(b_tasks: fastapi.BackgroundTasks):
+        def __shutdown_wizard():
+            time.sleep(1.0)
+            os.kill(os.getpid(), signal.SIGINT)
+
         stop_comfy()
+        if ui_dir:
+            save_tasks(tasks_files_dir)
         b_tasks.add_task(__shutdown_wizard)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
@@ -199,39 +248,12 @@ def wizard_backend(
     uvicorn.run(app, *args, host=wizard_host, port=wizard_port, **kwargs)
 
 
-def __track_task_progress(connection: ClientConnection, task_id: str, task_details: dict) -> None:
-    nodes_to_execute = list(task_details["flow_comfy"].keys())
-    node_percent = 100 / len(nodes_to_execute)
-    current_node = ""
-    while True:
-        out = connection.recv()
-        if isinstance(out, str):
-            message = json.loads(out)
-            if message["type"] == "executing":
-                data = message["data"]
-                if data["node"] is None and data["prompt_id"] == task_id:
-                    task_details["progress"] = 100
-                    break
-                if data["node"] is not None and data["prompt_id"] == task_id:
-                    if not current_node:
-                        current_node = data["node"]
-                    if current_node != data["node"]:
-                        task_details["progress"] += node_percent
-                        current_node = data["node"]
-            elif message["type"] == "progress":
-                data = message["data"]
-                if "max" in data and "value" in data:
-                    current_node = ""
-                    task_details["progress"] += node_percent / int(data["max"])
-        else:
-            continue
-
-
 def run_backend(
     *args,
     backend_dir="",
     flows_dir="",
     models_dir="",
+    tasks_files_dir="",
     wizard_host="",
     wizard_port="",
     **kwargs,
@@ -241,19 +263,25 @@ def run_backend(
     ..note:: If you use AI-Media-Wizard as a Python library you should use ``run_comfy_backend`` instead of this.
     """
 
-    run_comfy_backend(backend_dir)
+    backend_dir = options.get_backend_dir(backend_dir)
+    tasks_files_dir = options.get_tasks_files_dir(tasks_files_dir)
+    for i in ("input", "output"):
+        os.makedirs(os.path.join(tasks_files_dir, i), exist_ok=True)
+
+    run_comfy_backend(backend_dir, tasks_files_dir)
     wizard_backend(
         *args,
-        backend_dir=options.get_backend_dir(backend_dir),
+        backend_dir=backend_dir,
         flows_dir=flows_dir,
         models_dir=models_dir,
+        tasks_files_dir=tasks_files_dir,
         wizard_host=wizard_host,
         wizard_port=wizard_port,
         **kwargs,
     )
 
 
-def run_comfy_backend(backend_dir="") -> None:
+def run_comfy_backend(backend_dir: str, tasks_files_dir: str) -> None:
     """Starts ComfyUI in a background."""
     global COMFY_PROCESS  # pylint: disable=global-statement
 
@@ -261,14 +289,19 @@ def run_comfy_backend(backend_dir="") -> None:
     COMFY_PROCESS = None
     run_cmd = [
         "python",
-        os.path.join(options.get_backend_dir(backend_dir), "main.py"),
+        os.path.join(backend_dir, "main.py"),
         "--port",
         str(options.get_comfy_port()),
+        "--output-directory",
+        os.path.join(tasks_files_dir, "output"),
+        "--input-directory",
+        os.path.join(tasks_files_dir, "input"),
     ]
     if need_directml_flag():
         run_cmd += ["--directml"]
     stdout = None if LOGGER.getEffectiveLevel == logging.DEBUG or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
-    COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout)  # pylint: disable=consider-using-with
+    stderr = None if LOGGER.getEffectiveLevel == logging.INFO or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
+    COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout, stderr=stderr)  # pylint: disable=consider-using-with
     for _ in range(15):
         with contextlib.suppress(httpx.NetworkError):
             r = httpx.get(f"http://{options.get_comfy_address()}")
