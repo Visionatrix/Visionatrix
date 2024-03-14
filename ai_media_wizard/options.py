@@ -10,6 +10,7 @@ load_dotenv()
 BACKEND_DIR = environ.get("BACKEND_DIR", "")
 FLOWS_DIR = environ.get("FLOWS_DIR", "")
 MODELS_DIR = environ.get("MODELS_DIR", "")
+TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", "")
 
 WIZARD_HOST = environ.get("WIZARD_HOST", "127.0.0.1")
 WIZARD_PORT = environ.get("WIZARD_PORT", "8288")
@@ -42,6 +43,14 @@ def get_models_dir(models_dir: str | None) -> str:
     if not models_dir:
         models_dir = str(Path("./amw_models").resolve())
     return models_dir
+
+
+def get_tasks_files_dir(tasks_files_dir: str | None) -> str:
+    if not tasks_files_dir:
+        tasks_files_dir = TASKS_FILES_DIR
+    if not tasks_files_dir:
+        tasks_files_dir = str(Path("./amw_tasks_files").resolve())
+    return tasks_files_dir
 
 
 def get_wizard_host(host: str | None) -> str:

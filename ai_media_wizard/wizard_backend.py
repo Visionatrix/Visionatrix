@@ -54,6 +54,7 @@ def wizard_backend(
     backend_dir: str,
     flows_dir: str,
     models_dir: str,
+    tasks_files_dir: str,
     wizard_host: str,
     wizard_port: str,
     **kwargs,
@@ -72,11 +73,11 @@ def wizard_backend(
             except RuntimeError:
                 stop_comfy()
                 raise
-            load_tasks()
+            load_tasks(tasks_files_dir)
         yield
         stop_comfy()
         if ui_dir:
-            save_tasks()
+            save_tasks(tasks_files_dir)
 
     app = fastapi.FastAPI(lifespan=lifespan)
     if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
@@ -140,10 +141,10 @@ def wizard_backend(
         if not flow:
             raise fastapi.HTTPException(status_code=404, detail=f"Flow `{name}` is not installed.") from None
 
-        task_id, task_details = create_new_task(name, input_params_list, backend_dir)
+        task_id, task_details = create_new_task(name, input_params_list, tasks_files_dir)
         try:
             flow_comfy = prepare_flow_comfy(
-                flow, flow_comfy, input_params_list, in_files, task_id, task_details, backend_dir
+                flow, flow_comfy, input_params_list, in_files, task_id, task_details, tasks_files_dir
             )
         except RuntimeError as e:
             remove_task(task_id, "")
@@ -158,7 +159,7 @@ def wizard_backend(
             task_id,
             task_details,
             len(list(flow_comfy.keys())),
-            backend_dir,
+            tasks_files_dir,
         )
         return fastapi.responses.JSONResponse(content={"task_id": str(task_id)})
 
@@ -174,13 +175,13 @@ def wizard_backend(
 
     @app.delete("/task")
     async def task_remove(task_id: str):
-        remove_task(int(task_id), backend_dir)
+        remove_task(int(task_id), tasks_files_dir)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.get("/task-results")
     async def task_results(task_id: str, node_id: int):
         result_prefix = f"{task_id}_{node_id}_"
-        output_directory = os.path.join(backend_dir, "output")
+        output_directory = os.path.join(tasks_files_dir, "output")
         for filename in os.listdir(output_directory):
             if filename.startswith(result_prefix):
                 return fastapi.responses.FileResponse(os.path.join(output_directory, filename))
@@ -221,7 +222,7 @@ def wizard_backend(
 
     @app.post("/backend-restart")
     def backend_restart():
-        run_comfy_backend(backend_dir)
+        run_comfy_backend(backend_dir, tasks_files_dir)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/shutdown")
@@ -232,7 +233,7 @@ def wizard_backend(
 
         stop_comfy()
         if ui_dir:
-            save_tasks()
+            save_tasks(tasks_files_dir)
         b_tasks.add_task(__shutdown_wizard)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
@@ -252,6 +253,7 @@ def run_backend(
     backend_dir="",
     flows_dir="",
     models_dir="",
+    tasks_files_dir="",
     wizard_host="",
     wizard_port="",
     **kwargs,
@@ -261,19 +263,25 @@ def run_backend(
     ..note:: If you use AI-Media-Wizard as a Python library you should use ``run_comfy_backend`` instead of this.
     """
 
-    run_comfy_backend(backend_dir)
+    backend_dir = options.get_backend_dir(backend_dir)
+    tasks_files_dir = options.get_tasks_files_dir(tasks_files_dir)
+    for i in ("input", "output"):
+        os.makedirs(os.path.join(tasks_files_dir, i), exist_ok=True)
+
+    run_comfy_backend(backend_dir, tasks_files_dir)
     wizard_backend(
         *args,
-        backend_dir=options.get_backend_dir(backend_dir),
+        backend_dir=backend_dir,
         flows_dir=flows_dir,
         models_dir=models_dir,
+        tasks_files_dir=tasks_files_dir,
         wizard_host=wizard_host,
         wizard_port=wizard_port,
         **kwargs,
     )
 
 
-def run_comfy_backend(backend_dir="") -> None:
+def run_comfy_backend(backend_dir: str, tasks_files_dir: str) -> None:
     """Starts ComfyUI in a background."""
     global COMFY_PROCESS  # pylint: disable=global-statement
 
@@ -281,9 +289,13 @@ def run_comfy_backend(backend_dir="") -> None:
     COMFY_PROCESS = None
     run_cmd = [
         "python",
-        os.path.join(options.get_backend_dir(backend_dir), "main.py"),
+        os.path.join(backend_dir, "main.py"),
         "--port",
         str(options.get_comfy_port()),
+        "--output-directory",
+        os.path.join(tasks_files_dir, "output"),
+        "--input-directory",
+        os.path.join(tasks_files_dir, "input"),
     ]
     if need_directml_flag():
         run_cmd += ["--directml"]

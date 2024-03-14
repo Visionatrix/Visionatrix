@@ -37,7 +37,7 @@ def get_new_task_id() -> int:
     return 999999999999
 
 
-def create_new_task(name: str, input_params: dict, backend_dir: str) -> [int, dict]:
+def create_new_task(name: str, input_params: dict, tasks_files_dir: str) -> [int, dict]:
     task_details = {
         "input_params": input_params,
         "progress": 0.0,
@@ -50,7 +50,7 @@ def create_new_task(name: str, input_params: dict, backend_dir: str) -> [int, di
         "prompt_id": "",
     }
     task_id = get_new_task_id()
-    remove_task_files(task_id, backend_dir, ["output", "input"])
+    remove_task_files(task_id, tasks_files_dir, ["output", "input"])
     TASKS_STORAGE[task_id] = task_details
     return task_id, task_details
 
@@ -85,7 +85,7 @@ def remove_task_files(task_id: int, backend_dir: str, directories: list[str]) ->
 
 
 def track_task_progress(
-    connection: ClientConnection, task_id: int, task_details: dict, nodes_count: int, backend_dir: str
+    connection: ClientConnection, task_id: int, task_details: dict, nodes_count: int, tasks_files_dir: str
 ) -> None:
     node_percent = 100 / nodes_count
     current_node = ""
@@ -99,6 +99,7 @@ def track_task_progress(
         if isinstance(out, str):
             message = json.loads(out)
             LOGGER.debug("received from ComfyUI: %s", message)
+            print(message)
             data = message.get("data", {})
             if message["type"] == "execution_start" and data.get("prompt_id", "") == task_details["prompt_id"]:
                 task_details["started"] = True
@@ -115,26 +116,36 @@ def track_task_progress(
             elif message["type"] == "progress" and "max" in data and "value" in data:
                 current_node = ""
                 task_details["progress"] += node_percent / int(data["max"])
+            elif message["type"] == "execution_error" and data["prompt_id"] == task_details["prompt_id"]:
+                task_details["error"] = data["exception_message"]
+                LOGGER.error(
+                    "Exception occurred during executing task %s:\n%s\n%s",
+                    task_id,
+                    data["exception_message"],
+                    data["traceback"],
+                )
+                break
         else:
             continue
-    if task_details["started"] and task_details["progress"] != 100.0:
+    if task_details["started"] and task_details["progress"] != 100.0 and not task_details["error"]:
         LOGGER.debug("interrupting %s with progress %s", task_id, task_details["progress"])
         httpx.post(url=f"http://{options.get_comfy_address()}/interrupt")
-        remove_task(task_id, backend_dir)
+        remove_task(task_id, tasks_files_dir)
         return
-    LOGGER.debug("remove files %s task", task_id)
-    remove_task_files(task_id, backend_dir, ["input"])
+    LOGGER.debug("remove input files for %s task", task_id)
+    remove_task_files(task_id, tasks_files_dir, ["input"])
 
 
-def save_tasks():
-    with builtins.open("tasks_history.json", mode="w", encoding="UTF-8") as file:
+def save_tasks(tasks_files_dir: str):
+    with builtins.open(os.path.join(tasks_files_dir, "tasks_history.json"), mode="w", encoding="UTF-8") as file:
         json.dump(TASKS_STORAGE, file)
     LOGGER.info("Saved %s tasks.", len(TASKS_STORAGE))
 
 
-def load_tasks():
-    if os.path.exists("tasks_history.json"):
-        with builtins.open("tasks_history.json", mode="r", encoding="UTF-8") as file:
+def load_tasks(tasks_files_dir: str):
+    tasks_history = os.path.join(tasks_files_dir, "tasks_history.json")
+    if os.path.exists(tasks_history):
+        with builtins.open(tasks_history, mode="r", encoding="UTF-8") as file:
             for k, v in json.load(file).items():
                 TASKS_STORAGE.update({int(k): v})
         LOGGER.info("Loaded %s tasks", len(TASKS_STORAGE))

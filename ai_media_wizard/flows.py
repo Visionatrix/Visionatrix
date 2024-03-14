@@ -130,7 +130,7 @@ def prepare_flow_comfy(
     in_files_params: list,
     task_id: int,
     task_details: dict,
-    backend_dir: str,
+    tasks_files_dir: str,
 ) -> dict:
     r = flow_comfy.copy()
     for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list", "bool")]:
@@ -165,7 +165,7 @@ def prepare_flow_comfy(
                 else:
                     raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
             set_node_value(node, k_v["dest_field_name"], v_copy)
-    prepare_flow_comfy_files_params(flow, in_files_params, task_id, task_details, backend_dir, r)
+    prepare_flow_comfy_files_params(flow, in_files_params, task_id, task_details, tasks_files_dir, r)
     prepare_output_params(flow, task_id, task_details, r)
     LOGGER.debug("Prepared flow data: %s", r)
     return r
@@ -216,7 +216,7 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict):
 
 
 def prepare_flow_comfy_files_params(
-    flow: dict, in_files_params: list, task_id: int, task_details: dict, backend_dir: str, r: dict
+    flow: dict, in_files_params: list, task_id: int, task_details: dict, tasks_files_dir: str, r: dict
 ) -> None:
     files_params = [i for i in flow["input_params"] if i["type"] in ("image", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
@@ -229,7 +229,7 @@ def prepare_flow_comfy_files_params(
             if not node:
                 raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
             set_node_value(node, k_v["dest_field_name"], file_name)
-        with builtins.open(os.path.join(backend_dir, "input", file_name), mode="wb") as fp:
+        with builtins.open(os.path.join(tasks_files_dir, "input", file_name), mode="wb") as fp:
             if hasattr(v, "read"):
                 fp.write(v.read())
             else:

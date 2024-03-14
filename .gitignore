@@ -97,5 +97,5 @@ geckodriver.log
 amw_backend
 amw_flows
 amw_models
+amw_tasks_files
 scripts/ai_media_wizard
-tasks_history.json

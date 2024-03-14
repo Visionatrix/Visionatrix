@@ -66,6 +66,7 @@ if __name__ == "__main__":
             subparser.add_argument("--host", type=str, help="Host to be used by Wizard backend")
             subparser.add_argument("--port", type=str, help="Port to be used by Wizard backend")
             subparser.add_argument("--ui", type=str, help="Folder with UI")
+            subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
 
     args = parser.parse_args()
     defined_loglvl = get_log_level(args.loglevel)
@@ -100,6 +101,7 @@ if __name__ == "__main__":
             backend_dir=args.backend_dir,
             flows_dir=args.flows_dir,
             models_dir=args.models_dir,
+            tasks_files_dir=args.tasks_files_dir,
             wizard_host=args.host,
             wizard_port=args.port,
             ui_dir=args.ui,
