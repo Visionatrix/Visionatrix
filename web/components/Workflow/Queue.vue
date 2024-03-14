@@ -2,7 +2,7 @@
 const flowStore = useFlowsStore()
 
 const canceling = ref(false)
-const collapsed = ref(false)
+const collapsed = ref(true)
 </script>
 
 <template>

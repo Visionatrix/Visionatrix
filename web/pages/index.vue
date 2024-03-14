@@ -14,7 +14,7 @@ const flowsStore = useFlowsStore()
 
 <template>
   <AppContainer class="lg:h-dvh">
-    <UProgress v-if="flowsStore.$state.loading.flows_available || flowsStore.loading.flows_installed" />
+    <UProgress v-if="flowsStore.$state.loading.flows_available || flowsStore.loading.flows_installed || flowsStore.$state.loading.tasks_history" />
     <div v-else-if="flowsStore.flows.length > 0"
       class="h-full flex flex-col items-between justify-between">
       <div class="flex flex-wrap justify-center items-center">

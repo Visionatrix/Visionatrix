@@ -1,8 +1,11 @@
+import type { Task } from "vitest"
+
 export const useFlowsStore = defineStore('flowsStore', {
 	state: () => ({
 		loading: {
 			flows_available: false,
 			flows_installed: false,
+			tasks_history: false,
 			current_flow: true,
 		},
 		page: 1,
@@ -15,7 +18,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flow_results: <FlowResult[]>[],
 		flows_available: <Flow[]>[],
 		flows_installed: <Flow[]>[],
-		prompt_history: <FlowHistoryPrompt[]>[],
 		current_flow: <Flow>{},
 		showNotificationChip: false,
 	}),
@@ -56,10 +58,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 		},
 		flowInstallingByName(state) {
-			return (name: string) => state.installing.find(flow => flow.flow_name === name)
+			return (name: string) => state.installing.find(flow => flow.flow_name === name) ?? null
 		},
 		flowsRunningByName(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name)
+			return (name: string) => state.running.filter(flow => flow.flow_name === name) ?? null
 		},
 		currentFlow(state): Flow {
 			return state.current_flow
@@ -70,18 +72,21 @@ export const useFlowsStore = defineStore('flowsStore', {
 		isFlowInstalled(state) {
 			return (name: string) => state.flows_installed.filter(flow => flow.name === name).length > 0
 		},
-		flowPromptHistoryByName(state) {
-			return (name: string) => state.prompt_history.filter(flow => flow.flow_name === name)
-		},
 	},
 	actions: {
 		async fetchFlows() {
 			await Promise.all([
 				this.fetchFlowsAvailable(),
 				this.fetchFlowsInstalled(),
-				this.restorePollingProcesses(),
-			]).then(() => {
-				this.getFlowResults()
+			])
+			.then(() => {
+				this.fetchFlowResults().then((tasks_history) => {
+					this.initFlowResultsData(tasks_history)
+				}).then(() => {
+					this.restorePollingProcesses()
+				})
+			})
+			.then(() => {
 				const route = useRoute()
 				if (route.params.name) {
 					this.loading.current_flow = true
@@ -138,21 +143,57 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return flows
 		},
 
-		getFlowResults() {
-			// Load previous flow results from localStorage
-			// TODO: Change to fetching from backend
-			const flowsResults = localStorage.getItem('flows_results')
-			if (flowsResults) {
-				this.flow_results = JSON.parse(flowsResults)
-			}
+		async fetchFlowResults(): Promise<TasksHistory> {
+			const config = useRuntimeConfig()
+			this.loading.tasks_history = true
+			return await $fetch(`${config.app.backendApiUrl}/tasks-progress`, {
+				method: 'GET',
+			}).then((res) => {
+				this.loading.tasks_history = false
+				return <TasksHistory>res
+			})
 		},
 
-		loadFlowsPromptHistory() {
-			// Load previous flow prompt history from localStorage
-			const promptHistory = localStorage.getItem('prompt_history')
-			if (promptHistory) {
-				this.prompt_history = JSON.parse(promptHistory)
+		initFlowResultsData(res: TasksHistory) {
+			console.debug('tasks_history:', res)
+			// Load running flows from tasks history
+			const runningFlows = <FlowRunning[]>Object.keys(res).filter(task_id => {
+				const task = <TaskHistoryItem>res[task_id]
+				return task.progress < 100
+			}).map(task_id => {
+				const task = <TaskHistoryItem>res[task_id]
+				return <FlowRunning>{
+					client_id: task.prompt_id,
+					task_id: task_id,
+					flow_name: task.name,
+					progress: task.progress,
+					input_prompt: <string>task.input_params?.prompt || '',
+					seed: <string>task.input_params?.seed || ''
+				}
+			})
+			if (runningFlows && runningFlows.length > 0) {
+				console.debug('loading running flows:', runningFlows)
+				this.running = <FlowRunning[]>runningFlows ?? []
 			}
+
+			// Load finished flows results from tasks history
+			const finishedFlows = <FlowResult[]>Object.keys(res).filter(task_id => {
+				const task = <TaskHistoryItem>res[task_id]
+				return task.progress === 100
+			}).map(task_id => {
+				const task = <TaskHistoryItem>res[task_id]
+				console.debug('flows_Installed:', this.flows_installed)
+				const flow = <Flow>this.flowByName(task.name)
+				return <FlowResult>{
+					task_id: task_id,
+					flow_name: task.name,
+					output_params: flow.output_params,
+					prompt: task.input_params?.prompt || '',
+					input_params_mapped: task.input_params || null,
+				}
+			})
+			console.debug('loading finished flows:', finishedFlows)
+			this.flow_results = <FlowResult[]>finishedFlows
 		},
 
 		async setupFlow(flow: Flow) {
@@ -259,6 +300,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 					progress: 0,
 					input_prompt: input_params_mapped['prompt'],
 					seed: input_params_mapped['seed'] ?? '',
+					input_params_mapped: input_params_mapped,
 				})
 				// Save running flows to localStorage
 				localStorage.setItem('running_flows', JSON.stringify(this.running))
@@ -342,16 +384,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 				})
 			})
 			// Restore running flow polling
-			const runningFlows = localStorage.getItem('running_flows')
-			if (runningFlows) {
-				this.running = JSON.parse(runningFlows)
-				this.running.forEach(flow => {
-					this.startFlowProgressPolling(flow.task_id)
-				})
-			}
+			this.running.forEach(flow => {
+				this.startFlowProgressPolling(flow.task_id)
+			})
 		},
 
 		startFlowInstallingPolling(flow_name: string) {
+			if (this.installing.length === 0) {
+				return
+			}
 			let failedAttempts = 0
 			this.showNotificationChip = true
 			const interval = setInterval(async () => {
@@ -406,13 +447,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 							flow_name: flow.name,
 							output_params: flow.output_params,
 							prompt: runningFlow?.input_prompt,
-							// TODO: Add prompt information for prompt history and restore
+							input_params_mapped: runningFlow.input_params_mapped,
 						})
-						// Save flow results to localStorage
-						localStorage.setItem('flows_results', JSON.stringify(this.flow_results))
 					}
-					// Save running flows to localStorage
-					localStorage.setItem('running_flows', JSON.stringify(this.running))
 				})
 			}, 3000)
 		},
@@ -446,7 +483,7 @@ if (import.meta.hot) {
 }
 
 
-interface Flow {
+export interface Flow {
 	id: string
 	name: string
 	display_name: string
@@ -462,7 +499,7 @@ interface Flow {
 	available?: boolean
 }
 
-interface Model {
+export interface Model {
 	name: string
 	save_path: string
 	url: string
@@ -471,7 +508,7 @@ interface Model {
 	hash: string
 }
 
-interface FlowInputParam {
+export interface FlowInputParam {
 	id: any
 	name: string
 	display_name: string
@@ -482,42 +519,54 @@ interface FlowInputParam {
 	default?: any
 }
 
-interface FlowOutputParam {
+export interface FlowOutputParam {
 	type: string
 	comfy_node_id: number
 }
 
-interface FlowInstalling {
+export interface FlowInstalling {
 	flow_name: string
 	progress: number
 	error?: string
 }
 
-interface FlowRunning {
+export interface FlowRunning {
 	client_id: string
 	task_id: string
 	flow_name: string
 	input_prompt?: any
 	progress: number
 	seed?: string
+	input_params_mapped: TaskHistoryInputParam
 }
 
-interface FlowProgress {
+export interface FlowProgress {
 	progress: number
 	error?: string
 	flow?: any
 	comfy_flow?: any
 }
 
-interface FlowResult {
+export interface FlowResult {
 	task_id: string
 	flow_name: string
 	output_params: FlowOutputParam[]
 	prompt?: any
+	input_params_mapped: TaskHistoryInputParam
 }
 
-interface FlowHistoryPrompt {
-	flow_name: string
-	input_prompt: any
-	task_id: string
+export interface TasksHistory {
+	[task_id: string]: TaskHistoryItem
+}
+
+export interface TaskHistoryInputParam {
+	[name: string]: any
+}
+
+export interface TaskHistoryItem {
+	name: string
+	input_params: TaskHistoryInputParam
+	progress: number
+	error?: string
+	prompt_id?: string
 }

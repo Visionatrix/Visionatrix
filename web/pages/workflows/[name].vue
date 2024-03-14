@@ -21,7 +21,7 @@ const collapsedCard = ref(false)
 
 <template>
 	<AppContainer class="lg:h-dvh">
-		<template v-if="!flowStore.loading.flows_available && !flowStore.loading.flows_installed && flowStore.currentFlow">
+		<template v-if="!flowStore.loading.flows_available && !flowStore.loading.flows_installed && flowStore.currentFlow && !flowStore.$state.loading.tasks_history">
 			<div class="flex flex-col lg:flex-row flex-grow items-start w-full">
 				<div class="card-wrapper w-full lg:pr-5">
 					<UCard as="div" class="w-full mb-5">
@@ -130,7 +130,6 @@ const collapsedCard = ref(false)
 				</div>
 				<div class="prompt-wrapper w-full">
 					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
-					<!-- <WorkflowPromptHistory v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" /> -->
 				</div>
 			</div>
 			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />

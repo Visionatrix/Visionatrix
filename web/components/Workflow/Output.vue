@@ -57,7 +57,8 @@ const collapsed = ref(false)
 					:total="results.length"
 					show-first
 					show-last />
-				<USelect v-model="flowStore.resultsPageSize"
+				<USelect v-if="results.length > flowStore.$state.resultsPageSize"
+					v-model="flowStore.resultsPageSize"
 					class="md:ml-3 w-fit"
 					:options="[5, 10, 20, 50, 100]"
 					:label="'Results per page'"
@@ -73,25 +74,39 @@ const collapsed = ref(false)
 								node_id: flowResult.output_params[0].comfy_node_id
 							})" />
 					</div>
-					<UCarousel v-else class="mb-3 rounded-lg" v-slot="{ item }" :items="flowResult.output_params.map((result_output_param) => {
-						return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id }
-					})" :ui="{ item: 'basis-full md:basis-1/2' }" arrows indicators>
+					<UCarousel v-else
+						class="mb-3 rounded-lg overflow-hidden" v-slot="{ item }"
+						:items="flowResult.output_params.map((result_output_param) => {
+							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id }
+						})" 
+						:ui="{ item: 'basis-full md:basis-1/2' }"
+						:page="1"
+						arrows
+						indicators>
 						<NuxtImg class="w-full" :src="outputImgSrc(item)"
 							draggable="false"/>
 					</UCarousel>
-					<p class="text-sm text-slate-500 text-center mb-3">{{ flowResult.prompt }}</p>
-					<UTooltip class="w-full flex justify-center"
-						text="Remove from local results history"
-						:popper="{ placement: 'top' }">
-						<UButton
-							class="flex justify-center"
-							color="red"
-							icon="i-heroicons-minus"
-							variant="outline"
-							@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
-							Remove from history
-						</UButton>
-					</UTooltip>
+					<p class="text-sm text-slate-500 text-center mb-3">
+						{{
+							flowResult.input_params_mapped ?
+							Object.keys(flowResult.input_params_mapped)
+							.filter((key) => {
+								return flowResult.input_params_mapped[key] !== ''
+							})
+							.map((key) => {
+								return `${key}: ${flowResult.input_params_mapped[key]}`
+							}).join(' | ')
+							: flowResult.prompt
+						}}
+					</p>
+					<UButton
+						class="w-fit mx-auto"
+						color="red"
+						icon="i-heroicons-minus"
+						variant="outline"
+						@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
+						Remove from history
+					</UButton>
 				</div>
 			</div>
 			<p v-else class="text-center text-slate-500">No output results available</p>
