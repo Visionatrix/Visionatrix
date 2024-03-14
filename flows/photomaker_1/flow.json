@@ -35,6 +35,11 @@
           "dest_field_name": ["inputs", "text"]
         },
         "73": {
+          "modify_param": [
+            {
+              "sub": ["$", " photomaker"]
+            }
+          ],
           "dest_field_name": ["inputs", "text"]
         }
       }
@@ -144,6 +149,7 @@
       "display_name": "Random seed",
       "type": "number",
       "optional": true,
+      "default": 1,
       "advanced": true,
       "comfy_node_id": {
         "63": {

@@ -61,6 +61,7 @@
       "display_name": "Random seed",
       "type": "number",
       "optional": true,
+      "default": 1,
       "advanced": true,
       "comfy_node_id": {
         "238": {

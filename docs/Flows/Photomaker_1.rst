@@ -6,12 +6,12 @@ Photomaker
 Creates fairly good and realistic images of a person in different styles based on one photo.
 The person's face in the incoming image should preferably occupy most of the screen.
 
-.. note:: Trigger word for Photomaker model is a `photomaker` word that should be after `woman`/`girl`/`man`/`boy`
+.. note:: **Recommended words to be present in the prompt**: `woman`/`girl`/`man`/`boy`
 
 Hardware
 """"""""
 
-- **Required memory: works on 10 GB**
+- **Required memory: 10-11 GB**
 
 Time to generate 1 image:
 
