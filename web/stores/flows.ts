@@ -94,10 +94,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async fetchFlowsAvailable() {
-			const config = useRuntimeConfig()
-			console.debug('fetching flows: ' + config.app.backendApiUrl + '/flows-available')
 			this.loading.flows_available = true
-			const flows = await $fetch(`${config.app.backendApiUrl}/flows-available`, {
+			const flows = await $fetch(`${buildBackendApiUrl()}/flows-available`, {
 				method: 'GET',
 				timeout: 15000,
 			}).then((res) => {
@@ -118,10 +116,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async fetchFlowsInstalled() {
-			const config = useRuntimeConfig()
 			console.debug('fetching installed flows')
 			this.loading.flows_installed = true
-			const flows = await $fetch(`${config.app.backendApiUrl}/flows-installed`, {
+			const flows = await $fetch(`${buildBackendApiUrl()}/flows-installed`, {
 				method: 'GET',
 				timeout: 15000,
 			}).then((res) => {
@@ -142,9 +139,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async fetchFlowResults(): Promise<TasksHistory> {
-			const config = useRuntimeConfig()
 			this.loading.tasks_history = true
-			return await $fetch(`${config.app.backendApiUrl}/tasks-progress`, {
+			return await $fetch(`${buildBackendApiUrl()}/tasks-progress`, {
 				method: 'GET',
 			}).then((res) => {
 				this.loading.tasks_history = false
@@ -166,7 +162,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					flow_name: task.name,
 					progress: task.progress,
 					input_prompt: <string>task.input_params?.prompt || '',
-					seed: <string>task.input_params?.seed || ''
+					seed: <string>task.input_params?.seed || '',
+					input_params_mapped: task.input_params || null,
 				}
 			})
 			if (runningFlows && runningFlows.length > 0) {
@@ -194,8 +191,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async setupFlow(flow: Flow) {
-			const config = useRuntimeConfig()
-			return await $fetch(`${config.app.backendApiUrl}/flow?name=${flow.name}`, {
+			return await $fetch(`${buildBackendApiUrl()}/flow?name=${flow.name}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
@@ -219,8 +215,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async getFlowsInstallProgress() {
-			const config = useRuntimeConfig()
-			return await $fetch(`${config.app.backendApiUrl}/flow-progress-install`, {
+			return await $fetch(`${buildBackendApiUrl()}/flow-progress-install`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -229,8 +224,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async deleteFlow(flow: Flow) {
-			const config = useRuntimeConfig()
-			const response = await $fetch(`${config.app.backendApiUrl}/flow?name=${flow.name}`, {
+			const response = await $fetch(`${buildBackendApiUrl()}/flow?name=${flow.name}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -282,7 +276,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 
 
-			return await $fetch(`${config.app.backendApiUrl}/task`, {
+			return await $fetch(`${buildBackendApiUrl()}/task`, {
 				method: 'POST',
 				headers: {
 					'Access-Control-Allow-Origin': '*',
@@ -314,7 +308,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async cancelRunningFlows(flow_name: string) {
 			const config = useRuntimeConfig()
-			return await $fetch(`${config.app.backendApiUrl}/tasks-queue?name=${flow_name}`, {
+			return await $fetch(`${buildBackendApiUrl()}/tasks-queue?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
 				if (res.error !== '') {
@@ -333,7 +327,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async cancelRunningFlow(running: FlowRunning) {
 			const config = useRuntimeConfig()
-			return await $fetch(`${config.app.backendApiUrl}/task-queue?task_id=${running.task_id}`, {
+			return await $fetch(`${buildBackendApiUrl()}/task-queue?task_id=${running.task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -354,7 +348,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async getFlowProgress(task_id: string): Promise<FlowProgress> {
 			const config = useRuntimeConfig()
-			return await $fetch(`${config.app.backendApiUrl}/task-progress?task_id=${task_id}`, {
+			return await $fetch(`${buildBackendApiUrl()}/task-progress?task_id=${task_id}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -467,8 +461,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		deleteFlowHistory(task_id: string) {
-			const config = useRuntimeConfig()
-			$fetch(`${config.app.backendApiUrl}/task?task_id=${task_id}`, {
+			$fetch(`${buildBackendApiUrl()}/task?task_id=${task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -488,6 +481,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 	}
 })
+
+export function buildBackendApiUrl() {
+	const config = useRuntimeConfig()
+	return config.app.backendApiUrl !== ''
+		? config.app.backendApiUrl
+		: location.port 
+			? `${location.protocol}//${location.hostname}:${location.port}`
+			: `${location.protocol}//${location.hostname}`
+}
 
 if (import.meta.hot) {
 	import.meta.hot.accept(acceptHMRUpdate(useFlowsStore, import.meta.hot))
