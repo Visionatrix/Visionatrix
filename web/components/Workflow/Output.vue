@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const config = useRuntimeConfig()
+import { buildBackendApiUrl } from '~/stores/flows'
+
 defineProps({
 	output: Object
 })
@@ -11,7 +12,7 @@ const results = computed(() => flowStore.flowResultsByName(flowStore.currentFlow
 const resultsPerPage = computed(() => flowStore.$state.resultsPageSize)
 
 const outputImgSrc = function (result: any) {
-	return `${config.app.backendApiUrl}/task-results?task_id=${result.task_id}&node_id=${result.node_id}`
+	return `${buildBackendApiUrl()}/task-results?task_id=${result.task_id}&node_id=${result.node_id}`
 }
 
 // watch for total results length and update the page to the last one
