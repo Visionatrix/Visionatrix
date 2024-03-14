@@ -182,7 +182,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return task.progress === 100
 			}).map(task_id => {
 				const task = <TaskHistoryItem>res[task_id]
-				console.debug('flows_Installed:', this.flows_installed)
 				const flow = <Flow>this.flowByName(task.name)
 				return <FlowResult>{
 					task_id: task_id,
@@ -302,8 +301,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 					seed: input_params_mapped['seed'] ?? '',
 					input_params_mapped: input_params_mapped,
 				})
-				// Save running flows to localStorage
-				localStorage.setItem('running_flows', JSON.stringify(this.running))
 				// Start polling for flow progress changes
 				this.startFlowProgressPolling(res?.task_id)
 			}).catch((e) => {
@@ -317,13 +314,28 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
-		async cancelRunningFlows(running: FlowRunning[]) {
-			return Promise.all(running.map(flow => this.cancelRunningFlow(flow)))
+		async cancelRunningFlows(flow_name: string) {
+			const config = useRuntimeConfig()
+			return await $fetch(`${config.app.backendApiUrl}/tasks-queue?name=${flow_name}`, {
+				method: 'DELETE',
+			}).then((res: any) => {
+				if (res.error !== '') {
+					const toast = useToast()
+					toast.add({
+						title: `Failed to cancel ${flow_name} running flows`,
+						description: res.error,
+						timeout: 5000,
+					})
+					return
+				}
+			}).finally(() => {
+				this.running = this.running.filter(flow => flow.flow_name !== flow_name)
+			})
 		},
 
 		async cancelRunningFlow(running: FlowRunning) {
 			const config = useRuntimeConfig()
-			return $fetch(`${config.app.backendApiUrl}/task-queue?task_id=${running.task_id}`, {
+			return await $fetch(`${config.app.backendApiUrl}/task-queue?task_id=${running.task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -339,8 +351,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 					return
 				}
 				this.running = this.running.filter(flow => flow.task_id !== running.task_id)
-				localStorage.setItem('running_flows', JSON.stringify(this.running))
-				// TODO: Cancel polling
 			})
 		},
 
@@ -432,6 +442,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				await this.getFlowProgress(task_id).then((progress) => {
 					const runningFlow = this.running.find(flow => flow.task_id === task_id)
 					if (!runningFlow) {
+						console.debug('flow not found: ', task_id)
 						clearInterval(interval)
 						return
 					}
@@ -450,6 +461,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 							input_params_mapped: runningFlow.input_params_mapped,
 						})
 					}
+				}).catch(() => {
+					clearInterval(interval)
+					this.running = this.running.filter(flow => flow.task_id !== task_id)
 				})
 			}, 3000)
 		},
@@ -472,7 +486,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 					return
 				}
 				this.flow_results = this.flow_results.filter(flow => flow.task_id !== task_id)
-				localStorage.setItem('flows_results', JSON.stringify(this.flow_results))
 			})
 		},
 	}

@@ -102,10 +102,10 @@ const collapsed = ref(false)
 					<UButton
 						class="w-fit mx-auto"
 						color="red"
-						icon="i-heroicons-minus"
+						icon="i-heroicons-trash"
 						variant="outline"
 						@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
-						Remove from history
+						Delete image
 					</UButton>
 				</div>
 			</div>

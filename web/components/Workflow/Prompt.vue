@@ -80,7 +80,7 @@ const collapsed = ref(false)
 					max="50"
 					v-model="batchSize"
 					label="Batch size"
-					class="mb-3 max-w-fit" />
+					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
 			<div class="flex justify-end px-2">
 				<UButton icon="i-heroicons-sparkles-16-solid"

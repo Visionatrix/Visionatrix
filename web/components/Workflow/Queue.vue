@@ -14,6 +14,13 @@ const collapsed = ref(true)
 				<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 					class="mr-2" />
 				Queue ({{ flowStore.flowsRunningByName(flowStore.currentFlow?.name).length }})
+				<span v-if="flowStore.flowsRunningByName(flowStore.currentFlow?.name).length > 0">
+					&nbsp;-
+					{{
+						`${flowStore.flowsRunningByName(flowStore.currentFlow?.name)
+						.filter((running) => running.progress > 0)[0]?.progress.toFixed(0) ?? 0}%`
+					}}
+				</span>
 			</h2>
 			<UButton v-if="flowStore.currentFlow?.name && flowStore.flowsRunningByName(flowStore.currentFlow?.name).length > 0"
 				icon="i-heroicons-x-mark"
@@ -21,7 +28,7 @@ const collapsed = ref(true)
 				:loading="canceling"
 				@click="() => {
 					canceling = true
-					flowStore.cancelRunningFlows(flowStore.flowsRunningByName(flowStore.currentFlow?.name)).finally(() => {
+					flowStore.cancelRunningFlows(flowStore.currentFlow?.name).finally(() => {
 						canceling = false
 					})
 				}"
@@ -31,7 +38,19 @@ const collapsed = ref(true)
 			v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name)"
 			class="mb-5">
 			<UProgress class="mb-3" :value="running?.progress" indicator />
-			<p class="text-sm mb-5 text-slate-500">{{ running.input_prompt }}</p>
+			<p class="text-sm mb-5 text-slate-500">
+				{{
+					running.input_params_mapped
+					? Object.keys(running.input_params_mapped)
+						.filter((key) => {
+							return running.input_params_mapped[key] !== ''
+						})
+						.map((key) => {
+							return `${key}: ${running.input_params_mapped[key]}`
+						}).join(' | ')
+					: running.input_prompt
+				}}
+			</p>
 			<UButton icon="i-heroicons-x-mark"
 				variant="outline"
 				:loading="canceling"

@@ -113,17 +113,15 @@ const collapsedCard = ref(false)
 										{{ installing ? `${installing?.progress.toFixed(0)}% Setting up` : 'Setup flow' }}
 									</UButton>
 								</UTooltip>
-								<UTooltip v-if="flowStore.isFlowInstalled(<string>route.params.name)"
-									text="Delete flow (models are kept)"
-									:popper="{ placement: 'top' }" :open-delay="500">
-									<UButton icon="i-heroicons-trash"
-										color="red"
-										variant="outline"
-										:loading="deleting"
-										@click="deleteFlow">
-										Delete flow
-									</UButton>
-								</UTooltip>
+								<UDropdown v-if="flowStore.isFlowInstalled(<string>route.params.name)" :items="[
+									[{
+										label: 'Delete flow',
+										icon: 'i-heroicons-trash',
+										click: deleteFlow,
+									}]
+								]" mode="click" label="Options" :popper="{ placement: 'bottom-end' }">
+									<UButton color="white" label="Options" trailing-icon="i-heroicons-chevron-down-20-solid" />
+								</UDropdown>
 							</div>
 						</template>
 					</UCard>
