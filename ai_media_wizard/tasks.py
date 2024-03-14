@@ -19,6 +19,7 @@ TASKS_STORAGE = {}
         input_params: "",
         input_files: [str],
         outputs: [int],
+        started: bool,
         interrupt: bool,
         prompt_id: ""
         }
@@ -44,6 +45,7 @@ def create_new_task(name: str, input_params: dict, backend_dir: str) -> [int, di
         "name": name,
         "input_files": [],
         "outputs": [],
+        "started": False,
         "interrupt": False,
         "prompt_id": "",
     }
@@ -92,14 +94,15 @@ def track_task_progress(
             out = connection.recv(timeout=1.0)
         except TimeoutError:
             out = None
-        print(f"interrupt for {task_id}: {task_details['interrupt']}, progress={task_details['progress']}")
         if task_id not in TASKS_STORAGE or task_details["interrupt"]:
             break
         if isinstance(out, str):
             message = json.loads(out)
-            print(message)
-            if message["type"] == "executing":
-                data = message["data"]
+            LOGGER.debug("received from ComfyUI: %s", message)
+            data = message.get("data", {})
+            if message["type"] == "execution_start" and data.get("prompt_id", "") == task_details["prompt_id"]:
+                task_details["started"] = True
+            elif message["type"] == "executing":
                 if data["node"] is None and data["prompt_id"] == task_details["prompt_id"]:
                     task_details["progress"] = 100.0
                     break
@@ -109,19 +112,17 @@ def track_task_progress(
                     if current_node != data["node"]:
                         task_details["progress"] += node_percent
                         current_node = data["node"]
-            elif message["type"] == "progress":
-                data = message["data"]
-                if "max" in data and "value" in data:
-                    current_node = ""
-                    task_details["progress"] += node_percent / int(data["max"])
+            elif message["type"] == "progress" and "max" in data and "value" in data:
+                current_node = ""
+                task_details["progress"] += node_percent / int(data["max"])
         else:
             continue
-    if task_details["progress"] not in (0.0, 100.0):
-        print(f"interrupting: {task_id}")
+    if task_details["started"] and task_details["progress"] != 100.0:
+        LOGGER.debug("interrupting %s with progress %s", task_id, task_details["progress"])
         httpx.post(url=f"http://{options.get_comfy_address()}/interrupt")
-        print(f"removing: {task_id}")
         remove_task(task_id, backend_dir)
         return
+    LOGGER.debug("remove files %s task", task_id)
     remove_task_files(task_id, backend_dir, ["input"])
 
 

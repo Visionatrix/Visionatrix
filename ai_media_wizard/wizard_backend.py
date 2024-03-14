@@ -196,7 +196,6 @@ def wizard_backend(
                 v["interrupt"] = True
                 delete_ids.append(v["prompt_id"])
                 delete_keys.append(k)
-        print(f"ComfyUI remove ids: {delete_ids}")
         await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": delete_ids})
         for k in delete_keys:
             tasks.pop(k, None)
@@ -207,7 +206,6 @@ def wizard_backend(
         if not (r := get_task(task_id)):
             return fastapi.responses.JSONResponse(status_code=404, content={"error": "not found"})
         r["interrupt"] = True
-        print(f"set interrupt for {task_id}")
         prompt_id = r["prompt_id"]
         get_tasks().pop(task_id, None)
         await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": [prompt_id]})
