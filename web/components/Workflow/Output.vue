@@ -68,7 +68,7 @@ const collapsed = ref(false)
 					:total="results.length"
 					show-first
 					show-last />
-				<USelect v-if="results.length > flowStore.$state.resultsPageSize"
+				<USelect v-if="flowStore.$state.flow_results.filter(flow => flow.flow_name === flowStore.currentFlow?.name).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.resultsPageSize"
 					class="md:ml-3 w-fit"
 					:options="[5, 10, 20, 50, 100]"
