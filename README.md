@@ -56,9 +56,6 @@ curl -o easy_install.py https://raw.githubusercontent.com/cloud-media-flows/AI_M
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py" -OutFile "easy_install.py"; python3 easy_install.py
 ```
 
-*I was not able to run it on the last **alpha** version of PyTorch(2.0) with DirectML. I know that it can be run using **conda**, but I will not add that to the **easy_install** script.
-Who need this right now can use **conda** until Microsoft will publish fix for the last version.*
-
 ### After that, answer the script's questions and in most cases everything should work.
 
 ## Manual installation from repository
