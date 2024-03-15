@@ -29,9 +29,10 @@ Requirements:
 - Python `3.10`*(recommended)* or higher
 - Available `git` command (for Windows get it [here](https://gitforwindows.org/))
 
-Download and execute `easy_install.py` script, it will clone in current folder this repository and perform installation.
+Download and execute `easy_install.py` script:
 
 > [!NOTE]
+> It will clone this repository into the current folder and perform the installation.
 > After installation you can always run `easy_install` from the "scripts" folder.
 
 ### Linux/macOS/WSL:
@@ -143,8 +144,12 @@ By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 ## Update process
 
-Run `easy_install` script and select "**Update**" option
-or manually pull changes from repository, activate virtual environment and run `python -m ai_media_wizard update`
+Run `easy_install` script and select "**Update**" option.
+
+Or manually:
+1. Pull changes with `git pull`
+2. Activate virtual environment
+3. Execute `python -m ai_media_wizard update`
 
 ## More Information
 
