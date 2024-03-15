@@ -36,6 +36,7 @@ watch(resultsPerPage, () => {
 
 onUnmounted(() => {
 	flowStore.$state.flow_results_filter = ''
+	flowStore.$state.resultsPage = 1
 })
 
 const collapsed = ref(false)
