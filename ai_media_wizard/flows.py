@@ -133,7 +133,7 @@ def prepare_flow_comfy(
     tasks_files_dir: str,
 ) -> dict:
     r = flow_comfy.copy()
-    for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list", "bool")]:
+    for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list", "bool", "range")]:
         v = prepare_flow_comfy_get_input_value(in_texts_params, i)
         if v is None:
             continue

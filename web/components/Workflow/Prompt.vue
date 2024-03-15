@@ -49,6 +49,18 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				advanced: input_param.advanced || false,
 			}
 		})
+	} else if (input_param.type === 'range') {
+		return ({
+			[input_param.name]: {
+				value: <number>input_param.default || 0,
+				type: input_param.type,
+				optional: input_param.optional,
+				advanced: input_param.advanced || false,
+				min: input_param.min || 0,
+				max: input_param.max || 100,
+				step: input_param.step || 1,
+			}
+		})
 	}
 }) || [])
 

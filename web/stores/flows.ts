@@ -530,6 +530,9 @@ export interface FlowInputParam {
 	options?: any[]
 	advanced?: boolean
 	default?: any
+	min?: number
+	max?: number
+	step?: number
 }
 
 export interface FlowOutputParam {

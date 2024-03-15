@@ -80,6 +80,14 @@ const imagePreviewUrl = ref('')
 			<UCheckbox v-if="inputParam.type === 'bool'"
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:label="inputParam?.display_name" />
+
+			<URange v-if="inputParam.type === 'range'"
+				:label="inputParam.display_name"
+				size="sm"
+				:min="inputParam.min"
+				:max="inputParam.max"
+				:step="inputParam.step"
+				v-model="inputParamsMap[index][inputParam.name].value" />
 		</template>
 	</UFormGroup>
 </template>

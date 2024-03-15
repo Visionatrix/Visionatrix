@@ -131,7 +131,7 @@ const collapsedCard = ref(false)
 				</div>
 			</div>
 			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
-			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
+			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name) || flowStore.flowResultsByName(<string>route.params.name).length > 0" />
 		</template>
 		<template v-else>
 			<UProgress class="mb-3" />

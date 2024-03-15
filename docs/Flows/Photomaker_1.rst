@@ -6,6 +6,8 @@ Photomaker
 Creates fairly good and realistic images of a person in different styles based on one photo.
 The person's face in the incoming image should preferably occupy most of the screen.
 
+*Advanced parameter `Accuracy` currently applies only to one result image.*
+
 .. note:: **Recommended words to be present in the prompt**: `woman`/`girl`/`man`/`boy`
 
 Hardware
