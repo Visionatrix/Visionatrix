@@ -5,12 +5,19 @@ from pathlib import Path
 from shutil import rmtree
 
 
+PARENT_DIR = Path(__file__).parent
+INITIAL_RERUN = "--rerun" in sys.argv
+
+
 def main_entry():
-    print()
-    print("Greetings from Media-Wizard easy install script")
-    print()
-    print()
-    if Path("ai_media_wizard").exists() and Path("ai_media_wizard/venv").exists():
+    if not INITIAL_RERUN:
+        print()
+        print("Greetings from Media-Wizard easy install script")
+        print()
+        print()
+    if not INITIAL_RERUN and PARENT_DIR.name == "scripts" and PARENT_DIR.parent.joinpath("venv").exists():
+        os.chdir(PARENT_DIR.parent)
+        print("Existing installation detected.")
         print("Select the required action:")
         print("\tReinstall (1)")
         print("\tUpdate (2)")
@@ -25,24 +32,35 @@ def main_entry():
             run_wizard()
         elif c == "4":
             install_all_flows()
-    else:
+        else:
+            print("exiting")
+    elif INITIAL_RERUN:
+        os.chdir(PARENT_DIR.parent)
         reinstall()
+    else:
+        q = "No existing installation found, start first installation? (Y/N)"
+        if q.lower() == "y":
+            first_run()
+        else:
+            print("exiting")
+
+
+def first_run():
+    clone_repository()
+    os.remove(__file__)
+    folder_name = "ai_media_wizard" if Path("ai_media_wizard").exists() else "AI_Media_Wizard"
+    subprocess.run(
+        [sys.executable, Path(f"{folder_name}/scripts/easy_install.py"), "--rerun"],
+        check=False, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
 
 
 def reinstall():
-    if Path("ai_media_wizard").exists():
-        c = input("ai_media_wizard folder already exists. Remove it? (Y/N): ").lower()
+    if Path("venv").exists():
+        c = input("venv folder already exists. Remove it? (Y/N): ").lower()
         if c == "y":
-            rmtree("ai_media_wizard")
-            print("Removed `ai_media_wizard` folder.")
-    if not Path("ai_media_wizard").exists():
-        clone_repository()
-    if Path("ai_media_wizard/venv").exists():
-        c = input("ai_media_wizard/venv folder already exists. Remove it? (Y/N): ").lower()
-        if c == "y":
-            rmtree("ai_media_wizard/venv")
-            print("Removed `ai_media_wizard/venv` folder.")
-    if not Path("ai_media_wizard/venv").exists():
+            rmtree("venv")
+            print("Removed `venv` folder.")
+    if not Path("venv").exists():
         create_venv()
     install_graphics_card_packages()
     print("Installing AI-Media-Wizard")
@@ -62,6 +80,9 @@ def run_wizard():
 
 
 def update_wizard():
+    print("Updating source code from repository..")
+    subprocess.check_call(["git", "pull"])
+    print("Running `python -m ai_media_wizard update`")
     venv_run("python -m ai_media_wizard update")
 
 
@@ -81,7 +102,8 @@ def install_all_flows():
 
 def clone_repository() -> None:
     try:
-        subprocess.check_call(["git", "clone", "https://github.com/cloud-media-flows/ai_media_wizard.git"])
+        print("Cloning AI_Media_Wizard repository..")
+        subprocess.check_call(["git", "clone", "https://github.com/cloud-media-flows/AI_Media_Wizard.git"])
         print("Repository cloned successfully.")
     except subprocess.CalledProcessError as e:
         print("An error occurred while trying to clone the repository:", str(e))
@@ -96,7 +118,7 @@ def clone_repository() -> None:
 
 def create_venv() -> None:
     try:
-        subprocess.check_call([sys.executable, "-m", "venv", "venv"], cwd="ai_media_wizard")
+        subprocess.check_call([sys.executable, "-m", "venv", "venv"])
         print("Virtual environment created successfully.")
     except Exception as e:
         print("An error occurred while creating the virtual environment:", str(e))
@@ -110,7 +132,7 @@ def venv_run(command: str) -> None:
         command = f". venv/bin/activate && {command}"
     try:
         print(f"executing(pwf={os.getcwd()}): {command}")
-        subprocess.check_call(command, cwd="ai_media_wizard", shell=True)
+        subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print("An error occurred while executing command in venv:", str(e))
         raise

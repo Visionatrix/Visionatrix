@@ -10,7 +10,7 @@
 This platform ensures effortless deployment and management of AI-powered, secure workflows, tailor-made for the efficient processing of images and videos.
 
 > [!NOTE]
-> The project is currently in the planning-development stage, expect breaking changes.
+> The project is currently in the early development stage, expect breaking changes.
 
 ## The main goals of the project are as follows:
 
@@ -22,14 +22,17 @@ This platform ensures effortless deployment and management of AI-powered, secure
 
 *Main principles are: reliability, safety, and simplicity.*
 
-## Easy installation for home use (**in progress, coming soon**)
+## Easy installation for home use
 
 Requirements:
 
 - Python `3.10`*(recommended)* or higher
 - Available `git` command (for Windows get it [here](https://gitforwindows.org/))
 
-Download and execute `easy_install.py` script:
+Download and execute `easy_install.py` script, it will clone in current folder this repository and perform installation.
+
+> [!NOTE]
+> After installation you can always run `easy_install` from the "scripts" folder.
 
 ### Linux/macOS/WSL:
 
@@ -62,7 +65,7 @@ Who need this right now can use **conda** until Microsoft will publish fix for t
 **Clone repository:**
 
 ```console
-git clone https://github.com/cloud-media-flows/ai_media_wizard.git && cd ai_media_wizard
+git clone https://github.com/cloud-media-flows/AI_Media_Wizard.git && cd AI_Media_Wizard
 ```
 
 **Set up virtual environment:**
@@ -137,6 +140,11 @@ By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 ![UI](/screenshots/screenshot_1.png)
 ![UI](/screenshots/screenshot_2.png)
+
+## Update process
+
+Run `easy_install` script and select "**Update**" option
+or manually pull changes from repository, activate virtual environment and run `python -m ai_media_wizard update`
 
 ## More Information
 
