@@ -5,8 +5,9 @@ from pathlib import Path
 from shutil import rmtree
 
 
-PARENT_DIR = Path(__file__).parent
 INITIAL_RERUN = "--rerun" in sys.argv
+PARENT_DIR = Path(__file__).parent
+VENV_NAME = ".venv" if PARENT_DIR.parent.joinpath(".venv").exists() else "venv"
 
 
 def main_entry():
@@ -15,7 +16,7 @@ def main_entry():
         print("Greetings from Media-Wizard easy install script")
         print()
         print()
-    if not INITIAL_RERUN and PARENT_DIR.name == "scripts" and PARENT_DIR.parent.joinpath("venv").exists():
+    if not INITIAL_RERUN and PARENT_DIR.name == "scripts" and PARENT_DIR.parent.joinpath(VENV_NAME).exists():
         os.chdir(PARENT_DIR.parent)
         print("Existing installation detected.")
         print("Select the required action:")
@@ -38,7 +39,7 @@ def main_entry():
         os.chdir(PARENT_DIR.parent)
         reinstall()
     else:
-        q = "No existing installation found, start first installation? (Y/N)"
+        q = input("No existing installation found, start first installation? (Y/N)")
         if q.lower() == "y":
             first_run()
         else:
@@ -55,12 +56,12 @@ def first_run():
 
 
 def reinstall():
-    if Path("venv").exists():
-        c = input("venv folder already exists. Remove it? (Y/N): ").lower()
+    if Path(VENV_NAME).exists():
+        c = input(f"{VENV_NAME} folder already exists. Remove it? (Y/N): ").lower()
         if c == "y":
-            rmtree("venv")
-            print("Removed `venv` folder.")
-    if not Path("venv").exists():
+            rmtree(VENV_NAME)
+            print(f"Removed `{VENV_NAME}` folder.")
+    if not Path(VENV_NAME).exists():
         create_venv()
     install_graphics_card_packages()
     print("Installing AI-Media-Wizard")
@@ -118,7 +119,7 @@ def clone_repository() -> None:
 
 def create_venv() -> None:
     try:
-        subprocess.check_call([sys.executable, "-m", "venv", "venv"])
+        subprocess.check_call([sys.executable, "-m", "venv", VENV_NAME])
         print("Virtual environment created successfully.")
     except Exception as e:
         print("An error occurred while creating the virtual environment:", str(e))
@@ -127,9 +128,9 @@ def create_venv() -> None:
 
 def venv_run(command: str) -> None:
     if sys.platform.lower() == "win32":
-        command = f"call venv/Scripts/activate.bat && {command}"
+        command = f"call {VENV_NAME}/Scripts/activate.bat && {command}"
     else:
-        command = f". venv/bin/activate && {command}"
+        command = f". {VENV_NAME}/bin/activate && {command}"
     try:
         print(f"executing(pwf={os.getcwd()}): {command}")
         subprocess.check_call(command, shell=True)
