@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from pathlib import Path
 from subprocess import run
 
@@ -22,7 +23,7 @@ def install_base_custom_nodes(custom_nodes_dir: str) -> None:
         node_install_script = Path(os.path.join(custom_nodes_dir, k, "install.py"))
         if node_install_script.exists() is True:
             LOGGER.info("Running `%s` install script", k)
-            run(f"python {node_install_script}".split(), check=True)
+            run([sys.executable, node_install_script], check=True)
 
 
 def update_base_custom_nodes(custom_nodes_dir: str) -> None:
@@ -32,4 +33,4 @@ def update_base_custom_nodes(custom_nodes_dir: str) -> None:
         node_install_script = Path(os.path.join(custom_nodes_dir, k, "install.py"))
         if node_install_script.exists() is True:
             LOGGER.info("Running `%s` install script", k)
-            run(f"python {node_install_script}".split(), check=True)
+            run([sys.executable, node_install_script], check=True)

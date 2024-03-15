@@ -288,7 +288,7 @@ def run_comfy_backend(backend_dir: str, tasks_files_dir: str) -> None:
     stop_comfy()
     COMFY_PROCESS = None
     run_cmd = [
-        "python",
+        sys.executable,
         os.path.join(backend_dir, "main.py"),
         "--port",
         str(options.get_comfy_port()),

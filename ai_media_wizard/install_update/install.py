@@ -2,6 +2,7 @@ import builtins
 import logging
 import os
 import stat
+import sys
 from shutil import rmtree
 from subprocess import run
 
@@ -53,7 +54,7 @@ def install(backend_dir: str, flows_dir: str, models_dir: str, operations_mask: 
             rmtree(backend_dir, onerror=remove_readonly)
         os.makedirs(backend_dir)
         run(f"git clone https://github.com/cloud-media-flows/ComfyUI.git {backend_dir}".split(), check=True)
-        run(f"python -m pip install -r {os.path.join(backend_dir, 'requirements.txt')}".split(), check=True)
+        run([sys.executable, "-m", "pip", "install", "-r", os.path.join(backend_dir, "requirements.txt")], check=True)
         with builtins.open(os.path.join(backend_dir, "extra_model_paths.yaml"), "w", encoding="utf-8") as fp:
             fp.write(EXTRA_MODEL_PATHS.replace("amw_models_root", models_dir))
         install_base_custom_nodes(os.path.join(backend_dir, "custom_nodes"))

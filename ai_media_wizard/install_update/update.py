@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from subprocess import run
 
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
@@ -26,6 +27,6 @@ def update(backend_dir: str, flows_dir: str, models_dir: str) -> None:
     if backend_dir:
         logging.info("Updating backend(ComfyUI)..")
         run("git pull".split(), check=True, cwd=backend_dir)
-        run(f"python -m pip install -r {os.path.join(backend_dir, 'requirements.txt')}".split(), check=True)
+        run([sys.executable, "-m", "pip", "install", "-r", os.path.join(backend_dir, "requirements.txt")], check=True)
         logging.info("Updating custom nodes..")
         update_base_custom_nodes(os.path.join(backend_dir, "custom_nodes"))
