@@ -100,12 +100,12 @@ def get_tasks_from_queue() -> dict:
     return TASKS_QUEUE
 
 
-def get_tasks_history() -> dict:
+def get_tasks_from_history() -> dict:
     return TASKS_HISTORY
 
 
 def get_tasks() -> dict:
-    return get_tasks_from_queue() | get_tasks_history()
+    return get_tasks_from_queue() | get_tasks_from_history()
 
 
 def remove_task(task_id: int, tasks_files_dir: str) -> None:
@@ -165,7 +165,7 @@ async def track_task_progress(
             elif message["type"] == "progress" and "max" in data and "value" in data:
                 current_node = ""
                 task_details["progress"] += node_percent / int(data["max"])
-            elif message["type"] == "execution_error" and data["prompt_id"] == prompt_id:
+            elif message["type"] == "execution_error" and data.get("prompt_id", "") == prompt_id:
                 task_details["error"] = data["exception_message"]
                 LOGGER.error(
                     "Exception occurred during executing task %s:\n%s\n%s",
@@ -174,6 +174,10 @@ async def track_task_progress(
                     data["traceback"],
                 )
                 break
+            elif message["type"] == "execution_interrupted" and data.get("prompt_id", "") == prompt_id:
+                LOGGER.debug("execution interrupted: %s with progress %s", task_id, task_details["progress"])
+                remove_task(task_id, tasks_files_dir)
+                return
         else:
             continue
     LOGGER.debug("remove input files for %s task", task_id)
