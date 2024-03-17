@@ -27,4 +27,4 @@ jobs:
         run: python3 -m pip install ".[dev]"
 
       - name: Run Analysis
-        run: python3 -m pylint "ai_media_wizard/"
+        run: python3 -m pylint "visionatrix/"

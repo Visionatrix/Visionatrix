@@ -5,11 +5,10 @@ requires = [
 ]
 
 [project]
-name = "ai-media-wizard"
-description = "AI Media Processing using ComfyUI"
+name = "Visionatrix"
+description = "Image and video creation and processing using ComfyUI"
 readme = "README.md"
 keywords = [
-  "AI",
   "API",
   "ComfyUI",
   "Image",
@@ -64,7 +63,7 @@ dev = [
   "pytest",
 ]
 docs = [
-  "ai-media-wizard[app]",
+  "visionatrix[app]",
   "autodoc_pydantic>=2.0.1",
   "sphinx>=6.2",
   "sphinx-copybutton",
@@ -73,16 +72,16 @@ docs = [
   "sphinx-rtd-theme>=1",
 ]
 [project.urls]
-Changelog = "https://github.com/cloud-media-flows/ai_media_wizard/blob/main/CHANGELOG.md"
-Documentation = "https://cloud-media-flows.github.io/ai_media_wizard/"
-Source = "https://github.com/cloud-media-flows/ai_media_wizard"
+Changelog = "https://github.com/cloud-media-flows/Visionatrix/blob/main/CHANGELOG.md"
+Documentation = "https://cloud-media-flows.github.io/Visionatrix/"
+Source = "https://github.com/cloud-media-flows/Visionatrix"
 
 [tool.hatch.version]
-path = "ai_media_wizard/_version.py"
+path = "visionatrix/_version.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/ai_media_wizard",
+    "/visionatrix",
     "/CHANGELOG.md",
     "/README.md",
 ]
@@ -99,9 +98,9 @@ lint.select = ["A", "B", "C", "E", "F", "G", "I", "S", "SIM", "PIE", "Q", "RET",
 lint.extend-ignore = ["I001", "RUF100", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
-"ai_media_wizard/__init__.py" = ["F401"]
-"ai_media_wizard/wizard_backend.py" = ["C901"]
-"ai_media_wizard/install_update/__init__.py" = ["F401"]
+"visionatrix/__init__.py" = ["F401"]
+"visionatrix/backend.py" = ["C901"]
+"visionatrix/install_update/__init__.py" = ["F401"]
 "scripts/easy_install.py" = ["S602", "S607"]
 
 [tool.ruff.lint.extend-per-file-ignores]

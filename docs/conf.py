@@ -8,7 +8,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.abspath(dir_path + "/_ext"))
 sys.path.insert(0, os.path.abspath("../."))
 
-import ai_media_wizard  # noqa
+import visionatrix  # noqa
 
 now = datetime.now()
 
@@ -31,7 +31,7 @@ intersphinx_mapping = {
 autodoc_pydantic_model_show_json = False
 
 # General information about the project.
-project = "AI-Media-Wizard"
+project = "Visionatrix"
 copyright = str(now.year) + f" {project} Authors"  # noqa
 
 # The version info for the project you're documenting, acts as replacement for
@@ -39,7 +39,7 @@ copyright = str(now.year) + f" {project} Authors"  # noqa
 # built documents.
 #
 # The short X.Y version.
-version = ai_media_wizard.__version__
+version = visionatrix.__version__
 release = version
 
 html_theme = "sphinx_rtd_theme"
@@ -84,4 +84,4 @@ def setup(app):
     app.add_css_file("css/light.css")
 
 
-issues_github_path = "cloud-media-flows/ai_media_wizard"
+issues_github_path = "cloud-media-flows/Visionatrix"
