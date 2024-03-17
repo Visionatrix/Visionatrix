@@ -5,7 +5,7 @@
   "author": "HowDo?",
   "homepage": "https://comfyworkflows.com/profile/41d507c5-bdcf-424b-9b75-a3cc2ea9049d",
   "license": "",
-  "documentation": "https://cloud-media-flows.github.io/AI_Media_Wizard/Flows/Stable_Cascade.html",
+  "documentation": "https://cloud-media-flows.github.io/Visionatrix/Flows/Stable_Cascade.html",
   "models": [
     {
       "name": "stable_cascade_stage_b.safetensors",

@@ -5,7 +5,7 @@
   "author": "Dennis Schöneberg",
   "homepage": "https://www.linkedin.com/in/dennis-sch%C3%B6neberg-3420a2221",
   "license": "",
-  "documentation": "https://cloud-media-flows.github.io/AI_Media_Wizard/Flows/Playground_2_5_aesthetic.html",
+  "documentation": "https://cloud-media-flows.github.io/Visionatrix/Flows/Playground_2_5_aesthetic.html",
   "models": [
     {
       "name": "playground-v2.5-1024px-aesthetic.fp16.safetensors",

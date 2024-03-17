@@ -5,7 +5,7 @@ requires = [
 ]
 
 [project]
-name = "Visionatrix"
+name = "visionatrix"
 description = "Image and video creation and processing using ComfyUI"
 readme = "README.md"
 keywords = [

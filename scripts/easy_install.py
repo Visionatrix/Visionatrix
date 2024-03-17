@@ -13,7 +13,7 @@ VENV_NAME = ".venv" if PARENT_DIR.parent.joinpath(".venv").exists() else "venv"
 def main_entry():
     if not INITIAL_RERUN:
         print()
-        print("Greetings from Media-Wizard easy install script")
+        print("Greetings from Visionatrix easy install script")
         print()
         print()
     if not INITIAL_RERUN and PARENT_DIR.name == "scripts" and PARENT_DIR.parent.joinpath(VENV_NAME).exists():
@@ -23,14 +23,14 @@ def main_entry():
         print("\tReinstall (1)")
         print("\tUpdate (2)")
         print("\tRun (3)")
-        print("\tInstall All flows(can be done from UI)(4)")
+        print("\tInstall ALL flows(can be done from UI)(4)")
         c = input("What should we do?: ")
         if c == "1":
             reinstall()
         elif c == "2":
-            update_wizard()
+            update_visionatrix()
         elif c == "3":
-            run_wizard()
+            run_visionatrix()
         elif c == "4":
             install_all_flows()
         else:
@@ -49,7 +49,7 @@ def main_entry():
 def first_run():
     clone_repository()
     os.remove(__file__)
-    folder_name = "ai_media_wizard" if Path("ai_media_wizard").exists() else "AI_Media_Wizard"
+    folder_name = "visionatrix" if Path("visionatrix").exists() else "Visionatrix"
     subprocess.run(
         [sys.executable, Path(f"{folder_name}/scripts/easy_install.py"), "--rerun"],
         check=False, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
@@ -64,27 +64,27 @@ def reinstall():
     if not Path(VENV_NAME).exists():
         create_venv()
     install_graphics_card_packages()
-    print("Installing AI-Media-Wizard")
+    print("Installing Visionatrix")
     venv_run('pip install ".[app]"')
-    print("Preparing AI-Media-Wizard working instance..")
-    venv_run("python -m ai_media_wizard install")
-    c = input("Installation finished. Run MediaWizard? (Y/N): ").lower()
+    print("Preparing Visionatrix working instance..")
+    venv_run("python -m visionatrix install")
+    c = input("Installation finished. Run Visionatrix? (Y/N): ").lower()
     if c == "y":
-        run_wizard()
+        run_visionatrix()
     else:
         print("You can run in manually later. From activated virtual environment execute:")
-        print("python -m ai_media_wizard run --ui=client")
+        print("python -m visionatrix run --ui=client")
 
 
-def run_wizard():
-    venv_run("python -m ai_media_wizard run --ui=client")
+def run_visionatrix():
+    venv_run("python -m visionatrix run --ui=client")
 
 
-def update_wizard():
+def update_visionatrix():
     print("Updating source code from repository..")
     subprocess.check_call(["git", "pull"])
-    print("Running `python -m ai_media_wizard update`")
-    venv_run("python -m ai_media_wizard update")
+    print("Running `python -m visionatrix update`")
+    venv_run("python -m visionatrix update")
 
 
 def install_all_flows():
@@ -98,13 +98,13 @@ def install_all_flows():
 
     for i in flows:
         param_template = f"install-flow --flow flows/{i}/flow.json --flow_comfy flows/{i}/flow_comfy.json"
-        venv_run(f"python -m ai_media_wizard {param_template}")
+        venv_run(f"python -m visionatrix {param_template}")
 
 
 def clone_repository() -> None:
     try:
-        print("Cloning AI_Media_Wizard repository..")
-        subprocess.check_call(["git", "clone", "https://github.com/cloud-media-flows/AI_Media_Wizard.git"])
+        print("Cloning Visionatrix repository..")
+        subprocess.check_call(["git", "clone", "https://github.com/cloud-media-flows/Visionatrix.git"])
         print("Repository cloned successfully.")
     except subprocess.CalledProcessError as e:
         print("An error occurred while trying to clone the repository:", str(e))

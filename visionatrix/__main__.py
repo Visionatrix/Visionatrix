@@ -51,7 +51,7 @@ if __name__ == "__main__":
     for i in [
         ("install", "Performs cleanup & initialization"),
         ("update", "Performs update to the latest version"),
-        ("run", "Starts the AI and MediaWizard backends"),
+        ("run", "Starts the ComfyUI and Visionatrix backends"),
         ("install-flow", "Install flow from folder"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
@@ -63,8 +63,8 @@ if __name__ == "__main__":
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
         subparser.add_argument("--models_dir", type=str, help="Directory for the models")
         if i[0] == "run":
-            subparser.add_argument("--host", type=str, help="Host to be used by Wizard backend")
-            subparser.add_argument("--port", type=str, help="Port to be used by Wizard backend")
+            subparser.add_argument("--host", type=str, help="Host to be used by Visionatrix backend")
+            subparser.add_argument("--port", type=str, help="Port to be used by Visionatrix backend")
             subparser.add_argument("--ui", type=str, help="Folder with UI")
             subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
 
@@ -102,8 +102,8 @@ if __name__ == "__main__":
             flows_dir=args.flows_dir,
             models_dir=args.models_dir,
             tasks_files_dir=args.tasks_files_dir,
-            wizard_host=args.host,
-            wizard_port=args.port,
+            visionatrix_host=args.host,
+            visionatrix_port=args.port,
             ui_dir=args.ui,
         )
     elif args.command == "install-flow":
@@ -119,6 +119,6 @@ if __name__ == "__main__":
             progress_callback=__progress_callback,
         )
     else:
-        logging.getLogger("ai_media_wizard").error("Unknown command")
+        logging.getLogger("visionatrix").error("Unknown command")
         sys.exit(2)
     sys.exit(0)

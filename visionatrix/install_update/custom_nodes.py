@@ -6,7 +6,7 @@ from subprocess import run
 
 from .. import options
 
-LOGGER = logging.getLogger("ai_media_wizard")
+LOGGER = logging.getLogger("visionatrix")
 BASIC_NODE_LIST = {
     "ComfyUI-Impact-Pack": {},
     "ComfyUI_UltimateSDUpscale": {

@@ -16,7 +16,7 @@ from websockets.sync.client import connect
 from . import options
 from .models import install_model
 
-LOGGER = logging.getLogger("ai_media_wizard")
+LOGGER = logging.getLogger("visionatrix")
 CACHE_AVAILABLE_FLOWS = {
     "update_time": time.time() - 11,
     "etag": "",
@@ -140,7 +140,7 @@ def prepare_flow_comfy(
         for k, k_v in i["comfy_node_id"].items():
             node = r.get(k, {})
             if not node:
-                raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
+                raise RuntimeError(f"Bad comfy or visionatrix flow, node with id=`{k}` can not be found.")
             if i["type"] == "bool":
                 v_copy = k_v["value"]
             elif "src_field_name" in k_v:
@@ -227,7 +227,7 @@ def prepare_flow_comfy_files_params(
         for k, k_v in files_params[i]["comfy_node_id"].items():
             node = r.get(k, {})
             if not node:
-                raise RuntimeError(f"Bad comfy flow or wizard flow, node with id=`{k}` can not be found.")
+                raise RuntimeError(f"Bad comfy or visionatrix flow, node with id=`{k}` can not be found.")
             set_node_value(node, k_v["dest_field_name"], file_name)
         with builtins.open(os.path.join(tasks_files_dir, "input", file_name), mode="wb") as fp:
             if hasattr(v, "read"):

@@ -44,26 +44,26 @@ except ImportError as ex:
     uvicorn = fastapi = DeferredError(ex)
 
 
-LOGGER = logging.getLogger("ai_media_wizard")
+LOGGER = logging.getLogger("visionatrix")
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
 FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
 
 
-def wizard_backend(
+def vix_backend(
     *args,
     backend_dir: str,
     flows_dir: str,
     models_dir: str,
     tasks_files_dir: str,
-    wizard_host: str,
-    wizard_port: str,
+    vix_host: str,
+    vix_port: str,
     **kwargs,
 ):
     flows_dir = options.get_flows_dir(flows_dir)
     models_dir = options.get_models_dir(models_dir)
     ui_dir = kwargs.pop("ui_dir", "")
-    wizard_host = options.get_wizard_host(wizard_host)
-    wizard_port = options.get_wizard_port(wizard_port)
+    vix_host = options.get_host(vix_host)
+    vix_port = options.get_port(vix_port)
 
     @asynccontextmanager
     async def lifespan(_app: fastapi.FastAPI):
@@ -227,14 +227,14 @@ def wizard_backend(
 
     @app.post("/shutdown")
     def shutdown(b_tasks: fastapi.BackgroundTasks):
-        def __shutdown_wizard():
+        def __shutdown_vix():
             time.sleep(1.0)
             os.kill(os.getpid(), signal.SIGINT)
 
         stop_comfy()
         if ui_dir:
             save_tasks(tasks_files_dir)
-        b_tasks.add_task(__shutdown_wizard)
+        b_tasks.add_task(__shutdown_vix)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.get("/system_stats")
@@ -245,7 +245,7 @@ def wizard_backend(
             )
         )
 
-    uvicorn.run(app, *args, host=wizard_host, port=wizard_port, **kwargs)
+    uvicorn.run(app, *args, host=vix_host, port=vix_port, **kwargs)
 
 
 def run_backend(
@@ -254,14 +254,10 @@ def run_backend(
     flows_dir="",
     models_dir="",
     tasks_files_dir="",
-    wizard_host="",
-    wizard_port="",
+    vix_host="",
+    vix_port="",
     **kwargs,
 ) -> None:
-    """Starts ComfyUI and AI-Media-Wizard.
-
-    ..note:: If you use AI-Media-Wizard as a Python library you should use ``run_comfy_backend`` instead of this.
-    """
 
     backend_dir = options.get_backend_dir(backend_dir)
     tasks_files_dir = options.get_tasks_files_dir(tasks_files_dir)
@@ -269,14 +265,14 @@ def run_backend(
         os.makedirs(os.path.join(tasks_files_dir, i), exist_ok=True)
 
     run_comfy_backend(backend_dir, tasks_files_dir)
-    wizard_backend(
+    vix_backend(
         *args,
         backend_dir=backend_dir,
         flows_dir=flows_dir,
         models_dir=models_dir,
         tasks_files_dir=tasks_files_dir,
-        wizard_host=wizard_host,
-        wizard_port=wizard_port,
+        vix_host=vix_host,
+        vix_port=vix_port,
         **kwargs,
     )
 

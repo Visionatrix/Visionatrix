@@ -5,7 +5,7 @@
   "author": "shiimizu",
   "homepage": "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus",
   "license": "",
-  "documentation": "https://cloud-media-flows.github.io/AI_Media_Wizard/Flows/Photomaker_1.html",
+  "documentation": "https://cloud-media-flows.github.io/Visionatrix/Flows/Photomaker_1.html",
   "models": [
     {
       "name": "photomaker-v1.bin",

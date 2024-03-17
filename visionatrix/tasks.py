@@ -10,7 +10,7 @@ from websockets.sync.client import ClientConnection
 
 from . import options
 
-LOGGER = logging.getLogger("ai_media_wizard")
+LOGGER = logging.getLogger("visionatrix")
 TASKS_STORAGE = {}
 """{
     task_id: {
