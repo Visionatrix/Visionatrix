@@ -39,7 +39,14 @@ onUnmounted(() => {
 	flowStore.$state.resultsPage = 1
 })
 
+function openImageModal(src: string) {
+	modalImageSrc.value = src
+	isModalOpen.value = true
+}
+
 const collapsed = ref(false)
+const isModalOpen = ref(false)
+const modalImageSrc = ref('')
 </script>
 
 <template>
@@ -84,7 +91,11 @@ const collapsed = ref(false)
 						:src="outputImgSrc({
 							task_id: flowResult.task_id,
 							node_id: flowResult.output_params[0].comfy_node_id
-						})" />
+						})"
+						@click="() => openImageModal(outputImgSrc({
+							task_id: flowResult.task_id,
+							node_id: flowResult.output_params[0].comfy_node_id
+						}))" />
 					<UCarousel v-else
 						class="mb-3 rounded-lg overflow-hidden" v-slot="{ item }"
 						:items="flowResult.output_params.map((result_output_param) => {
@@ -94,7 +105,7 @@ const collapsed = ref(false)
 						:page="1"
 						indicators>
 						<NuxtImg class="w-full" :src="outputImgSrc(item)"
-							draggable="false"/>
+							draggable="false" @click="() => openImageModal(outputImgSrc(item))" />
 					</UCarousel>
 					<p class="text-sm text-slate-500 text-center mb-3">
 						{{
@@ -121,5 +132,18 @@ const collapsed = ref(false)
 			</div>
 			<p v-else class="text-center text-slate-500">No output results available</p>
 		</template>
+		<UModal v-model="isModalOpen" class="z-[90]" :transition="false" fullscreen>
+			<UButton class="absolute top-4 right-4"
+				icon="i-heroicons-x-mark"
+				variant="ghost"
+				@click="() => isModalOpen = false"/>
+			<div class="flex items-center justify-center w-full h-full p-4"
+				@click.left="() => isModalOpen = false">
+				<NuxtImg v-if="modalImageSrc"
+					class="lg:h-full"
+					fit="inside"
+					:src="modalImageSrc" />
+			</div>
+		</UModal>
 	</div>
 </template>
