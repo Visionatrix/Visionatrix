@@ -1,26 +1,28 @@
-# AI-Media-Wizard
+# Visionatrix
 
-[![Analysis & Coverage](https://github.com/cloud-media-flows/AI_Media_Wizard/actions/workflows/analysis-coverage.yml/badge.svg)](https://github.com/cloud-media-flows/AI_Media_Wizard/actions/workflows/analysis-coverage.yml)
-[![Docs](https://github.com/cloud-media-flows/AI_Media_Wizard/actions/workflows/docs.yml/badge.svg)](https://cloud-media-flows.github.io/AI_Media_Wizard/)
+[![Analysis & Coverage](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml/badge.svg)](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml)
+[![Docs](https://github.com/Visionatrix/Visionatrix/actions/workflows/docs.yml/badge.svg)](https://visionatrix.github.io/Visionatrix/)
 
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
-**AI-driven** media creation and editing with a friendly UI and a backend API for integration with third-party services.
 
-This platform ensures effortless deployment and management of AI-powered, secure workflows, tailor-made for the efficient processing of images and videos.
+The goal of the project is to provide a user-friendly way for generating and processing images and videos.
+
+To achieve this goal, the [ComfyUI](https://github.com/comfyanonymous/ComfyUI) project was chosen, since its flow format looks very great.
+
+**Visionatrix** projects provides:
+
+1. Automatic installation in one click.
+2. Extended format of ComfyUI workflows.
+3. Constant task history.
+4. Backend endpoints for tasks & server management.
+5. User interface which is much simpler and user-oriented
+6. Support for multiple users. _(in progress)_
+7. Connecting a custom user backend. _(in progress)_
+8. Support of queue manager to schedule tasks between multiply instances. _(in progress)_
 
 > [!NOTE]
 > The project is currently in the early development stage, expect breaking changes.
-
-## The main goals of the project are as follows:
-
-1. To automate deployment and installation processes of ComfyUI workflows.
-2. To utilize only proven workflows and extensions for handling pictures and videos.
-3. To avoid adding anything unnecessary or questionable from a security perspective.
-4. To provide a convenient API for external services.
-5. To ensure an easy and simple user interface for individual users.
-
-*Main principles are: reliability, safety, and simplicity.*
 
 ## Easy installation for home use
 
@@ -39,12 +41,12 @@ Download and execute `easy_install.py` script:
 
 With **wget**:
 ```console
-wget -O easy_install.py https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py && python3 easy_install.py
+wget -O easy_install.py https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py && python3 easy_install.py
 ```
 
 or with **curl**:
 ```console
-curl -o easy_install.py https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py && python3 easy_install.py
+curl -o easy_install.py https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py && python3 easy_install.py
 ```
 
 ### Windows
@@ -53,85 +55,17 @@ curl -o easy_install.py https://raw.githubusercontent.com/cloud-media-flows/AI_M
 > If you plan to use `Direct-ML` - **Python3.10** is the only currently supported version by it.
 
 ```console
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/cloud-media-flows/AI_Media_Wizard/main/scripts/easy_install.py" -OutFile "easy_install.py"; python3 easy_install.py
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py" -OutFile "easy_install.py"; python3 easy_install.py
 ```
 
 ### After that, answer the script's questions and in most cases everything should work.
 
-## Manual installation from repository
+If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/Visionatrix/Installation/index.html) how to do that.
 
-**Clone repository:**
-
-```console
-git clone https://github.com/cloud-media-flows/AI_Media_Wizard.git && cd AI_Media_Wizard
-```
-
-**Set up virtual environment:**
+### Run **Visionatrix**
 
 ```console
-python -m venv venv
-```
-
-**Activate Virtual Environment:**
-
-_Linux/macOS:_
-
-```console
-source venv/bin/activate
-```
-
-_Windows:_
-
-```console
-.\venv\Scripts\Activate.ps1
-```
-
-### Install **PyTorch**:
-
-#### AMD (Linux)
-
-Development version of `PyTorch` is preferred for AMD graphic-cards at this moment:
-
-```console
-pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/rocm6.0
-```
-
-#### AMD (Windows)
-
-```console
-pip install torch-directml
-```
-
-#### NVIDIA (Linux, Windows)
-
-Stable version of `PyTorch` is preferred for NVIDIA graphic-cards:
-
-```console
-pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu121
-```
-
-#### macOS
-
-_No action needed :)_
-
-### Install MediaWizard using **pip** from sources:
-
-```console
-pip install ".[app]"
-```
-
-### Perform **AIMediaWizard** initialization
-
-Execute it as a Python Module with ``install`` command:
-
-```console
-python -m ai_media_wizard install
-```
-
-### Run **AIMediaWizard**
-
-```console
-python -m ai_media_wizard run --ui=client
+python -m visionatrix run --ui=client
 ```
 
 By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
@@ -143,15 +77,11 @@ By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 Run `easy_install` script and select "**Update**" option.
 
-Or manually:
-1. Pull changes with `git pull`
-2. Activate virtual environment
-3. Execute `python -m ai_media_wizard update`
-
 ## More Information
 
-We'll be covering more information on how to use it with third-party services, how to add your own media flow,
-or how to use it as a Python package in your application in the documentation that will start appearing soon.
+We're in the design process, and as we go,
+we'll provide more information in the documentation on how to use it with third-party services or how to add your own media flow.
 
-- [Documentation](https://cloud-media-flows.github.io/AI_Media_Wizard/)
-  - [Available Flows](https://cloud-media-flows.github.io/AI_Media_Wizard/Flows/index.html)
+- [Documentation](https://visionatrix.github.io/Visionatrix/)
+  - [Available Flows](https://visionatrix.github.io/Visionatrix/Flows/index.html)
+  - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation/index.html)

@@ -8,7 +8,7 @@ docs html:
 
 .PHONY: help
 help:
-	@echo "Welcome to AI-Media-Wizard development. Please use \`make <target>\` where <target> is one of"
+	@echo "Welcome to Visionatrix development. Please use \`make <target>\` where <target> is one of"
 	@echo "  docs               make HTML docs"
 	@echo "  build-client       build frontend client"
 	@echo " "

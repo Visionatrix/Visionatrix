@@ -77,14 +77,14 @@ const collapsed = ref(false)
 			</div>
 			<div class="results overflow-auto" v-if="hasOutputResult">
 				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
-					class="flex flex-col justify-center w-full mx-auto mb-5">
-					<div v-if="flowResult.output_params.length === 1" class="img-wrapper h-100">
-						<NuxtImg class="mb-2 mx-auto" draggable="false"
-							:src="outputImgSrc({
-								task_id: flowResult.task_id,
-								node_id: flowResult.output_params[0].comfy_node_id
-							})" />
-					</div>
+					class="flex flex-col justify-center mx-auto mb-5">
+					<NuxtImg v-if="flowResult.output_params.length === 1"
+						class="mb-2 h-100 mx-auto rounded-lg" draggable="false"
+						fit="outside"
+						:src="outputImgSrc({
+							task_id: flowResult.task_id,
+							node_id: flowResult.output_params[0].comfy_node_id
+						})" />
 					<UCarousel v-else
 						class="mb-3 rounded-lg overflow-hidden" v-slot="{ item }"
 						:items="flowResult.output_params.map((result_output_param) => {

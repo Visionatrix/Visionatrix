@@ -15,7 +15,7 @@ from websockets import client
 
 from . import options
 
-LOGGER = logging.getLogger("ai_media_wizard")
+LOGGER = logging.getLogger("visionatrix")
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
 BACKGROUND_TASKS_ENGINE: asyncio.Task | None = None
 
