@@ -123,7 +123,6 @@ def vix_backend(
 
     @app.post("/task")
     async def task_run(
-        b_tasks: fastapi.BackgroundTasks,
         name: str = fastapi.Form(),
         input_params: str = fastapi.Form(None),
         files: list[fastapi.UploadFile] = None,  # noqa
