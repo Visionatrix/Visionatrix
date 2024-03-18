@@ -60,7 +60,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Visionatrix/Visionatri
 
 ### After that, answer the script's questions and in most cases everything should work.
 
-If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/Visionatrix/Installation/index.html) how to do that.
+If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/Visionatrix/Installation.html) how to do that.
 
 ### Run **Visionatrix**
 
@@ -84,4 +84,4 @@ we'll provide more information in the documentation on how to use it with third-
 
 - [Documentation](https://visionatrix.github.io/Visionatrix/)
   - [Available Flows](https://visionatrix.github.io/Visionatrix/Flows/index.html)
-  - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation/index.html)
+  - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation.html)
