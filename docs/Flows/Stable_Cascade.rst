@@ -7,10 +7,16 @@ This flow works much better with text rendering, and supports repeated rendering
 
 Suitable for various fairy-tale or cartoon images or for generating postcards.
 
+One pass image resolution: **1024x576**
+
+Two pass image resolution: **1536x864**
+
+Three pass image resolution: **2048x1152**
+
 Hardware
 """"""""
 
-- **Required memory: X GB**
+- **Required memory: 8-12 GB**
 
 Time to generate 1 image:
 

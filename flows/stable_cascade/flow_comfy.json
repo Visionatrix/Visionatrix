@@ -159,20 +159,6 @@
       "title": "StableCascade_EmptyLatentImage"
     }
   },
-  "38": {
-    "inputs": {
-      "upscale_method": "nearest-exact",
-      "scale_by": 1.5,
-      "image": [
-        "22",
-        0
-      ]
-    },
-    "class_type": "ImageScaleBy",
-    "_meta": {
-      "title": "Upscale Image By"
-    }
-  },
   "78": {
     "inputs": {
       "seed": 42,
@@ -281,7 +267,7 @@
     "inputs": {
       "compression": 32,
       "image": [
-        "38",
+        "90",
         0
       ],
       "vae": [
@@ -305,6 +291,159 @@
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
+    }
+  },
+  "89": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "width": 2048,
+      "height": 1152,
+      "crop": "disabled",
+      "image": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Upscale Image"
+    }
+  },
+  "90": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "width": 1536,
+      "height": 864,
+      "crop": "disabled",
+      "image": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Upscale Image"
+    }
+  },
+  "91": {
+    "inputs": {
+      "compression": 32,
+      "image": [
+        "89",
+        0
+      ],
+      "vae": [
+        "26",
+        2
+      ]
+    },
+    "class_type": "StableCascade_StageC_VAEEncode",
+    "_meta": {
+      "title": "StableCascade_StageC_VAEEncode"
+    }
+  },
+  "93": {
+    "inputs": {
+      "seed": 548729031942500,
+      "steps": 20,
+      "cfg": 4,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "simple",
+      "denoise": 0.5,
+      "model": [
+        "26",
+        0
+      ],
+      "positive": [
+        "20",
+        0
+      ],
+      "negative": [
+        "21",
+        0
+      ],
+      "latent_image": [
+        "91",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "94": {
+    "inputs": {
+      "conditioning": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "95": {
+    "inputs": {
+      "conditioning": [
+        "94",
+        0
+      ],
+      "stage_c": [
+        "93",
+        0
+      ]
+    },
+    "class_type": "StableCascade_StageB_Conditioning",
+    "_meta": {
+      "title": "StableCascade_StageB_Conditioning"
+    }
+  },
+  "96": {
+    "inputs": {
+      "seed": 1118438233481225,
+      "steps": 10,
+      "cfg": 1.1,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "27",
+        0
+      ],
+      "positive": [
+        "95",
+        0
+      ],
+      "negative": [
+        "94",
+        0
+      ],
+      "latent_image": [
+        "91",
+        1
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "97": {
+    "inputs": {
+      "samples": [
+        "96",
+        0
+      ],
+      "vae": [
+        "27",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
     }
   }
 }

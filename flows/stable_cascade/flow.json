@@ -1,7 +1,7 @@
 {
   "name": "stable_cascade",
   "display_name": "Stable Cascade",
-  "description": "2-Pass generation",
+  "description": "Generation with multiple passes",
   "author": "HowDo?",
   "homepage": "https://comfyworkflows.com/profile/41d507c5-bdcf-424b-9b75-a3cc2ea9049d",
   "license": "",
@@ -71,16 +71,29 @@
         "80": {
           "dest_field_name": ["inputs", "seed"],
           "internal_type": "int"
+        },
+        "93": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "96": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
         }
       }
     },
     {
-      "name": "second_pass",
-      "display_name": "Perform extra pass",
-      "type": "bool",
-      "default": true,
+      "name": "pass_count",
+      "display_name": "Pass count",
+      "type": "list",
+      "default": "Two Pass",
       "optional": true,
       "advanced": true,
+      "options": {
+        "One Pass": ["22", 0],
+        "Two Pass": ["79", 0],
+        "Three Pass": ["97", 0]
+      },
       "comfy_node_id": {
         "86": {
           "dest_field_name": ["inputs", "images"],
