@@ -33,7 +33,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'list') {
 		return ({
 			[input_param.name]: {
-				value: <any>Object.keys(<object>input_param.options)[0] || '',
+				value: <any>input_param.default || Object.keys(<object>input_param.options)[0] || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				options: input_param.options,
