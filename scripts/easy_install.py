@@ -16,30 +16,37 @@ def main_entry():
         print("Greetings from Visionatrix easy install script")
         print()
         print()
-    if not INITIAL_RERUN and PARENT_DIR.name == "scripts" and PARENT_DIR.parent.joinpath(VENV_NAME).exists():
-        os.chdir(PARENT_DIR.parent)
-        print("Existing installation detected.")
-        print("Select the required action:")
-        print("\tReinstall (1)")
-        print("\tUpdate (2)")
-        print("\tRun (3)")
-        print("\tInstall ALL flows(can be done from UI)(4)")
-        c = input("What should we do?: ")
-        if c == "1":
-            reinstall()
-        elif c == "2":
-            update_visionatrix()
-        elif c == "3":
-            run_visionatrix()
-        elif c == "4":
-            install_all_flows()
+    if not INITIAL_RERUN and PARENT_DIR.name == "scripts" and PARENT_DIR.parent.name.lower() == "visionatrix":
+        if PARENT_DIR.parent.joinpath(VENV_NAME).exists():
+            os.chdir(PARENT_DIR.parent)
+            print("Existing installation detected.")
+            print("Select the required action:")
+            print("\tReinstall (1)")
+            print("\tUpdate (2)")
+            print("\tRun (3)")
+            print("\tInstall ALL flows(can be done from UI)(4)")
+            c = input("What should we do?: ")
+            if c == "1":
+                reinstall()
+            elif c == "2":
+                update_visionatrix()
+            elif c == "3":
+                run_visionatrix()
+            elif c == "4":
+                install_all_flows()
+            else:
+                print("exiting")
         else:
-            print("exiting")
+            c = input("Looks like you run `easy-install` from the cloned repo. Perform installation? (Y/N) ")
+            if c.lower() == "y":
+                reinstall()
+            else:
+                print("exiting")
     elif INITIAL_RERUN:
         os.chdir(PARENT_DIR.parent)
         reinstall()
     else:
-        q = input("No existing installation found, start first installation? (Y/N)")
+        q = input("No existing installation found, start first installation? (Y/N) ")
         if q.lower() == "y":
             first_run()
         else:
