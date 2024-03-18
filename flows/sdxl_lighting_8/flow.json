@@ -5,7 +5,7 @@
   "author": "bigcat88",
   "homepage": "https://github.com/bigcat88",
   "license": "",
-  "documentation": "https://cloud-media-flows.github.io/AI_Media_Wizard/Flows/SDXL_Lighting_8.html",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/SDXL_Lighting_8.html",
   "models": [
     {
       "name": "sdxl_lightning_8step.safetensors",

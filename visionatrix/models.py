@@ -9,7 +9,7 @@ from pathlib import Path
 import httpx
 
 DOWNLOAD_RETRY_COUNT = 3
-LOGGER = logging.getLogger("ai_media_wizard")
+LOGGER = logging.getLogger("visionatrix")
 
 
 def install_model(

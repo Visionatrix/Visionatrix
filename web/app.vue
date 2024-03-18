@@ -1,8 +1,5 @@
 <script lang="ts" setup>
-const flowsStore = useFlowsStore()
-useAsyncData('flows', () => flowsStore.fetchFlows(), {
-  lazy: true,
-})
+useFlowsStore().fetchFlows()
 </script>
 
 <template>

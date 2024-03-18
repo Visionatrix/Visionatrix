@@ -94,8 +94,8 @@ converted/
 
 geckodriver.log
 
-amw_backend
-amw_flows
-amw_models
-amw_tasks_files
-scripts/ai_media_wizard
+vix_backend
+vix_flows
+vix_models
+vix_tasks_files
+scripts/visionatrix
