@@ -102,8 +102,8 @@ if __name__ == "__main__":
             flows_dir=args.flows_dir,
             models_dir=args.models_dir,
             tasks_files_dir=args.tasks_files_dir,
-            visionatrix_host=args.host,
-            visionatrix_port=args.port,
+            vix_host=args.host,
+            vix_port=args.port,
             ui_dir=args.ui,
         )
     elif args.command == "install-flow":
