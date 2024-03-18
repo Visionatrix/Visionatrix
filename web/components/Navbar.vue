@@ -19,8 +19,7 @@ const themingToggleIconClass = computed(() => {
     <header class="flex w-full flex-col lg:flex-row justify-between items-center my-5">
       <div class="flex w-full items-center justify-between">
         <ULink to="/" class="text-lg mr-3">
-          <span class="font-bold text-neutral-400 mr-1">AI Media</span>
-          <span class="text-slate-500">Workflows</span>
+          <span class="font-bold text-neutral-400 hover:text-neutral-300 mr-1">Visionatrix</span>
         </ULink>
         <div class="flex items-center">
           <NotificationsPopover />
