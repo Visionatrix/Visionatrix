@@ -79,7 +79,7 @@ Run `easy_install` script and select "**Update**" option.
 
 ## More Information
 
-We're in the design process, and as we go, 
+We're in the design process, and as we go,
 we'll provide more information in the documentation on how to use it with third-party services or how to add your own media flow.
 
 - [Documentation](https://visionatrix.github.io/Visionatrix/)

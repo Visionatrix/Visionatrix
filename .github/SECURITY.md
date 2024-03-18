@@ -16,7 +16,7 @@ We support security updates for the latest non-beta version of `Visionatrix`
 
 ## Reporting Security Vulnerabilities
 
-Your contributions to our security are invaluable. 
+Your contributions to our security are invaluable.
 
 If you discover a vulnerability, please report it to us using GitHub's Private Vulnerability Reporting feature.
 

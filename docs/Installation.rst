@@ -88,4 +88,3 @@ Manual Update
 2. Execute **update** command from **activated** virtual environment with :command:`python`::
 
     python -m visionatrix update
-
