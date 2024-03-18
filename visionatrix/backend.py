@@ -298,7 +298,7 @@ def run_comfy_backend(backend_dir: str, tasks_files_dir: str) -> None:
     stdout = None if LOGGER.getEffectiveLevel == logging.DEBUG or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
     stderr = None if LOGGER.getEffectiveLevel == logging.INFO or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
     COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout, stderr=stderr)  # pylint: disable=consider-using-with
-    for _ in range(15):
+    for _ in range(25):
         with contextlib.suppress(httpx.NetworkError):
             r = httpx.get(f"http://{options.get_comfy_address()}")
             if r.status_code == 200:
