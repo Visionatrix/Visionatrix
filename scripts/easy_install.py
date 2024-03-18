@@ -104,7 +104,7 @@ def install_all_flows():
 def clone_repository() -> None:
     try:
         print("Cloning Visionatrix repository..")
-        subprocess.check_call(["git", "clone", "https://github.com/cloud-media-flows/Visionatrix.git"])
+        subprocess.check_call(["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"])
         print("Repository cloned successfully.")
     except subprocess.CalledProcessError as e:
         print("An error occurred while trying to clone the repository:", str(e))

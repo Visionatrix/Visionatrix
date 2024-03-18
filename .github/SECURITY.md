@@ -6,7 +6,7 @@ Our commitment to security is crucial, and we strive to maintain the trust of ou
 
 ## Introduction
 
-This product utilizes a fork of [ComfyUI](https://github.com/cloud-media-flows/ComfyUI), and we are dedicated to ensuring the security of all integrated components.
+This product utilizes a fork of [ComfyUI](https://github.com/visionatrix/ComfyUI), and we are dedicated to ensuring the security of all integrated components.
 
 We carefully assess all third-party libraries and ComfyUI's `Nodes` before inclusion, prioritizing those we can confidently secure.
 

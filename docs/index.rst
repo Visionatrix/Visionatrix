@@ -7,6 +7,7 @@ Here will leave all docs that is not suitable for Readme file..
     :maxdepth: 1
 
     Flows/index.rst
+    Installation.rst
 
 Indices and tables
 ==================

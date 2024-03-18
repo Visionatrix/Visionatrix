@@ -84,4 +84,4 @@ def setup(app):
     app.add_css_file("css/light.css")
 
 
-issues_github_path = "cloud-media-flows/Visionatrix"
+issues_github_path = "Visionatrix/Visionatrix"

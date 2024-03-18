@@ -5,7 +5,7 @@
   "author": "Valomar",
   "homepage": "https://comfyworkflows.com/profile/86edf4d7-d110-498d-b4e0-4cacadee750e",
   "license": "",
-  "documentation": "https://cloud-media-flows.github.io/Visionatrix/Flows/Juggernaut_Lighting_LoRAs.html",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Juggernaut_Lighting_LoRAs.html",
   "models": [
     {
       "name": "juggernautXL_v8Rundiffusion.safetensors",

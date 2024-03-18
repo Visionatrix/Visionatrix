@@ -72,9 +72,9 @@ docs = [
   "sphinx-rtd-theme>=1",
 ]
 [project.urls]
-Changelog = "https://github.com/cloud-media-flows/Visionatrix/blob/main/CHANGELOG.md"
-Documentation = "https://cloud-media-flows.github.io/Visionatrix/"
-Source = "https://github.com/cloud-media-flows/Visionatrix"
+Changelog = "https://github.com/Visionatrix/Visionatrix/blob/main/CHANGELOG.md"
+Documentation = "https://visionatrix.github.io/Visionatrix/"
+Source = "https://github.com/Visionatrix/Visionatrix"
 
 [tool.hatch.version]
 path = "visionatrix/_version.py"

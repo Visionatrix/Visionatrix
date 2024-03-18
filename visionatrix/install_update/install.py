@@ -53,7 +53,7 @@ def install(backend_dir: str, flows_dir: str, models_dir: str, operations_mask: 
             LOGGER.info("Removing existing Backend directory: %s", backend_dir)
             rmtree(backend_dir, onerror=remove_readonly)
         os.makedirs(backend_dir)
-        run(f"git clone https://github.com/cloud-media-flows/ComfyUI.git {backend_dir}".split(), check=True)
+        run(f"git clone https://github.com/Visionatrix/ComfyUI.git {backend_dir}".split(), check=True)
         run([sys.executable, "-m", "pip", "install", "-r", os.path.join(backend_dir, "requirements.txt")], check=True)
         with builtins.open(os.path.join(backend_dir, "extra_model_paths.yaml"), "w", encoding="utf-8") as fp:
             fp.write(EXTRA_MODEL_PATHS.replace("vix_models_root", models_dir))
