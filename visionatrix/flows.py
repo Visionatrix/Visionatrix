@@ -11,7 +11,6 @@ from pathlib import Path
 from shutil import rmtree
 
 import httpx
-from websockets.sync.client import connect
 
 from . import options
 from .models import install_model
@@ -169,18 +168,6 @@ def prepare_flow_comfy(
     prepare_output_params(flow, task_id, task_details, r)
     LOGGER.debug("Prepared flow data: %s", r)
     return r
-
-
-def execute_flow_comfy(flow_comfy: dict, client_id: str) -> dict:
-    r = httpx.post(f"http://{options.get_comfy_address()}/prompt", json={"prompt": flow_comfy, "client_id": client_id})
-    if r.status_code != 200:
-        LOGGER.error("ComfyUI rejected flow: %s", flow_comfy)
-        raise RuntimeError(f"ComfyUI returned status: {r.status_code}")
-    return json.loads(r.text)
-
-
-def open_comfy_websocket(request_id: str):
-    return connect(f"ws://{options.get_comfy_address()}/ws?clientId={request_id}")
 
 
 def get_node_value(node: dict, path: list[str]) -> str | int | float:

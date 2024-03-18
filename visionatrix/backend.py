@@ -1,36 +1,34 @@
-import contextlib
 import json
 import logging
 import os
 import signal
-import subprocess
-import sys
 import time
 from contextlib import asynccontextmanager
-from importlib.metadata import PackageNotFoundError, version
 
 import httpx
 
 from . import options
 from .flows import (
-    execute_flow_comfy,
     get_available_flows,
     get_installed_flow,
     get_installed_flows,
     get_not_installed_flows,
     install_custom_flow,
-    open_comfy_websocket,
     prepare_flow_comfy,
     uninstall_flow,
 )
-from .tasks import (
+from .tasks_engine import (
     create_new_task,
     get_task,
     get_tasks,
+    get_tasks_from_queue,
     load_tasks,
+    put_task_in_queue,
     remove_task,
+    remove_task_files,
     save_tasks,
-    track_task_progress,
+    start_tasks_engine,
+    stop_tasks_engine,
 )
 
 try:
@@ -45,7 +43,6 @@ except ImportError as ex:
 
 
 LOGGER = logging.getLogger("visionatrix")
-COMFY_PROCESS: subprocess.Popen[bytes] | None = None
 FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
 
 
@@ -67,15 +64,16 @@ def vix_backend(
 
     @asynccontextmanager
     async def lifespan(_app: fastapi.FastAPI):
+        await start_tasks_engine(backend_dir, tasks_files_dir)
         if ui_dir:
             try:
                 _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
             except RuntimeError:
-                stop_comfy()
+                await stop_tasks_engine()
                 raise
             load_tasks(tasks_files_dir)
         yield
-        stop_comfy()
+        await stop_tasks_engine()
         if ui_dir:
             save_tasks(tasks_files_dir)
 
@@ -124,7 +122,7 @@ def vix_backend(
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/task")
-    def task_run(
+    async def task_run(
         b_tasks: fastapi.BackgroundTasks,
         name: str = fastapi.Form(),
         input_params: str = fastapi.Form(None),
@@ -147,20 +145,22 @@ def vix_backend(
                 flow, flow_comfy, input_params_list, in_files, task_id, task_details, tasks_files_dir
             )
         except RuntimeError as e:
-            remove_task(task_id, "")
+            remove_task_files(task_id, tasks_files_dir, ["input"])
             raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
 
-        connection = open_comfy_websocket(str(task_id))
-        r = execute_flow_comfy(flow_comfy, str(task_id))
-        task_details["prompt_id"] = r["prompt_id"]
-        b_tasks.add_task(
-            track_task_progress,
-            connection,
-            task_id,
-            task_details,
-            len(list(flow_comfy.keys())),
-            tasks_files_dir,
-        )
+        # TO-DO: it will be good to run ComfyUI in the current process and not in a separate one.
+        # add ComfyUI directory to path
+        # from ..amw_backend.execution import validate_prompt
+        # sys.path.append(backend_dir)
+        # from execution import validate_prompt
+        #
+        # flow_validation: [bool, dict, list, list] = validate_prompt(flow_comfy)  # noqa
+        # if not flow_validation[0]:
+        #     remove_task_files(task_id, backend_dir, ["input"])
+        #     LOGGER.error("Flow validation error: %s\n%s", flow_validation[1], flow_validation[3])
+        #     raise fastapi.HTTPException(status_code=400, detail=f"Bad Flow: `{flow_validation[1]}`") from None
+        task_details["flow_comfy"] = flow_comfy
+        put_task_in_queue(task_id, task_details)
         return fastapi.responses.JSONResponse(content={"task_id": str(task_id)})
 
     @app.get("/tasks-progress")
@@ -189,49 +189,43 @@ def vix_backend(
 
     @app.delete("/tasks-queue")
     async def tasks_queue_clear(name: str):
-        tasks = get_tasks()
-        delete_ids = []
+        tasks = get_tasks_from_queue()
         delete_keys = []
         for k, v in tasks.items():
             if not name or v["name"] == name and v["progress"] != 100.0:
                 v["interrupt"] = True
-                delete_ids.append(v["prompt_id"])
                 delete_keys.append(k)
-        await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": delete_ids})
         for k in delete_keys:
             tasks.pop(k, None)
+            remove_task_files(k, tasks_files_dir, ["output", "input"])
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.delete("/task-queue")
     async def task_queue_clear(task_id: int):
-        if not (r := get_task(task_id)):
-            return fastapi.responses.JSONResponse(status_code=404, content={"error": "not found"})
-        r["interrupt"] = True
-        prompt_id = r["prompt_id"]
-        get_tasks().pop(task_id, None)
-        await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/queue", json={"delete": [prompt_id]})
+        remove_task(task_id, tasks_files_dir)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
-    @app.post("/task-interrupt")
-    async def task_interrupt(b_tasks: fastapi.BackgroundTasks):
+    @app.post("/engine-interrupt")
+    async def engine_interrupt(b_tasks: fastapi.BackgroundTasks):
         async def __interrupt_task():
             await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/interrupt")
 
         b_tasks.add_task(__interrupt_task)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
-    @app.post("/backend-restart")
-    def backend_restart():
-        run_comfy_backend(backend_dir, tasks_files_dir)
+    @app.post("/engine-restart")
+    async def engine_restart():
+        await stop_tasks_engine()
+        await start_tasks_engine(backend_dir, tasks_files_dir)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/shutdown")
-    def shutdown(b_tasks: fastapi.BackgroundTasks):
+    async def shutdown(b_tasks: fastapi.BackgroundTasks):
         def __shutdown_vix():
             time.sleep(1.0)
             os.kill(os.getpid(), signal.SIGINT)
 
-        stop_comfy()
+        await stop_tasks_engine()
         if ui_dir:
             save_tasks(tasks_files_dir)
         b_tasks.add_task(__shutdown_vix)
@@ -264,7 +258,6 @@ def run_backend(
     for i in ("input", "output"):
         os.makedirs(os.path.join(tasks_files_dir, i), exist_ok=True)
 
-    run_comfy_backend(backend_dir, tasks_files_dir)
     vix_backend(
         *args,
         backend_dir=backend_dir,
@@ -275,56 +268,6 @@ def run_backend(
         vix_port=vix_port,
         **kwargs,
     )
-
-
-def run_comfy_backend(backend_dir: str, tasks_files_dir: str) -> None:
-    """Starts ComfyUI in a background."""
-    global COMFY_PROCESS  # pylint: disable=global-statement
-
-    stop_comfy()
-    COMFY_PROCESS = None
-    run_cmd = [
-        sys.executable,
-        os.path.join(backend_dir, "main.py"),
-        "--port",
-        str(options.get_comfy_port()),
-        "--output-directory",
-        os.path.join(tasks_files_dir, "output"),
-        "--input-directory",
-        os.path.join(tasks_files_dir, "input"),
-    ]
-    if need_directml_flag():
-        run_cmd += ["--directml"]
-    stdout = None if LOGGER.getEffectiveLevel == logging.DEBUG or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
-    stderr = None if LOGGER.getEffectiveLevel == logging.INFO or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
-    COMFY_PROCESS = subprocess.Popen(run_cmd, stdout=stdout, stderr=stderr)  # pylint: disable=consider-using-with
-    for _ in range(25):
-        with contextlib.suppress(httpx.NetworkError):
-            r = httpx.get(f"http://{options.get_comfy_address()}")
-            if r.status_code == 200:
-                return
-        time.sleep(0.5)
-    stop_comfy()
-    raise RuntimeError("Error connecting to ComfyUI")
-
-
-def stop_comfy() -> None:
-    if COMFY_PROCESS is not None:
-        with contextlib.suppress(BaseException):
-            COMFY_PROCESS.kill()
-
-
-def need_directml_flag() -> bool:
-    if sys.platform.lower() != "win32":
-        return False
-
-    try:
-        version("torch-directml")
-        LOGGER.info("DirectML package is present.")
-        return True
-    except PackageNotFoundError:
-        LOGGER.info("No DirectML package found.")
-        return False
 
 
 def __progress_install_callback(name: str, progress: float, error: str) -> None:
