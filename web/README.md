@@ -1,6 +1,6 @@
 # Nuxt 3 Minimal App
 
-This is minimal UI to perform operations with AI Media Wizard pre-defined workflows.
+This is minimal UI to perform operations with Visionatrix pre-defined workflows.
 
 ## Setup
 

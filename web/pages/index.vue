@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 useHead({
-  title: 'Workflows - AI Media Wizard',
+  title: 'Workflows - Visionatrix',
   meta: [
     {
       name: 'description',
-      content: 'Workflows - AI Media Wizard',
+      content: 'Workflows - Visionatrix',
     },
   ],
 })

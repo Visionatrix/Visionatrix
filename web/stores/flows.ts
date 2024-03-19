@@ -360,11 +360,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 			this.current_flow = <Flow>this.flowByName(name)
 			if (this.current_flow) {
 				useHead({
-					title: `${this.current_flow.display_name} - Workflows - AI Media Wizard`,
+					title: `${this.current_flow.display_name} - Workflows - Visionatrix`,
 					meta: [
 						{
 							name: 'description',
-							content: 'Workflows - AI Media Wizard',
+							content: 'Workflows - Visionatrix',
 						},
 					],
 				})
