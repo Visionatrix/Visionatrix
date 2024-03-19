@@ -103,6 +103,7 @@ def vix_backend(
                 FLOW_INSTALL_STATUS[name] = {"progress": 0.0, "error": ""}
                 b_tasks.add_task(
                     install_custom_flow,
+                    backend_dir,
                     flows_dir,
                     flow,
                     flows_comfy[i],

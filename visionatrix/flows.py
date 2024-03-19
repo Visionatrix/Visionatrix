@@ -87,6 +87,7 @@ def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict) -> dict
 
 
 def install_custom_flow(
+    backend_dir: str,
     flows_dir: str,
     flow: dir,
     flow_comfy: dir,
@@ -102,7 +103,7 @@ def install_custom_flow(
     if progress_callback is not None:
         progress_callback(flow["name"], progress_info["current"], "")
     for model in flow["models"]:
-        if not install_model(model, models_dir, progress_info, progress_callback):
+        if not install_model(model, models_dir, backend_dir, progress_info, progress_callback):
             return
     local_flow_dir = os.path.join(flows_dir, flow["name"])
     os.mkdir(local_flow_dir)
@@ -149,7 +150,10 @@ def prepare_flow_comfy(
             for mod_operations in k_v.get("modify_param", []):
                 for mod_operation, mod_params in mod_operations.items():
                     if mod_operation == "sub":
-                        v_copy = re.sub(mod_params[0], mod_params[1], v_copy)
+                        if len(mod_params) == 1 and "src_field_name" in k_v:
+                            v_copy = re.sub(mod_params[0], v, v_copy)
+                        else:
+                            v_copy = re.sub(mod_params[0], mod_params[1], v_copy)
                     elif mod_operation == "sub-options":
                         for z in v:
                             if re.search(mod_params[0], z) is not None:
@@ -182,7 +186,7 @@ def set_node_value(node: dict, path: list[str], value: str | int | float) -> Non
     node[path[-1]] = value
 
 
-def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict):
+def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing.Any:
     v = in_texts_params.get(i["name"], None)
     if v is None:
         if "default" in i:
