@@ -8,7 +8,7 @@
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Photomaker_1.html",
   "models": [
     {
-      "name": "photomaker-v1.bin",
+      "name": "Photomaker-v1",
       "save_path": "photomaker/photomaker-v1.bin",
       "url": "https://huggingface.co/TencentARC/PhotoMaker/resolve/main/photomaker-v1.bin",
       "homepage": "https://huggingface.co/TencentARC/PhotoMaker",
@@ -16,7 +16,7 @@
       "hash": "529d503fa378bfb3a74e3384ab2064d7269d59f0638324555d22067c31e275bc"
     },
     {
-      "name": "albedobaseXL_v13.safetensors",
+      "name": "AlbedobaseXL_v13",
       "save_path": "checkpoints/albedobaseXL_v13.safetensors",
       "url": "https://huggingface.co/frankjoshua/albedobaseXL_v13/resolve/main/albedobaseXL_v13.safetensors",
       "homepage": "https://civitai.com/models/140737?modelVersionId=281176",

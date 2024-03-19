@@ -8,7 +8,7 @@
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/SDXL_Lighting_8.html",
   "models": [
     {
-      "name": "sdxl_lightning_8step.safetensors",
+      "name": "SDXL_lightning_8step",
       "save_path": "checkpoints/sdxl_lightning_8step.safetensors",
       "url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_8step.safetensors",
       "homepage": "https://huggingface.co/ByteDance/SDXL-Lightning",

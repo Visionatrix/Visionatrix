@@ -1,0 +1,201 @@
+{
+  "name": "photo_stickers",
+  "display_name": "Photo Stickers",
+  "description": "Stickers from person photo",
+  "author": "Datou",
+  "homepage": "https://openart.ai/workflows/datou/photo-2-anime-sdxl/0tBl5W8dBBe6FEhi0MxY",
+  "license": "",
+  "documentation": "https://visionatrix.github.io/PhotoStickers/Flows/PhotoStickers.html",
+  "models": [
+    {
+        "name": "InstantID-ControlNet",
+        "save_path": "controlnet/instantid-controlnet.safetensors",
+        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ControlNetModel/diffusion_pytorch_model.safetensors",
+        "homepage": "https://huggingface.co/InstantX/InstantID",
+        "license": "apache-2.0",
+        "hash": "c8127be9f174101ebdafee9964d856b49b634435cf6daa396d3f593cf0bbbb05"
+    },
+    {
+        "name": "InstantID-IP-Adapter",
+        "save_path": "instantid/instantid-ip-adapter.bin",
+        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ip-adapter.bin",
+        "homepage": "https://huggingface.co/InstantX/InstantID",
+        "license": "apache-2.0",
+        "hash": "02b3618e36d803784166660520098089a81388e61a93ef8002aa79a5b1c546e1"
+    },
+    {
+        "name": "StickersRedmond",
+        "save_path": "loras/StickersRedmond.safetensors",
+        "url": "https://huggingface.co/artificialguybr/StickersRedmond/resolve/main/StickersRedmond.safetensors",
+        "homepage": "https://huggingface.co/artificialguybr/StickersRedmond",
+        "license": "creativeml-openrail-m",
+        "hash": "927a840722d1ac9103223c09da55cc3ae750300e1c0e22a15ffcf460ac6f8a56"
+    },
+    {
+        "name": "DreamShaperXL_Lightning",
+        "save_path": "checkpoints/DreamShaperXL_Lightning.safetensors",
+        "url": "https://huggingface.co/Lykon/dreamshaper-xl-lightning/resolve/main/DreamShaperXL_Lightning.safetensors",
+        "homepage": "https://huggingface.co/Lykon/dreamshaper-xl-lightning",
+        "license": "openrail++",
+        "hash": "fdbe56354b8f876b736f24d3ad867ecd4140c019f57642ec8ddd878088d44f64"
+    }
+  ],
+  "input_params": [
+    {
+      "name": "image",
+      "display_name": "Person face",
+      "type": "image",
+      "optional": false,
+      "comfy_node_id": {
+        "22": {
+          "dest_field_name": ["inputs", "image"]
+        }
+      }
+    },
+    {
+      "name": "gender",
+      "display_name": "Base gender",
+      "type": "list",
+      "optional": false,
+      "advanced": false,
+      "options": {
+        "Man": "man",
+        "Girl": "girl"
+      },
+      "comfy_node_id": {
+        "88": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        },
+        "91": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        },
+        "284": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        },
+        "287": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        },
+        "298": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        },
+        "301": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        },
+        "326": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        },
+        "329": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "seed",
+      "display_name": "Random seed",
+      "type": "number",
+      "optional": true,
+      "default": 1,
+      "advanced": true,
+      "comfy_node_id": {
+        "340": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "342": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "345": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "347": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "348": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "351": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "354": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        },
+        "355": {
+          "dest_field_name": ["inputs", "seed"],
+          "internal_type": "int"
+        }
+      }
+    }
+  ],
+  "output_params": [
+    {
+      "type": "image",
+      "comfy_node_id": 10
+    },
+    {
+      "type": "image",
+      "comfy_node_id": 79
+    },
+    {
+      "type": "image",
+      "comfy_node_id": 80
+    },
+    {
+      "type": "image",
+      "comfy_node_id": 82
+    }
+  ]
+}

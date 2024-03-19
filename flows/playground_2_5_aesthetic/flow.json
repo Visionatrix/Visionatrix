@@ -8,7 +8,7 @@
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Playground_2_5_aesthetic.html",
   "models": [
     {
-      "name": "playground-v2.5-1024px-aesthetic.fp16.safetensors",
+      "name": "Playground-v2.5-1024px-aesthetic",
       "save_path": "checkpoints/playground-v2.5-1024px-aesthetic.fp16.safetensors",
       "url": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/resolve/main/playground-v2.5-1024px-aesthetic.fp16.safetensors",
       "homepage": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic",
@@ -16,7 +16,7 @@
       "hash": "bcaa7dd6780974f000b17b5a6c63e6f867a75c51ffa85c67d6b196882c69b992"
     },
     {
-      "name": "albedobaseXL_v13.safetensors",
+      "name": "AlbedobaseXL_v13",
       "save_path": "checkpoints/albedobaseXL_v13.safetensors",
       "url": "https://huggingface.co/frankjoshua/albedobaseXL_v13/resolve/main/albedobaseXL_v13.safetensors",
       "homepage": "https://civitai.com/models/140737?modelVersionId=281176",
@@ -24,7 +24,7 @@
       "hash": "a40d817f46acc25c88ee0b6f6efa474004cea3fa1868e09a13192342c5bf4df9"
     },
     {
-      "name": "epicrealism_naturalSinRC1VAE.safetensors",
+      "name": "EpicRealism_naturalSinRC1VAE",
       "save_path": "checkpoints/sd15/epicrealism_naturalSinRC1VAE.safetensors",
       "url": "https://huggingface.co/Justin-Choo/epiCRealism-Natural_Sin_RC1_VAE/resolve/main/epicrealism_naturalSinRC1VAE.safetensors",
       "homepage": "https://civitai.com/models/25694?modelVersionId=143906",

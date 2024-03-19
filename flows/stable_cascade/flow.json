@@ -8,7 +8,7 @@
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Stable_Cascade.html",
   "models": [
     {
-      "name": "stable_cascade_stage_b.safetensors",
+      "name": "Stable_Cascade_stage_b",
       "save_path": "checkpoints/stable_cascade_stage_b.safetensors",
       "url": "https://huggingface.co/stabilityai/stable-cascade/resolve/main/comfyui_checkpoints/stable_cascade_stage_b.safetensors",
       "homepage": "https://huggingface.co/stabilityai/stable-cascade",
@@ -16,7 +16,7 @@
       "hash": "6c218dc948575e3b14b03dffe2014d7870ac505005770ce3abdc28e920a03c05"
     },
     {
-      "name": "stable_cascade_stage_c.safetensors",
+      "name": "Stable_Cascade_stage_c",
       "save_path": "checkpoints/stable_cascade_stage_c.safetensors",
       "url": "https://huggingface.co/stabilityai/stable-cascade/resolve/main/comfyui_checkpoints/stable_cascade_stage_c.safetensors",
       "homepage": "https://huggingface.co/stabilityai/stable-cascade",

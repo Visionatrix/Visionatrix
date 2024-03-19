@@ -1,0 +1,917 @@
+{
+  "10": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "338",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "22": {
+    "inputs": {
+      "image": "input.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "35": {
+    "inputs": {
+      "instantid_file": "instantid-ip-adapter.bin"
+    },
+    "class_type": "InstantIDModelLoader",
+    "_meta": {
+      "title": "Load InstantID Model"
+    }
+  },
+  "36": {
+    "inputs": {
+      "provider": "CPU"
+    },
+    "class_type": "InstantIDFaceAnalysis",
+    "_meta": {
+      "title": "InstantID Face Analysis"
+    }
+  },
+  "40": {
+    "inputs": {
+      "control_net_name": "instantid-controlnet.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model"
+    }
+  },
+  "41": {
+    "inputs": {
+      "weight": 1,
+      "start_at": 0,
+      "end_at": 1,
+      "instantid": [
+        "35",
+        0
+      ],
+      "insightface": [
+        "36",
+        0
+      ],
+      "control_net": [
+        "40",
+        0
+      ],
+      "image": [
+        "330",
+        0
+      ],
+      "model": [
+        "59",
+        0
+      ],
+      "positive": [
+        "91",
+        0
+      ],
+      "negative": [
+        "335",
+        0
+      ],
+      "image_kps": [
+        "353",
+        0
+      ]
+    },
+    "class_type": "ApplyInstantID",
+    "_meta": {
+      "title": "Apply InstantID"
+    }
+  },
+  "59": {
+    "inputs": {
+      "lora_name": "StickersRedmond.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "60",
+        0
+      ],
+      "clip": [
+        "60",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "60": {
+    "inputs": {
+      "ckpt_name": "DreamShaperXL_Lightning.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "63": {
+    "inputs": {
+      "width": 1016,
+      "height": 1016,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "69": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "79": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "276",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "80": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "290",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "82": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "318",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "88": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  laughing",
+      "clip": [
+        "60",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "91": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  laughing, Sticker, svg, vector art, sharp, kawaii style, Anime style ",
+      "clip": [
+        "59",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "275": {
+    "inputs": {},
+    "class_type": "BRIA_RMBG_ModelLoader_Zho",
+    "_meta": {
+      "title": "🧹BRIA_RMBG Model Loader"
+    }
+  },
+  "276": {
+    "inputs": {
+      "rmbgmodel": [
+        "275",
+        0
+      ],
+      "image": [
+        "343",
+        0
+      ]
+    },
+    "class_type": "BRIA_RMBG_Zho",
+    "_meta": {
+      "title": "🧹BRIA RMBG"
+    }
+  },
+  "280": {
+    "inputs": {
+      "weight": 1,
+      "start_at": 0,
+      "end_at": 1,
+      "instantid": [
+        "35",
+        0
+      ],
+      "insightface": [
+        "36",
+        0
+      ],
+      "control_net": [
+        "40",
+        0
+      ],
+      "image": [
+        "22",
+        0
+      ],
+      "model": [
+        "59",
+        0
+      ],
+      "positive": [
+        "287",
+        0
+      ],
+      "negative": [
+        "335",
+        0
+      ],
+      "image_kps": [
+        "352",
+        0
+      ]
+    },
+    "class_type": "ApplyInstantID",
+    "_meta": {
+      "title": "Apply InstantID"
+    }
+  },
+  "284": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  angry",
+      "clip": [
+        "60",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "287": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  angry, Sticker, svg, vector art, sharp, kawaii style, Anime style ",
+      "clip": [
+        "59",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "289": {
+    "inputs": {},
+    "class_type": "BRIA_RMBG_ModelLoader_Zho",
+    "_meta": {
+      "title": "🧹BRIA_RMBG Model Loader"
+    }
+  },
+  "290": {
+    "inputs": {
+      "rmbgmodel": [
+        "289",
+        0
+      ],
+      "image": [
+        "344",
+        0
+      ]
+    },
+    "class_type": "BRIA_RMBG_Zho",
+    "_meta": {
+      "title": "🧹BRIA RMBG"
+    }
+  },
+  "294": {
+    "inputs": {
+      "weight": 1,
+      "start_at": 0,
+      "end_at": 1,
+      "instantid": [
+        "35",
+        0
+      ],
+      "insightface": [
+        "36",
+        0
+      ],
+      "control_net": [
+        "40",
+        0
+      ],
+      "image": [
+        "22",
+        0
+      ],
+      "model": [
+        "59",
+        0
+      ],
+      "positive": [
+        "301",
+        0
+      ],
+      "negative": [
+        "335",
+        0
+      ],
+      "image_kps": [
+        "350",
+        0
+      ]
+    },
+    "class_type": "ApplyInstantID",
+    "_meta": {
+      "title": "Apply InstantID"
+    }
+  },
+  "298": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  shocked",
+      "clip": [
+        "60",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "301": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  shocked, Sticker, svg, vector art, sharp, kawaii style, Anime style ",
+      "clip": [
+        "59",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "317": {
+    "inputs": {},
+    "class_type": "BRIA_RMBG_ModelLoader_Zho",
+    "_meta": {
+      "title": "🧹BRIA_RMBG Model Loader"
+    }
+  },
+  "318": {
+    "inputs": {
+      "rmbgmodel": [
+        "317",
+        0
+      ],
+      "image": [
+        "346",
+        0
+      ]
+    },
+    "class_type": "BRIA_RMBG_Zho",
+    "_meta": {
+      "title": "🧹BRIA RMBG"
+    }
+  },
+  "322": {
+    "inputs": {
+      "weight": 1,
+      "start_at": 0,
+      "end_at": 1,
+      "instantid": [
+        "35",
+        0
+      ],
+      "insightface": [
+        "36",
+        0
+      ],
+      "control_net": [
+        "40",
+        0
+      ],
+      "image": [
+        "22",
+        0
+      ],
+      "model": [
+        "59",
+        0
+      ],
+      "positive": [
+        "329",
+        0
+      ],
+      "negative": [
+        "335",
+        0
+      ],
+      "image_kps": [
+        "349",
+        0
+      ]
+    },
+    "class_type": "ApplyInstantID",
+    "_meta": {
+      "title": "Apply InstantID"
+    }
+  },
+  "326": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  sad",
+      "clip": [
+        "60",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "329": {
+    "inputs": {
+      "text": "half body, looking at viewer, [1 {man}]  sad, Sticker, svg, vector art, sharp, kawaii style, Anime style ",
+      "clip": [
+        "59",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "330": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "image": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "ImageScaleToTotalPixels"
+    }
+  },
+  "334": {
+    "inputs": {
+      "text": "shiny, photo, photography, soft, nsfw, nude, ugly, broken, watermark, oversaturated",
+      "clip": [
+        "60",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "335": {
+    "inputs": {
+      "text": "shiny, photo, photography, soft, nsfw, nude, ugly, broken, watermark, oversaturated",
+      "clip": [
+        "59",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "338": {
+    "inputs": {
+      "rmbgmodel": [
+        "339",
+        0
+      ],
+      "image": [
+        "341",
+        0
+      ]
+    },
+    "class_type": "BRIA_RMBG_Zho",
+    "_meta": {
+      "title": "🧹BRIA RMBG"
+    }
+  },
+  "339": {
+    "inputs": {},
+    "class_type": "BRIA_RMBG_ModelLoader_Zho",
+    "_meta": {
+      "title": "🧹BRIA_RMBG Model Loader"
+    }
+  },
+  "340": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "41",
+        0
+      ],
+      "positive": [
+        "41",
+        1
+      ],
+      "negative": [
+        "41",
+        2
+      ],
+      "latent_image": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "341": {
+    "inputs": {
+      "samples": [
+        "340",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "342": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "280",
+        0
+      ],
+      "positive": [
+        "280",
+        1
+      ],
+      "negative": [
+        "280",
+        2
+      ],
+      "latent_image": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "343": {
+    "inputs": {
+      "samples": [
+        "342",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "344": {
+    "inputs": {
+      "samples": [
+        "345",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "345": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "294",
+        0
+      ],
+      "positive": [
+        "294",
+        1
+      ],
+      "negative": [
+        "294",
+        2
+      ],
+      "latent_image": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "346": {
+    "inputs": {
+      "samples": [
+        "347",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "347": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "322",
+        0
+      ],
+      "positive": [
+        "322",
+        1
+      ],
+      "negative": [
+        "322",
+        2
+      ],
+      "latent_image": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "348": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2.3000000000000003,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "60",
+        0
+      ],
+      "positive": [
+        "326",
+        0
+      ],
+      "negative": [
+        "334",
+        0
+      ],
+      "latent_image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "349": {
+    "inputs": {
+      "samples": [
+        "348",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "350": {
+    "inputs": {
+      "samples": [
+        "351",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "351": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2.3000000000000003,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "60",
+        0
+      ],
+      "positive": [
+        "298",
+        0
+      ],
+      "negative": [
+        "334",
+        0
+      ],
+      "latent_image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "352": {
+    "inputs": {
+      "samples": [
+        "354",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "353": {
+    "inputs": {
+      "samples": [
+        "355",
+        0
+      ],
+      "vae": [
+        "60",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "354": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2.3000000000000003,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "60",
+        0
+      ],
+      "positive": [
+        "284",
+        0
+      ],
+      "negative": [
+        "334",
+        0
+      ],
+      "latent_image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "355": {
+    "inputs": {
+      "seed": 1,
+      "steps": 8,
+      "cfg": 2.3000000000000003,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "60",
+        0
+      ],
+      "positive": [
+        "88",
+        0
+      ],
+      "negative": [
+        "334",
+        0
+      ],
+      "latent_image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  }
+}
