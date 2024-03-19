@@ -9,3 +9,4 @@ Available Flows
    Playground_2_5_aesthetic
    Juggernaut_Lighting_LoRAs
    Stable_Cascade
+   PhotoStickers

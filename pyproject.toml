@@ -46,6 +46,7 @@ dynamic = [
 dependencies = [
   "httpx>=0.25.2",
   "python-dotenv>=1",
+  "pyyaml",
   "torch",
   "torchvision",
   "websockets==12",
@@ -117,7 +118,7 @@ master.py-version = "3.10"
 master.extension-pkg-allow-list = ["pydantic"]
 design.max-attributes = 10
 design.max-locals = 28
-design.max-branches = 18
+design.max-branches = 20
 design.max-returns = 8
 design.max-args = 8
 design.max-statements = 90

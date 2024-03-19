@@ -3,8 +3,11 @@ import logging
 import os
 import stat
 import sys
+from pathlib import Path
 from shutil import rmtree
 from subprocess import run
+
+import yaml
 
 from .custom_nodes import install_base_custom_nodes
 
@@ -17,6 +20,7 @@ vix_models:
   controlnet: vix_models_root/controlnet
   diffusers: vix_models_root/diffusers
   ipadapter: vix_models_root/ipadapter
+  instantid: vix_models_root/instantid
   loras: |
     vix_models_root/loras
     vix_models_root/photomaker
@@ -55,6 +59,13 @@ def install(backend_dir: str, flows_dir: str, models_dir: str, operations_mask: 
         os.makedirs(backend_dir)
         run(f"git clone https://github.com/Visionatrix/ComfyUI.git {backend_dir}".split(), check=True)
         run([sys.executable, "-m", "pip", "install", "-r", os.path.join(backend_dir, "requirements.txt")], check=True)
+        create_missing_models_dirs(backend_dir)
         with builtins.open(os.path.join(backend_dir, "extra_model_paths.yaml"), "w", encoding="utf-8") as fp:
             fp.write(EXTRA_MODEL_PATHS.replace("vix_models_root", models_dir))
-        install_base_custom_nodes(os.path.join(backend_dir, "custom_nodes"))
+        install_base_custom_nodes(backend_dir, models_dir)
+
+
+def create_missing_models_dirs(backend_dir: str) -> None:
+    for k in yaml.safe_load(EXTRA_MODEL_PATHS)["vix_models"]:
+        if (v := Path(backend_dir).joinpath("models", k)).exists() is False:
+            os.makedirs(v, exist_ok=True)
