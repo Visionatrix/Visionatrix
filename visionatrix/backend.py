@@ -22,11 +22,9 @@ from .tasks_engine import (
     get_task,
     get_tasks,
     get_tasks_from_queue,
-    load_tasks,
     put_task_in_queue,
     remove_task,
     remove_task_files,
-    save_tasks,
     start_tasks_engine,
     stop_tasks_engine,
 )
@@ -64,18 +62,15 @@ def vix_backend(
 
     @asynccontextmanager
     async def lifespan(_app: fastapi.FastAPI):
-        await start_tasks_engine(backend_dir, tasks_files_dir)
+        await start_tasks_engine(backend_dir, tasks_files_dir, bool(ui_dir))
         if ui_dir:
             try:
                 _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
             except RuntimeError:
                 await stop_tasks_engine()
                 raise
-            load_tasks(tasks_files_dir)
         yield
         await stop_tasks_engine()
-        if ui_dir:
-            save_tasks(tasks_files_dir)
 
     app = fastapi.FastAPI(lifespan=lifespan)
     if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
@@ -216,7 +211,7 @@ def vix_backend(
     @app.post("/engine-restart")
     async def engine_restart():
         await stop_tasks_engine()
-        await start_tasks_engine(backend_dir, tasks_files_dir)
+        await start_tasks_engine(backend_dir, tasks_files_dir, bool(ui_dir))
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/shutdown")
@@ -226,8 +221,6 @@ def vix_backend(
             os.kill(os.getpid(), signal.SIGINT)
 
         await stop_tasks_engine()
-        if ui_dir:
-            save_tasks(tasks_files_dir)
         b_tasks.add_task(__shutdown_vix)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
