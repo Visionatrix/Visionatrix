@@ -18,6 +18,7 @@ from . import options
 LOGGER = logging.getLogger("visionatrix")
 COMFY_PROCESS: subprocess.Popen[bytes] | None = None
 BACKGROUND_TASKS_ENGINE: asyncio.Task | None = None
+BACKGROUND_TASKS_SYNC: asyncio.Task | None = None
 
 TASKS_HISTORY = {}
 """{
@@ -69,10 +70,9 @@ def create_new_task(name: str, input_params: dict, tasks_files_dir: str) -> [int
         "prompt_id": "",
     }
 
-    TASKS_CREATION_LOCK.acquire()  # pylint: disable=consider-using-with
-    task_id = NEXT_TASK_ID
-    NEXT_TASK_ID += 1
-    TASKS_CREATION_LOCK.release()
+    with TASKS_CREATION_LOCK:
+        task_id = NEXT_TASK_ID
+        NEXT_TASK_ID += 1
     remove_task_files(task_id, tasks_files_dir, ["output", "input"])
     return task_id, task_details
 
@@ -184,10 +184,12 @@ async def track_task_progress(
     remove_task_files(task_id, tasks_files_dir, ["input"])
 
 
-def save_tasks(tasks_files_dir: str):
+def save_tasks(tasks_files_dir: str) -> int:
+    tasks = TASKS_QUEUE | TASKS_HISTORY
     with builtins.open(os.path.join(tasks_files_dir, "tasks_history.json"), mode="w", encoding="UTF-8") as file:
-        json.dump(TASKS_HISTORY, file)
-    LOGGER.info("Saved %s tasks.", len(TASKS_HISTORY))
+        json.dump(tasks, file)
+    LOGGER.debug("saved %s tasks", len(tasks))
+    return len(tasks)
 
 
 def load_tasks(tasks_files_dir: str):
@@ -197,7 +199,10 @@ def load_tasks(tasks_files_dir: str):
     if os.path.exists(tasks_history):
         with builtins.open(tasks_history, mode="r", encoding="UTF-8") as file:
             for k, v in json.load(file).items():
-                TASKS_HISTORY.update({int(k): v})
+                if v["progress"] < 100 and not v["error"]:
+                    TASKS_QUEUE.update({int(k): v})
+                else:
+                    TASKS_HISTORY.update({int(k): v})
         LOGGER.info("Loaded %s tasks", len(TASKS_HISTORY))
     else:
         LOGGER.info("No `tasks_history.json` to load.")
@@ -271,17 +276,23 @@ async def background_tasks_engine(backend_dir: str, tasks_files_dir: str):
             with contextlib.suppress(BaseException):
                 comfy_process.kill()
             COMFY_PROCESS = None
+        if BACKGROUND_TASKS_SYNC is not None:
+            BACKGROUND_TASKS_SYNC.cancel()
         LOGGER.info("Cancelled.")
         BACKGROUND_TASKS_ENGINE = None
         raise
 
 
-async def start_tasks_engine(backend_dir: str, tasks_files_dir: str) -> None:
-    global BACKGROUND_TASKS_ENGINE  # pylint: disable=global-statement
+async def start_tasks_engine(backend_dir: str, tasks_files_dir: str, ui_mode: bool) -> None:
+    global BACKGROUND_TASKS_ENGINE, BACKGROUND_TASKS_SYNC  # pylint: disable=global-statement
 
+    BACKGROUND_TASKS_SYNC = None
     tasks_engine = asyncio.create_task(background_tasks_engine(backend_dir, tasks_files_dir))
     for _ in range(15 * 2):
         if COMFY_PROCESS is not None:
+            if ui_mode:
+                load_tasks(tasks_files_dir)
+                BACKGROUND_TASKS_SYNC = asyncio.create_task(tasks_background_sync(tasks_files_dir))
             BACKGROUND_TASKS_ENGINE = tasks_engine
             return
         await asyncio.sleep(0.5)
@@ -309,3 +320,18 @@ def need_directml_flag() -> bool:
     except PackageNotFoundError:
         LOGGER.info("No DirectML package found.")
         return False
+
+
+async def tasks_background_sync(tasks_files_dir: str):
+    global BACKGROUND_TASKS_SYNC  # pylint: disable=global-statement
+
+    try:
+        while True:
+            await asyncio.sleep(3)
+            save_tasks(tasks_files_dir)
+    except asyncio.CancelledError:
+        LOGGER.info("Cancelling..")
+        n_tasks = save_tasks(tasks_files_dir)
+        LOGGER.info("Cancelled, saved %s tasks.", n_tasks)
+        BACKGROUND_TASKS_SYNC = None
+        raise
