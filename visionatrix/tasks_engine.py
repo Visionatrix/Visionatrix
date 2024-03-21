@@ -1,25 +1,19 @@
 import asyncio
 import builtins
 import contextlib
+import gc
 import json
 import logging
 import os
-import subprocess
-import sys
 import threading
-import uuid
-from importlib.metadata import PackageNotFoundError, version
+import time
+import typing
 
-import httpx
-from websockets import client
-
-from . import options
+from .comfyui import interrupt_processing, soft_empty_cache
 
 LOGGER = logging.getLogger("visionatrix")
-COMFY_PROCESS: subprocess.Popen[bytes] | None = None
-BACKGROUND_TASKS_ENGINE: asyncio.Task | None = None
-BACKGROUND_TASKS_SYNC: asyncio.Task | None = None
 
+ACTIVE_TASK_DETAILS: dict = {}
 TASKS_HISTORY = {}
 """{
     task_id: {
@@ -27,12 +21,10 @@ TASKS_HISTORY = {}
         error: "",
         name: "",
         input_params: "",
-        outputs: [int],
-        started: bool,  # TO-DO: remove
-        input_files: [],  # TO-DO: remove
-        flow_comfy: {},  # TO-DO: remove
-        interrupt: bool,  # TO-DO: remove
-        prompt_id: "",  # TO-DO: remove
+        outputs: [{"comfy_node_id": int, "type": str}],
+        input_files: [],
+        flow_comfy: {},
+        interrupt: bool,
         }
     }"""
 TASKS_QUEUE = {}
@@ -42,12 +34,10 @@ TASKS_QUEUE = {}
         error: "",
         name: "",
         input_params: "",
-        outputs: [int],
-        started: bool,
+        outputs: [{"comfy_node_id": int, "type": str}],
         input_files: [],
         flow_comfy: {},
         interrupt: bool,
-        prompt_id: "",  # TO-DO: remove
         }
     }"""
 NEXT_TASK_ID = 1
@@ -129,61 +119,6 @@ def remove_task_files(task_id: int, tasks_files_dir: str, directories: list[str]
                     os.remove(os.path.join(target_directory, filename))
 
 
-async def track_task_progress(
-    connection: client.WebSocketClientProtocol,
-    task_id: int,
-    task_details: dict,
-    prompt_id: str,
-    nodes_count: int,
-    tasks_files_dir: str,
-) -> None:
-    node_percent = 100 / nodes_count
-    current_node = ""
-    while True:
-        if task_details["interrupt"]:
-            LOGGER.debug("interrupting %s with progress %s", task_id, task_details["progress"])
-            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/interrupt")
-            remove_task(task_id, tasks_files_dir)
-            return
-        out = await connection.recv()
-        if isinstance(out, str):
-            message = json.loads(out)
-            LOGGER.debug("received from ComfyUI: %s", message)
-            data = message.get("data", {})
-            if message["type"] == "execution_start" and data.get("prompt_id", "") == prompt_id:
-                task_details["started"] = True
-            elif message["type"] == "executing":
-                if data["node"] is None and data["prompt_id"] == prompt_id:
-                    task_details["progress"] = 100.0
-                    break
-                if data["node"] is not None and data["prompt_id"] == prompt_id:
-                    if not current_node:
-                        current_node = data["node"]
-                    if current_node != data["node"]:
-                        task_details["progress"] += node_percent
-                        current_node = data["node"]
-            elif message["type"] == "progress" and "max" in data and "value" in data:
-                current_node = ""
-                task_details["progress"] += node_percent / int(data["max"])
-            elif message["type"] == "execution_error" and data.get("prompt_id", "") == prompt_id:
-                task_details["error"] = data["exception_message"]
-                LOGGER.error(
-                    "Exception occurred during executing task %s:\n%s\n%s",
-                    task_id,
-                    data["exception_message"],
-                    data["traceback"],
-                )
-                break
-            elif message["type"] == "execution_interrupted" and data.get("prompt_id", "") == prompt_id:
-                LOGGER.debug("execution interrupted: %s with progress %s", task_id, task_details["progress"])
-                remove_task(task_id, tasks_files_dir)
-                return
-        else:
-            continue
-    LOGGER.debug("remove input files for %s task", task_id)
-    remove_task_files(task_id, tasks_files_dir, ["input"])
-
-
 def save_tasks(tasks_files_dir: str) -> int:
     tasks = TASKS_QUEUE | TASKS_HISTORY
     with builtins.open(os.path.join(tasks_files_dir, "tasks_history.json"), mode="w", encoding="UTF-8") as file:
@@ -196,135 +131,111 @@ def load_tasks(tasks_files_dir: str):
     global NEXT_TASK_ID  # pylint: disable=global-statement
 
     tasks_history = os.path.join(tasks_files_dir, "tasks_history.json")
+    tasks = {}
     if os.path.exists(tasks_history):
         with builtins.open(tasks_history, mode="r", encoding="UTF-8") as file:
-            for k, v in json.load(file).items():
+            tasks = json.load(file)
+            tasks = {int(k): v for k, v in tasks.items()}
+            for k, v in tasks.items():
                 if v["progress"] < 100 and not v["error"]:
-                    TASKS_QUEUE.update({int(k): v})
+                    v["progress"] = 0.0
+                    v["started"] = False
+                    TASKS_QUEUE[k] = v
                 else:
-                    TASKS_HISTORY.update({int(k): v})
-        LOGGER.info("Loaded %s tasks", len(TASKS_HISTORY))
+                    TASKS_HISTORY[k] = v
+        LOGGER.info("Loaded %s tasks", len(tasks))
     else:
         LOGGER.info("No `tasks_history.json` to load.")
-    NEXT_TASK_ID = 1 + max(TASKS_HISTORY.keys(), default=0)
+    NEXT_TASK_ID = 1 + max(tasks.keys(), default=0)
 
 
-async def background_tasks_engine(backend_dir: str, tasks_files_dir: str):
-    global COMFY_PROCESS, BACKGROUND_TASKS_ENGINE  # pylint: disable=global-statement
-
-    comfy_process: subprocess.Popen[bytes] | None = None
-    comfy_track_connection: client.WebSocketClientProtocol | None = None
-    client_id = str(uuid.uuid4())
-    try:
-        run_cmd = [
-            sys.executable,
-            os.path.join(backend_dir, "main.py"),
-            "--port",
-            str(options.get_comfy_port()),
-            "--output-directory",
-            os.path.join(tasks_files_dir, "output"),
-            "--input-directory",
-            os.path.join(tasks_files_dir, "input"),
-        ]
-        if need_directml_flag():
-            run_cmd += ["--directml"]
-        stdout = None if LOGGER.getEffectiveLevel == logging.DEBUG or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
-        stderr = None if LOGGER.getEffectiveLevel == logging.INFO or options.COMFY_DEBUG != "0" else subprocess.DEVNULL
-        comfy_process = subprocess.Popen(run_cmd, stdout=stdout, stderr=stderr)  # pylint: disable=consider-using-with
-        while True:
-            with contextlib.suppress(Exception):
-                comfy_track_connection = await client.connect(
-                    f"ws://{options.get_comfy_address()}/ws?clientId={client_id}"
-                )
-            if comfy_track_connection is not None:
-                LOGGER.info("Ready to process tasks.")
-                break
-        COMFY_PROCESS = comfy_process
-        while True:
-            if not TASKS_QUEUE:
-                await asyncio.sleep(0.01)
-                continue
-
-            task_id, task_details = next(iter(TASKS_QUEUE.items()))
-            r = await httpx.AsyncClient().post(
-                f"http://{options.get_comfy_address()}/prompt",
-                json={"prompt": task_details["flow_comfy"], "client_id": client_id},
-            )
-            if r.status_code != 200:
-                task_details["error"] = f"ComfyUI does not accepted flow, status={r.status_code}"
-                LOGGER.error(task_details["error"])
-                TASKS_HISTORY[task_id] = task_details
-                TASKS_QUEUE.pop(task_id, None)
-                continue
-            task_details["started"] = True
-            await track_task_progress(
-                comfy_track_connection,
-                task_id,
-                task_details,
-                json.loads(r.text)["prompt_id"],
-                len(list(task_details["flow_comfy"].keys())),
-                tasks_files_dir,
-            )
-            TASKS_HISTORY[task_id] = task_details
-            TASKS_QUEUE.pop(task_id, None)
-    except asyncio.CancelledError:
-        LOGGER.info("Cancelling..")
-        if comfy_track_connection is not None:
-            with contextlib.suppress(Exception):
-                await comfy_track_connection.close()
-        if comfy_process is not None:
-            with contextlib.suppress(BaseException):
-                comfy_process.kill()
-            COMFY_PROCESS = None
-        if BACKGROUND_TASKS_SYNC is not None:
-            BACKGROUND_TASKS_SYNC.cancel()
-        LOGGER.info("Cancelled.")
-        BACKGROUND_TASKS_ENGINE = None
-        raise
+def increase_current_task_progress(percent_finished: float) -> None:
+    ACTIVE_TASK_DETAILS["progress"] = min(ACTIVE_TASK_DETAILS["progress"] + percent_finished, 100.0)
 
 
-async def start_tasks_engine(backend_dir: str, tasks_files_dir: str, ui_mode: bool) -> None:
-    global BACKGROUND_TASKS_ENGINE, BACKGROUND_TASKS_SYNC  # pylint: disable=global-statement
+def task_progress_callback(event: str, data: dict, broadcast: bool = False):
+    LOGGER.debug("%s(broadcast=%s): %s", event, broadcast, data)
+    if not ACTIVE_TASK_DETAILS:
+        LOGGER.warning("CurrentTaskDetails is empty, event = %s.", event)
+        return
+    node_percent = 100 / (ACTIVE_TASK_DETAILS["nodes_count"] + 1)
 
-    BACKGROUND_TASKS_SYNC = None
-    tasks_engine = asyncio.create_task(background_tasks_engine(backend_dir, tasks_files_dir))
-    for _ in range(15 * 2):
-        if COMFY_PROCESS is not None:
-            if ui_mode:
-                load_tasks(tasks_files_dir)
-                BACKGROUND_TASKS_SYNC = asyncio.create_task(tasks_background_sync(tasks_files_dir))
-            BACKGROUND_TASKS_ENGINE = tasks_engine
-            return
-        await asyncio.sleep(0.5)
-    tasks_engine.cancel()
-    raise RuntimeError("Error connecting to ComfyUI")
+    if ACTIVE_TASK_DETAILS["interrupt"] is True:
+        interrupt_processing()
+    elif event == "executing":
+        increase_current_task_progress(node_percent)
+    elif event == "progress" and "max" in data and "value" in data:
+        increase_current_task_progress(node_percent / int(data["max"]))
+    elif event == "execution_error":
+        ACTIVE_TASK_DETAILS["error"] = data["exception_message"]
+        LOGGER.error(
+            "Exception occurred during executing task:\n%s\n%s",
+            data["exception_message"],
+            data["traceback"],
+        )
+    elif event == "execution_cached":
+        increase_current_task_progress(len(data["nodes"]) * node_percent)
+    elif event == "execution_interrupted":
+        ACTIVE_TASK_DETAILS["interrupt"] = True
 
 
-async def stop_tasks_engine() -> None:
-    if BACKGROUND_TASKS_ENGINE is not None:
-        BACKGROUND_TASKS_ENGINE.cancel()
-    for _ in range(15 * 10):
-        if BACKGROUND_TASKS_ENGINE is None:
-            return
-        await asyncio.sleep(0.1)
+def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
+    global ACTIVE_TASK_DETAILS  # pylint: disable=global-statement
+
+    last_gc_collect = 0
+    need_gc = False
+    gc_collect_interval = 10.0
+
+    while True:
+        if exit_event.is_set():
+            break
+        if need_gc:
+            current_time = time.perf_counter()
+            if (current_time - last_gc_collect) > gc_collect_interval:
+                LOGGER.error("gc.collect")
+                gc.collect()
+                soft_empty_cache()
+                last_gc_collect = current_time
+                need_gc = False
+
+        if not TASKS_QUEUE:
+            time.sleep(0.05)
+            continue
+        task_id, ACTIVE_TASK_DETAILS = next(iter(TASKS_QUEUE.items()))
+        ACTIVE_TASK_DETAILS["started"] = True
+        prompt_executor.server.last_prompt_id = str(task_id)
+        execution_start_time = time.perf_counter()
+        prompt_executor.execute(
+            ACTIVE_TASK_DETAILS["flow_comfy"],
+            str(task_id),
+            {"client_id": "vix"},
+            [str(i["comfy_node_id"]) for i in ACTIVE_TASK_DETAILS.get("outputs", [])],
+        )
+        current_time = time.perf_counter()
+        if ACTIVE_TASK_DETAILS["interrupt"] is False:
+            TASKS_HISTORY[task_id] = ACTIVE_TASK_DETAILS
+        TASKS_QUEUE.pop(task_id, None)
+        ACTIVE_TASK_DETAILS = {}
+        LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
+        need_gc = True
 
 
-def need_directml_flag() -> bool:
-    if sys.platform.lower() != "win32":
-        return False
+async def start_tasks_engine(
+    tasks_files_dir: str,
+    ui_mode: bool,
+    comfy_queue: typing.Any,
+    exit_event: asyncio.Event,
+) -> None:
+    async def start_background_tasks_engine(prompt_executor):
+        await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
-    try:
-        version("torch-directml")
-        LOGGER.info("DirectML package is present.")
-        return True
-    except PackageNotFoundError:
-        LOGGER.info("No DirectML package found.")
-        return False
+    if ui_mode:
+        load_tasks(tasks_files_dir)
+        _ = asyncio.create_task(tasks_background_sync(tasks_files_dir))
+    _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
 
 
 async def tasks_background_sync(tasks_files_dir: str):
-    global BACKGROUND_TASKS_SYNC  # pylint: disable=global-statement
-
     try:
         while True:
             await asyncio.sleep(3)
@@ -333,5 +244,4 @@ async def tasks_background_sync(tasks_files_dir: str):
         LOGGER.info("Cancelling..")
         n_tasks = save_tasks(tasks_files_dir)
         LOGGER.info("Cancelled, saved %s tasks.", n_tasks)
-        BACKGROUND_TASKS_SYNC = None
         raise

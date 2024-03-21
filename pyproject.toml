@@ -49,7 +49,6 @@ dependencies = [
   "pyyaml",
   "torch",
   "torchvision",
-  "websockets==12",
 ]
 [project.optional-dependencies]
 app = [

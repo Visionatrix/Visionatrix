@@ -14,8 +14,6 @@ TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", "")
 
 VIX_HOST = environ.get("VIX_HOST", "127.0.0.1")
 VIX_PORT = environ.get("VIX_PORT", "8288")
-COMFY_PORT = environ.get("COMFY_PORT", "8188")
-COMFY_DEBUG = environ.get("COMFY_DEBUG", "0")
 
 ORG_URL = "https://github.com/Visionatrix/"
 FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
@@ -59,13 +57,3 @@ def get_host(host: str | None) -> str:
 
 def get_port(port: str | None) -> int:
     return int(port if port else VIX_PORT)
-
-
-def get_comfy_port(port: str | None = None) -> int:
-    return int(port if port else COMFY_PORT)
-
-
-def get_comfy_address(host: str | None = None, port: str | None = None) -> str:
-    if not host or host == "0.0.0.0":  # noqa
-        host = "127.0.0.1"
-    return f"{host}:{get_comfy_port(port)}"
