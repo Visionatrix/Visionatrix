@@ -9,6 +9,7 @@ https://github.com/comfyanonymous/ComfyUI
 import asyncio
 import logging
 import os
+import re
 import sys
 import typing
 from importlib.metadata import PackageNotFoundError, version
@@ -25,9 +26,29 @@ def load(
 ) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
 
     sys.path.append(backend_dir)
-    sys.argv = sys.argv[:1]
 
-    # TO-DO: options + arguments for ComfyUI
+    filter_list = [
+        "--host",
+        "--port",
+        "--backend_dir",
+        "--flows_dir",
+        "--models_dir",
+        "--tasks_files_dir",
+        "--ui",
+        "^run$",
+    ]
+    args_to_remove = []
+    for i, c in enumerate(sys.argv):
+        for k in filter_list:
+            if re.search(k, c) is not None:
+                args_to_remove.append(i)
+
+    args_to_remove.sort(reverse=True)
+    for i in args_to_remove:
+        sys.argv.pop(i)
+
+    LOGGER.error(sys.argv)
+
     if need_directml_flag():
         sys.argv.append("--directml")
 
@@ -141,3 +162,94 @@ def need_directml_flag() -> bool:
     except PackageNotFoundError:
         LOGGER.info("No DirectML package found.")
         return False
+
+
+def add_arguments(parser):
+    parser.add_argument(
+        "--cuda-device",
+        type=int,
+        default=None,
+        metavar="DEVICE_ID",
+        help="Set the id of the cuda device this instance will use.",
+    )
+    cm_group = parser.add_mutually_exclusive_group()
+    cm_group.add_argument(
+        "--cuda-malloc", action="store_true", help="Enable cudaMallocAsync (enabled by default for torch 2.0 and up)."
+    )
+    cm_group.add_argument("--disable-cuda-malloc", action="store_true", help="Disable cudaMallocAsync.")
+
+    parser.add_argument(
+        "--dont-upcast-attention",
+        action="store_true",
+        help="Disable upcasting of attention. Can boost speed but increase the chances of black images.",
+    )
+
+    fp_group = parser.add_mutually_exclusive_group()
+    fp_group.add_argument(
+        "--force-fp32", action="store_true", help="Force fp32 (If this makes your GPU work better please report it)."
+    )
+    fp_group.add_argument("--force-fp16", action="store_true", help="Force fp16.")
+
+    fpunet_group = parser.add_mutually_exclusive_group()
+    fpunet_group.add_argument(
+        "--bf16-unet", action="store_true", help="Run the UNET in bf16. This should only be used for testing stuff."
+    )
+    fpunet_group.add_argument("--fp16-unet", action="store_true", help="Store unet weights in fp16.")
+    fpunet_group.add_argument("--fp8_e4m3fn-unet", action="store_true", help="Store unet weights in fp8_e4m3fn.")
+    fpunet_group.add_argument("--fp8_e5m2-unet", action="store_true", help="Store unet weights in fp8_e5m2.")
+
+    fpvae_group = parser.add_mutually_exclusive_group()
+    fpvae_group.add_argument("--fp16-vae", action="store_true", help="Run the VAE in fp16, might cause black images.")
+    fpvae_group.add_argument("--fp32-vae", action="store_true", help="Run the VAE in full precision fp32.")
+    fpvae_group.add_argument("--bf16-vae", action="store_true", help="Run the VAE in bf16.")
+
+    parser.add_argument("--cpu-vae", action="store_true", help="Run the VAE on the CPU.")
+
+    fpte_group = parser.add_mutually_exclusive_group()
+    fpte_group.add_argument(
+        "--fp8_e4m3fn-text-enc", action="store_true", help="Store text encoder weights in fp8 (e4m3fn variant)."
+    )
+    fpte_group.add_argument(
+        "--fp8_e5m2-text-enc", action="store_true", help="Store text encoder weights in fp8 (e5m2 variant)."
+    )
+    fpte_group.add_argument("--fp16-text-enc", action="store_true", help="Store text encoder weights in fp16.")
+    fpte_group.add_argument("--fp32-text-enc", action="store_true", help="Store text encoder weights in fp32.")
+
+    attn_group = parser.add_mutually_exclusive_group()
+    attn_group.add_argument(
+        "--use-split-cross-attention",
+        action="store_true",
+        help="Use the split cross attention optimization. Ignored when xformers is used.",
+    )
+    attn_group.add_argument(
+        "--use-quad-cross-attention",
+        action="store_true",
+        help="Use the sub-quadratic cross attention optimization . Ignored when xformers is used.",
+    )
+    attn_group.add_argument(
+        "--use-pytorch-cross-attention", action="store_true", help="Use the new pytorch 2.0 cross attention function."
+    )
+
+    vram_group = parser.add_mutually_exclusive_group()
+    vram_group.add_argument(
+        "--gpu-only",
+        action="store_true",
+        help="Store and run everything (text encoders/CLIP models, etc... on the GPU).",
+    )
+    vram_group.add_argument(
+        "--highvram",
+        action="store_true",
+        help="By default models will be unloaded to CPU memory after being used. This option keeps them in GPU memory.",
+    )
+    vram_group.add_argument(
+        "--normalvram", action="store_true", help="Used to force normal vram use if lowvram gets automatically enabled."
+    )
+    vram_group.add_argument("--lowvram", action="store_true", help="Split the unet in parts to use less vram.")
+    vram_group.add_argument("--novram", action="store_true", help="When lowvram isn't enough.")
+    vram_group.add_argument("--cpu", action="store_true", help="To use the CPU for everything (slow).")
+
+    parser.add_argument(
+        "--disable-smart-memory",
+        action="store_true",
+        help="Force ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.",
+    )

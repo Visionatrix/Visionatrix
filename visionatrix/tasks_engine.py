@@ -184,7 +184,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
 
     last_gc_collect = 0
     need_gc = False
-    gc_collect_interval = 10.0
+    gc_collect_interval = 20.0
 
     while True:
         if exit_event.is_set():
@@ -192,7 +192,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         if need_gc:
             current_time = time.perf_counter()
             if (current_time - last_gc_collect) > gc_collect_interval:
-                LOGGER.error("gc.collect")
+                LOGGER.debug("gc.collect")
                 gc.collect()
                 soft_empty_cache()
                 last_gc_collect = current_time
