@@ -147,7 +147,6 @@ def vix_backend(
             LOGGER.error("Flow validation error: %s\n%s", flow_validation[1], flow_validation[3])
             raise fastapi.HTTPException(status_code=400, detail=f"Bad Flow: `{flow_validation[1]}`") from None
         task_details["flow_comfy"] = flow_comfy
-        task_details["nodes_count"] = len(list(flow_comfy.keys()))
         flow_prepare_output_params(flow_validation[2], task_id, task_details, flow_comfy)
         put_task_in_queue(task_id, task_details)
         return fastapi.responses.JSONResponse(content={"task_id": str(task_id)})

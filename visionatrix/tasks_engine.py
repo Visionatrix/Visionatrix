@@ -4,6 +4,7 @@ import contextlib
 import gc
 import json
 import logging
+import math
 import os
 import threading
 import time
@@ -13,7 +14,7 @@ from .comfyui import interrupt_processing, soft_empty_cache
 
 LOGGER = logging.getLogger("visionatrix")
 
-ACTIVE_TASK_DETAILS: dict = {}
+ACTIVE_TASK: dict = {}
 TASKS_HISTORY = {}
 """{
     task_id: {
@@ -140,6 +141,7 @@ def load_tasks(tasks_files_dir: str):
                 if v["progress"] < 100 and not v["error"]:
                     v["progress"] = 0.0
                     v["started"] = False
+                    remove_task_files(k, tasks_files_dir, ["output"])
                     TASKS_QUEUE[k] = v
                 else:
                     TASKS_HISTORY[k] = v
@@ -150,24 +152,28 @@ def load_tasks(tasks_files_dir: str):
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
-    ACTIVE_TASK_DETAILS["progress"] = min(ACTIVE_TASK_DETAILS["progress"] + percent_finished, 100.0)
+    ACTIVE_TASK["progress"] = min(math.ceil((ACTIVE_TASK["progress"] + percent_finished) * 10) / 10, 100.0)
 
 
 def task_progress_callback(event: str, data: dict, broadcast: bool = False):
     LOGGER.debug("%s(broadcast=%s): %s", event, broadcast, data)
-    if not ACTIVE_TASK_DETAILS:
+    if not ACTIVE_TASK:
         LOGGER.warning("CurrentTaskDetails is empty, event = %s.", event)
         return
-    node_percent = 100 / (ACTIVE_TASK_DETAILS["nodes_count"] + 1)
+    node_percent = 100 / ACTIVE_TASK["nodes_count"]
 
-    if ACTIVE_TASK_DETAILS["interrupt"] is True:
+    if ACTIVE_TASK["interrupt"] is True:
         interrupt_processing()
     elif event == "executing":
-        increase_current_task_progress(node_percent)
+        if not ACTIVE_TASK["current_node"]:
+            ACTIVE_TASK["current_node"] = data["node"]
+        if ACTIVE_TASK["current_node"] != data["node"]:
+            increase_current_task_progress(node_percent)
+            ACTIVE_TASK["current_node"] = data["node"]
     elif event == "progress" and "max" in data and "value" in data:
         increase_current_task_progress(node_percent / int(data["max"]))
     elif event == "execution_error":
-        ACTIVE_TASK_DETAILS["error"] = data["exception_message"]
+        ACTIVE_TASK["error"] = data["exception_message"]
         LOGGER.error(
             "Exception occurred during executing task:\n%s\n%s",
             data["exception_message"],
@@ -176,11 +182,11 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
     elif event == "execution_cached":
         increase_current_task_progress(len(data["nodes"]) * node_percent)
     elif event == "execution_interrupted":
-        ACTIVE_TASK_DETAILS["interrupt"] = True
+        ACTIVE_TASK["interrupt"] = True
 
 
 def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
-    global ACTIVE_TASK_DETAILS  # pylint: disable=global-statement
+    global ACTIVE_TASK  # pylint: disable=global-statement
 
     last_gc_collect = 0
     need_gc = False
@@ -201,21 +207,25 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         if not TASKS_QUEUE:
             time.sleep(0.05)
             continue
-        task_id, ACTIVE_TASK_DETAILS = next(iter(TASKS_QUEUE.items()))
-        ACTIVE_TASK_DETAILS["started"] = True
+        task_id, ACTIVE_TASK = next(iter(TASKS_QUEUE.items()))
+        ACTIVE_TASK["started"] = True
+        ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
+        ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(task_id)
         execution_start_time = time.perf_counter()
         prompt_executor.execute(
-            ACTIVE_TASK_DETAILS["flow_comfy"],
+            ACTIVE_TASK["flow_comfy"],
             str(task_id),
             {"client_id": "vix"},
-            [str(i["comfy_node_id"]) for i in ACTIVE_TASK_DETAILS.get("outputs", [])],
+            [str(i["comfy_node_id"]) for i in ACTIVE_TASK["outputs"]],
         )
         current_time = time.perf_counter()
-        if ACTIVE_TASK_DETAILS["interrupt"] is False:
-            TASKS_HISTORY[task_id] = ACTIVE_TASK_DETAILS
-        TASKS_QUEUE.pop(task_id, None)
-        ACTIVE_TASK_DETAILS = {}
+        if ACTIVE_TASK["interrupt"] is False:
+            ACTIVE_TASK.pop("nodes_count")
+            ACTIVE_TASK.pop("current_node")
+            TASKS_HISTORY[task_id] = ACTIVE_TASK
+        TASKS_QUEUE.pop(task_id, 0)
+        ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
         need_gc = True
 

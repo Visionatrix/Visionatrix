@@ -215,6 +215,12 @@ def add_arguments(parser):
     fpte_group.add_argument("--fp16-text-enc", action="store_true", help="Store text encoder weights in fp16.")
     fpte_group.add_argument("--fp32-text-enc", action="store_true", help="Store text encoder weights in fp32.")
 
+    parser.add_argument(
+        "--disable-ipex-optimize",
+        action="store_true",
+        help="Disables ipex.optimize when loading models with Intel GPUs.",
+    )
+
     attn_group = parser.add_mutually_exclusive_group()
     attn_group.add_argument(
         "--use-split-cross-attention",
@@ -229,6 +235,8 @@ def add_arguments(parser):
     attn_group.add_argument(
         "--use-pytorch-cross-attention", action="store_true", help="Use the new pytorch 2.0 cross attention function."
     )
+
+    parser.add_argument("--disable-xformers", action="store_true", help="Disable xformers.")
 
     vram_group = parser.add_mutually_exclusive_group()
     vram_group.add_argument(
