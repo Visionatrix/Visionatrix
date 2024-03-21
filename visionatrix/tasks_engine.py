@@ -4,7 +4,6 @@ import contextlib
 import gc
 import json
 import logging
-import math
 import os
 import threading
 import time
@@ -152,7 +151,7 @@ def load_tasks(tasks_files_dir: str):
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
-    ACTIVE_TASK["progress"] = min(math.ceil((ACTIVE_TASK["progress"] + percent_finished) * 10) / 10, 100.0)
+    ACTIVE_TASK["progress"] = min(ACTIVE_TASK["progress"] + percent_finished, 99.9)
 
 
 def task_progress_callback(event: str, data: dict, broadcast: bool = False):
@@ -223,6 +222,8 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         if ACTIVE_TASK["interrupt"] is False:
             ACTIVE_TASK.pop("nodes_count")
             ACTIVE_TASK.pop("current_node")
+            if not ACTIVE_TASK["error"]:
+                ACTIVE_TASK["progress"] = 100.0
             TASKS_HISTORY[task_id] = ACTIVE_TASK
         TASKS_QUEUE.pop(task_id, 0)
         ACTIVE_TASK = {}
