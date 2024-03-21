@@ -47,7 +47,7 @@ def load(
     for i in args_to_remove:
         sys.argv.pop(i)
 
-    LOGGER.error(sys.argv)
+    LOGGER.debug("command line arguments: %s", sys.argv)
 
     if need_directml_flag():
         sys.argv.append("--directml")

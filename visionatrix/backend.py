@@ -69,6 +69,7 @@ def vix_backend(
             _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
         yield
         exit_event.set()
+        comfyui.interrupt_processing()
 
     app = fastapi.FastAPI(lifespan=lifespan)
     if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
