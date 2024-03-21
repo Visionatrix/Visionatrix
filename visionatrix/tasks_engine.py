@@ -170,6 +170,7 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
             increase_current_task_progress(node_percent)
             ACTIVE_TASK["current_node"] = data["node"]
     elif event == "progress" and "max" in data and "value" in data:
+        ACTIVE_TASK["current_node"] = ""
         increase_current_task_progress(node_percent / int(data["max"]))
     elif event == "execution_error":
         ACTIVE_TASK["error"] = data["exception_message"]
