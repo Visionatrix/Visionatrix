@@ -52,11 +52,11 @@ def load(
     if need_directml_flag():
         sys.argv.append("--directml")
 
-    import execution  # noqa
-    import folder_paths  # noqa
-    import main  # noqa
-    import nodes  # noqa
-    import server  # noqa
+    import main  # noqa # isort: skip
+    import execution  # noqa # isort: skip
+    import folder_paths  # noqa # isort: skip
+    import nodes  # noqa # isort: skip
+    import server  # noqa # isort: skip
 
     if main.args.cuda_device is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = str(main.args.cuda_device)
