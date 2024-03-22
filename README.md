@@ -17,9 +17,10 @@ To achieve this goal, the [ComfyUI](https://github.com/comfyanonymous/ComfyUI) p
 3. Constant task history.
 4. Backend endpoints for tasks & server management.
 5. User interface which is much simpler and user-oriented
-6. Support for multiple users. _(in progress)_
-7. Connecting a custom user backend. _(in progress)_
-8. Support of queue manager to schedule tasks between multiply instances. _(in progress)_
+6. Support for command line options that ComfyUI supports.
+7. Multiple users support. _(in progress)_
+8. Connecting a custom user backend. _(in progress)_
+9. Support of queue manager to schedule tasks between multiply instances. _(in progress)_
 
 > [!NOTE]
 > The project is currently in the early development stage, expect breaking changes.
@@ -53,6 +54,8 @@ curl -o easy_install.py https://raw.githubusercontent.com/Visionatrix/Visionatri
 
 > [!NOTE]
 > If you plan to use `Direct-ML` - **Python3.10** is the only currently supported version by it.
+>
+> **Requires**: Installed `Microsoft Visual C++ Build Tools` required to build some packages that does not provide binary wheels.
 
 ```console
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py" -OutFile "easy_install.py"; python3 easy_install.py
@@ -85,3 +88,4 @@ we'll provide more information in the documentation on how to use it with third-
 - [Documentation](https://visionatrix.github.io/Visionatrix/)
   - [Available Flows](https://visionatrix.github.io/Visionatrix/Flows/index.html)
   - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation.html)
+  - [Command Line Options](https://visionatrix.github.io/Visionatrix/CommandLineOptions.html)
