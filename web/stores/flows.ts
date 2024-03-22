@@ -177,11 +177,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return task.progress === 100
 			}).map(task_id => {
 				const task = <TaskHistoryItem>res[task_id]
-				const flow = <Flow>this.flowByName(task.name)
 				return <FlowResult>{
 					task_id: task_id,
 					flow_name: task.name,
-					output_params: flow.output_params,
+					output_params: task.outputs,
 					prompt: task.input_params?.prompt || '',
 					input_params_mapped: task.input_params || null,
 				}
@@ -245,7 +244,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 					return { [paramName]: param[paramName].value }
 			})))
 
-			const config = useRuntimeConfig()
 			const formData = new FormData()
 
 			// Map input_params to an object key=input_param_name, value=input_param_value
@@ -292,6 +290,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 					input_prompt: input_params_mapped['prompt'],
 					seed: input_params_mapped['seed'] ?? '',
 					input_params_mapped: input_params_mapped,
+					outputs: res.outputs,
 				})
 				// Start polling for flow progress changes
 				this.startFlowProgressPolling(res?.task_id)
@@ -307,7 +306,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async cancelRunningFlows(flow_name: string) {
-			const config = useRuntimeConfig()
 			return await $fetch(`${buildBackendApiUrl()}/tasks-queue?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
@@ -326,7 +324,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async cancelRunningFlow(running: FlowRunning) {
-			const config = useRuntimeConfig()
 			return await $fetch(`${buildBackendApiUrl()}/task-queue?task_id=${running.task_id}`, {
 				method: 'DELETE',
 				headers: {
@@ -448,7 +445,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						this.flow_results.push({
 							task_id: task_id,
 							flow_name: flow.name,
-							output_params: flow.output_params,
+							output_params: runningFlow.outputs,
 							prompt: runningFlow?.input_prompt,
 							input_params_mapped: runningFlow.input_params_mapped,
 						})
@@ -508,7 +505,6 @@ export interface Flow {
 	comfy_flow: string
 	models: Model[]
 	input_params: FlowInputParam[]
-	output_params: FlowOutputParam[]
 	available?: boolean
 }
 
@@ -554,6 +550,7 @@ export interface FlowRunning {
 	progress: number
 	seed?: string
 	input_params_mapped: TaskHistoryInputParam
+	outputs: FlowOutputParam[]
 }
 
 export interface FlowProgress {
@@ -585,4 +582,5 @@ export interface TaskHistoryItem {
 	progress: number
 	error?: string
 	prompt_id?: string
+	outputs: FlowOutputParam[]
 }

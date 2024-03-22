@@ -100,7 +100,7 @@ const modalImageSrc = ref('')
 						class="mb-3 rounded-lg overflow-hidden" v-slot="{ item }"
 						:items="flowResult.output_params.map((result_output_param) => {
 							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id }
-						})" 
+						})"
 						:ui="{ item: 'basis-full md:basis-1/2' }"
 						:page="1"
 						indicators>
