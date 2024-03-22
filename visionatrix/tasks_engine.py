@@ -53,11 +53,9 @@ def create_new_task(name: str, input_params: dict, tasks_files_dir: str) -> [int
         "name": name,
         "input_params": input_params,
         "outputs": [],
-        "started": False,
         "input_files": [],
         "flow_comfy": {},
         "interrupt": False,
-        "prompt_id": "",
     }
 
     with TASKS_CREATION_LOCK:
@@ -137,9 +135,11 @@ def load_tasks(tasks_files_dir: str):
             tasks = json.load(file)
             tasks = {int(k): v for k, v in tasks.items()}
             for k, v in tasks.items():
-                if v["progress"] < 100 and not v["error"]:
+                if v["error"]:  # clear from history tasks with errors
+                    remove_task_files(k, tasks_files_dir, ["output", "input"])
+                    continue
+                if v["progress"] < 100.0:
                     v["progress"] = 0.0
-                    v["started"] = False
                     remove_task_files(k, tasks_files_dir, ["output"])
                     TASKS_QUEUE[k] = v
                 else:
@@ -208,7 +208,6 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
             time.sleep(0.05)
             continue
         task_id, ACTIVE_TASK = next(iter(TASKS_QUEUE.items()))
-        ACTIVE_TASK["started"] = True
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(task_id)
