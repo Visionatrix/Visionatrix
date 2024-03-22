@@ -23,7 +23,7 @@ export const useSystemStore = defineStore('systemStore', {
 			return await $fetch(`${buildBackendApiUrl()}/system_stats`)
 				.then((res: any) => {
 					this.stats = <Stats>res
-					console.debug(`Total VRAM usage: ${this.gpusVramUsage.vram_free}/${this.gpusVramUsage.vram_total} (${(this.gpusVramUsage.vram_free / this.gpusVramUsage.vram_total * 100).toFixed(2)}%)`)
+					console.debug(`Total VRAM usage: ${this.gpusVramUsage.vram_total - this.gpusVramUsage.vram_free}/${this.gpusVramUsage.vram_total} (${((this.gpusVramUsage.vram_total - this.gpusVramUsage.vram_free) / this.gpusVramUsage.vram_total * 100).toFixed(2)}%)`)
 				}).finally(() => {
 					this.loading = false
 				})
