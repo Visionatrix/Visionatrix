@@ -169,7 +169,6 @@ def prepare_flow_comfy(
                     raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
             set_node_value(node, k_v["dest_field_name"], v_copy)
     prepare_flow_comfy_files_params(flow, in_files_params, task_id, task_details, tasks_files_dir, r)
-    prepare_output_params(flow, task_id, task_details, r)
     LOGGER.debug("Prepared flow data: %s", r)
     return r
 
@@ -228,11 +227,10 @@ def prepare_flow_comfy_files_params(
             task_details["input_files"].append(file_name)
 
 
-def prepare_output_params(flow: dict, task_id: int, task_details: dict, r: dict) -> None:
-    for param in flow["output_params"]:
-        node_id = param["comfy_node_id"]
-        r_node = r[str(node_id)]
+def flow_prepare_output_params(outputs: list[str], task_id: int, task_details: dict, flow_comfy: dict) -> None:
+    for param in outputs:
+        r_node = flow_comfy[param]
         if r_node["class_type"] != "SaveImage":
-            raise RuntimeError(f"node={node_id}: only `SaveImage` nodes are supported currently as output nodes")
-        r_node["inputs"]["filename_prefix"] = f"{task_id}_{node_id}"
-        task_details["outputs"].append(node_id)
+            raise RuntimeError(f"node={param}: only `SaveImage` nodes are supported currently as output node")
+        r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
+        task_details["outputs"].append({"comfy_node_id": int(param), "type": "image"})

@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from . import install, options, run_backend, update
+from . import comfyui, install, options, run_backend, update
 from .flows import install_custom_flow
 
 
@@ -66,6 +66,7 @@ if __name__ == "__main__":
             subparser.add_argument("--port", type=str, help="Port to be used by Visionatrix backend")
             subparser.add_argument("--ui", type=str, help="Folder with UI")
             subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
+            comfyui.add_arguments(subparser)
 
     args = parser.parse_args()
     defined_loglvl = get_log_level(args.loglevel)

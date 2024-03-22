@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -5,10 +6,9 @@ import signal
 import time
 from contextlib import asynccontextmanager
 
-import httpx
-
-from . import options
+from . import comfyui, options
 from .flows import (
+    flow_prepare_output_params,
     get_available_flows,
     get_installed_flow,
     get_installed_flows,
@@ -26,7 +26,7 @@ from .tasks_engine import (
     remove_task,
     remove_task_files,
     start_tasks_engine,
-    stop_tasks_engine,
+    task_progress_callback,
 )
 
 try:
@@ -53,24 +53,23 @@ def vix_backend(
     vix_host: str,
     vix_port: str,
     **kwargs,
-):
+):  # pylint: disable=too-many-locals
     flows_dir = options.get_flows_dir(flows_dir)
     models_dir = options.get_models_dir(models_dir)
     ui_dir = kwargs.pop("ui_dir", "")
     vix_host = options.get_host(vix_host)
     vix_port = options.get_port(vix_port)
+    exit_event = asyncio.Event()
+    validate_prompt, comfy_queue = comfyui.load(backend_dir, tasks_files_dir, task_progress_callback, exit_event)
 
     @asynccontextmanager
     async def lifespan(_app: fastapi.FastAPI):
-        await start_tasks_engine(backend_dir, tasks_files_dir, bool(ui_dir))
+        await start_tasks_engine(tasks_files_dir, bool(ui_dir), comfy_queue, exit_event)
         if ui_dir:
-            try:
-                _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
-            except RuntimeError:
-                await stop_tasks_engine()
-                raise
+            _app.mount("/", fastapi.staticfiles.StaticFiles(directory=ui_dir, html=True), name="client")
         yield
-        await stop_tasks_engine()
+        exit_event.set()
+        comfyui.interrupt_processing()
 
     app = fastapi.FastAPI(lifespan=lifespan)
     if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
@@ -143,18 +142,13 @@ def vix_backend(
             remove_task_files(task_id, tasks_files_dir, ["input"])
             raise fastapi.HTTPException(status_code=400, detail=str(e)) from None
 
-        # TO-DO: it will be good to run ComfyUI in the current process and not in a separate one.
-        # add ComfyUI directory to path
-        # from ..amw_backend.execution import validate_prompt
-        # sys.path.append(backend_dir)
-        # from execution import validate_prompt
-        #
-        # flow_validation: [bool, dict, list, list] = validate_prompt(flow_comfy)  # noqa
-        # if not flow_validation[0]:
-        #     remove_task_files(task_id, backend_dir, ["input"])
-        #     LOGGER.error("Flow validation error: %s\n%s", flow_validation[1], flow_validation[3])
-        #     raise fastapi.HTTPException(status_code=400, detail=f"Bad Flow: `{flow_validation[1]}`") from None
+        flow_validation: [bool, dict, list, list] = validate_prompt(flow_comfy)
+        if not flow_validation[0]:
+            remove_task_files(task_id, backend_dir, ["input"])
+            LOGGER.error("Flow validation error: %s\n%s", flow_validation[1], flow_validation[3])
+            raise fastapi.HTTPException(status_code=400, detail=f"Bad Flow: `{flow_validation[1]}`") from None
         task_details["flow_comfy"] = flow_comfy
+        flow_prepare_output_params(flow_validation[2], task_id, task_details, flow_comfy)
         put_task_in_queue(task_id, task_details)
         return fastapi.responses.JSONResponse(content={"task_id": str(task_id)})
 
@@ -202,16 +196,10 @@ def vix_backend(
 
     @app.post("/engine-interrupt")
     async def engine_interrupt(b_tasks: fastapi.BackgroundTasks):
-        async def __interrupt_task():
-            await httpx.AsyncClient().post(url=f"http://{options.get_comfy_address()}/interrupt")
+        def __interrupt_task():
+            comfyui.interrupt_processing()
 
         b_tasks.add_task(__interrupt_task)
-        return fastapi.responses.JSONResponse(content={"error": ""})
-
-    @app.post("/engine-restart")
-    async def engine_restart():
-        await stop_tasks_engine()
-        await start_tasks_engine(backend_dir, tasks_files_dir, bool(ui_dir))
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.post("/shutdown")
@@ -220,19 +208,17 @@ def vix_backend(
             time.sleep(1.0)
             os.kill(os.getpid(), signal.SIGINT)
 
-        await stop_tasks_engine()
         b_tasks.add_task(__shutdown_vix)
         return fastapi.responses.JSONResponse(content={"error": ""})
 
     @app.get("/system_stats")
     async def system_stats():
-        return fastapi.responses.JSONResponse(
-            content=json.loads(
-                (await httpx.AsyncClient().get(url=f"http://{options.get_comfy_address()}/system_stats")).content
-            )
-        )
+        return fastapi.responses.JSONResponse(content=comfyui.system_stats())
 
-    uvicorn.run(app, *args, host=vix_host, port=vix_port, **kwargs)
+    try:
+        uvicorn.run(app, *args, host=vix_host, port=vix_port, **kwargs)
+    except KeyboardInterrupt:
+        print("Visionatrix is shutting down.")
 
 
 def run_backend(

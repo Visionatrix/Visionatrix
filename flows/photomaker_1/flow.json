@@ -183,15 +183,5 @@
         }
       }
     }
-  ],
-  "output_params": [
-    {
-      "type": "image",
-      "comfy_node_id": 76
-    },
-    {
-      "type": "image",
-      "comfy_node_id": 69
-    }
   ]
 }
