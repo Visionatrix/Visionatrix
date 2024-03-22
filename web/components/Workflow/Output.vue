@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { buildBackendApiUrl } from '~/stores/flows'
-
 defineProps({
 	output: Object
 })
@@ -86,7 +84,7 @@ const modalImageSrc = ref('')
 				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
 					class="flex flex-col justify-center mx-auto mb-5">
 					<NuxtImg v-if="flowResult.output_params.length === 1"
-						class="mb-2 h-100 mx-auto rounded-lg" draggable="false"
+						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
 						fit="outside"
 						:src="outputImgSrc({
 							task_id: flowResult.task_id,
@@ -104,12 +102,11 @@ const modalImageSrc = ref('')
 						:ui="{ item: 'basis-full md:basis-1/2' }"
 						:page="1"
 						indicators>
-						<NuxtImg class="w-full" :src="outputImgSrc(item)"
+						<NuxtImg class="w-full cursor-pointer" :src="outputImgSrc(item)"
 							draggable="false" @click="() => openImageModal(outputImgSrc(item))" />
 					</UCarousel>
 					<p class="text-sm text-slate-500 text-center mb-3">
 						{{
-							flowResult.input_params_mapped ?
 							Object.keys(flowResult.input_params_mapped)
 							.filter((key) => {
 								return flowResult.input_params_mapped[key] !== ''
@@ -117,7 +114,6 @@ const modalImageSrc = ref('')
 							.map((key) => {
 								return `${key}: ${flowResult.input_params_mapped[key]}`
 							}).join(' | ')
-							: flowResult.prompt
 						}}
 					</p>
 					<UButton
@@ -126,7 +122,7 @@ const modalImageSrc = ref('')
 						icon="i-heroicons-trash"
 						variant="outline"
 						@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
-						Delete image
+						{{ flowResult.output_params.length === 1 ? 'Delete image' : 'Delete all' }}
 					</UButton>
 				</div>
 			</div>

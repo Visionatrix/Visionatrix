@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 useFlowsStore().fetchFlows()
+useSystemStore().startStatsPolling()
 </script>
 
 <template>
@@ -10,6 +11,7 @@ useFlowsStore().fetchFlows()
       <NuxtPage class="w-full min-h-vh py-1.5 z-10" />
     </div>
     <UNotifications class="z-5" />
+    <SystemStats />
   </div>
 </template>
 

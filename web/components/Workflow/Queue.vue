@@ -40,15 +40,13 @@ const collapsed = ref(true)
 			<UProgress class="mb-3" :value="running?.progress" indicator />
 			<p class="text-sm mb-5 text-slate-500">
 				{{
-					running.input_params_mapped
-					? Object.keys(running.input_params_mapped)
+					Object.keys(running.input_params_mapped)
 						.filter((key) => {
 							return running.input_params_mapped[key] !== ''
 						})
 						.map((key) => {
 							return `${key}: ${running.input_params_mapped[key]}`
 						}).join(' | ')
-					: running.input_prompt
 				}}
 			</p>
 			<UButton icon="i-heroicons-x-mark"
