@@ -120,9 +120,8 @@ const collapsed = ref(false)
 						// Run prompts according to batch size
 						for (let i = 0; i < batchSize; i++) {
 							// Increase the seed for each batch prompt
-							const seed = inputParamsMap.find((inputParam: any) => {
-								const paramName = Object.keys(inputParam)[0]
-								return paramName === 'seed'
+							const seed = additionalInputParamsMap.find((inputParam: any) => {
+								return Object.keys(inputParam)[0] === 'seed'
 							})
 							if (seed && i > 0) {
 								seed.seed.value = (Number(seed.seed.value) + 1).toString()
