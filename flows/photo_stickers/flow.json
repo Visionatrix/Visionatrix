@@ -136,48 +136,6 @@
           ]
         }
       }
-    },
-    {
-      "name": "seed",
-      "display_name": "Random seed",
-      "type": "number",
-      "optional": true,
-      "default": 1,
-      "advanced": true,
-      "comfy_node_id": {
-        "340": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "342": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "345": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "347": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "348": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "351": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "354": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "355": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        }
-      }
     }
   ]
 }

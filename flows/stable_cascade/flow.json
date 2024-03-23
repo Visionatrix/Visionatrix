@@ -49,40 +49,6 @@
       }
     },
     {
-      "name": "seed",
-      "display_name": "Random seed",
-      "type": "number",
-      "optional": true,
-      "default": 1,
-      "advanced": true,
-      "comfy_node_id": {
-        "19": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "23": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "78": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "80": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "93": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "96": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        }
-      }
-    },
-    {
       "name": "pass_count",
       "display_name": "Pass count",
       "type": "list",
