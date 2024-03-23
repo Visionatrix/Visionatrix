@@ -164,24 +164,6 @@
           "internal_type": "float"
         }
       }
-    },
-    {
-      "name": "seed",
-      "display_name": "Random seed",
-      "type": "number",
-      "optional": true,
-      "default": 1,
-      "advanced": true,
-      "comfy_node_id": {
-        "63": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        },
-        "74": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        }
-      }
     }
   ]
 }

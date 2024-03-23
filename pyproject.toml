@@ -95,7 +95,7 @@ preview = true
 line-length = 120
 target-version = "py310"
 lint.select = ["A", "B", "C", "E", "F", "G", "I", "S", "SIM", "PIE", "Q", "RET", "RUF", "UP" , "W"]
-lint.extend-ignore = ["I001", "RUF100", "S603"]
+lint.extend-ignore = ["I001", "RUF100", "S311", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "visionatrix/__init__.py" = ["F401"]
