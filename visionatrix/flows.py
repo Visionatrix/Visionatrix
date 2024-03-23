@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import random
 import re
 import time
 import typing
@@ -168,6 +169,7 @@ def prepare_flow_comfy(
                 else:
                     raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
             set_node_value(node, k_v["dest_field_name"], v_copy)
+    process_seed_value(flow, in_texts_params, r)
     prepare_flow_comfy_files_params(flow, in_files_params, task_id, task_details, tasks_files_dir, r)
     LOGGER.debug("Prepared flow data: %s", r)
     return r
@@ -234,3 +236,13 @@ def flow_prepare_output_params(outputs: list[str], task_id: int, task_details: d
             raise RuntimeError(f"node={param}: only `SaveImage` nodes are supported currently as output node")
         r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
         task_details["outputs"].append({"comfy_node_id": int(param), "type": "image"})
+
+
+def process_seed_value(flow: dict, in_texts_params: dict, flow_comfy: dict) -> None:
+    if "seed" in [i["name"] for i in flow["input_params"]]:
+        return  # skip automatic processing "seed" if it was manually defined in "flow.json"
+    random_seed = int(in_texts_params.get("seed", random.randint(1, 999999999)))
+    for node_details in flow_comfy.values():
+        if "inputs" in node_details and "seed" in node_details["inputs"]:
+            node_details["inputs"]["seed"] = random_seed
+    in_texts_params["seed"] = random_seed

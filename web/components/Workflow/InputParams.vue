@@ -1,8 +1,13 @@
 <script setup lang="ts">
 const props = defineProps({
 	inputParamsMap: {
-		type: Object,
+		type: Array<any>,
 		required: true,
+	},
+	additionalInputParamsMap: {
+		type: Array<any>,
+		required: false,
+		default: [],
 	},
 	advanced: {
 		type: Boolean,
@@ -31,6 +36,12 @@ const advancedCollapsed = ref(!props.advanced)
 			:index="index"
 			:input-param="inputParam"
 			:input-params-map.sync="inputParamsMap"
+			:advanced="advanced" />
+		<WorkflowInputParam v-for="(inputParam, index) in additionalInputParamsMap"
+			:key="Object.keys(inputParam)[0]"
+			:index="index"
+			:input-param="inputParam[Object.keys(inputParam)[0]]"
+			:input-params-map.sync="additionalInputParamsMap"
 			:advanced="advanced" />
 	</div>
 </template>

@@ -55,20 +55,6 @@
           "dest_field_name": ["inputs", "text"]
         }
       }
-    },
-    {
-      "name": "seed",
-      "display_name": "Random seed",
-      "type": "number",
-      "optional": true,
-      "default": 1,
-      "advanced": true,
-      "comfy_node_id": {
-        "238": {
-          "dest_field_name": ["inputs", "seed"],
-          "internal_type": "int"
-        }
-      }
     }
   ]
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const flowStore  = useFlowsStore()
-const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_param => {
+let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_param => {
 	if (input_param.type === 'text') {
 		return ({
 			[input_param.name]: {
@@ -64,6 +64,20 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	}
 }) || [])
 
+let additionalInputParamsMap: any = ref([
+	{
+		'seed': {
+			name: 'seed',
+			display_name: 'Random seed',
+			value: <number>Math.floor(Math.random() * 1000000),
+			type: 'number',
+			optional: true,
+			advanced: true,
+			min: 0,
+			max: 10000000,
+		}
+	}
+])
 
 const running = ref(false)
 const batchSize = ref(1)
@@ -81,9 +95,12 @@ const collapsed = ref(false)
 		</h2>
 
 		<div v-show="!collapsed">
-			<WorkflowInputParams :input-params-map.sync="inputParamsMap" :advanced="false" />
+			<WorkflowInputParams :input-params-map.sync="inputParamsMap"
+				:additional-input-params-map.sync="additionalInputParamsMap"
+				:advanced="false" />
 			<WorkflowInputParams v-if="flowStore.currentFlow.input_params.some((input_param: any) => input_param.advanced)"
 				:input-params-map.sync="inputParamsMap"
+				:additional-input-params-map.sync="additionalInputParamsMap"
 				:advanced="true" />
 
 			<UFormGroup label="Number of images">
@@ -103,15 +120,17 @@ const collapsed = ref(false)
 						// Run prompts according to batch size
 						for (let i = 0; i < batchSize; i++) {
 							// Increase the seed for each batch prompt
-							const seed = inputParamsMap.find((inputParam: any) => {
-								const paramName = Object.keys(inputParam)[0]
-								return paramName === 'seed'
+							const seed = additionalInputParamsMap.find((inputParam: any) => {
+								return Object.keys(inputParam)[0] === 'seed'
 							})
 							if (seed && i > 0) {
 								seed.seed.value = (Number(seed.seed.value) + 1).toString()
 							}
 
-							flowStore.runFlow(flowStore.currentFlow, inputParamsMap).then(() => {
+							flowStore.runFlow(
+								flowStore.currentFlow,
+								[...inputParamsMap, ...additionalInputParamsMap]
+							).then(() => {
 								if (i === batchSize - 1)
 									running = false
 							}).catch(() => {

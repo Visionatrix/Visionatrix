@@ -9,7 +9,7 @@ defineProps({
 		required: true,
 	},
 	inputParamsMap: {
-		type: Object,
+		type: Array<any[]>,
 		required: true,
 	},
 	advanced: {
@@ -49,6 +49,8 @@ const imagePreviewUrl = ref('')
 				:label="inputParam.display_name"
 				:required="!inputParam.optional"
 				:value="inputParamsMap[index][inputParam.name].value"
+				:max="inputParam.max || 100"
+				:min="inputParam.min || 0"
 				variant="outline" @input="(event: InputEvent) => {
 					const input = event.target as HTMLInputElement
 					inputParamsMap[index][inputParam.name].value = input.value
