@@ -41,6 +41,11 @@ BASIC_NODE_LIST = {
             },
         ],
     },
+    "efficiency-nodes-comfyui": {
+        "requirements": {
+            "simpleeval": {},
+        }
+    },
 }
 
 

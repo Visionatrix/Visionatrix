@@ -66,6 +66,7 @@ def create_new_task(name: str, input_params: dict, tasks_files_dir: str) -> [int
 
 
 def put_task_in_queue(task_id: int, task_details: dict) -> None:
+    LOGGER.debug("Put flow in queue: %s", task_details)
     TASKS_QUEUE.update({task_id: task_details})
 
 

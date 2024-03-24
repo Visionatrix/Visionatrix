@@ -10,3 +10,4 @@ Available Flows
    Juggernaut_Lighting_LoRAs
    Stable_Cascade
    PhotoStickers
+   GhibliPortrait
