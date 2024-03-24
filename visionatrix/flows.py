@@ -171,7 +171,6 @@ def prepare_flow_comfy(
             set_node_value(node, k_v["dest_field_name"], v_copy)
     process_seed_value(flow, in_texts_params, r)
     prepare_flow_comfy_files_params(flow, in_files_params, task_id, task_details, tasks_files_dir, r)
-    LOGGER.debug("Prepared flow data: %s", r)
     return r
 
 
