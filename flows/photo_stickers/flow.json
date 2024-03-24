@@ -5,7 +5,7 @@
   "author": "Datou",
   "homepage": "https://openart.ai/workflows/datou/photo-2-anime-sdxl/0tBl5W8dBBe6FEhi0MxY",
   "license": "",
-  "documentation": "https://visionatrix.github.io/PhotoStickers/Flows/PhotoStickers.html",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/PhotoStickers.html",
   "models": [
     {
         "name": "InstantID-ControlNet",

@@ -5,7 +5,7 @@
   "author": "Datou",
   "homepage": "https://openart.ai/workflows/datou/ghibli-portrait-studio/pGOmpWZycgG57085CONU",
   "license": "",
-  "documentation": "https://visionatrix.github.io/PhotoStickers/Flows/GhibliPortrait.html",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/GhibliPortrait.html",
   "models": [
     {
         "name": "InstantID-ControlNet",
