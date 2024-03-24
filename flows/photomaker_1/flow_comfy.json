@@ -179,7 +179,7 @@
         0
       ],
       "image": [
-        "77",
+        "97",
         0
       ],
       "clip": [
@@ -259,6 +259,41 @@
     "class_type": "LoadImage",
     "_meta": {
       "title": "Load Image"
+    }
+  },
+  "78": {
+    "inputs": {},
+    "class_type": "BRIA_RMBG_ModelLoader_Zho",
+    "_meta": {
+      "title": "🧹BRIA_RMBG Model Loader"
+    }
+  },
+  "79": {
+    "inputs": {
+      "rmbgmodel": [
+        "78",
+        0
+      ],
+      "image": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "BRIA_RMBG_Zho",
+    "_meta": {
+      "title": "🧹BRIA RMBG"
+    }
+  },
+  "97": {
+    "inputs": {
+      "image": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "SplitImageWithAlpha",
+    "_meta": {
+      "title": "Split Image with Alpha"
     }
   }
 }
