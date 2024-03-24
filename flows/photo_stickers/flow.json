@@ -60,7 +60,9 @@
       "advanced": false,
       "options": {
         "Man": "man",
-        "Girl": "girl"
+        "Girl": "girl",
+        "Woman": "woman",
+        "Boy": "boy"
       },
       "comfy_node_id": {
         "88": {

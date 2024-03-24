@@ -1,0 +1,252 @@
+{
+  "14": {
+    "inputs": {
+      "ckpt_name": "Juggernaut_RunDiffusionPhoto2_Lightning_4Steps.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint Base"
+    }
+  },
+  "290": {
+    "inputs": {
+      "text": "anime, studio ghibli, ghibli style, {man} {prompt}, split solid color background, portrait, close up, f1.2",
+      "clip": [
+        "379",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "291": {
+    "inputs": {
+      "text": "Signature, deformed, smooth, plastic, blurry, grainy, ((hands)), ((hand)), photo\n",
+      "clip": [
+        "379",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "336": {
+    "inputs": {
+      "weight": 0.6,
+      "start_at": 0,
+      "end_at": 1,
+      "instantid": [
+        "337",
+        0
+      ],
+      "insightface": [
+        "338",
+        0
+      ],
+      "control_net": [
+        "339",
+        0
+      ],
+      "image": [
+        "382",
+        0
+      ],
+      "model": [
+        "379",
+        0
+      ],
+      "positive": [
+        "290",
+        0
+      ],
+      "negative": [
+        "291",
+        0
+      ]
+    },
+    "class_type": "ApplyInstantID",
+    "_meta": {
+      "title": "Apply InstantID"
+    }
+  },
+  "337": {
+    "inputs": {
+      "instantid_file": "instantid-ip-adapter.bin"
+    },
+    "class_type": "InstantIDModelLoader",
+    "_meta": {
+      "title": "Load InstantID Model"
+    }
+  },
+  "338": {
+    "inputs": {
+      "provider": "CPU"
+    },
+    "class_type": "InstantIDFaceAnalysis",
+    "_meta": {
+      "title": "InstantID Face Analysis"
+    }
+  },
+  "339": {
+    "inputs": {
+      "control_net_name": "instantid-controlnet.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model"
+    }
+  },
+  "340": {
+    "inputs": {
+      "image": "input.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "face"
+    }
+  },
+  "345": {
+    "inputs": {
+      "width": 832,
+      "height": 1216,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "346": {
+    "inputs": {
+      "image": "pose.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "pose"
+    }
+  },
+  "357": {
+    "inputs": {
+      "seed": 2,
+      "steps": 4,
+      "cfg": 1.8,
+      "sampler_name": "dpmpp_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "preview_method": "none",
+      "vae_decode": "true",
+      "model": [
+        "336",
+        0
+      ],
+      "positive": [
+        "336",
+        1
+      ],
+      "negative": [
+        "336",
+        2
+      ],
+      "latent_image": [
+        "345",
+        0
+      ],
+      "optional_vae": [
+        "14",
+        2
+      ],
+      "script": [
+        "358",
+        0
+      ]
+    },
+    "class_type": "KSampler (Efficient)",
+    "_meta": {
+      "title": "KSampler (Efficient)"
+    }
+  },
+  "358": {
+    "inputs": {
+      "upscale_type": "latent",
+      "hires_ckpt_name": "(use same)",
+      "latent_upscaler": "ttl_nn.SDXL",
+      "pixel_upscaler": "4x_NMKD-Siax_200k.pth",
+      "upscale_by": 1.5,
+      "use_same_seed": true,
+      "seed": -1,
+      "hires_steps": 4,
+      "denoise": 0.5,
+      "iterations": 1,
+      "use_controlnet": false,
+      "control_net_name": "depth-zoe-xl-v1.0-controlnet.safetensors",
+      "strength": 0.8,
+      "preprocessor": "DepthAnythingPreprocessor",
+      "preprocessor_imgs": true
+    },
+    "class_type": "HighRes-Fix Script",
+    "_meta": {
+      "title": "HighRes-Fix Script"
+    }
+  },
+  "359": {
+    "inputs": {
+      "filename_prefix": "Ghibli Portrait Studio/img_",
+      "images": [
+        "357",
+        5
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "379": {
+    "inputs": {
+      "lora_name": "StudioGhibli.Redmond-StdGBRRedmAF-StudioGhibli.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "14",
+        0
+      ],
+      "clip": [
+        "14",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "381": {
+    "inputs": {},
+    "class_type": "BRIA_RMBG_ModelLoader_Zho",
+    "_meta": {
+      "title": "🧹BRIA_RMBG Model Loader"
+    }
+  },
+  "382": {
+    "inputs": {
+      "rmbgmodel": [
+        "381",
+        0
+      ],
+      "image": [
+        "340",
+        0
+      ]
+    },
+    "class_type": "BRIA_RMBG_Zho",
+    "_meta": {
+      "title": "🧹BRIA RMBG"
+    }
+  }
+}

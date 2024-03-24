@@ -1,0 +1,114 @@
+{
+  "name": "ghibli_portrait",
+  "display_name": "Ghibli Portrait",
+  "description": "Person portrait in Ghibli Studio style(Anime)",
+  "author": "Datou",
+  "homepage": "https://openart.ai/workflows/datou/ghibli-portrait-studio/pGOmpWZycgG57085CONU",
+  "license": "",
+  "documentation": "https://visionatrix.github.io/PhotoStickers/Flows/GhibliPortrait.html",
+  "models": [
+    {
+        "name": "InstantID-ControlNet",
+        "save_path": "controlnet/instantid-controlnet.safetensors",
+        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ControlNetModel/diffusion_pytorch_model.safetensors",
+        "homepage": "https://huggingface.co/InstantX/InstantID",
+        "license": "apache-2.0",
+        "hash": "c8127be9f174101ebdafee9964d856b49b634435cf6daa396d3f593cf0bbbb05"
+    },
+    {
+        "name": "InstantID-IP-Adapter",
+        "save_path": "instantid/instantid-ip-adapter.bin",
+        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ip-adapter.bin",
+        "homepage": "https://huggingface.co/InstantX/InstantID",
+        "license": "apache-2.0",
+        "hash": "02b3618e36d803784166660520098089a81388e61a93ef8002aa79a5b1c546e1"
+    },
+    {
+        "name": "StudioGhibli.Redmond",
+        "save_path": "loras/StudioGhibli.Redmond-StdGBRRedmAF-StudioGhibli.safetensors",
+        "url": "https://huggingface.co/artificialguybr/StudioGhibli.Redmond-V2/resolve/main/StudioGhibli.Redmond-StdGBRRedmAF-StudioGhibli.safetensors",
+        "homepage": "https://huggingface.co/artificialguybr/StudioGhibli.Redmond-V2",
+        "license": "",
+        "hash": "516fe22303b8a24f800a0a24a8f4c864121411b7261206c406183c1103b7bf37"
+    },
+    {
+        "name": "Juggernaut_RunDiffusionPhoto2_Lightning_4Steps",
+        "save_path": "checkpoints/Juggernaut_RunDiffusionPhoto2_Lightning_4Steps.safetensors",
+        "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-Lightning/resolve/main/Juggernaut_RunDiffusionPhoto2_Lightning_4Steps.safetensors",
+        "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-Lightning",
+        "license": "creativeml-openrail-m",
+        "hash": "c8df560d2992ac04299412be6a36fa53a4e7a1b74f27b94867ad3f84f4b425a5"
+    }
+  ],
+  "input_params": [
+    {
+      "name": "image",
+      "display_name": "Person face",
+      "type": "image",
+      "optional": false,
+      "comfy_node_id": {
+        "340": {
+          "dest_field_name": ["inputs", "image"]
+        }
+      }
+    },
+    {
+      "name": "gender",
+      "display_name": "Base gender",
+      "type": "list",
+      "optional": false,
+      "advanced": false,
+      "options": {
+        "Man": "man",
+        "Girl": "girl",
+        "Woman": "woman",
+        "Boy": "boy"
+      },
+      "comfy_node_id": {
+        "290": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{man\\}"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "pose",
+      "display_name": "Person pose",
+      "type": "image",
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "346": {
+          "dest_field_name": ["inputs", "image"],
+          "node_connect": {
+            "node_id": "336",
+            "dest_field_name": ["inputs", "image_kps"]
+          }
+        }
+      }
+    },
+    {
+      "name": "prompt",
+      "display_name": "Prompt",
+      "type": "text",
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "290": {
+          "src_field_name": ["inputs", "text"],
+          "dest_field_name": ["inputs", "text"],
+          "modify_param": [
+            {
+              "sub": ["\\{prompt\\}"]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -7,7 +7,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			current_flow: true,
 		},
 		page: 1,
-		pageSize: 6,
+		pageSize: 9,
 		running: <FlowRunning[]>[],
 		installing: <FlowInstalling[]>[],
 		resultsPage: 1,
@@ -230,8 +230,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[]) {
-			console.debug('running flow:', JSON.stringify(input_params[0]['prompt']))
-			console.debug('seed:', JSON.stringify(input_params.filter(param => param['seed'])[0]['seed']))
 			console.debug('input_params:', JSON.stringify(input_params.map((param: any) => {
 				const paramName = Object.keys(param)[0]
 				if (['text', 'list'].includes(param[paramName].type))
@@ -256,7 +254,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
-				return param[paramName].type === 'image'
+				return param[paramName].type === 'image' && param[paramName].value instanceof File
 			})
 			console.debug('file_input_params:', file_input_params)
 			if (file_input_params.length > 0) {
