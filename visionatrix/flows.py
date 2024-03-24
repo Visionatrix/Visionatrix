@@ -161,6 +161,7 @@ def prepare_flow_comfy(
                                 v_copy = re.sub(mod_params[0], v_copy, z)
                     else:
                         LOGGER.warning("Unknown modify param operation: %s", mod_operation)
+            perform_node_connections(r, k, k_v)
             if convert_type := k_v.get("internal_type", ""):
                 if convert_type == "int":
                     v_copy = int(v_copy)
@@ -180,7 +181,7 @@ def get_node_value(node: dict, path: list[str]) -> str | int | float:
     return node
 
 
-def set_node_value(node: dict, path: list[str], value: str | int | float) -> None:
+def set_node_value(node: dict, path: list[str], value: str | int | float | list) -> None:
     for key in path[:-1]:
         node = node[key]
     node[path[-1]] = value
@@ -220,6 +221,7 @@ def prepare_flow_comfy_files_params(
             if not node:
                 raise RuntimeError(f"Bad comfy or visionatrix flow, node with id=`{k}` can not be found.")
             set_node_value(node, k_v["dest_field_name"], file_name)
+            perform_node_connections(r, k, k_v)
         with builtins.open(os.path.join(tasks_files_dir, "input", file_name), mode="wb") as fp:
             if hasattr(v, "read"):
                 fp.write(v.read())
@@ -231,6 +233,8 @@ def prepare_flow_comfy_files_params(
 def flow_prepare_output_params(outputs: list[str], task_id: int, task_details: dict, flow_comfy: dict) -> None:
     for param in outputs:
         r_node = flow_comfy[param]
+        if r_node["class_type"] == "KSampler (Efficient)":
+            continue
         if r_node["class_type"] != "SaveImage":
             raise RuntimeError(f"node={param}: only `SaveImage` nodes are supported currently as output node")
         r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
@@ -245,3 +249,10 @@ def process_seed_value(flow: dict, in_texts_params: dict, flow_comfy: dict) -> N
         if "inputs" in node_details and "seed" in node_details["inputs"]:
             node_details["inputs"]["seed"] = random_seed
     in_texts_params["seed"] = random_seed
+
+
+def perform_node_connections(flow_comfy: dict, node_id: str, node_details: dict) -> None:
+    if "node_connect" not in node_details:
+        return
+    target_connect = node_details["node_connect"]
+    set_node_value(flow_comfy[target_connect["node_id"]], target_connect["dest_field_name"], [node_id, 0])

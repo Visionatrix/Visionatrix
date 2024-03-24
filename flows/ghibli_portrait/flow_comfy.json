@@ -248,17 +248,5 @@
     "_meta": {
       "title": "🧹BRIA RMBG"
     }
-  },
-  "383": {
-    "inputs": {
-      "images": [
-        "382",
-        0
-      ]
-    },
-    "class_type": "PreviewImage",
-    "_meta": {
-      "title": "Preview Image"
-    }
   }
 }
