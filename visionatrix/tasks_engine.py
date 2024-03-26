@@ -133,7 +133,7 @@ def get_incomplete_task_without_error() -> dict:
             return {}
         return {
             "task_id": task.task_id,
-            "progress": task.progress,
+            "progress": 0.0,
             "error": task.error,
             "name": task.name,
             "input_params": task.input_params,
