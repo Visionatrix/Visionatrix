@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Line Options &mdash; Visionatrix 0.0.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
+      <link rel="stylesheet" type="text/css" href="_static/autodoc_pydantic.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/styles.css?v=0f758665" />
+      <link rel="stylesheet" type="text/css" href="_static/css/dark.css?v=41caee7b" />
+      <link rel="stylesheet" type="text/css" href="_static/css/light.css?v=c3d70dd7" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=8c5712d9"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=f281be69"></script>
+        <script src="_static/tabs.js?v=3ee01567"></script>
+        <script src="_static/js/script.js?v=783f4f19"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Manual Installation" href="Installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/logo.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.0.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Flows/index.html">Available Flows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Manual Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command Line Options</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#supported-comfyui-options">Supported <strong>ComfyUI</strong> options</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Visionatrix</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Command Line Options</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/CommandLineOptions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="command-line-options">
+<h1>Command Line Options<a class="headerlink" href="#command-line-options" title="Link to this heading"></a></h1>
+<p>Most of the options supported by <cite>ComfyUI</cite> are supported.</p>
+<p>They can be specified when starting manually:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>visionatrix<span class="w"> </span>run<span class="w"> </span>--ui<span class="o">=</span>client<span class="w"> </span>--use-split-cross-attention<span class="w"> </span>--disable-smart-memory
+</pre></div>
+</div>
+<p>Here are the list of the supported options command line options related to <cite>Visionatrix</cite> for <strong>run</strong> command:</p>
+<blockquote>
+<div><dl class="option-list">
+<dt><kbd><span class="option">--backend_dir <var>BACKEND_DIR</var></span></kbd></dt>
+<dd><dl class="simple">
+<dt>Directory for the backend(folder with ComfyUI)</dt><dd><p>Default: <code class="docutils literal notranslate"><span class="pre">vix_backend</span></code></p>
+</dd>
+</dl>
+</dd>
+<dt><kbd><span class="option">--flows_dir <var>FLOWS_DIR</var></span></kbd></dt>
+<dd><dl class="simple">
+<dt>Directory for the flows</dt><dd><p>Default: <code class="docutils literal notranslate"><span class="pre">vix_flows</span></code></p>
+</dd>
+</dl>
+</dd>
+<dt><kbd><span class="option">--models_dir <var>MODELS_DIR</var></span></kbd></dt>
+<dd><dl class="simple">
+<dt>Directory for the models</dt><dd><p>Default: <code class="docutils literal notranslate"><span class="pre">`vix_models</span></code></p>
+</dd>
+</dl>
+</dd>
+<dt><kbd><span class="option">--tasks_files_dir <var>TASKS_FILES_DIR</var></span></kbd></dt>
+<dd><dl class="simple">
+<dt>Directory for input/output files</dt><dd><p>Default: <code class="docutils literal notranslate"><span class="pre">vix_task_files</span></code></p>
+</dd>
+</dl>
+</dd>
+<dt><kbd><span class="option">--host <var>HOST</var></span></kbd></dt>
+<dd><p>Host to be used by Visionatrix</p>
+</dd>
+<dt><kbd><span class="option">--port <var>PORT</var></span></kbd></dt>
+<dd><p>Port to be used by Visionatrix</p>
+</dd>
+<dt><kbd><span class="option">--ui <var>UI</var></span></kbd></dt>
+<dd><p>Folder with UI. <strong>Required to be specified if you wish to have persistent task history.</strong>
+Has not default value, specify <code class="docutils literal notranslate"><span class="pre">--ui=client</span></code> to run with default Visionatrix UI.</p>
+</dd>
+</dl>
+</div></blockquote>
+<section id="supported-comfyui-options">
+<h2>Supported <strong>ComfyUI</strong> options<a class="headerlink" href="#supported-comfyui-options" title="Link to this heading"></a></h2>
+<blockquote>
+<div><dl class="option-list">
+<dt><kbd><span class="option">--cuda-device <var>DEVICE_ID</var></span></kbd></dt>
+<dd><p>Set the id of the cuda device this instance will use.</p>
+</dd>
+<dt><kbd><span class="option">--cuda-malloc</span></kbd></dt>
+<dd><p>Enable cudaMallocAsync (enabled by default for torch
+2.0 and up).</p>
+</dd>
+<dt><kbd><span class="option">--disable-cuda-malloc</span></kbd></dt>
+<dd><p>Disable cudaMallocAsync.</p>
+</dd>
+<dt><kbd><span class="option">--dont-upcast-attention</span></kbd></dt>
+<dd><p>Disable upcasting of attention. Can boost speed but
+increase the chances of black images.</p>
+</dd>
+<dt><kbd><span class="option">--force-fp32</span></kbd></dt>
+<dd><p>Force fp32 (If this makes your GPU work better please
+report it).</p>
+</dd>
+<dt><kbd><span class="option">--force-fp16</span></kbd></dt>
+<dd><p>Force fp16.</p>
+</dd>
+<dt><kbd><span class="option">--bf16-unet</span></kbd></dt>
+<dd><p>Run the UNET in bf16. This should only be used for
+testing stuff.</p>
+</dd>
+<dt><kbd><span class="option">--fp16-unet</span></kbd></dt>
+<dd><p>Store unet weights in fp16.</p>
+</dd>
+<dt><kbd><span class="option">--fp8_e4m3fn-unet</span></kbd></dt>
+<dd><p>Store unet weights in fp8_e4m3fn.</p>
+</dd>
+<dt><kbd><span class="option">--fp8_e5m2-unet</span></kbd></dt>
+<dd><p>Store unet weights in fp8_e5m2.</p>
+</dd>
+<dt><kbd><span class="option">--fp16-vae</span></kbd></dt>
+<dd><p>Run the VAE in fp16, might cause black images.</p>
+</dd>
+<dt><kbd><span class="option">--fp32-vae</span></kbd></dt>
+<dd><p>Run the VAE in full precision fp32.</p>
+</dd>
+<dt><kbd><span class="option">--bf16-vae</span></kbd></dt>
+<dd><p>Run the VAE in bf16.</p>
+</dd>
+<dt><kbd><span class="option">--cpu-vae</span></kbd></dt>
+<dd><p>Run the VAE on the CPU.</p>
+</dd>
+<dt><kbd><span class="option">--fp8_e4m3fn-text-enc</span></kbd></dt>
+<dd><p>Store text encoder weights in fp8 (e4m3fn variant).</p>
+</dd>
+<dt><kbd><span class="option">--fp8_e5m2-text-enc</span></kbd></dt>
+<dd><p>Store text encoder weights in fp8 (e5m2 variant).</p>
+</dd>
+<dt><kbd><span class="option">--fp16-text-enc</span></kbd></dt>
+<dd><p>Store text encoder weights in fp16.</p>
+</dd>
+<dt><kbd><span class="option">--fp32-text-enc</span></kbd></dt>
+<dd><p>Store text encoder weights in fp32.</p>
+</dd>
+<dt><kbd><span class="option">--disable-ipex-optimize</span></kbd></dt>
+<dd><p>Disables ipex.optimize when loading models with Intel
+GPUs.</p>
+</dd>
+<dt><kbd><span class="option">--use-split-cross-attention</span></kbd></dt>
+<dd><p>Use the split cross attention optimization. Ignored
+when xformers is used.</p>
+</dd>
+<dt><kbd><span class="option">--use-quad-cross-attention</span></kbd></dt>
+<dd><p>Use the sub-quadratic cross attention optimization .
+Ignored when xformers is used.</p>
+</dd>
+<dt><kbd><span class="option">--use-pytorch-cross-attention</span></kbd></dt>
+<dd><p>Use the new pytorch 2.0 cross attention function.</p>
+</dd>
+<dt><kbd><span class="option">--disable-xformers</span></kbd></dt>
+<dd><p>Disable xformers.</p>
+</dd>
+<dt><kbd><span class="option">--gpu-only</span></kbd></dt>
+<dd><p>Store and run everything (text encoders/CLIP models,
+etc… on the GPU).</p>
+</dd>
+<dt><kbd><span class="option">--highvram</span></kbd></dt>
+<dd><p>By default models will be unloaded to CPU memory after
+being used. This option keeps them in GPU memory.</p>
+</dd>
+<dt><kbd><span class="option">--normalvram</span></kbd></dt>
+<dd><p>Used to force normal vram use if lowvram gets
+automatically enabled.</p>
+</dd>
+<dt><kbd><span class="option">--lowvram</span></kbd></dt>
+<dd><p>Split the unet in parts to use less vram.</p>
+</dd>
+<dt><kbd><span class="option">--novram</span></kbd></dt>
+<dd><p>When lowvram isn’t enough.</p>
+</dd>
+<dt><kbd><span class="option">--cpu</span></kbd></dt>
+<dd><p>To use the CPU for everything (slow).</p>
+</dd>
+<dt><kbd><span class="option">--disable-smart-memory</span></kbd></dt>
+<dd><p>Force ComfyUI to aggressively offload to regular ram
+instead of keeping models in vram when it can.</p>
+</dd>
+</dl>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Installation.html" class="btn btn-neutral float-left" title="Manual Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024 Visionatrix Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
