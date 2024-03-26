@@ -214,12 +214,30 @@ def remove_task_by_id(task_id: int) -> bool:
     return False
 
 
+def remove_unfinished_task_by_id(task_id: int) -> bool:
+    session = DB_SESSION_MAKER()
+    try:
+        session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+        details_result = session.execute(
+            delete(TaskDetails).where(and_(TaskDetails.progress != 100.0, TaskDetails.task_id == task_id))
+        )
+        if details_result.rowcount > 0:
+            session.commit()
+            remove_task_files(task_id, ["output", "input"])
+            return True
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to remove task: %s", e)
+        raise
+    finally:
+        session.close()
+    return False
+
+
 def remove_unfinished_tasks_by_name(name: str) -> bool:
     session = DB_SESSION_MAKER()
     try:
-        stmt = delete(TaskDetails).where(
-            and_(TaskDetails.progress != 100.0, TaskDetails.error == "", TaskDetails.name == name)
-        )
+        stmt = delete(TaskDetails).where(and_(TaskDetails.progress != 100.0, TaskDetails.name == name))
         result = session.execute(stmt)
         if result.rowcount > 0:
             session.commit()
@@ -246,8 +264,9 @@ def remove_task_files(task_id: int, directories: list[str]) -> None:
 def remove_task_lock(task_id: int) -> None:
     session = DB_SESSION_MAKER()
     try:
-        session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
-        session.commit()
+        result = session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+        if result.rowcount > 0:
+            session.commit()
     except Exception as e:
         session.rollback()
         LOGGER.exception("Failed to remove task lock for task_id %s: %s", task_id, e)

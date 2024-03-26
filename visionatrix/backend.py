@@ -29,6 +29,7 @@ from .tasks_engine import (
     put_task_in_queue,
     remove_task_by_id,
     remove_task_files,
+    remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
     start_tasks_engine,
     task_progress_callback,
@@ -177,7 +178,7 @@ def vix_backend(
 
     @app.delete("/task-queue")
     async def task_queue_clear(task_id: int):
-        remove_task_by_id(task_id)
+        remove_unfinished_task_by_id(task_id)
         return responses.JSONResponse(content={"error": ""})
 
     @app.post("/engine-interrupt")
