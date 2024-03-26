@@ -61,7 +61,7 @@ Install Visionatrix
 
 Install Visionatrix from the previously cloned sources using :command:`pip`::
 
-    pip install ".[app]"
+    pip install .
 
 
 Run **Visionatrix** initialization command using :command:`python`::
