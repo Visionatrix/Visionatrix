@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.4 - 2024-04-26]
+
+## Added
+
+- Now tasks engine uses SqlAlchemy with default SQLite instead of `json` file.
+- Initial support of processing tasks queue in parallel.
+- `ComicU Portrait` workflow.
+
+## Fixed
+
+- Small UI adjustments.
+
 ## [0.0.3 - 2024-04-23]
 
 ### Added
