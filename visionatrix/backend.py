@@ -130,7 +130,7 @@ def vix_backend(
         task_details = create_new_task(name, input_params_list)
         try:
             flow_comfy = prepare_flow_comfy(
-                flow, flow_comfy, input_params_list, in_files, task_details["task_id"], task_details, tasks_files_dir
+                flow, flow_comfy, input_params_list, in_files, task_details, tasks_files_dir
             )
         except RuntimeError as e:
             remove_task_files(task_details["task_id"], ["input"])

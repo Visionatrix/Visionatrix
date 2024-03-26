@@ -96,10 +96,10 @@ def put_task_in_queue(task_details: dict) -> None:
     except Exception as e:
         session.rollback()
         LOGGER.exception("Failed to add task: %s", e)
+        remove_task_files(task_details["task_id"], ["input"])
         raise
     finally:
         session.close()
-        remove_task_files(task_details["task_id"], ["input"])
 
 
 def get_task(task_id: int) -> dict | None:
