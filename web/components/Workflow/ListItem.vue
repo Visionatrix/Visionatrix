@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 const props = defineProps({
-  flow: Object
+  flow: {
+    type: Object,
+    required: true,
+  }
 })
 const flowsStore = useFlowsStore()
 const installed = ref(flowsStore.flows_installed.filter((f) => f.name === props?.flow?.name).length === 1)
