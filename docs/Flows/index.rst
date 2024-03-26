@@ -11,3 +11,4 @@ Available Flows
    Stable_Cascade
    PhotoStickers
    GhibliPortrait
+   ComicuPortrait
