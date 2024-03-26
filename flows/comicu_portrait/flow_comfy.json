@@ -146,7 +146,7 @@
       "lora_name": "The_Simplest.safetensors",
       "lora_model_strength": 1,
       "lora_clip_strength": 1,
-      "positive": "[1{gender}],  looking at viewer, {prompt}, half body,(masterpiece), (best quality), (ultra-detailed), very aesthetic, illustration, perfect composition",
+      "positive": "[1{gender}] {prompt}, looking at viewer, half body, (masterpiece), (best quality), (ultra-detailed), very aesthetic, illustration, perfect composition",
       "negative": "nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]",
       "token_normalization": "none",
       "weight_interpretation": "comfy",

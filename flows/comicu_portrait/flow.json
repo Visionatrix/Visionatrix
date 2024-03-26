@@ -95,8 +95,8 @@
       }
     },
     {
-      "name": "accuracy",
-      "display_name": "Similarity to the original",
+      "name": "prompt_strength",
+      "display_name": "Prompt strength",
       "type": "range",
       "optional": true,
       "advanced": true,
