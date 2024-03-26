@@ -20,6 +20,7 @@ def install_model(
     progress_info: dict,
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
 ) -> bool:
+    model["hash"] = model["hash"].lower()
     if str(model["save_path"]).find("{root}") != -1:
         save_path = Path(backend_dir).joinpath(model["save_path"].replace("{root}", ""))
     else:
@@ -63,8 +64,8 @@ def download_model(
                     break
             if not linked_etag:
                 linked_etag = response.headers.get("X-Linked-ETag", response.headers.get("ETag", ""))
-            linked_etag = linked_etag.strip('"')
-            if linked_etag != model["hash"]:
+            linked_etag = linked_etag.strip('"').lower()
+            if linked_etag != model["hash"] and model["url"].find("civitai.com/") == -1:
                 raise RuntimeError(f"Model hash mismatch: {linked_etag}!={model['hash']}, please, report about this.")
             if not response.is_success:
                 raise RuntimeError(f"Downloading of '{model['url']}' returned {response.status_code} status.")
@@ -81,7 +82,7 @@ def download_model(
                         if last_progress_value != new_progress_value:
                             progress_callback(progress_info["name"], new_progress_value, "")
                             last_progress_value = new_progress_value
-                if not check_hash(linked_etag, save_path):
+                if not check_hash(model["hash"], save_path):
                     raise RuntimeError(f"Incomplete download of '{model['url']}'.")
             if model["url"].endswith(".zip"):
                 with zipfile.ZipFile(save_path) as zip_file:

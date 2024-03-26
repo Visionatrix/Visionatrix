@@ -1,0 +1,162 @@
+{
+  "336": {
+    "inputs": {
+      "weight": 0.6,
+      "start_at": 0,
+      "end_at": 0.85,
+      "instantid": [
+        "337",
+        0
+      ],
+      "insightface": [
+        "338",
+        0
+      ],
+      "control_net": [
+        "339",
+        0
+      ],
+      "image": [
+        "383",
+        0
+      ],
+      "model": [
+        "384",
+        0
+      ],
+      "positive": [
+        "384",
+        1
+      ],
+      "negative": [
+        "384",
+        2
+      ]
+    },
+    "class_type": "ApplyInstantID",
+    "_meta": {
+      "title": "Apply InstantID"
+    }
+  },
+  "337": {
+    "inputs": {
+      "instantid_file": "instantid-ip-adapter.bin"
+    },
+    "class_type": "InstantIDModelLoader",
+    "_meta": {
+      "title": "Load InstantID Model"
+    }
+  },
+  "338": {
+    "inputs": {
+      "provider": "CPU"
+    },
+    "class_type": "InstantIDFaceAnalysis",
+    "_meta": {
+      "title": "InstantID Face Analysis"
+    }
+  },
+  "339": {
+    "inputs": {
+      "control_net_name": "instantid-controlnet.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model"
+    }
+  },
+  "340": {
+    "inputs": {
+      "image": "jaafar-jackson.jpg",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "357": {
+    "inputs": {
+      "seed": 221455975441137,
+      "steps": 28,
+      "cfg": 4,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "preview_method": "none",
+      "vae_decode": "true",
+      "model": [
+        "336",
+        0
+      ],
+      "positive": [
+        "336",
+        1
+      ],
+      "negative": [
+        "336",
+        2
+      ],
+      "latent_image": [
+        "384",
+        3
+      ],
+      "optional_vae": [
+        "384",
+        4
+      ]
+    },
+    "class_type": "KSampler (Efficient)",
+    "_meta": {
+      "title": "KSampler (Efficient)"
+    }
+  },
+  "359": {
+    "inputs": {
+      "filename_prefix": "Animagine XL 3.1/img_",
+      "images": [
+        "357",
+        5
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "383": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "image": [
+        "340",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "ImageScaleToTotalPixels"
+    }
+  },
+  "384": {
+    "inputs": {
+      "ckpt_name": "animagine-xl-3.1.safetensors",
+      "vae_name": "Baked VAE",
+      "clip_skip": -1,
+      "lora_name": "The_Simplest.safetensors",
+      "lora_model_strength": 1,
+      "lora_clip_strength": 1,
+      "positive": "[1{gender}] {prompt}, looking at viewer, half body, (masterpiece), (best quality), (ultra-detailed), very aesthetic, illustration, perfect composition",
+      "negative": "nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]",
+      "token_normalization": "none",
+      "weight_interpretation": "comfy",
+      "empty_latent_width": 896,
+      "empty_latent_height": 1152,
+      "batch_size": 1
+    },
+    "class_type": "Efficient Loader",
+    "_meta": {
+      "title": "Efficient Loader"
+    }
+  }
+}
