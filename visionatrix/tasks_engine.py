@@ -5,10 +5,12 @@ import logging
 import os
 import time
 import typing
+from datetime import datetime
 
 from sqlalchemy import (
     JSON,
     Column,
+    DateTime,
     Float,
     ForeignKey,
     Integer,
@@ -18,6 +20,7 @@ from sqlalchemy import (
     delete,
     update,
 )
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
@@ -44,6 +47,14 @@ class TaskDetails(Base):
     input_files = Column(JSON, default=[])
     flow_comfy = Column(JSON, default={})
     task_queue = relationship("TaskQueue")
+
+
+class TaskLock(Base):
+    __tablename__ = "task_locks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
+    locked_at = Column(DateTime, default=datetime.utcnow)
+    task_queue = relationship("TaskQueue", backref="lock")
 
 
 LOGGER = logging.getLogger("visionatrix")
@@ -128,8 +139,20 @@ def get_task(task_id: int) -> dict | None:
 def get_incomplete_task_without_error() -> dict:
     session = DB_SESSION_MAKER()
     try:
-        task = session.query(TaskDetails).filter(TaskDetails.error == "", TaskDetails.progress != 100.0).first()
+        task = (
+            session.query(TaskDetails)
+            .outerjoin(TaskLock, TaskDetails.task_id == TaskLock.task_id)
+            .filter(TaskDetails.error == "", TaskDetails.progress != 100.0, TaskLock.id.is_(None))
+            .first()
+        )
         if not task:
+            return {}
+        try:
+            lock = TaskLock(task_id=task.task_id, locked_at=datetime.utcnow())
+            session.add(lock)
+            session.commit()
+        except IntegrityError:
+            session.rollback()
             return {}
         return {
             "task_id": task.task_id,
@@ -142,6 +165,7 @@ def get_incomplete_task_without_error() -> dict:
             "flow_comfy": task.flow_comfy,
         }
     except Exception as e:
+        session.rollback()
         LOGGER.exception("Failed to retrieve task without error and incomplete progress: %s", e)
         return {}
     finally:
@@ -175,9 +199,9 @@ def get_tasks() -> dict:
 def remove_task_by_id(task_id: int) -> bool:
     session = DB_SESSION_MAKER()
     try:
-        stmt = delete(TaskDetails).where(TaskDetails.task_id == task_id)
-        result = session.execute(stmt)
-        if result.rowcount > 0:
+        lock_result = session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+        details_result = session.execute(delete(TaskDetails).where(TaskDetails.task_id == task_id))
+        if lock_result.rowcount + details_result.rowcount > 0:
             session.commit()
             return True
     except Exception as e:
@@ -217,6 +241,18 @@ def remove_task_files(task_id: int, directories: list[str]) -> None:
             if filename.startswith(result_prefix):
                 with contextlib.suppress(FileNotFoundError):
                     os.remove(os.path.join(target_directory, filename))
+
+
+def remove_task_lock(task_id: int) -> None:
+    session = DB_SESSION_MAKER()
+    try:
+        session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to remove task lock for task_id %s: %s", task_id, e)
+    finally:
+        session.close()
 
 
 def update_task_progress(task_details: dict) -> bool:
@@ -315,6 +351,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
             if not ACTIVE_TASK["error"]:
                 ACTIVE_TASK["progress"] = 100.0
             update_task_progress(ACTIVE_TASK)
+            remove_task_lock(ACTIVE_TASK["task_id"])
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
         need_gc = True

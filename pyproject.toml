@@ -50,7 +50,7 @@ dependencies = [
   "python-dotenv>=1",
   "python-multipart",
   "pyyaml",
-  "sqlalchemy",
+  "sqlalchemy>=2.0.29",
   "torch",
   "torchvision",
   "uvicorn[standard]>=0.23.2",
