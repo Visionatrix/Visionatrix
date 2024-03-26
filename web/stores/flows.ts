@@ -151,8 +151,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		initFlowResultsData(res: TasksHistory) {
 			console.debug('tasks_history:', res)
 
-			let runningFlows: FlowRunning[] = []
-			let finishedFlows: FlowResult[] = []
+			const runningFlows: FlowRunning[] = []
+			const finishedFlows: FlowResult[] = []
 
 			Object.keys(res).forEach((task_id) => {
 				const task = <TaskHistoryItem>res[task_id]

@@ -129,7 +129,6 @@ def prepare_flow_comfy(
     flow_comfy: dict,
     in_texts_params: dict,
     in_files_params: list,
-    task_id: int,
     task_details: dict,
     tasks_files_dir: str,
 ) -> dict:
@@ -171,7 +170,7 @@ def prepare_flow_comfy(
                     raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
             set_node_value(node, k_v["dest_field_name"], v_copy)
     process_seed_value(flow, in_texts_params, r)
-    prepare_flow_comfy_files_params(flow, in_files_params, task_id, task_details, tasks_files_dir, r)
+    prepare_flow_comfy_files_params(flow, in_files_params, task_details["task_id"], task_details, tasks_files_dir, r)
     return r
 
 

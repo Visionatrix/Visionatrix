@@ -1,154 +1,296 @@
 import asyncio
-import builtins
 import contextlib
 import gc
-import json
 import logging
 import os
-import threading
 import time
 import typing
+from datetime import datetime
 
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    and_,
+    create_engine,
+    delete,
+    update,
+)
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+
+from . import options
 from .comfyui import interrupt_processing, soft_empty_cache
 
+Base = declarative_base()
+
+
+class TaskQueue(Base):
+    __tablename__ = "tasks_queue"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+
+class TaskDetails(Base):
+    __tablename__ = "tasks_details"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
+    progress = Column(Float, default=0.0)
+    error = Column(String, default="")
+    name = Column(String, default="")
+    input_params = Column(JSON, default={})
+    outputs = Column(JSON, default=[])
+    input_files = Column(JSON, default=[])
+    flow_comfy = Column(JSON, default={})
+    task_queue = relationship("TaskQueue")
+
+
+class TaskLock(Base):
+    __tablename__ = "task_locks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
+    locked_at = Column(DateTime, default=datetime.utcnow)
+    task_queue = relationship("TaskQueue", backref="lock")
+
+
 LOGGER = logging.getLogger("visionatrix")
+DB_SESSION_MAKER: sessionmaker
+TASKS_FILES_DIR: str
+ACTIVE_TASK: dict
 
-ACTIVE_TASK: dict = {}
-TASKS_HISTORY = {}
-"""{
-    task_id: {
-        progress: 0.0-100.0,
-        error: "",
-        name: "",
-        input_params: "",
-        outputs: [{"comfy_node_id": int, "type": str}],
-        input_files: [],
-        flow_comfy: {},
-        interrupt: bool,
+
+def create_new_task(name: str, input_params: dict) -> dict:
+    session = DB_SESSION_MAKER()
+    try:
+        new_task_queue = TaskQueue()
+        session.add(new_task_queue)
+        session.commit()
+        remove_task_files(new_task_queue.id, ["output", "input"])
+        return {
+            "task_id": new_task_queue.id,
+            "name": name,
+            "input_params": input_params,
+            "progress": 0.0,
+            "error": "",
+            "outputs": [],
+            "input_files": [],
+            "flow_comfy": {},
         }
-    }"""
-TASKS_QUEUE = {}
-"""{
-    task_id: {
-        progress: 0.0-100.0,
-        error: "",
-        name: "",
-        input_params: "",
-        outputs: [{"comfy_node_id": int, "type": str}],
-        input_files: [],
-        flow_comfy: {},
-        interrupt: bool,
-        }
-    }"""
-NEXT_TASK_ID = 1
-TASKS_CREATION_LOCK = threading.RLock()
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to add to TaskQueue: %s", e)
+        raise
+    finally:
+        session.close()
 
 
-def create_new_task(name: str, input_params: dict, tasks_files_dir: str) -> [int, dict]:
-    global NEXT_TASK_ID  # pylint: disable=global-statement
-
-    task_details = {
-        "progress": 0.0,
-        "error": "",
-        "name": name,
-        "input_params": input_params,
-        "outputs": [],
-        "input_files": [],
-        "flow_comfy": {},
-        "interrupt": False,
-    }
-
-    with TASKS_CREATION_LOCK:
-        task_id = NEXT_TASK_ID
-        NEXT_TASK_ID += 1
-    remove_task_files(task_id, tasks_files_dir, ["output", "input"])
-    return task_id, task_details
-
-
-def put_task_in_queue(task_id: int, task_details: dict) -> None:
+def put_task_in_queue(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
-    TASKS_QUEUE.update({task_id: task_details})
-
-
-def get_task_from_queue(task_id: int) -> dict | None:
-    return TASKS_QUEUE.get(task_id)
-
-
-def get_task_from_history(task_id: int) -> dict | None:
-    return TASKS_HISTORY.get(task_id)
+    session = DB_SESSION_MAKER()
+    try:
+        new_task = TaskDetails(
+            task_id=task_details["task_id"],
+            name=task_details["name"],
+            input_params=task_details["input_params"],
+            progress=task_details["progress"],
+            error=task_details["error"],
+            outputs=task_details["outputs"],
+            input_files=task_details["input_files"],
+            flow_comfy=task_details["flow_comfy"],
+        )
+        session.add(new_task)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to add task: %s", e)
+        remove_task_files(task_details["task_id"], ["input"])
+        raise
+    finally:
+        session.close()
 
 
 def get_task(task_id: int) -> dict | None:
-    task_details = get_task_from_queue(task_id)
-    if task_details is None:
-        task_details = get_task_from_history(task_id)
-    return task_details
+    session = DB_SESSION_MAKER()
+    try:
+        task = session.query(TaskDetails).filter(TaskDetails.task_id == task_id).first()
+        if not task:
+            return None
+        return {
+            "task_id": task.task_id,
+            "progress": task.progress,
+            "error": task.error,
+            "name": task.name,
+            "input_params": task.input_params,
+            "outputs": task.outputs,
+            "input_files": task.input_files,
+            "flow_comfy": task.flow_comfy,
+        }
+    except Exception as e:
+        LOGGER.exception("Failed to retrieve task: %s", e)
+        raise
+    finally:
+        session.close()
 
 
-def get_tasks_from_queue() -> dict:
-    return TASKS_QUEUE
-
-
-def get_tasks_from_history() -> dict:
-    return TASKS_HISTORY
+def get_incomplete_task_without_error() -> dict:
+    session = DB_SESSION_MAKER()
+    try:
+        task = (
+            session.query(TaskDetails)
+            .outerjoin(TaskLock, TaskDetails.task_id == TaskLock.task_id)
+            .filter(TaskDetails.error == "", TaskDetails.progress != 100.0, TaskLock.id.is_(None))
+            .first()
+        )
+        if not task:
+            return {}
+        try:
+            lock = TaskLock(task_id=task.task_id, locked_at=datetime.utcnow())
+            session.add(lock)
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            return {}
+        return {
+            "task_id": task.task_id,
+            "progress": 0.0,
+            "error": task.error,
+            "name": task.name,
+            "input_params": task.input_params,
+            "outputs": task.outputs,
+            "input_files": task.input_files,
+            "flow_comfy": task.flow_comfy,
+        }
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to retrieve task without error and incomplete progress: %s", e)
+        return {}
+    finally:
+        session.close()
 
 
 def get_tasks() -> dict:
-    return get_tasks_from_queue() | get_tasks_from_history()
+    session = DB_SESSION_MAKER()
+    try:
+        tasks = session.query(TaskDetails).all()
+        return {
+            task.task_id: {
+                "task_id": task.task_id,
+                "progress": task.progress,
+                "error": task.error,
+                "name": task.name,
+                "input_params": task.input_params,
+                "outputs": task.outputs,
+                "input_files": task.input_files,
+                "flow_comfy": task.flow_comfy,
+            }
+            for task in tasks
+        }
+    except Exception as e:
+        LOGGER.exception("Failed to retrieve tasks: %s", e)
+        raise
+    finally:
+        session.close()
 
 
-def remove_task(task_id: int, tasks_files_dir: str) -> None:
-    task_details = TASKS_QUEUE.pop(task_id, {})
-    if task_details:
-        task_details["interrupt"] = True
-    else:
-        TASKS_HISTORY.pop(task_id, {})
-    remove_task_files(task_id, tasks_files_dir, ["output", "input"])
+def remove_task_by_id(task_id: int) -> bool:
+    session = DB_SESSION_MAKER()
+    try:
+        lock_result = session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+        details_result = session.execute(delete(TaskDetails).where(TaskDetails.task_id == task_id))
+        if lock_result.rowcount + details_result.rowcount > 0:
+            session.commit()
+            return True
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to remove task: %s", e)
+        raise
+    finally:
+        session.close()
+        remove_task_files(task_id, ["output", "input"])
+    return False
 
 
-def remove_task_files(task_id: int, tasks_files_dir: str, directories: list[str]) -> None:
-    if not tasks_files_dir:
-        return
+def remove_unfinished_task_by_id(task_id: int) -> bool:
+    session = DB_SESSION_MAKER()
+    try:
+        session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+        details_result = session.execute(
+            delete(TaskDetails).where(and_(TaskDetails.progress != 100.0, TaskDetails.task_id == task_id))
+        )
+        if details_result.rowcount > 0:
+            session.commit()
+            remove_task_files(task_id, ["output", "input"])
+            return True
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to remove task: %s", e)
+        raise
+    finally:
+        session.close()
+    return False
+
+
+def remove_unfinished_tasks_by_name(name: str) -> bool:
+    session = DB_SESSION_MAKER()
+    try:
+        stmt = delete(TaskDetails).where(and_(TaskDetails.progress != 100.0, TaskDetails.name == name))
+        result = session.execute(stmt)
+        if result.rowcount > 0:
+            session.commit()
+            return True
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to remove incomplete TaskDetails: %s", e)
+        raise
+    finally:
+        session.close()
+    return False
+
+
+def remove_task_files(task_id: int, directories: list[str]) -> None:
     for directory in directories:
         result_prefix = f"{task_id}_"
-        target_directory = os.path.join(tasks_files_dir, directory)
+        target_directory = os.path.join(TASKS_FILES_DIR, directory)
         for filename in os.listdir(target_directory):
             if filename.startswith(result_prefix):
                 with contextlib.suppress(FileNotFoundError):
                     os.remove(os.path.join(target_directory, filename))
 
 
-def save_tasks(tasks_files_dir: str) -> int:
-    tasks = TASKS_QUEUE | TASKS_HISTORY
-    with builtins.open(os.path.join(tasks_files_dir, "tasks_history.json"), mode="w", encoding="UTF-8") as file:
-        json.dump(tasks, file)
-    LOGGER.debug("saved %s tasks", len(tasks))
-    return len(tasks)
+def remove_task_lock(task_id: int) -> None:
+    session = DB_SESSION_MAKER()
+    try:
+        result = session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+        if result.rowcount > 0:
+            session.commit()
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to remove task lock for task_id %s: %s", task_id, e)
+    finally:
+        session.close()
 
 
-def load_tasks(tasks_files_dir: str):
-    global NEXT_TASK_ID  # pylint: disable=global-statement
-
-    tasks_history = os.path.join(tasks_files_dir, "tasks_history.json")
-    tasks = {}
-    if os.path.exists(tasks_history):
-        with builtins.open(tasks_history, mode="r", encoding="UTF-8") as file:
-            tasks = json.load(file)
-            tasks = {int(k): v for k, v in tasks.items()}
-            for k, v in tasks.items():
-                if v["error"]:  # clear from history tasks with errors
-                    remove_task_files(k, tasks_files_dir, ["output", "input"])
-                    continue
-                if v["progress"] < 100.0:
-                    v["progress"] = 0.0
-                    remove_task_files(k, tasks_files_dir, ["output"])
-                    TASKS_QUEUE[k] = v
-                else:
-                    TASKS_HISTORY[k] = v
-        LOGGER.info("Loaded %s tasks", len(tasks))
-    else:
-        LOGGER.info("No `tasks_history.json` to load.")
-    NEXT_TASK_ID = 1 + max(tasks.keys(), default=0)
+def update_task_progress(task_details: dict) -> bool:
+    session = DB_SESSION_MAKER()
+    try:
+        result = session.execute(
+            update(TaskDetails)
+            .where(TaskDetails.task_id == task_details["task_id"])
+            .values(progress=task_details["progress"], error=task_details["error"])
+        )
+        session.commit()
+        return result.rowcount == 1
+    except Exception as e:
+        interrupt_processing()
+        session.rollback()
+        LOGGER.exception("Task %s failed to update TaskDetails: %s", task_details["task_id"], e)
+    finally:
+        session.close()
+    return False
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
@@ -162,9 +304,7 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         return
     node_percent = 100 / ACTIVE_TASK["nodes_count"]
 
-    if ACTIVE_TASK["interrupt"] is True:
-        interrupt_processing()
-    elif event == "executing":
+    if event == "executing":
         if not ACTIVE_TASK["current_node"]:
             ACTIVE_TASK["current_node"] = data["node"]
         if ACTIVE_TASK["current_node"] != data["node"]:
@@ -183,12 +323,16 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
     elif event == "execution_cached":
         increase_current_task_progress(len(data["nodes"]) * node_percent)
     elif event == "execution_interrupted":
-        ACTIVE_TASK["interrupt"] = True
+        remove_task_by_id(ACTIVE_TASK["task_id"])
+        ACTIVE_TASK["interrupted"] = True
+        return
+    if not update_task_progress(ACTIVE_TASK):
+        interrupt_processing()
+        ACTIVE_TASK["interrupted"] = True
 
 
 def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
-    global ACTIVE_TASK  # pylint: disable=global-statement
-
+    global ACTIVE_TASK
     last_gc_collect = 0
     need_gc = False
     gc_collect_interval = 20.0
@@ -205,55 +349,53 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
                 last_gc_collect = current_time
                 need_gc = False
 
-        if not TASKS_QUEUE:
-            time.sleep(0.05)
+        ACTIVE_TASK = get_incomplete_task_without_error()
+        if not ACTIVE_TASK:
+            time.sleep(0.1)
             continue
-        task_id, ACTIVE_TASK = next(iter(TASKS_QUEUE.items()))
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
-        prompt_executor.server.last_prompt_id = str(task_id)
+        prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
         execution_start_time = time.perf_counter()
         prompt_executor.execute(
             ACTIVE_TASK["flow_comfy"],
-            str(task_id),
+            str(ACTIVE_TASK["task_id"]),
             {"client_id": "vix"},
             [str(i["comfy_node_id"]) for i in ACTIVE_TASK["outputs"]],
         )
         current_time = time.perf_counter()
-        if ACTIVE_TASK["interrupt"] is False:
-            ACTIVE_TASK.pop("nodes_count")
-            ACTIVE_TASK.pop("current_node")
+        if ACTIVE_TASK.get("interrupted", False):
+            remove_task_by_id(ACTIVE_TASK["task_id"])
+        else:
             if not ACTIVE_TASK["error"]:
                 ACTIVE_TASK["progress"] = 100.0
-            TASKS_HISTORY[task_id] = ACTIVE_TASK
-        TASKS_QUEUE.pop(task_id, 0)
+            update_task_progress(ACTIVE_TASK)
+            remove_task_lock(ACTIVE_TASK["task_id"])
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
         need_gc = True
 
 
-async def start_tasks_engine(
-    tasks_files_dir: str,
-    ui_mode: bool,
-    comfy_queue: typing.Any,
-    exit_event: asyncio.Event,
-) -> None:
+async def start_tasks_engine(tasks_files_dir: str, comfy_queue: typing.Any, exit_event: asyncio.Event) -> None:
+    global TASKS_FILES_DIR
+
     async def start_background_tasks_engine(prompt_executor):
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
-    if ui_mode:
-        load_tasks(tasks_files_dir)
-        _ = asyncio.create_task(tasks_background_sync(tasks_files_dir))
+    TASKS_FILES_DIR = tasks_files_dir
+    init_database_engine()
     _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
 
 
-async def tasks_background_sync(tasks_files_dir: str):
-    try:
-        while True:
-            await asyncio.sleep(3)
-            save_tasks(tasks_files_dir)
-    except asyncio.CancelledError:
-        LOGGER.info("Cancelling..")
-        n_tasks = save_tasks(tasks_files_dir)
-        LOGGER.info("Cancelled, saved %s tasks.", n_tasks)
-        raise
+def init_database_engine() -> None:
+    global DB_SESSION_MAKER
+
+    connect_args = {}
+    database_uri = options.DATABASE_URI
+    if database_uri.startswith("sqlite:"):
+        connect_args = {"check_same_thread": False}
+        if database_uri.startswith("sqlite:///."):
+            database_uri = f"sqlite:///{os.path.abspath(os.path.join(TASKS_FILES_DIR, database_uri[10:]))}"
+    engine = create_engine(database_uri, connect_args=connect_args)
+    Base.metadata.create_all(engine)
+    DB_SESSION_MAKER = sessionmaker(autocommit=False, autoflush=False, bind=engine)

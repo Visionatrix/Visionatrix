@@ -15,6 +15,9 @@ TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", "")
 VIX_HOST = environ.get("VIX_HOST", "127.0.0.1")
 VIX_PORT = environ.get("VIX_PORT", "8288")
 
+DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
+"""for SQLite: if path is relative than it always relative to TASKS_FILES_DIR"""
+
 ORG_URL = "https://github.com/Visionatrix/"
 FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
 

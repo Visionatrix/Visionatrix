@@ -88,7 +88,7 @@ def download_model(
                     zip_file.extractall(save_path.parent)
                 os.unlink(save_path)
             return True
-    except Exception as e:  # noqa pylint: disable=broad-exception-caught
+    except Exception as e:
         save_path.unlink(missing_ok=True)
         LOGGER.warning("Error during downloading %s", model["name"], exc_info=e)
         return False
