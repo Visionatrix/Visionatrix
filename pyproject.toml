@@ -44,19 +44,18 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "fastapi>=0.109.2",
   "httpx>=0.25.2",
+  "pydantic>=2.1.1",
   "python-dotenv>=1",
+  "python-multipart",
   "pyyaml",
+  "sqlalchemy>=2.0.29",
   "torch",
   "torchvision",
-]
-[project.optional-dependencies]
-app = [
-  "fastapi>=0.109.2",
-  "pydantic>=2.1.1",
-  "python-multipart",
   "uvicorn[standard]>=0.23.2",
 ]
+[project.optional-dependencies]
 dev = [
   "pre-commit",
   "pylint",
@@ -69,7 +68,6 @@ docs = [
   "sphinx-inline-tabs",
   "sphinx-issues>=3.0.1",
   "sphinx-rtd-theme>=1",
-  "visionatrix[app]",
 ]
 [project.urls]
 Changelog = "https://github.com/Visionatrix/Visionatrix/blob/main/CHANGELOG.md"
@@ -133,6 +131,8 @@ messages_control.disable = [
     "too-many-public-methods",
     "invalid-name",
     "too-many-nested-blocks",
+    "global-statement",
+    "broad-exception-caught",
 ]
 
 [tool.pytest.ini_options]

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps({
+const props = defineProps({
 	inputParam: {
 		type: Object,
 		required: true,
@@ -18,11 +18,28 @@ defineProps({
 	}
 })
 
-function createObjectUrl(file: File) {
-	return URL.createObjectURL(file)
+function createObjectUrl(file?: File) {
+	return file ? URL.createObjectURL(file) : ''
 }
 
+const imageInput = ref(null)
 const imagePreviewUrl = ref('')
+const imagePreviewModalOpen = ref(false)
+
+function removeImagePreview() {
+	URL.revokeObjectURL(imagePreviewUrl.value)
+	imagePreviewUrl.value = ''
+	console.debug('imageInput', imageInput)
+	if (imageInput) {
+		// @ts-ignore
+		imageInput.value.$refs.input.value = ''
+	}
+	props.inputParamsMap[props.index][props.inputParam.name].value = null
+}
+
+onBeforeUnmount(() => {
+	URL.revokeObjectURL(imagePreviewUrl.value)
+})
 </script>
 
 <template>
@@ -58,21 +75,48 @@ const imagePreviewUrl = ref('')
 
 			<div class="flex flex-row flex-grow items-center justify-between">
 				<UInput v-if="inputParam.type === 'image'"
+					ref="imageInput"
 					type="file"
 					accept="image/*"
-					class="mr-2 w-full"
+					class="w-full"
 					:label="inputParam.display_name"
 					@change="(event: Event) => {
 						const input = event.target as HTMLInputElement
 						const file = input.files?.[0]
 						inputParamsMap[index][inputParam.name].value = <File>file
-						imagePreviewUrl = file ? createObjectUrl(file) : ''
+						imagePreviewUrl = createObjectUrl(file)
 						console.debug('inputParamsMap', inputParamsMap)
 					}" />
 				<NuxtImg v-if="imagePreviewUrl !== ''"
 					:src="imagePreviewUrl"
-					class="w-10 h-10 rounded-lg" />
+					class="w-10 h-10 rounded-lg cursor-pointer ml-2"
+					@click="() => {
+						imagePreviewModalOpen = true
+					}" />
+				<UButton v-if="imagePreviewUrl !== ''"
+					icon="i-heroicons-x-mark"
+					variant="outline"
+					class="ml-2"
+					@click="removeImagePreview" />
 			</div>
+			<template v-if="inputParam.type === 'image'">
+				<UModal v-model="imagePreviewModalOpen"
+					class="z-[90]"
+					:transition="false"
+					fullscreen>
+					<UButton class="absolute top-4 right-4"
+						icon="i-heroicons-x-mark"
+						variant="ghost"
+						@click="() => imagePreviewModalOpen = false" />
+					<div class="flex items-center justify-center w-full h-full p-4"
+						@click.left="() => imagePreviewModalOpen = false">
+						<NuxtImg v-if="imagePreviewUrl"
+							class="lg:h-full"
+							fit="inside"
+							:src="imagePreviewUrl" />
+					</div>
+				</UModal>
+			</template>
 
 			<USelectMenu v-if="inputParam.type === 'list'"
 				v-model="inputParamsMap[index][inputParam.name].value"

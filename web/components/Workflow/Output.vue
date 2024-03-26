@@ -1,8 +1,4 @@
 <script setup lang="ts">
-defineProps({
-	output: Object
-})
-
 const flowStore  = useFlowsStore()
 
 const hasOutputResult = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).length > 0 || false)

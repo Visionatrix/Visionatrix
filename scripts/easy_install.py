@@ -72,7 +72,7 @@ def reinstall():
         create_venv()
     install_graphics_card_packages()
     print("Installing Visionatrix")
-    venv_run('pip install ".[app]"')
+    venv_run("pip install .")
     print("Preparing Visionatrix working instance..")
     venv_run("python -m visionatrix install")
     c = input("Installation finished. Run Visionatrix? (Y/N): ").lower()
