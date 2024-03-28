@@ -6,48 +6,6 @@
   "homepage": "https://comfyworkflows.com/profile/86edf4d7-d110-498d-b4e0-4cacadee750e",
   "license": "",
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Juggernaut_Lighting_LoRAs.html",
-  "models": [
-    {
-      "name": "JuggernautXL_v8Rundiffusion",
-      "save_path": "checkpoints/juggernautXL_v8Rundiffusion.safetensors",
-      "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8/resolve/main/juggernautXL_v8Rundiffusion.safetensors",
-      "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8",
-      "license": "creativeml-openrail-m",
-      "hash": "aeb7e9e6897a1e58b10494bd989d001e3d4bc9b634633cd7b559838f612c2867"
-    },
-    {
-      "name": "SDXL_lightning_8step_lora",
-      "save_path": "loras/sdxl_lightning_8step_lora.safetensors",
-      "url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_8step_lora.safetensors",
-      "homepage": "https://huggingface.co/ByteDance/SDXL-Lightning",
-      "license": "openrail++",
-      "hash": "5aa30d94cdf7950a8b53a693682650ee061eddb128c5435a8f88defea73b2ac6"
-    },
-    {
-      "name": "SDXL_vae",
-      "save_path": "vae/sdxl_vae.safetensors",
-      "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors",
-      "homepage": "https://huggingface.co/stabilityai/sdxl-vae",
-      "license": "MIT",
-      "hash": "63aeecb90ff7bc1c115395962d3e803571385b61938377bc7089b36e81e92e2e"
-    },
-    {
-      "name": "add-detail-XL",
-      "save_path": "loras/add-detail-xl.safetensors",
-      "url": "https://huggingface.co/PvDeep/Add-Detail-XL/resolve/main/add-detail-xl.safetensors",
-      "homepage": "",
-      "license": "",
-      "hash": "0d9bd1b873a7863e128b4672e3e245838858f71469a3cec58123c16c06f83bd7"
-    },
-    {
-      "name": "4x-UltraSharp",
-      "save_path": "upscale_models/4x-UltraSharp.pth",
-      "url": "https://huggingface.co/lokCX/4x-Ultrasharp/resolve/main/4x-UltraSharp.pth",
-      "homepage": "",
-      "license": "",
-      "hash": "a5812231fc936b42af08a5edba784195495d303d5b3248c24489ef0c4021fe01"
-    }
-  ],
   "input_params": [
     {
       "name": "prompt",
