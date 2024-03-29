@@ -6,40 +6,6 @@
   "homepage": "https://openart.ai/workflows/datou/photo-2-anime-sdxl/0tBl5W8dBBe6FEhi0MxY",
   "license": "",
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/PhotoStickers.html",
-  "models": [
-    {
-        "name": "InstantID-ControlNet",
-        "save_path": "controlnet/instantid-controlnet.safetensors",
-        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ControlNetModel/diffusion_pytorch_model.safetensors",
-        "homepage": "https://huggingface.co/InstantX/InstantID",
-        "license": "apache-2.0",
-        "hash": "c8127be9f174101ebdafee9964d856b49b634435cf6daa396d3f593cf0bbbb05"
-    },
-    {
-        "name": "InstantID-IP-Adapter",
-        "save_path": "instantid/instantid-ip-adapter.bin",
-        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ip-adapter.bin",
-        "homepage": "https://huggingface.co/InstantX/InstantID",
-        "license": "apache-2.0",
-        "hash": "02b3618e36d803784166660520098089a81388e61a93ef8002aa79a5b1c546e1"
-    },
-    {
-        "name": "StickersRedmond",
-        "save_path": "loras/StickersRedmond.safetensors",
-        "url": "https://huggingface.co/artificialguybr/StickersRedmond/resolve/main/StickersRedmond.safetensors",
-        "homepage": "https://huggingface.co/artificialguybr/StickersRedmond",
-        "license": "creativeml-openrail-m",
-        "hash": "927a840722d1ac9103223c09da55cc3ae750300e1c0e22a15ffcf460ac6f8a56"
-    },
-    {
-        "name": "DreamShaperXL_Lightning",
-        "save_path": "checkpoints/DreamShaperXL_Lightning.safetensors",
-        "url": "https://huggingface.co/Lykon/dreamshaper-xl-lightning/resolve/main/DreamShaperXL_Lightning.safetensors",
-        "homepage": "https://huggingface.co/Lykon/dreamshaper-xl-lightning",
-        "license": "openrail++",
-        "hash": "fdbe56354b8f876b736f24d3ad867ecd4140c019f57642ec8ddd878088d44f64"
-    }
-  ],
   "input_params": [
     {
       "name": "image",
