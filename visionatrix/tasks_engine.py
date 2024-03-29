@@ -25,7 +25,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
 from . import options
-from .comfyui import interrupt_processing, soft_empty_cache
+from .comfyui import cleanup_models, interrupt_processing, soft_empty_cache
 
 Base = declarative_base()
 
@@ -343,6 +343,8 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         if need_gc:
             current_time = time.perf_counter()
             if (current_time - last_gc_collect) > gc_collect_interval:
+                LOGGER.debug("cleanup_models")
+                cleanup_models()
                 LOGGER.debug("gc.collect")
                 gc.collect()
                 soft_empty_cache()
