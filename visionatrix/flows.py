@@ -10,11 +10,14 @@ import typing
 import zipfile
 from pathlib import Path
 from shutil import rmtree
+from urllib.parse import urlparse
 
 import httpx
 
 from . import options
 from .models import install_model
+from .models_map import fill_flow_models_from_comfy_flow
+from .nodes import get_node_value, set_node_value
 
 LOGGER = logging.getLogger("visionatrix")
 CACHE_AVAILABLE_FLOWS = {
@@ -30,15 +33,22 @@ def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing
         return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
 
     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
-    r = httpx.get(options.FLOWS_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
-    if r.status_code == 304:
-        return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
-    if r.status_code != 200:
-        LOGGER.error("Request to get flows returned: %s", r.status_code)
-        return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
+    if urlparse(options.FLOWS_URL).scheme in ("http", "https", "ftp", "ftps"):
+        r = httpx.get(options.FLOWS_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
+        if r.status_code == 304:
+            return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
+        if r.status_code != 200:
+            LOGGER.error("Request to get flows returned: %s", r.status_code)
+            return CACHE_AVAILABLE_FLOWS["flows"], CACHE_AVAILABLE_FLOWS["flows_comfy"]
+        flows_content = r.content
+        flows_content_etag = r.headers.get("etag", "")
+    else:
+        with builtins.open(options.FLOWS_URL, mode="rb") as flows_archive:
+            flows_content = flows_archive.read()
+        flows_content_etag = ""
     r_flows = []
     r_flows_comfy = []
-    with zipfile.ZipFile(io.BytesIO(r.content)) as zip_file:
+    with zipfile.ZipFile(io.BytesIO(flows_content)) as zip_file:
         files_list = zip_file.namelist()
         directories = {name for name in zip_file.namelist() if name.endswith("/")}
         for directory in directories:
@@ -46,9 +56,12 @@ def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing
             flow_comfy_path = f"{directory}flow_comfy.json"
             if flow_path in files_list and flow_comfy_path in files_list:
                 with zip_file.open(flow_path) as flow_file, zip_file.open(flow_comfy_path) as flow_comfy_file:
-                    r_flows.append(json.loads(flow_file.read()))
-                    r_flows_comfy.append(json.loads(flow_comfy_file.read()))
-    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy, "etag": r.headers.get("etag", "")})
+                    _flow = json.loads(flow_file.read())
+                    _flow_comfy = json.loads(flow_comfy_file.read())
+                    fill_flow_models_from_comfy_flow(_flow, _flow_comfy)
+                    r_flows.append(_flow)
+                    r_flows_comfy.append(_flow_comfy)
+    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy, "etag": flows_content_etag})
     return r_flows, r_flows_comfy
 
 
@@ -71,13 +84,16 @@ def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list
         flow_fp = flow.joinpath("flow.json")
         flow_comfy_fp = flow.joinpath("flow_comfy.json")
         if flow_fp.exists() is True and flow_comfy_fp.exists() is True:
-            r.append(json.loads(flow_fp.read_bytes()))
+            _flow = json.loads(flow_fp.read_bytes())
+            _flow_comfy = json.loads(flow_comfy_fp.read_bytes())
+            fill_flow_models_from_comfy_flow(_flow, _flow_comfy)
+            r.append(_flow)
             if flows_comfy is not None:
-                flows_comfy.append(json.loads(flow_comfy_fp.read_bytes()))
+                flows_comfy.append(_flow_comfy)
     return r
 
 
-def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict) -> dict[str, typing.Any]:
+def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict[str, dict]) -> dict[str, typing.Any]:
     flows_comfy = []
     for i, flow in enumerate(get_installed_flows(flows_dir, flows_comfy)):
         if flow["name"] == flow_name:
@@ -96,6 +112,7 @@ def install_custom_flow(
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
 ) -> None:
     uninstall_flow(flows_dir, flow["name"])
+    fill_flow_models_from_comfy_flow(flow, flow_comfy)
     progress_info = {
         "name": flow["name"],
         "current": 1.0,
@@ -174,18 +191,6 @@ def prepare_flow_comfy(
     return r
 
 
-def get_node_value(node: dict, path: list[str]) -> str | int | float:
-    for key in path:
-        node = node[key]
-    return node
-
-
-def set_node_value(node: dict, path: list[str], value: str | int | float | list) -> None:
-    for key in path[:-1]:
-        node = node[key]
-    node[path[-1]] = value
-
-
 def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing.Any:
     v = in_texts_params.get(i["name"], None)
     if v is None:
@@ -229,7 +234,9 @@ def prepare_flow_comfy_files_params(
             task_details["input_files"].append(file_name)
 
 
-def flow_prepare_output_params(outputs: list[str], task_id: int, task_details: dict, flow_comfy: dict) -> None:
+def flow_prepare_output_params(
+    outputs: list[str], task_id: int, task_details: dict, flow_comfy: dict[str, dict]
+) -> None:
     for param in outputs:
         r_node = flow_comfy[param]
         if r_node["class_type"] == "KSampler (Efficient)":
@@ -240,7 +247,7 @@ def flow_prepare_output_params(outputs: list[str], task_id: int, task_details: d
         task_details["outputs"].append({"comfy_node_id": int(param), "type": "image"})
 
 
-def process_seed_value(flow: dict, in_texts_params: dict, flow_comfy: dict) -> None:
+def process_seed_value(flow: dict, in_texts_params: dict, flow_comfy: dict[str, dict]) -> None:
     if "seed" in [i["name"] for i in flow["input_params"]]:
         return  # skip automatic processing "seed" if it was manually defined in "flow.json"
     random_seed = int(in_texts_params.get("seed", random.randint(1, 999999999)))
@@ -250,7 +257,7 @@ def process_seed_value(flow: dict, in_texts_params: dict, flow_comfy: dict) -> N
     in_texts_params["seed"] = random_seed
 
 
-def perform_node_connections(flow_comfy: dict, node_id: str, node_details: dict) -> None:
+def perform_node_connections(flow_comfy: dict[str, dict], node_id: str, node_details: dict) -> None:
     if "node_connect" not in node_details:
         return
     target_connect = node_details["node_connect"]

@@ -6,40 +6,6 @@
   "homepage": "https://openart.ai/workflows/datou/comicu/8fIWdL2KU2myMdfigoWk",
   "license": "",
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/ComicuPortrait.html",
-  "models": [
-    {
-        "name": "InstantID-ControlNet",
-        "save_path": "controlnet/instantid-controlnet.safetensors",
-        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ControlNetModel/diffusion_pytorch_model.safetensors",
-        "homepage": "https://huggingface.co/InstantX/InstantID",
-        "license": "apache-2.0",
-        "hash": "c8127be9f174101ebdafee9964d856b49b634435cf6daa396d3f593cf0bbbb05"
-    },
-    {
-        "name": "InstantID-IP-Adapter",
-        "save_path": "instantid/instantid-ip-adapter.bin",
-        "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ip-adapter.bin",
-        "homepage": "https://huggingface.co/InstantX/InstantID",
-        "license": "apache-2.0",
-        "hash": "02b3618e36d803784166660520098089a81388e61a93ef8002aa79a5b1c546e1"
-    },
-    {
-        "name": "The-Simplest",
-        "save_path": "loras/The_Simplest.safetensors",
-        "url": "https://civitai.com/api/download/models/376536?type=Model&format=SafeTensor",
-        "homepage": "https://civitai.com/models/336225/the-simplest",
-        "license": "",
-        "hash": "EC43D26E93173195BF6873BE6AD829EC3C4DE3F2A1F5D7F3A31E83B5BDD6C6EA"
-    },
-    {
-        "name": "animagine-xl-3.1",
-        "save_path": "checkpoints/animagine-xl-3.1.safetensors",
-        "url": "https://huggingface.co/cagliostrolab/animagine-xl-3.1/resolve/main/animagine-xl-3.1.safetensors",
-        "homepage": "https://huggingface.co/cagliostrolab/animagine-xl-3.1",
-        "license": "faipl-1.0-sd",
-        "hash": "e3c47aedb06418c6c331443cd89f2b3b3b34b7ed2102a3d4c4408a8d35aad6b0"
-    }
-  ],
   "input_params": [
     {
       "name": "image",

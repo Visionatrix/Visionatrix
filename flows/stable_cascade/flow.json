@@ -6,24 +6,6 @@
   "homepage": "https://comfyworkflows.com/profile/41d507c5-bdcf-424b-9b75-a3cc2ea9049d",
   "license": "",
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Stable_Cascade.html",
-  "models": [
-    {
-      "name": "Stable_Cascade_stage_b",
-      "save_path": "checkpoints/stable_cascade_stage_b.safetensors",
-      "url": "https://huggingface.co/stabilityai/stable-cascade/resolve/main/comfyui_checkpoints/stable_cascade_stage_b.safetensors",
-      "homepage": "https://huggingface.co/stabilityai/stable-cascade",
-      "license": "stable-cascade-nc-community",
-      "hash": "6c218dc948575e3b14b03dffe2014d7870ac505005770ce3abdc28e920a03c05"
-    },
-    {
-      "name": "Stable_Cascade_stage_c",
-      "save_path": "checkpoints/stable_cascade_stage_c.safetensors",
-      "url": "https://huggingface.co/stabilityai/stable-cascade/resolve/main/comfyui_checkpoints/stable_cascade_stage_c.safetensors",
-      "homepage": "https://huggingface.co/stabilityai/stable-cascade",
-      "license": "stable-cascade-nc-community",
-      "hash": "088ddf1e444abf399007b2da2bac87791df165c69f477994f6b3c745a20904b0"
-    }
-  ],
   "input_params": [
     {
       "name": "prompt",
