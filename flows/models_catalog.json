@@ -175,7 +175,7 @@
     "url": "https://huggingface.co/TencentARC/PhotoMaker/resolve/main/photomaker-v1.bin",
     "homepage": "https://huggingface.co/TencentARC/PhotoMaker",
     "license": "apache-2.0",
-    "hash": "529,d503fa378bfb3a74e3384ab2064d7269d59f0638324555d22067c31e275bc"
+    "hash": "529d503fa378bfb3a74e3384ab2064d7269d59f0638324555d22067c31e275bc"
   },
   "AlbedobaseXL_v13": {
     "regexes": [

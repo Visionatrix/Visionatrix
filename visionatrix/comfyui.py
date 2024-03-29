@@ -117,6 +117,12 @@ def interrupt_processing() -> None:
     nodes.interrupt_processing()
 
 
+def cleanup_models() -> None:
+    import comfy  # noqa
+
+    comfy.model_management.cleanup_models()
+
+
 def soft_empty_cache() -> None:
     import comfy  # noqa
 
