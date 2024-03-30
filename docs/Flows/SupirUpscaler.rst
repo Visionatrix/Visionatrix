@@ -7,11 +7,17 @@ SUPIR Upscaler
 
 **Memory requirements are directly related to the input image resolution.**
 
-.. note:: Currently for macOS runners `Diffusion type` must be set to `fp32`.
+.. note:: Currently for `macOS runners` `Diffusion type` must be set to `fp32`.
 
-TO-DO
+From `ComfyUI-SUPIR repo <https://github.com/kijai/ComfyUI-SUPIR>`_:
 
-Reference: `ComfyUI-SUPIR repo <https://github.com/kijai/ComfyUI-SUPIR>`_
+`Memory requirements are directly related to the input image resolution. In my testing I was able to run 512x512 to 1024x1024 with a 10GB 3080 GPU, and other tests on 24GB GPU to up 3072x3072. System RAM requirements are also hefty, don't know numbers but I would guess under 32GB is going to have issues, tested with 64GB.`
+
+From our testing on AMD 7900XTX with `24 GB`:
+
+1. `1024x1024` image - **failed**.
+2. `1024x683` image - **success**.
+
 
 Hardware
 """"""""
@@ -20,12 +26,12 @@ Hardware
 
 Time to upscale 1 image(256x256):
 
-- AMD 7900 XTX: **x sec** / **x sec** (2x additional upscale)
+- AMD 7900 XTX: **23 sec** / **24 sec** (2x additional upscale)
 - NVIDIA RTX 3060 (12 GB): **x sec** / **x sec** (2x additional upscale)
 
 Time to upscale 1 image(512x512):
 
-- AMD 7900 XTX: **x sec** / **x sec** (2x additional upscale)
+- AMD 7900 XTX: **60 sec** / **85 sec** (2x additional upscale)
 - NVIDIA RTX 3060 (12 GB): **x sec** / **x sec** (2x additional upscale)
 
 Examples

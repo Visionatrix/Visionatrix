@@ -35,6 +35,7 @@ def load(
         "--models_dir",
         "--tasks_files_dir",
         "--ui",
+        "--loglevel",
         "^run$",
     ]
     args_to_remove = []
