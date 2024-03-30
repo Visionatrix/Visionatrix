@@ -1,0 +1,69 @@
+{
+  "name": "supir_upscaler",
+  "display_name": "SUPIR Upscaler",
+  "description": "High-End Image Upscaler 2x-4x (beta)",
+  "author": "akihungac",
+  "homepage": "https://openart.ai/workflows/profile/akihungac",
+  "license": "",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/SupirUpscaler.html",
+  "input_params": [
+    {
+      "name": "image",
+      "display_name": "Low resolution image",
+      "type": "image",
+      "optional": false,
+      "comfy_node_id": {
+        "2": {
+          "dest_field_name": ["inputs", "image"]
+        }
+      }
+    },
+    {
+      "name": "upscale_at_end",
+      "display_name": "Perform additional 2x upscale after SUPIR",
+      "type": "bool",
+      "default": false,
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "42": {
+          "dest_field_name": ["inputs", "upscale_by"],
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "supir_diff_type",
+      "display_name": "Diffusion Type(set to \"fp32\" on macOS)",
+      "type": "list",
+      "default": "auto",
+      "optional": true,
+      "advanced": true,
+      "options": {
+        "fp16": "fp16",
+        "bf16": "bf16",
+        "fp32": "fp32",
+        "auto": "auto"
+      },
+      "comfy_node_id": {
+        "21": {
+          "dest_field_name": ["inputs", "diffusion_dtype"]
+        }
+      }
+    },
+    {
+      "name": "low_resource",
+      "display_name": "Low resource mode(fp8_unet)",
+      "type": "bool",
+      "default": false,
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "42": {
+          "dest_field_name": ["inputs", "fp8_unet"],
+          "value": true
+        }
+      }
+    }
+  ]
+}

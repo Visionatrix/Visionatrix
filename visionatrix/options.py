@@ -21,8 +21,8 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 ORG_URL = "https://github.com/Visionatrix/"
 FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
 # FLOWS_URL = "./flows.zip"
-MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.json"
-# MODELS_CATALOG_URL = "./flows/models_catalog.json"
+# MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.json"
+MODELS_CATALOG_URL = "./flows/models_catalog.json"
 
 
 def get_backend_dir(backend_dir: str | None) -> str:
