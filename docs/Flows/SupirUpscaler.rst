@@ -3,7 +3,7 @@
 SUPIR Upscaler
 ==============
 
-*This workflow is added mostly for research purposes.*
+*This workflow is added mostly for research purposes, it is still in development.*
 
 **Memory requirements are directly related to the input image resolution.**
 
@@ -17,7 +17,6 @@ From our testing on AMD 7900XTX with `24 GB`:
 
 1. `1024x1024` image - **failed**.
 2. `1024x683` image - **success**.
-
 
 Hardware
 """"""""
@@ -36,3 +35,27 @@ Time to upscale 1 image(512x512):
 
 Examples
 """"""""
+
+*This Upscaler is still in development stage, results may be get better.*
+
+We specifically place one portrait example where results is not perfect.
+
+But for many tests we performed - portrait scaling is shiny compared to older scaling methods.
+
+Image of a classic car:
+
+.. image:: /FlowsResults/SupirUpscaler-classic-car-1024x683.jpg
+
+.. image:: /FlowsResults/SupirUpscaler-classic-car-result.png
+
+Jackie Chan portrait:
+
+.. image:: /FlowsResults/SupirUpscaler-jackie-chan-787x761.jpg
+
+.. image:: /FlowsResults/SupirUpscaler-jackie-chan-result.png
+
+Shakira:
+
+.. image:: /FlowsResults/SupirUpscaler-shakira-711x474.jpeg
+
+.. image:: /FlowsResults/SupirUpscaler-shakira-result.png
