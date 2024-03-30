@@ -58,8 +58,8 @@ const collapsed = ref(true)
 				}}
 			</p>
 			<p v-if="running.error" class="text-red-500 p-3 mb-5 rounded-lg flex items-center">
-				<UIcon name="i-heroicons-exclamation-circle" class="mr-2 text-xl" />
-				{{ running.error }}
+				<UIcon name="i-heroicons-exclamation-circle" class="mr-2 text-3xl" />
+				<span class="w-full">{{ running.error }}</span>
 			</p>
 			<UButton icon="i-heroicons-stop"
 				color="orange"
