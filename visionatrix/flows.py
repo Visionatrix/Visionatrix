@@ -17,7 +17,7 @@ import httpx
 from . import options
 from .models import install_model
 from .models_map import fill_flow_models_from_comfy_flow
-from .nodes import get_node_value, set_node_value
+from .nodes_helpers import get_node_value, set_node_value
 
 LOGGER = logging.getLogger("visionatrix")
 CACHE_AVAILABLE_FLOWS = {
@@ -239,10 +239,12 @@ def flow_prepare_output_params(
 ) -> None:
     for param in outputs:
         r_node = flow_comfy[param]
-        if r_node["class_type"] == "KSampler (Efficient)":
+        if r_node["class_type"] in ("KSampler (Efficient)", "WD14Tagger|pysssss"):
             continue
         if r_node["class_type"] != "SaveImage":
-            raise RuntimeError(f"node={param}: only `SaveImage` nodes are supported currently as output node")
+            raise RuntimeError(
+                f"class_type={r_node['class_type']}: only `SaveImage` nodes are supported currently as output node"
+            )
         r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
         task_details["outputs"].append({"comfy_node_id": int(param), "type": "image"})
 

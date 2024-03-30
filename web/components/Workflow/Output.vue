@@ -38,13 +38,25 @@ function openImageModal(src: string) {
 	isModalOpen.value = true
 }
 
+const outputContainer = ref<HTMLElement|any>(null)
+const showScrollToTop = ref(false)
+
+window.addEventListener('scroll', () => {
+	showScrollToTop.value = window.scrollY > (outputContainer.value?.offsetTop + window.screen.height || 0)
+})
+
 const collapsed = ref(false)
 const isModalOpen = ref(false)
 const modalImageSrc = ref('')
 </script>
 
 <template>
-	<div class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md my-10">
+	<div id="output-container"
+		ref="outputContainer"
+		class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md my-10">
+		<ScrollToTop class="fixed bottom-5 right-5"
+			:show.sync="showScrollToTop"
+			target="output-container" />
 		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
 			@click="() => {
 				collapsed = !collapsed
@@ -55,7 +67,7 @@ const modalImageSrc = ref('')
 		</h2>
 
 		<template v-if="!collapsed">
-			<div class="flex flex-col md:flex-row items-center justify-center mb-5 sticky top-0 z-[10]">
+			<div class="flex flex-col md:flex-row items-center justify-center mb-5 sticky top-1 z-[10]">
 				<UInput v-model="flowStore.$state.flow_results_filter"
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
@@ -118,7 +130,7 @@ const modalImageSrc = ref('')
 						icon="i-heroicons-trash"
 						variant="outline"
 						@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
-						{{ flowResult.output_params.length === 1 ? 'Delete image' : 'Delete all' }}
+						Delete
 					</UButton>
 				</div>
 			</div>

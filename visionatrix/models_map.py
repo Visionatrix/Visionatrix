@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import httpx
 
 from . import options
-from .nodes import get_node_value, set_node_value
+from .nodes_helpers import get_node_value, set_node_value
 
 LOGGER = logging.getLogger("visionatrix")
 MODEL_LOAD_CLASSES = {
@@ -27,6 +27,7 @@ MODEL_LOAD_CLASSES = {
     "PhotoMakerLoader": {"1": ["inputs", "photomaker_model_name"]},
     "VAELoader": {"1": ["inputs", "vae_name"]},
     "UpscaleModelLoader": {"1": ["inputs", "model_name"]},
+    "SUPIR_model_loader_v2": {"1": ["inputs", "supir_model"]},
 }
 MODELS_CATALOG: dict[str, dict] = {}
 

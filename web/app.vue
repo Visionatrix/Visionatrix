@@ -6,12 +6,11 @@ useSystemStore().startStatsPolling()
 <template>
   <div>
     <div class="flex flex-col w-full h-screen justify-between">
-      <NuxtLoadingIndicator />
+      <SystemStats />
       <Navbar />
       <NuxtPage class="w-full min-h-vh py-1.5 z-10" />
     </div>
     <UNotifications class="z-5" />
-    <SystemStats />
   </div>
 </template>
 

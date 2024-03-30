@@ -16,6 +16,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flow_results: <FlowResult[]>[],
 		flows_available: <Flow[]>[],
 		flows_installed: <Flow[]>[],
+		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
 		showNotificationChip: false,
 	}),
@@ -61,11 +62,14 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowsRunningByName(state) {
 			return (name: string) => state.running.filter(flow => flow.flow_name === name) ?? null
 		},
+		flowsRunningByNameWithErrors(state) {
+			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error) ?? null
+		},
 		currentFlow(state): Flow {
 			return state.current_flow
 		},
-		isFlowRunning(state) {
-			return (flow_name: string) => state.running.find(flow => flow.flow_name === flow_name)
+		isFlowFavorite(state) {
+			return (name: string) => state.flows_favorite.includes(name)
 		},
 		isFlowInstalled(state) {
 			return (name: string) => state.flows_installed.filter(flow => flow.name === name).length > 0
@@ -78,6 +82,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				this.fetchFlowsInstalled(),
 			])
 			.then(() => {
+				this.loadFavorites()
 				this.fetchFlowResults().then((tasks_history) => {
 					this.initFlowResultsData(tasks_history)
 				}).then(() => {
@@ -102,6 +107,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				console.debug('available_flows: ', res)
 				this.loading.flows_available = false
 				this.flows_available = <Flow[]>res
+				this.flows_available.sort(this.sortByFlowNameCallback)
 			}).catch((e) => {
 				console.debug('error fetching flows:', e)
 				this.loading.flows_available = false
@@ -125,6 +131,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				console.debug('installed_flows: ', res)
 				this.loading.flows_installed = false
 				this.flows_installed = <Flow[]>res
+				this.flows_installed.sort(this.sortByFlowNameCallback)
 			}).catch((e) => {
 				console.debug('error fetching installed flows:', e)
 				this.loading.flows_installed = false
@@ -430,6 +437,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 						return
 					}
 					runningFlow.progress = <number>progress.progress
+					if (progress.error !== '') {
+						clearInterval(interval)
+						runningFlow.error = progress.error
+						return
+					}
 					if (progress.progress === 100) {
 						clearInterval(interval)
 						// Remove finished flow from running list
@@ -471,6 +483,54 @@ export const useFlowsStore = defineStore('flowsStore', {
 				}
 				this.flow_results = this.flow_results.filter(flow => flow.task_id !== task_id)
 			})
+		},
+
+		loadFavorites() {
+			const favorite_flows = localStorage.getItem('favorite_flows')
+			if (favorite_flows) {
+				this.flows_favorite = JSON.parse(favorite_flows).filter((fav: string) => {
+					return this.flows_installed.find(flow => flow.name === fav)
+				})
+				// If there are were filtered out flows that are not installed anymore - update local storage
+				if (this.flows_favorite.length !== JSON.parse(favorite_flows).length) {
+					localStorage.setItem('favorite_flows', JSON.stringify(this.flows_favorite))
+				}
+				this.flows_installed.sort(this.sortByFavoriteCallback)
+			}
+		},
+
+		markFlowFavorite(flow: Flow) {
+			const favorite = this.flows_favorite.find(fav => fav === flow.name)
+			if (favorite) {
+				this.flows_favorite = this.flows_favorite.filter(fav => fav !== flow.name)
+				this.flows_installed.sort(this.sortByFlowNameCallback)
+			} else {
+				this.flows_favorite.push(flow.name)
+				this.flows_installed.sort(this.sortByFavoriteCallback)
+			}
+			localStorage.setItem('favorite_flows', JSON.stringify(this.flows_favorite))
+		},
+
+		sortByFlowNameCallback(a: Flow, b: Flow) {
+			if (a.name.split(' ')[0].toLowerCase() > b.name.split(' ')[0].toLowerCase()) {
+				return -1
+			} else if (a.name.split(' ')[0].toLowerCase() < b.name.split(' ')[0].toLowerCase()) {
+				return 1
+			} else {
+				return 0
+			}
+		},
+
+		sortByFavoriteCallback(a: Flow, b: Flow) {
+			const favoriteA = this.flows_favorite.find(fav => fav === a.name)
+			const favoriteB = this.flows_favorite.find(fav => fav === b.name)
+			if (favoriteA && !favoriteB) {
+				return -1
+			} else if (!favoriteA && favoriteB) {
+				return 1
+			} else {
+				return 0
+			}
 		},
 	}
 })
@@ -535,6 +595,7 @@ export interface FlowRunning {
 	progress: number
 	input_params_mapped: TaskHistoryInputParam
 	outputs: FlowOutputParam[]
+	error?: string
 }
 
 export interface FlowProgress {

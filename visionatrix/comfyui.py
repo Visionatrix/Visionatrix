@@ -35,6 +35,7 @@ def load(
         "--models_dir",
         "--tasks_files_dir",
         "--ui",
+        "--loglevel",
         "^run$",
     ]
     args_to_remove = []
@@ -48,6 +49,11 @@ def load(
         sys.argv.pop(i)
 
     LOGGER.debug("command line arguments: %s", sys.argv)
+
+    if sys.platform.lower() == "darwin":
+        # SUPIR node: 'aten::upsample_bicubic2d.out' is not currently implemented for the MPS device
+        if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
+            os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
     if need_directml_flag():
         sys.argv.append("--directml")
