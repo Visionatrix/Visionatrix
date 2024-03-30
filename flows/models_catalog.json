@@ -249,5 +249,41 @@
     "homepage": "https://huggingface.co/stabilityai/stable-cascade",
     "license": "stable-cascade-nc-community",
     "hash": "088ddf1e444abf399007b2da2bac87791df165c69f477994f6b3c745a20904b0"
+  },
+  "SUPIR": {
+    "regexes": [
+      {
+        "class_name": "SUPIR_model_loader_v2"
+      }
+    ],
+    "save_path": "checkpoints/SUPIR-v0Q.ckpt",
+    "url": "https://huggingface.co/camenduru/SUPIR/resolve/main/SUPIR-v0Q.ckpt",
+    "homepage": "https://github.com/Fanghua-Yu/SUPIR",
+    "license": "custom, non-commercial",
+    "hash": "d7f418398bb024d0d3c779c4ee4e9f171eb072306093f5bcfb2bf096aa2738f8"
+  },
+  "RealESRGAN_x2plus": {
+    "regexes": [
+      {
+        "input_value": "^(?=.*(?i:RealESRGAN))(?=.*(?i:x2))(?=.*\\.pth).*"
+      }
+    ],
+    "save_path": "upscale_models/RealESRGAN_x2plus.pth",
+    "url": "https://huggingface.co/Rainy-hh/Real-ESRGAN/resolve/main/RealESRGAN_x2plus.pth",
+    "homepage": "https://github.com/xinntao/Real-ESRGAN",
+    "license": "BSD-3-Clause license",
+    "hash": "49fafd45f8fd7aa8d31ab2a22d14d91b536c34494a5cfe31eb5d89c2fa266abb"
+  },
+  "LEOSAMs-HelloWorld-XL": {
+    "regexes": [
+      {
+        "input_value": "^(?=.*(?i:leosams))(?=.*(?i:Helloworld))(?=.*(?i:XL))(?=.*(?i:50GPT4V)).*"
+      }
+    ],
+    "save_path": "checkpoints/leosamsHelloworldXL_helloworldXL50GPT4V.safetensors",
+    "url": "https://civitai.com/api/download/models/338512?type=Model&format=SafeTensor&size=full&fp=fp16",
+    "homepage": "https://civitai.com/models/43977/leosams-helloworld-xl",
+    "license": "creativeml-openrail++-m",
+    "hash": "D8FD60692A589F3BE4A4C205AE4FA5A1D686B44A1CC20C7953715A95AB5070CF"
   }
 }

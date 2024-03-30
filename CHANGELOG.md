@@ -2,19 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.4 - 2024-04-26]
+## [0.0.5 - 2024-03-30]
 
-## Added
+### Added
+
+- `SUPIR` upscaler workflow.
+- Semi-automatic process of models detection on ComfyUI workflows.
+
+### Fixed
+
+- Slightly better progress detection for cached workflows.
+
+## [0.0.4 - 2024-03-26]
+
+### Added
 
 - Now tasks engine uses SqlAlchemy with default SQLite instead of `json` file.
 - Initial support of processing tasks queue in parallel.
 - `ComicU Portrait` workflow.
 
-## Fixed
+### Fixed
 
 - Small UI adjustments.
 
-## [0.0.3 - 2024-04-23]
+## [0.0.3 - 2024-03-23]
 
 ### Added
 

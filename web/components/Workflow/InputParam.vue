@@ -29,13 +29,16 @@ const imagePreviewModalOpen = ref(false)
 function removeImagePreview() {
 	URL.revokeObjectURL(imagePreviewUrl.value)
 	imagePreviewUrl.value = ''
-	console.debug('imageInput', imageInput)
 	if (imageInput) {
 		// @ts-ignore
 		imageInput.value.$refs.input.value = ''
 	}
 	props.inputParamsMap[props.index][props.inputParam.name].value = null
 }
+
+const formGroupLabel = computed(() => {
+	return props.inputParam.type !== 'bool' ? props.inputParam.display_name : ''
+})
 
 onBeforeUnmount(() => {
 	URL.revokeObjectURL(imagePreviewUrl.value)
@@ -44,7 +47,7 @@ onBeforeUnmount(() => {
 
 <template>
 	<UFormGroup v-if="(inputParam?.advanced || false) === advanced"
-		:label="inputParam.display_name" class="mb-3">
+		:label="formGroupLabel" class="mb-3">
 		<template #hint>
 			<span v-if="!inputParam.optional" class="text-red-300">required</span>
 		</template>

@@ -294,7 +294,7 @@ def update_task_progress(task_details: dict) -> bool:
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
-    ACTIVE_TASK["progress"] = min(ACTIVE_TASK["progress"] + percent_finished, 99.9)
+    ACTIVE_TASK["progress"] = min(ACTIVE_TASK["progress"] + percent_finished, 99.0)
 
 
 def task_progress_callback(event: str, data: dict, broadcast: bool = False):
@@ -302,7 +302,7 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
     if not ACTIVE_TASK:
         LOGGER.warning("CurrentTaskDetails is empty, event = %s.", event)
         return
-    node_percent = 100 / ACTIVE_TASK["nodes_count"]
+    node_percent = 99 / ACTIVE_TASK["nodes_count"]
 
     if event == "executing":
         if not ACTIVE_TASK["current_node"]:
@@ -321,7 +321,7 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
             data["traceback"],
         )
     elif event == "execution_cached":
-        increase_current_task_progress(len(data["nodes"]) * node_percent)
+        increase_current_task_progress((len(data["nodes"]) - 1) * node_percent)
     elif event == "execution_interrupted":
         remove_task_by_id(ACTIVE_TASK["task_id"])
         ACTIVE_TASK["interrupted"] = True
@@ -335,7 +335,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
     global ACTIVE_TASK
     last_gc_collect = 0
     need_gc = False
-    gc_collect_interval = 20.0
+    gc_collect_interval = 10.0
 
     while True:
         if exit_event.is_set():

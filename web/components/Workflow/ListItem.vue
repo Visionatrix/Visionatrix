@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 const props = defineProps({
   flow: {
-    type: Object,
+    type: Object as () => Flow,
     required: true,
   }
 })
@@ -51,10 +51,17 @@ const installed = ref(flowsStore.flows_installed.filter((f) => f.name === props?
       </div>
 
       <template #footer>
-        <div class="flex justify-end">
+        <div class="flex flex-grow justify-between">
+          <UTooltip text="Mark flow as favorite" :popper="{ placement: 'top' }" :open-delay="500">
+            <UButton v-if="flowsStore.isFlowInstalled(flow?.name)"
+              :icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
+              variant="outline"
+              color="yellow"
+              @click="flowsStore.markFlowFavorite(flow)" />
+          </UTooltip>
           <UButton :to="`/workflows/${flow?.name}`"
-            icon="i-heroicons-eye"
-            class="w-full flex justify-center dark:bg-slate-500 bg-slate-500 dark:hover:bg-slate-700 hover:bg-slate-700 dark:text-white">
+            :icon="'i-heroicons-eye'"
+            class="flex justify-center dark:bg-slate-500 bg-slate-500 dark:hover:bg-slate-700 hover:bg-slate-700 dark:text-white">
             Open
           </UButton>
         </div>

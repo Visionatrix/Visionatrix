@@ -46,6 +46,8 @@ BASIC_NODE_LIST = {
             "simpleeval": {},
         }
     },
+    "ComfyUI-WD14-Tagger": {},
+    "ComfyUI-SUPIR": {},
 }
 
 

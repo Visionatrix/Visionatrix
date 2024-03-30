@@ -12,3 +12,4 @@ Available Flows
    PhotoStickers
    GhibliPortrait
    ComicuPortrait
+   SupirUpscaler
