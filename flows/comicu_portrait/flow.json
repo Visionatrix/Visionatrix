@@ -9,7 +9,7 @@
   "input_params": [
     {
       "name": "image",
-      "display_name": "Person face",
+      "display_name": "Person's face",
       "type": "image",
       "optional": false,
       "comfy_node_id": {

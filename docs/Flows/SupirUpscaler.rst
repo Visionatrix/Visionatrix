@@ -31,7 +31,7 @@ Time to upscale 1 image(256x256):
 Time to upscale 1 image(512x512):
 
 - AMD 7900 XTX: **60 sec** / **85 sec** (2x additional upscale)
-- NVIDIA RTX 3060 (12 GB): **x sec** / **x sec** (2x additional upscale)
+- NVIDIA RTX 3060 (12 GB): **65 sec** / **116 sec** (2x additional upscale)
 
 Examples
 """"""""
