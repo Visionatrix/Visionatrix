@@ -147,7 +147,7 @@
   },
   "44": {
     "inputs": {
-      "image": "frank2.png",
+      "image": "pose.png",
       "upload": "image"
     },
     "class_type": "LoadImage",

@@ -1,11 +1,11 @@
 {
-  "name": "cinematic_portrait",
-  "display_name": "Cinematic Portrait",
-  "description": "Portrait photos in different styles",
+  "name": "vintage_portrait",
+  "display_name": "Vintage Portrait",
+  "description": "Portrait photos in Vintage styles",
   "author": "bigcat88",
   "homepage": "https://github.com/bigcat88",
   "license": "",
-  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/CinematicPortrait.html",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/VintagePortrait.html",
   "input_params": [
     {
       "name": "image",
