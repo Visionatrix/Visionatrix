@@ -117,7 +117,7 @@
     },
     {
       "name": "image",
-      "display_name": "Person photo",
+      "display_name": "Person's photo",
       "type": "image",
       "optional": false,
       "comfy_node_id": {
