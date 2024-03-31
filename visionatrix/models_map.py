@@ -42,6 +42,8 @@ def fill_flow_models_from_comfy_flow(flow: dict, flow_comfy: dict[str, dict]) ->
             continue
         for node_model_load_path in load_class.values():
             node_input_model_name = get_node_value(node_details, node_model_load_path)
+            if node_input_model_name == "None":
+                continue
             not_found = True
             for model, model_details in models_catalog.items():
                 if match_replace_model(model_details, node_input_model_name, node_details, node_model_load_path):
