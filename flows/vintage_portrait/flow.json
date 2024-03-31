@@ -22,7 +22,7 @@
       "name": "prompt",
       "display_name": "Prompt",
       "type": "text",
-      "optional": true,
+      "optional": false,
       "advanced": false,
       "comfy_node_id": {
         "29": {

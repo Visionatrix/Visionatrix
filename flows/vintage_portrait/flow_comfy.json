@@ -7,7 +7,7 @@
       "lora_name": "None",
       "lora_model_strength": 1,
       "lora_clip_strength": 1,
-      "positive": "portrait of a man, blood , scars, cinematic,  master piece",
+      "positive": "portrait of a girl, cinematic,  masterpiece",
       "negative": "see panties, 3d, EasyNegativeV2, worst quality, low quality, watermark, signature, bad anatomy, bad hands, deformed limbs, blurry, cropped, cross-eyed, extra arms, speech bubble, extra legs, extra limbs, bad proportions, poorly drawn hands, text, flat background, photo,\n",
       "token_normalization": "none",
       "weight_interpretation": "comfy",
