@@ -171,6 +171,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						input_prompt: <string>task.input_params?.prompt || '',
 						seed: <string>task.input_params?.seed || '',
 						input_params_mapped: task.input_params || null,
+						error: task?.error || null,
 						outputs: task.outputs,
 					})
 				} else if (task.progress === 100) {
@@ -298,6 +299,23 @@ export const useFlowsStore = defineStore('flowsStore', {
 					description: e.message,
 					timeout: 5000,
 				})
+			})
+		},
+
+		async deleteFlowResults(flow_name: string) {
+			return await $fetch(`${buildBackendApiUrl()}/tasks?name=${flow_name}`, {
+				method: 'DELETE',
+			}).then((res: any) => {
+				if (res?.error !== '') {
+					const toast = useToast()
+					toast.add({
+						title: 'Failed to delete flow results',
+						description: res.error,
+						timeout: 5000,
+					})
+					return
+				}
+				this.flow_results = this.flow_results.filter(flow => flow.flow_name !== flow_name)
 			})
 		},
 

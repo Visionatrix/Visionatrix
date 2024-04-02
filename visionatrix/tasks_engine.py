@@ -172,10 +172,18 @@ def get_incomplete_task_without_error() -> dict:
         session.close()
 
 
-def get_tasks() -> dict:
+def get_tasks(name: str | None = None, finished: bool | None = None) -> dict:
     session = DB_SESSION_MAKER()
     try:
-        tasks = session.query(TaskDetails).all()
+        query = session.query(TaskDetails)
+        if name is not None:
+            query = query.filter(TaskDetails.name == name)
+        if finished is not None:
+            if finished:
+                query = query.filter(TaskDetails.progress == 100.0)
+            else:
+                query = query.filter(TaskDetails.progress < 100.0)
+        tasks = query.all()
         return {
             task.task_id: {
                 "task_id": task.task_id,
@@ -212,6 +220,23 @@ def remove_task_by_id(task_id: int) -> bool:
         session.close()
         remove_task_files(task_id, ["output", "input"])
     return False
+
+
+def remove_task_by_name(name: str) -> None:
+    tasks_to_delete = get_tasks(name=name, finished=True)
+    session = DB_SESSION_MAKER()
+    try:
+        for task_id in tasks_to_delete:
+            session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
+            session.execute(delete(TaskDetails).where(TaskDetails.task_id == task_id))
+            session.commit()
+            remove_task_files(task_id, ["output", "input"])
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to remove task by name '%s': %s", name, e)
+        raise
+    finally:
+        session.close()
 
 
 def remove_unfinished_task_by_id(task_id: int) -> bool:
