@@ -403,6 +403,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 			// Restore running flow polling
 			this.running.forEach(flow => {
+				if (flow.error !== '') {
+					return
+				}
 				this.startFlowProgressPolling(flow.task_id)
 			})
 		},

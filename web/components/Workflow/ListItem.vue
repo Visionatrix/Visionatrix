@@ -52,9 +52,9 @@ const installed = ref(flowsStore.flows_installed.filter((f) => f.name === props?
 
       <template #footer>
         <div class="flex flex-grow justify-between">
-          <UTooltip text="Mark flow as favorite" :popper="{ placement: 'top' }" :open-delay="500">
-            <UButton v-if="flowsStore.isFlowInstalled(flow?.name)"
-              :icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
+          <UTooltip v-if="flowsStore.isFlowInstalled(flow?.name)"
+            text="Mark flow as favorite" :popper="{ placement: 'top' }" :open-delay="500">
+            <UButton :icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
               variant="outline"
               color="yellow"
               @click="flowsStore.markFlowFavorite(flow)" />

@@ -73,6 +73,7 @@ const deletingFlowResults = ref(false)
 				<UInput v-model="flowStore.$state.flow_results_filter"
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
+					class="md:mr-3"
 					:label="'Filter results by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
