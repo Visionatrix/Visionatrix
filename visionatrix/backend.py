@@ -28,6 +28,7 @@ from .tasks_engine import (
     get_tasks,
     put_task_in_queue,
     remove_task_by_id,
+    remove_task_by_name,
     remove_task_files,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
@@ -152,14 +153,19 @@ def vix_backend(
         return responses.JSONResponse(content=get_tasks())
 
     @app.get("/task-progress")
-    async def task_progress(task_id: str):
-        if (r := get_task(int(task_id))) is None:
+    async def task_progress(task_id: int):
+        if (r := get_task(task_id)) is None:
             raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
         return responses.JSONResponse(content=r)
 
     @app.delete("/task")
-    async def task_remove(task_id: str):
-        remove_task_by_id(int(task_id))
+    async def task_remove(task_id: int):
+        remove_task_by_id(task_id)
+        return responses.JSONResponse(content={"error": ""})
+
+    @app.delete("/tasks")
+    async def tasks_remove(name: str):
+        remove_task_by_name(name)
         return responses.JSONResponse(content={"error": ""})
 
     @app.get("/task-results")

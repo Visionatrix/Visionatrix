@@ -48,6 +48,8 @@ window.addEventListener('scroll', () => {
 const collapsed = ref(false)
 const isModalOpen = ref(false)
 const modalImageSrc = ref('')
+const deleteModalOpen = ref(false)
+const deletingFlowResults = ref(false)
 </script>
 
 <template>
@@ -71,7 +73,6 @@ const modalImageSrc = ref('')
 				<UInput v-model="flowStore.$state.flow_results_filter"
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
-					class="md:mr-3"
 					:label="'Filter results by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
@@ -82,11 +83,47 @@ const modalImageSrc = ref('')
 					:total="results.length"
 					show-first
 					show-last />
-				<USelect v-model="flowStore.resultsPageSize"
-					class="md:ml-3 w-fit"
-					:options="[5, 10, 20, 50, 100]"
-					:label="'Results per page'"
-					:placeholder="'Results per page'" />
+				<div class="flex items-center justify-center">
+					<USelect v-model="flowStore.resultsPageSize"
+						class="md:mx-3 w-fit mr-3"
+						:options="[5, 10, 20, 50, 100]"
+						:label="'Results per page'"
+						:placeholder="'Results per page'" />
+					<UDropdown :items="[
+						[{
+							label: 'Delete all results',
+							labelClass: 'text-red-500',
+							icon: 'i-heroicons-trash',
+							iconClass: 'dark:text-red-500 text-red-500',
+							click: () => deleteModalOpen = true,
+						}]
+					]" mode="click" label="Options" :popper="{ placement: 'bottom-end' }">
+						<UButton color="white" icon="i-heroicons-ellipsis-vertical-16-solid" />
+					</UDropdown>
+				</div>
+				<UModal v-model="deleteModalOpen" class="z-[90]" :transition="false">
+					<div class="p-4">
+						<p class="text-lg text-center mb-4">Are you sure you want to delete all results?</p>
+						<p class="text-md text-center text-red-500 mb-4">
+							All history and images of
+							<UBadge class="mx-1" color="orange" variant="outline">
+								{{ flowStore.currentFlow.display_name }}
+							</UBadge>
+							will be deleted.
+						</p>
+						<div class="flex justify-center">
+							<UButton class="mr-2" color="red" variant="outline" :loading="deletingFlowResults"
+								@click="() => {
+									deletingFlowResults = true
+									flowStore.deleteFlowResults(flowStore.currentFlow?.name).then(() => {
+										deletingFlowResults = false
+										deleteModalOpen = false
+									})
+								}">Yes</UButton>
+							<UButton variant="outline" @click="() => deleteModalOpen = false">No</UButton>
+						</div>
+					</div>
+				</UModal>
 			</div>
 			<div class="results overflow-auto" v-if="hasOutputResult">
 				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
