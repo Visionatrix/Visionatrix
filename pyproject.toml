@@ -17,7 +17,7 @@ keywords = [
 license = "AGPL-3.0-or-later"
 authors = [
     { name = "Alexander Piskun", email = "bigcat88@icloud.com" },
-    { name = "Andrey Borysenko", email = "andrey18106@gmail.com" },
+    { name = "Andrey Borysenko", email = "andrey18106x@gmail.com" },
 ]
 requires-python = ">=3.10"
 classifiers = [
