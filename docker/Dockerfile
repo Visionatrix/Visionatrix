@@ -19,17 +19,14 @@ RUN if [ "$COMPUTE_DEVICE" = "CUDA" ]; then \
 elif [ "$COMPUTE_DEVICE" = "ROCM" ]; then \
 	venv/bin/python -m pip install -U --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/rocm6.0 \
 	&& rm -rf ~/.cache/pip; \
-elif [ "COMPUTE_DEVICE" = "CPU" ]; then \
+elif [ "$COMPUTE_DEVICE" = "CPU" ]; then \
 	venv/bin/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu \
 	&& rm -rf ~/.cache/pip; \
 fi
 
-# RUN git clone --depth 1 https://github.com/Visionatrix/Visionatrix.git
+RUN git clone --depth 1 https://github.com/Visionatrix/Visionatrix.git
 
-RUN git init && git remote add origin https://github.com/Visionatrix/Visionatrix.git \
-	&& git pull origin main --allow-unrelated-histories --depth 1
-
-RUN venv/bin/python -m pip install . \
+RUN venv/bin/python -m pip install ./Visionatrix \
 	&& venv/bin/python -m visionatrix install \
 	&& rm -rf ~/.cache/pip
 

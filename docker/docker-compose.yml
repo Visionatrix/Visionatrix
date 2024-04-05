@@ -2,7 +2,7 @@ version: '3'
 
 services:
   visionatrix_nvidia:
-    image: visionatrix/visionatrix
+    image: visionatrix/visionatrix_nvidia
     container_name: visionatrix_nvidia
     ports:
       - "${VIX_PORT:-8288}:8288"
@@ -12,7 +12,7 @@ services:
       - ./data/models:/app/vix_models
       - ./data/tasks_files:/app/vix_tasks_files
     environment:
-      - VIX_HOST="0.0.0.0"
+      - VIX_HOST=0.0.0.0
       - VIX_PORT=8288
     deploy:
       resources:
@@ -23,7 +23,7 @@ services:
               capabilities: [gpu]
 
   visionatrix_amd:
-    image: visionatrix/visionatrix
+    image: visionatrix/visionatrix_amd
     container_name: visionatrix_amd
     ports:
       - "${VIX_PORT:-8288}:8288"
@@ -33,14 +33,14 @@ services:
       - ./data/models:/app/vix_models
       - ./data/tasks_files:/app/vix_tasks_files
     environment:
-      - VIX_HOST="0.0.0.0"
+      - VIX_HOST=0.0.0.0
       - VIX_PORT=8288
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
 
   visionatrix_cpu:
-    image: visionatrix/visionatrix
+    image: visionatrix/visionatrix_cpu
     container_name: visionatrix_cpu
     ports:
       - "${VIX_PORT:-8288}:8288"
@@ -50,5 +50,5 @@ services:
       - ./data/models:/app/vix_models
       - ./data/tasks_files:/app/vix_tasks_files
     environment:
-      - VIX_HOST="0.0.0.0"
+      - VIX_HOST=0.0.0.0
       - VIX_PORT=8288

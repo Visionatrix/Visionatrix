@@ -1,3 +1,3 @@
 #!/bin/bash
 
-/app/venv/bin/python -m visionatrix run --ui=client
+/app/venv/bin/python -m visionatrix run --ui=/app/Visionatrix/client

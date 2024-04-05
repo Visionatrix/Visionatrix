@@ -8,19 +8,19 @@ You can build and run Visionatrix in Docker container with GPU device passed tro
 > By default image is being built with pytorch CUDA support for NVIDIA.
 
 ```bash
-docker build . -t visionatrix/visionatrix --build-arg"COMPUTE_DEVICE=CUDA"
+docker build . -t visionatrix/visionatrix_nvidia --build-arg"COMPUTE_DEVICE=CUDA"
 ```
 
 ### Build for AMD GPU
 
 ```bash
-docker build . -t visionatrix/visionatrix --build-arg"COMPUTE_DEVICE=ROCM"
+docker build . -t visionatrix/visionatrix_amd --build-arg"COMPUTE_DEVICE=ROCM"
 ```
 
 ## Build for CPU
 
 ```bash
-docker build . -t visionatrix/visionatrix --build-arg"COMPUTE_DEVICE=CPU"
+docker build . -t visionatrix/visionatrix_cpu --build-arg"COMPUTE_DEVICE=CPU"
 ```
 
 ## Run Visionatrix docker container
@@ -28,19 +28,19 @@ docker build . -t visionatrix/visionatrix --build-arg"COMPUTE_DEVICE=CPU"
 For NVIDIA:
 
 ```bash
-docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix
+docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix_nvidia
 ```
 
 For AMD:
 
 ```bash
-docker run --name visionatrix --device /dev/dri --device /dev/kfd -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix
+docker run --name visionatrix --device /dev/dri --device /dev/kfd -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix_amd
 ```
 
 For CPU:
 
 ```bash
-docker run --name visionatrix -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix
+docker run --name visionatrix -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix_cpu
 ```
 
 ## Mount volumes with installed flows and models from the host
@@ -50,7 +50,8 @@ the container so that you don't have to download them again inside docker contai
 
 ```bash
 docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 \
-	--volume ./docker/data/flows:/app/vix_flows --volume ./docker/data/models:/apps/vix_models
+	--volume ./docker/data/flows:/app/vix_flows --volume ./docker/data/models:/apps/vix_models \
+	-d visionatrix/visionatrix_<compute_device>
 ```
 
 ## Mount tasks files outputs and database
@@ -61,7 +62,7 @@ then you can additionally mount host directory into `/app/vix_tasks_files`:
 ```bash
 docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 \
 	-v ./docker/data/flows:/app/vix_flows -v ./docker/data/models:/app/vix_models \
-	-v ./docker/data/tasks_files:/app/vix_tasks_files -d visionatrix/visionatrix
+	-v ./docker/data/tasks_files:/app/vix_tasks_files -d visionatrix/visionatrix_<compute_device>
 ```
 
 ## Docker compose
