@@ -93,6 +93,10 @@ def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list
     return r
 
 
+def get_installed_flows_names(flows_dir: str) -> list[str]:
+    return [i["name"] for i in get_installed_flows(flows_dir)]
+
+
 def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict[str, dict]) -> dict[str, typing.Any]:
     flows_comfy = []
     for i, flow in enumerate(get_installed_flows(flows_dir, flows_comfy)):
