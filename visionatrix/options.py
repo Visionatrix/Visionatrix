@@ -37,16 +37,3 @@ def init_dirs_values(backend: str | None, flows: str | None, models: str | None,
         MODELS_DIR = str(Path(models).resolve())
     if tasks_files:
         TASKS_FILES_DIR = str(Path(tasks_files).resolve())
-
-
-def init_host_port_values(host: str | None, port: str | None) -> None:
-    global VIX_HOST, VIX_PORT
-    if host:
-        VIX_HOST = host
-    if port:
-        VIX_PORT = int(port)
-
-
-def init_runtime_flags(ui_dir: str | None) -> None:
-    global UI_DIR
-    UI_DIR = ui_dir
