@@ -12,7 +12,6 @@ services:
       - ./data/models:/app/vix_models
       - ./data/tasks_files:/app/vix_tasks_files
     environment:
-      - COMFY_DEBUG=${COMFY_DEBUG}
       - VIX_HOST=${VIX_HOST}
       - VIX_PORT=${VIX_PORT}
     deploy:
@@ -34,7 +33,6 @@ services:
       - ./data/models:/app/vix_models
       - ./data/tasks_files:/app/vix_tasks_files
     environment:
-      - COMFY_DEBUG=${COMFY_DEBUG}
       - VIX_HOST=${VIX_HOST}
       - VIX_PORT=${VIX_PORT}
     devices:

@@ -4,6 +4,10 @@ You can build and run Visionatrix in Docker container with GPU device passed tro
 
 ## Build docker image
 
+> [!NOTE]
+> By default image is being built with pytorch CUDA support for NVIDIA.
+> You can change this to AMD using ENV variable `GPU_VENDOR="AMD"`
+
 ```bash
 docker build . -t visionatrix/visionatrix
 ```

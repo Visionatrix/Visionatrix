@@ -1,8 +1,8 @@
 FROM python:3.10-slim
 
-ENV COMFY_DEBUG 0
 ENV VIX_HOST "127.0.0.1"
 ENV VIX_PORT 8288
+ENV GPU_VENDOR "NVIDIA"
 
 WORKDIR /app
 
@@ -21,9 +21,18 @@ RUN git clone --depth 1 https://github.com/Visionatrix/Visionatrix.git .
 
 RUN python3 -m venv venv
 
-RUN . venv/bin/activate && python3 -m pip install -U pip \
-	&& python3 -m pip install .[app] \
-	&& python3 -m visionatrix install \
+RUN venv/bin/python -m pip install -U pip
+
+RUN if [ "$GPU_VENDOR" = "NVIDIA" ]; then \
+	venv/bin/python -m pip install -U torch torchvision --extra-index-url https://download.pytorch.org/whl/cu121 \
+	&& rm -rf ~/.cache/pip; \
+else \
+	venv/bin/python -m pip install -U --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/rocm6.0\
+	&& rm -rf ~/.cache/pip; \
+fi
+
+RUN venv/bin/python -m pip install . \
+	&& venv/bin/python -m visionatrix install \
 	&& rm -rf ~/.cache/pip
 
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD /healthcheck.sh
