@@ -76,49 +76,39 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
     logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
-    flows_dir = options.get_flows_dir(args.flows_dir)
-    models_dir = options.get_models_dir(args.models_dir)
+    options.init_dirs_values(
+        backend=args.backend_dir,
+        flows=args.flows_dir,
+        models=args.models_dir,
+        tasks_files=getattr(args, "tasks_files_dir", ""),
+    )
     if args.command == "install":
-        backend_dir = options.get_backend_dir(args.backend_dir)
         operations_mask = [True, True, True]
-        if Path(models_dir).exists():
+        if Path(options.MODELS_DIR).exists():
             c = input("Do you want to clear models folder? (Y/N): ").lower()
             if c != "y":
                 operations_mask[2] = False
-        if Path(flows_dir).exists():
+        if Path(options.FLOWS_DIR).exists():
             c = input("Do you want to clear flows folder? (Y/N): ").lower()
             if c != "y":
                 operations_mask[1] = False
-        if Path(backend_dir).exists():
+        if Path(options.BACKEND_DIR).exists():
             c = input("Do you want to reinstall backend(ComfyUI) folder? (Y/N): ").lower()
             if c != "y":
                 operations_mask[0] = False
-        install(backend_dir, flows_dir, models_dir, operations_mask)
+        install(operations_mask)
     elif args.command == "update":
-        update(backend_dir=options.get_backend_dir(args.backend_dir), flows_dir=flows_dir, models_dir=models_dir)
+        update()
     elif args.command == "run":
-        run_backend(
-            backend_dir=args.backend_dir,
-            flows_dir=args.flows_dir,
-            models_dir=args.models_dir,
-            tasks_files_dir=args.tasks_files_dir,
-            vix_host=args.host,
-            vix_port=args.port,
-            ui_dir=args.ui,
-        )
+        options.init_host_port_values(args.host, args.port)
+        options.init_runtime_flags(args.ui)
+        run_backend()
     elif args.command == "install-flow":
         with builtins.open(args.flow, "rb") as fp:
             flow = json.loads(fp.read())
         with builtins.open(args.flow_comfy, "rb") as fp:
             flow_comfy = json.loads(fp.read())
-        install_custom_flow(
-            backend_dir=options.get_backend_dir(args.backend_dir),
-            flows_dir=flows_dir,
-            models_dir=models_dir,
-            flow=flow,
-            flow_comfy=flow_comfy,
-            progress_callback=__progress_callback,
-        )
+        install_custom_flow(flow=flow, flow_comfy=flow_comfy, progress_callback=__progress_callback)
     else:
         logging.getLogger("visionatrix").error("Unknown command")
         sys.exit(2)

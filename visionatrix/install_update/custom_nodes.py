@@ -51,13 +51,13 @@ BASIC_NODE_LIST = {
 }
 
 
-def install_base_custom_nodes(backend_dir: str, models_dir: str) -> None:
+def install_base_custom_nodes() -> None:
     for node_name, node_details in BASIC_NODE_LIST.items():
-        install_base_custom_node(backend_dir, models_dir, node_name, node_details)
+        install_base_custom_node(node_name, node_details)
 
 
-def install_base_custom_node(backend_dir: str, models_dir: str, node_name: str, node_details: dict) -> None:
-    custom_nodes_dir = Path(backend_dir).joinpath("custom_nodes")
+def install_base_custom_node(node_name: str, node_details: dict) -> None:
+    custom_nodes_dir = Path(options.BACKEND_DIR).joinpath("custom_nodes")
     LOGGER.info("Cloning `%s`", node_name)
     git_flags = node_details.get("git_flags", "")
     run(
@@ -68,15 +68,15 @@ def install_base_custom_node(backend_dir: str, models_dir: str, node_name: str, 
     _run_install_script(custom_nodes_dir, node_name)
     if "models" in node_details:
         for i in node_details["models"]:
-            install_model(i, models_dir, backend_dir, {}, None)
+            install_model(i, {}, None)
 
 
-def update_base_custom_nodes(backend_dir: str, models_dir: str) -> None:
-    custom_nodes_dir = Path(backend_dir).joinpath("custom_nodes")
+def update_base_custom_nodes() -> None:
+    custom_nodes_dir = Path(options.BACKEND_DIR).joinpath("custom_nodes")
     for node_name, node_details in BASIC_NODE_LIST.items():
         if Path(custom_nodes_dir).joinpath(node_name).exists() is False:
             LOGGER.info("Installing `%s`", node_name)
-            install_base_custom_node(backend_dir, models_dir, node_name, node_details)
+            install_base_custom_node(node_name, node_details)
             continue
         LOGGER.info("Updating `%s`", node_name)
         run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
