@@ -9,6 +9,7 @@ from subprocess import run
 
 import yaml
 
+from .. import options
 from .custom_nodes import install_base_custom_nodes
 
 LOGGER = logging.getLogger("visionatrix")
@@ -40,32 +41,35 @@ def remove_readonly(func, path, _):
     func(path)
 
 
-def install(backend_dir: str, flows_dir: str, models_dir: str, operations_mask: list[bool]) -> None:
+def install(operations_mask: list[bool]) -> None:
     """Performs a clean installation on the provided directories."""
     if operations_mask[1]:
-        if os.path.exists(flows_dir) is True:
-            LOGGER.info("Removing existing Flows directory: %s", flows_dir)
-            rmtree(flows_dir, onerror=remove_readonly)
-        os.makedirs(flows_dir)
+        if os.path.exists(options.FLOWS_DIR) is True:
+            LOGGER.info("Removing existing Flows directory: %s", options.FLOWS_DIR)
+            rmtree(options.FLOWS_DIR, onerror=remove_readonly)
+        os.makedirs(options.FLOWS_DIR)
     if operations_mask[2]:
-        if os.path.exists(models_dir) is True:
-            LOGGER.info("Removing existing Models directory: %s", models_dir)
-            rmtree(models_dir, onerror=remove_readonly)
-        os.makedirs(models_dir)
+        if os.path.exists(options.MODELS_DIR) is True:
+            LOGGER.info("Removing existing Models directory: %s", options.MODELS_DIR)
+            rmtree(options.MODELS_DIR, onerror=remove_readonly)
+        os.makedirs(options.MODELS_DIR)
     if operations_mask[0]:
-        if os.path.exists(backend_dir) is True:
-            LOGGER.info("Removing existing Backend directory: %s", backend_dir)
-            rmtree(backend_dir, onerror=remove_readonly)
-        os.makedirs(backend_dir)
-        run(f"git clone https://github.com/Visionatrix/ComfyUI.git {backend_dir}".split(), check=True)
-        run([sys.executable, "-m", "pip", "install", "-r", os.path.join(backend_dir, "requirements.txt")], check=True)
-        create_missing_models_dirs(backend_dir)
-        with builtins.open(os.path.join(backend_dir, "extra_model_paths.yaml"), "w", encoding="utf-8") as fp:
-            fp.write(EXTRA_MODEL_PATHS.replace("vix_models_root", models_dir))
-        install_base_custom_nodes(backend_dir, models_dir)
+        if os.path.exists(options.BACKEND_DIR) is True:
+            LOGGER.info("Removing existing Backend directory: %s", options.BACKEND_DIR)
+            rmtree(options.BACKEND_DIR, onerror=remove_readonly)
+        os.makedirs(options.BACKEND_DIR)
+        run(f"git clone https://github.com/Visionatrix/ComfyUI.git {options.BACKEND_DIR}".split(), check=True)
+        run(
+            [sys.executable, "-m", "pip", "install", "-r", os.path.join(options.BACKEND_DIR, "requirements.txt")],
+            check=True,
+        )
+        create_missing_models_dirs()
+        with builtins.open(os.path.join(options.BACKEND_DIR, "extra_model_paths.yaml"), "w", encoding="utf-8") as fp:
+            fp.write(EXTRA_MODEL_PATHS.replace("vix_models_root", options.BACKEND_DIR))
+        install_base_custom_nodes()
 
 
-def create_missing_models_dirs(backend_dir: str) -> None:
+def create_missing_models_dirs() -> None:
     for k in yaml.safe_load(EXTRA_MODEL_PATHS)["vix_models"]:
-        if (v := Path(backend_dir).joinpath("models", k)).exists() is False:
+        if (v := Path(options.BACKEND_DIR).joinpath("models", k)).exists() is False:
             os.makedirs(v, exist_ok=True)

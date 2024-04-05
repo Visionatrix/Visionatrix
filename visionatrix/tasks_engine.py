@@ -60,8 +60,6 @@ class TaskLock(Base):
 
 LOGGER = logging.getLogger("visionatrix")
 DB_SESSION_MAKER: sessionmaker
-FLOWS_DIR: str
-TASKS_FILES_DIR: str
 ACTIVE_TASK: dict
 
 
@@ -286,7 +284,7 @@ def remove_unfinished_tasks_by_name(name: str) -> bool:
 def remove_task_files(task_id: int, directories: list[str]) -> None:
     for directory in directories:
         result_prefix = f"{task_id}_"
-        target_directory = os.path.join(TASKS_FILES_DIR, directory)
+        target_directory = os.path.join(options.TASKS_FILES_DIR, directory)
         for filename in os.listdir(target_directory):
             if filename.startswith(result_prefix):
                 with contextlib.suppress(FileNotFoundError):
@@ -383,7 +381,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
                 last_gc_collect = current_time
                 need_gc = False
 
-        ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names(FLOWS_DIR))
+        ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names())
         if not ACTIVE_TASK:
             time.sleep(0.1)
             continue
@@ -410,16 +408,10 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         need_gc = True
 
 
-async def start_tasks_engine(
-    flows_dir: str, tasks_files_dir: str, comfy_queue: typing.Any, exit_event: asyncio.Event
-) -> None:
-    global TASKS_FILES_DIR, FLOWS_DIR
-
+async def start_tasks_engine(comfy_queue: typing.Any, exit_event: asyncio.Event) -> None:
     async def start_background_tasks_engine(prompt_executor):
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
-    FLOWS_DIR = flows_dir
-    TASKS_FILES_DIR = tasks_files_dir
     init_database_engine()
     _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
 
@@ -432,7 +424,7 @@ def init_database_engine() -> None:
     if database_uri.startswith("sqlite:"):
         connect_args = {"check_same_thread": False}
         if database_uri.startswith("sqlite:///."):
-            database_uri = f"sqlite:///{os.path.abspath(os.path.join(TASKS_FILES_DIR, database_uri[10:]))}"
+            database_uri = f"sqlite:///{os.path.abspath(os.path.join(options.TASKS_FILES_DIR, database_uri[10:]))}"
     engine = create_engine(database_uri, connect_args=connect_args)
     Base.metadata.create_all(engine)
     DB_SESSION_MAKER = sessionmaker(autocommit=False, autoflush=False, bind=engine)
