@@ -3,6 +3,7 @@ import os
 import sys
 from subprocess import run
 
+from .. import options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
 from .custom_nodes import update_base_custom_nodes
 from .install import create_missing_models_dirs
@@ -15,22 +16,23 @@ def __progress_callback(name: str, progress: float, error: str) -> None:
         logging.error("`%s` installation failed: %s", name, error)
 
 
-def update(backend_dir: str, flows_dir: str, models_dir: str) -> None:
+def update() -> None:
     logging.info("Updating flows..")
     avail_flows, avail_flows_comfy = get_available_flows()
     avail_flows_names = [v["name"] for v in avail_flows]
-    for i in get_installed_flows(flows_dir):
+    for i in get_installed_flows():
         if i["name"] in avail_flows_names:
             v = avail_flows_names.index(i["name"])
-            install_custom_flow(
-                backend_dir, flows_dir, avail_flows[v], avail_flows_comfy[v], models_dir, __progress_callback
-            )
+            install_custom_flow(avail_flows[v], avail_flows_comfy[v], __progress_callback)
         else:
             logging.warning("`%s` flow not found in repository, skipping update of it.", i["name"])
-    if backend_dir:
+    if options.BACKEND_DIR:
         logging.info("Updating backend(ComfyUI)..")
-        run("git pull".split(), check=True, cwd=backend_dir)
-        run([sys.executable, "-m", "pip", "install", "-r", os.path.join(backend_dir, "requirements.txt")], check=True)
-        create_missing_models_dirs(backend_dir)
+        run("git pull".split(), check=True, cwd=options.BACKEND_DIR)
+        run(
+            [sys.executable, "-m", "pip", "install", "-r", os.path.join(options.BACKEND_DIR, "requirements.txt")],
+            check=True,
+        )
+        create_missing_models_dirs()
         logging.info("Updating custom nodes..")
-        update_base_custom_nodes(backend_dir, models_dir)
+        update_base_custom_nodes()

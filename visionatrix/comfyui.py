@@ -6,7 +6,6 @@ https://github.com/comfyanonymous/ComfyUI
 
 # pylint: skip-file
 
-import asyncio
 import contextlib
 import logging
 import os
@@ -16,17 +15,14 @@ import typing
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+from . import options
+
 LOGGER = logging.getLogger("visionatrix")
 
 
-def load(
-    backend_dir: Path | str,
-    tasks_files_dir: Path | str,
-    task_progress_callback,
-    exit_event: asyncio.Event,
-) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
+def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
 
-    sys.path.append(backend_dir)
+    sys.path.append(options.BACKEND_DIR)
 
     filter_list = [
         "--host",
@@ -74,7 +70,7 @@ def load(
     import cuda_malloc  # noqa
 
     main.cleanup_temp()
-    main.load_extra_path_config(Path(backend_dir).joinpath("extra_model_paths.yaml"))
+    main.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
@@ -83,13 +79,13 @@ def load(
 
     main.hijack_progress(comfy_server)
 
-    folder_paths.set_output_directory(str(Path(tasks_files_dir).joinpath("output")))
+    folder_paths.set_output_directory(str(Path(options.TASKS_FILES_DIR).joinpath("output")))
     folder_paths.add_model_folder_path("checkpoints", os.path.join(folder_paths.get_output_directory(), "checkpoints"))
     folder_paths.add_model_folder_path("clip", os.path.join(folder_paths.get_output_directory(), "clip"))
     folder_paths.add_model_folder_path("vae", os.path.join(folder_paths.get_output_directory(), "vae"))
-    folder_paths.set_input_directory(str(Path(tasks_files_dir).joinpath("input")))
+    folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
 
-    return execution.validate_prompt, get_comfy_prompt_executor(comfy_server, task_progress_callback, exit_event)
+    return execution.validate_prompt, get_comfy_prompt_executor(comfy_server, task_progress_callback)
 
 
 def get_comfy_server_class(task_progress_callback):
@@ -109,7 +105,7 @@ def get_comfy_server_class(task_progress_callback):
     return ComfyServer(None)
 
 
-def get_comfy_prompt_executor(comfy_server, task_progress_callback, exit_event: asyncio.Event):
+def get_comfy_prompt_executor(comfy_server, task_progress_callback):
     import execution  # noqa
 
     class ComfyPromptExecutor(execution.PromptExecutor):
