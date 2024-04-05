@@ -1,20 +1,46 @@
 version: '3'
 
 services:
-  visionatrix:
+  visionatrix_nvidia:
     image: visionatrix/visionatrix
+    container_name: visionatrix_nvidia
     ports:
       - "8288:8288"
     working_dir: /app
     volumes:
-      - ./vix_flows:/app/vix_flows
-      - ./vix_models:/app/vix_models
-      - ./vix_tasks_files:/app/vix_tasks_files
+      - ./data/flows:/app/vix_flows
+      - ./data/models:/app/vix_models
+      - ./data/tasks_files:/app/vix_tasks_files
     environment:
       - COMFY_DEBUG=${COMFY_DEBUG}
       - VIX_HOST=${VIX_HOST}
       - VIX_PORT=${VIX_PORT}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
-  # TODO: Add a separate database service
+  visionatrix_amd:
+    image: visionatrix/visionatrix
+    container_name: visionatrix_amd
+    ports:
+      - "8288:8288"
+    working_dir: /app
+    volumes:
+      - ./data/flows:/app/vix_flows
+      - ./data/models:/app/vix_models
+      - ./data/tasks_files:/app/vix_tasks_files
+    environment:
+      - COMFY_DEBUG=${COMFY_DEBUG}
+      - VIX_HOST=${VIX_HOST}
+      - VIX_PORT=${VIX_PORT}
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
 
-  # TODO: Add a separate container for auth backend
+  # TODO: Add a separate database server
+
+  # TODO: Add a separate container for auth backends (and separate network for all services)

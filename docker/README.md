@@ -17,7 +17,7 @@ docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 -d vis
 ## Mount volumes with installed flows and models from the host
 
 Mount `vix_flows` and `vix_models` folders with already downloaded and installed flows into
-the container so that you don't have to download them again inside docker container.
+the container so that you don't have to download them again inside docker container or after update.
 
 ```bash
 docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 \
@@ -33,4 +33,20 @@ then you can additionally mount host directory into `/app/vix_tasks_files`:
 docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 \
 	-v ./docker/data/flows:/app/vix_flows -v ./docker/data/models:/app/vix_models \
 	-v ./docker/data/tasks_files:/app/vix_tasks_files -d visionatrix/visionatrix
+```
+
+## Docker compose
+
+The same container can be created using docker compose, there are two options available:
+
+1. visionatrix_nvidia - client and server with NVIDIA gpus attached
+
+```bash
+docker compose up -d visionatrix_nvidia
+```
+
+2. visionatrix_amd - client and server with AMD gpus attached
+
+```bash
+docker compose up -d visionatrix_amd
 ```
