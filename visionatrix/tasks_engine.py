@@ -26,6 +26,7 @@ from sqlalchemy.orm import relationship, sessionmaker
 
 from . import options
 from .comfyui import cleanup_models, interrupt_processing, soft_empty_cache
+from .flows import get_installed_flows_names
 
 Base = declarative_base()
 
@@ -59,6 +60,7 @@ class TaskLock(Base):
 
 LOGGER = logging.getLogger("visionatrix")
 DB_SESSION_MAKER: sessionmaker
+FLOWS_DIR: str
 TASKS_FILES_DIR: str
 ACTIVE_TASK: dict
 
@@ -136,13 +138,18 @@ def get_task(task_id: int) -> dict | None:
         session.close()
 
 
-def get_incomplete_task_without_error() -> dict:
+def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
     session = DB_SESSION_MAKER()
     try:
         task = (
             session.query(TaskDetails)
             .outerjoin(TaskLock, TaskDetails.task_id == TaskLock.task_id)
-            .filter(TaskDetails.error == "", TaskDetails.progress != 100.0, TaskLock.id.is_(None))
+            .filter(
+                TaskDetails.error == "",
+                TaskDetails.progress != 100.0,
+                TaskLock.id.is_(None),
+                TaskDetails.name.in_(tasks_to_ask),
+            )
             .first()
         )
         if not task:
@@ -376,7 +383,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
                 last_gc_collect = current_time
                 need_gc = False
 
-        ACTIVE_TASK = get_incomplete_task_without_error()
+        ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names(FLOWS_DIR))
         if not ACTIVE_TASK:
             time.sleep(0.1)
             continue
@@ -403,12 +410,15 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         need_gc = True
 
 
-async def start_tasks_engine(tasks_files_dir: str, comfy_queue: typing.Any, exit_event: asyncio.Event) -> None:
-    global TASKS_FILES_DIR
+async def start_tasks_engine(
+    flows_dir: str, tasks_files_dir: str, comfy_queue: typing.Any, exit_event: asyncio.Event
+) -> None:
+    global TASKS_FILES_DIR, FLOWS_DIR
 
     async def start_background_tasks_engine(prompt_executor):
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
+    FLOWS_DIR = flows_dir
     TASKS_FILES_DIR = tasks_files_dir
     init_database_engine()
     _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa

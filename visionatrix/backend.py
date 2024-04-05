@@ -60,7 +60,7 @@ def vix_backend(
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
-        await start_tasks_engine(tasks_files_dir, comfy_queue, exit_event)
+        await start_tasks_engine(flows_dir, tasks_files_dir, comfy_queue, exit_event)
         if ui_dir:
             _app.mount("/", StaticFiles(directory=ui_dir, html=True), name="client")
         yield
