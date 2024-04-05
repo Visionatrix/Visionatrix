@@ -65,7 +65,7 @@ def install(operations_mask: list[bool]) -> None:
         )
         create_missing_models_dirs()
         with builtins.open(os.path.join(options.BACKEND_DIR, "extra_model_paths.yaml"), "w", encoding="utf-8") as fp:
-            fp.write(EXTRA_MODEL_PATHS.replace("vix_models_root", options.BACKEND_DIR))
+            fp.write(EXTRA_MODEL_PATHS.replace("vix_models_root", options.MODELS_DIR))
         install_base_custom_nodes()
 
 
