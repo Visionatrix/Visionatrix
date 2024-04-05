@@ -13,7 +13,9 @@ MODELS_DIR = environ.get("MODELS_DIR", "")
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", "")
 
 VIX_HOST = environ.get("VIX_HOST", "127.0.0.1")
-VIX_PORT = environ.get("VIX_PORT", "8288")
+VIX_PORT = int(environ.get("VIX_PORT", "8288"))
+
+UI_DIR = environ.get("UI_DIR", "")
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it always relative to TASKS_FILES_DIR"""
@@ -25,41 +27,26 @@ MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.j
 # MODELS_CATALOG_URL = "./flows/models_catalog.json"
 
 
-def get_backend_dir(backend_dir: str | None) -> str:
-    if not backend_dir:
-        backend_dir = BACKEND_DIR
-    if not backend_dir:
-        backend_dir = str(Path("./vix_backend").resolve())
-    return backend_dir
+def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
+    global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR
+    if not BACKEND_DIR:
+        BACKEND_DIR = str(Path(backend).resolve()) if backend else str(Path("./vix_backend").resolve())
+    if not FLOWS_DIR:
+        FLOWS_DIR = str(Path(flows).resolve()) if flows else str(Path("./vix_flows").resolve())
+    if not MODELS_DIR:
+        MODELS_DIR = str(Path(models).resolve()) if models else str(Path("./vix_models").resolve())
+    if not TASKS_FILES_DIR:
+        TASKS_FILES_DIR = str(Path(tasks_files).resolve()) if tasks_files else str(Path("./vix_tasks_files").resolve())
 
 
-def get_flows_dir(flows_dir: str | None) -> str:
-    if not flows_dir:
-        flows_dir = FLOWS_DIR
-    if not flows_dir:
-        flows_dir = str(Path("./vix_flows").resolve())
-    return flows_dir
+def init_host_port_values(host: str | None, port: str | None) -> None:
+    global VIX_HOST, VIX_PORT
+    if host:
+        VIX_HOST = host
+    if port:
+        VIX_PORT = int(port)
 
 
-def get_models_dir(models_dir: str | None) -> str:
-    if not models_dir:
-        models_dir = MODELS_DIR
-    if not models_dir:
-        models_dir = str(Path("./vix_models").resolve())
-    return models_dir
-
-
-def get_tasks_files_dir(tasks_files_dir: str | None) -> str:
-    if not tasks_files_dir:
-        tasks_files_dir = TASKS_FILES_DIR
-    if not tasks_files_dir:
-        tasks_files_dir = str(Path("./vix_tasks_files").resolve())
-    return tasks_files_dir
-
-
-def get_host(host: str | None) -> str:
-    return host if host else VIX_HOST
-
-
-def get_port(port: str | None) -> int:
-    return int(port if port else VIX_PORT)
+def init_runtime_flags(ui_dir: str | None) -> None:
+    global UI_DIR
+    UI_DIR = ui_dir

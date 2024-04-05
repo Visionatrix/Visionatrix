@@ -9,22 +9,22 @@ from pathlib import Path
 
 import httpx
 
+from . import options
+
 DOWNLOAD_RETRY_COUNT = 3
 LOGGER = logging.getLogger("visionatrix")
 
 
 def install_model(
     model: dict[str, str],
-    models_dir: str,
-    backend_dir: str,
     progress_info: dict,
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
 ) -> bool:
     model["hash"] = model["hash"].lower()
     if str(model["save_path"]).find("{root}") != -1:
-        save_path = Path(backend_dir).joinpath(model["save_path"].replace("{root}", ""))
+        save_path = Path(options.BACKEND_DIR).joinpath(model["save_path"].replace("{root}", ""))
     else:
-        save_path = Path(models_dir).joinpath(model["save_path"])
+        save_path = Path(options.MODELS_DIR).joinpath(model["save_path"])
     LOGGER.debug("model=%s --> save_path=%s", model["name"], save_path)
     if save_path.exists() and not model["url"].endswith(".zip"):
         if check_hash(model["hash"], save_path):

@@ -65,8 +65,8 @@ def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing
     return r_flows, r_flows_comfy
 
 
-def get_not_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, typing.Any]]:
-    installed_flows_ids = [i["name"] for i in get_installed_flows(flows_dir)]
+def get_not_installed_flows(flows_comfy: list | None = None) -> list[dict[str, typing.Any]]:
+    installed_flows_ids = [i["name"] for i in get_installed_flows()]
     avail_flows, avail_flows_comfy = get_available_flows()
     r = []
     for i, v in enumerate(avail_flows):
@@ -77,8 +77,8 @@ def get_not_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> 
     return r
 
 
-def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list[dict[str, typing.Any]]:
-    flows = [entry for entry in Path(flows_dir).iterdir() if entry.is_dir()]
+def get_installed_flows(flows_comfy: list | None = None) -> list[dict[str, typing.Any]]:
+    flows = [entry for entry in Path(options.FLOWS_DIR).iterdir() if entry.is_dir()]
     r = []
     for flow in flows:
         flow_fp = flow.joinpath("flow.json")
@@ -93,13 +93,13 @@ def get_installed_flows(flows_dir: str, flows_comfy: list | None = None) -> list
     return r
 
 
-def get_installed_flows_names(flows_dir: str) -> list[str]:
-    return [i["name"] for i in get_installed_flows(flows_dir)]
+def get_installed_flows_names() -> list[str]:
+    return [i["name"] for i in get_installed_flows()]
 
 
-def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict[str, dict]) -> dict[str, typing.Any]:
+def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> dict[str, typing.Any]:
     flows_comfy = []
-    for i, flow in enumerate(get_installed_flows(flows_dir, flows_comfy)):
+    for i, flow in enumerate(get_installed_flows(flows_comfy)):
         if flow["name"] == flow_name:
             flow_comfy.clear()
             flow_comfy.update(flows_comfy[i])
@@ -108,14 +108,11 @@ def get_installed_flow(flows_dir: str, flow_name: str, flow_comfy: dict[str, dic
 
 
 def install_custom_flow(
-    backend_dir: str,
-    flows_dir: str,
     flow: dir,
     flow_comfy: dir,
-    models_dir: str,
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
 ) -> None:
-    uninstall_flow(flows_dir, flow["name"])
+    uninstall_flow(flow["name"])
     fill_flow_models_from_comfy_flow(flow, flow_comfy)
     progress_info = {
         "name": flow["name"],
@@ -125,24 +122,24 @@ def install_custom_flow(
     if progress_callback is not None:
         progress_callback(flow["name"], progress_info["current"], "")
     for model in flow["models"]:
-        if not install_model(model, models_dir, backend_dir, progress_info, progress_callback):
+        if not install_model(model, progress_info, progress_callback):
             return
-    local_flow_dir = os.path.join(flows_dir, flow["name"])
+    local_flow_dir = os.path.join(options.FLOWS_DIR, flow["name"])
     os.mkdir(local_flow_dir)
     progress_info["current"] = 99.0
     if progress_callback is not None:
         progress_callback(flow["name"], progress_info["current"], "")
-    with builtins.open(os.path.join(local_flow_dir, "flow.json"), mode="w", encoding="utf-8") as fp:
+    with builtins.open(os.path.join(str(local_flow_dir), "flow.json"), mode="w", encoding="utf-8") as fp:
         json.dump(flow, fp)
-    with builtins.open(os.path.join(local_flow_dir, "flow_comfy.json"), mode="w", encoding="utf-8") as fp:
+    with builtins.open(os.path.join(str(local_flow_dir), "flow_comfy.json"), mode="w", encoding="utf-8") as fp:
         json.dump(flow_comfy, fp)
     progress_info["current"] = 100.0
     if progress_callback is not None:
         progress_callback(flow["name"], progress_info["current"], "")
 
 
-def uninstall_flow(flows_dir: str, flow_name: str) -> None:
-    rmtree(os.path.join(flows_dir, flow_name), ignore_errors=True)
+def uninstall_flow(flow_name: str) -> None:
+    rmtree(os.path.join(options.FLOWS_DIR, flow_name), ignore_errors=True)
 
 
 def prepare_flow_comfy(
@@ -151,7 +148,6 @@ def prepare_flow_comfy(
     in_texts_params: dict,
     in_files_params: list,
     task_details: dict,
-    tasks_files_dir: str,
 ) -> dict:
     r = flow_comfy.copy()
     for i in [i for i in flow["input_params"] if i["type"] in ("text", "number", "list", "bool", "range")]:
@@ -191,7 +187,7 @@ def prepare_flow_comfy(
                     raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
             set_node_value(node, k_v["dest_field_name"], v_copy)
     process_seed_value(flow, in_texts_params, r)
-    prepare_flow_comfy_files_params(flow, in_files_params, task_details["task_id"], task_details, tasks_files_dir, r)
+    prepare_flow_comfy_files_params(flow, in_files_params, task_details["task_id"], task_details, r)
     return r
 
 
@@ -216,7 +212,7 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
 
 
 def prepare_flow_comfy_files_params(
-    flow: dict, in_files_params: list, task_id: int, task_details: dict, tasks_files_dir: str, r: dict
+    flow: dict, in_files_params: list, task_id: int, task_details: dict, r: dict
 ) -> None:
     files_params = [i for i in flow["input_params"] if i["type"] in ("image", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
@@ -230,7 +226,7 @@ def prepare_flow_comfy_files_params(
                 raise RuntimeError(f"Bad comfy or visionatrix flow, node with id=`{k}` can not be found.")
             set_node_value(node, k_v["dest_field_name"], file_name)
             perform_node_connections(r, k, k_v)
-        with builtins.open(os.path.join(tasks_files_dir, "input", file_name), mode="wb") as fp:
+        with builtins.open(os.path.join(options.TASKS_FILES_DIR, "input", file_name), mode="wb") as fp:
             if hasattr(v, "read"):
                 fp.write(v.read())
             else:
