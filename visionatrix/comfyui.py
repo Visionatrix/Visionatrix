@@ -7,6 +7,7 @@ https://github.com/comfyanonymous/ComfyUI
 # pylint: skip-file
 
 import asyncio
+import contextlib
 import logging
 import os
 import re
@@ -55,8 +56,10 @@ def load(
         if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
             os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
-    if need_directml_flag():
+    if need_directml_flag() and "--directml" not in sys.argv:
         sys.argv.append("--directml")
+    elif need_cpu_flag() and "--cpu" not in sys.argv:
+        sys.argv.append("--cpu")
 
     import main  # noqa # isort: skip
     import execution  # noqa # isort: skip
@@ -174,6 +177,22 @@ def need_directml_flag() -> bool:
     except PackageNotFoundError:
         LOGGER.info("No DirectML package found.")
         return False
+
+
+def need_cpu_flag() -> bool:
+    if sys.platform.lower() == "darwin":
+        return False
+    with contextlib.suppress(PackageNotFoundError):
+        if version("torch").lower().find("rocm") != -1:
+            return False
+
+    for i in ("nvidia-cublas", "nvidia-cuda-runtime", "nvidia-cudnn", "nvidia-nccl"):
+        for v in ("-cu11", "-cu12"):
+            with contextlib.suppress(PackageNotFoundError):
+                version(i + v)
+                return False
+    LOGGER.info("No CUDA or ROCM found, adding `--cpu` flag.")
+    return True
 
 
 def add_arguments(parser):

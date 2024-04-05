@@ -101,6 +101,10 @@ def install_all_flows():
         "photomaker_1",
         "juggernaut_lighting_loras",
         "stable_cascade",
+        "photo_stickers",
+        "ghibli_portrait",
+        "comicu_portrait",
+        "vintage_portrait"
     ]
 
     for i in flows:
