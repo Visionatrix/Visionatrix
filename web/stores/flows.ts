@@ -23,16 +23,16 @@ export const useFlowsStore = defineStore('flowsStore', {
 	getters: {
 		flows(state): Flow[] {
 			return [
-				...state.flows_available,
 				...state.flows_installed,
+				...state.flows_available,
 			]
 		},
 		paginatedFlows(state) {
 			const start = (state.page - 1) * state.pageSize
 			const end = start + state.pageSize
 			return [
-				...state.flows_available,
 				...state.flows_installed,
+				...state.flows_available,
 			].slice(start, end)
 		},
 		flowByName() {
