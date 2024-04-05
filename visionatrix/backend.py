@@ -203,7 +203,7 @@ async def system_stats():
     return responses.JSONResponse(content=comfyui.system_stats())
 
 
-def run_backend(*args, **kwargs) -> None:  # pylint: disable=too-many-locals
+def run_backend(*args, **kwargs) -> None:
     for i in ("input", "output"):
         os.makedirs(os.path.join(options.TASKS_FILES_DIR, i), exist_ok=True)
 

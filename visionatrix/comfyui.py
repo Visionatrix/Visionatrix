@@ -34,6 +34,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--ui",
         "--loglevel",
         "^run$",
+        "visionatrix\\.backend",  # do not remove ourselves when starting with `uvicorn visionatrix.backend:APP`
     ]
     args_to_remove = []
     for i, c in enumerate(sys.argv):
@@ -45,8 +46,6 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     for i in args_to_remove:
         sys.argv.pop(i)
 
-    LOGGER.debug("command line arguments: %s", sys.argv)
-
     if sys.platform.lower() == "darwin":
         # SUPIR node: 'aten::upsample_bicubic2d.out' is not currently implemented for the MPS device
         if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
@@ -56,6 +55,8 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         sys.argv.append("--directml")
     elif need_cpu_flag() and "--cpu" not in sys.argv:
         sys.argv.append("--cpu")
+
+    LOGGER.debug("command line arguments: %s", sys.argv)
 
     import main  # noqa # isort: skip
     import execution  # noqa # isort: skip
