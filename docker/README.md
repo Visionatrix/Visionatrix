@@ -6,16 +6,41 @@ You can build and run Visionatrix in Docker container with GPU device passed tro
 
 > [!NOTE]
 > By default image is being built with pytorch CUDA support for NVIDIA.
-> You can change this to AMD using ENV variable `GPU_VENDOR="AMD"`
 
 ```bash
-docker build . -t visionatrix/visionatrix
+docker build . -t visionatrix/visionatrix --build-arg"COMPUTE_DEVICE=CUDA"
+```
+
+### Build for AMD GPU
+
+```bash
+docker build . -t visionatrix/visionatrix --build-arg"COMPUTE_DEVICE=ROCM"
+```
+
+## Build for CPU
+
+```bash
+docker build . -t visionatrix/visionatrix --build-arg"COMPUTE_DEVICE=CPU"
 ```
 
 ## Run Visionatrix docker container
 
+For NVIDIA:
+
 ```bash
 docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix
+```
+
+For AMD:
+
+```bash
+docker run --name visionatrix --device /dev/dri --device /dev/kfd -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix
+```
+
+For CPU:
+
+```bash
+docker run --name visionatrix -p 8288:8288 -e VIX_HOST=0.0.0.0 -d visionatrix/visionatrix
 ```
 
 ## Mount volumes with installed flows and models from the host
@@ -41,16 +66,22 @@ docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 \
 
 ## Docker compose
 
-The same container can be created using docker compose, there are two options available:
+The same container can be created using docker compose:
 
-1. visionatrix_nvidia - client and server with NVIDIA gpus attached
+1. `visionatrix_nvidia` - client and server with NVIDIA gpus attached
 
 ```bash
 docker compose up -d visionatrix_nvidia
 ```
 
-2. visionatrix_amd - client and server with AMD gpus attached
+2. `visionatrix_amd` - client and server with AMD gpus attached
 
 ```bash
 docker compose up -d visionatrix_amd
+```
+
+3. `visionatrix_cpu` - client and server on CPU without GPUs
+
+```bash
+docker compuse up -d visionatrix_cpu
 ```

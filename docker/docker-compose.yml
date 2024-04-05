@@ -5,15 +5,15 @@ services:
     image: visionatrix/visionatrix
     container_name: visionatrix_nvidia
     ports:
-      - "8288:8288"
+      - "${VIX_PORT:-8288}:8288"
     working_dir: /app
     volumes:
       - ./data/flows:/app/vix_flows
       - ./data/models:/app/vix_models
       - ./data/tasks_files:/app/vix_tasks_files
     environment:
-      - VIX_HOST=${VIX_HOST}
-      - VIX_PORT=${VIX_PORT}
+      - VIX_HOST="0.0.0.0"
+      - VIX_PORT=8288
     deploy:
       resources:
         reservations:
@@ -26,19 +26,29 @@ services:
     image: visionatrix/visionatrix
     container_name: visionatrix_amd
     ports:
-      - "8288:8288"
+      - "${VIX_PORT:-8288}:8288"
     working_dir: /app
     volumes:
       - ./data/flows:/app/vix_flows
       - ./data/models:/app/vix_models
       - ./data/tasks_files:/app/vix_tasks_files
     environment:
-      - VIX_HOST=${VIX_HOST}
-      - VIX_PORT=${VIX_PORT}
+      - VIX_HOST="0.0.0.0"
+      - VIX_PORT=8288
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
 
-  # TODO: Add a separate database server
-
-  # TODO: Add a separate container for auth backends (and separate network for all services)
+  visionatrix_cpu:
+    image: visionatrix/visionatrix
+    container_name: visionatrix_cpu
+    ports:
+      - "${VIX_PORT:-8288}:8288"
+    working_dir: /app
+    volumes:
+      - ./data/flows:/app/vix_flows
+      - ./data/models:/app/vix_models
+      - ./data/tasks_files:/app/vix_tasks_files
+    environment:
+      - VIX_HOST="0.0.0.0"
+      - VIX_PORT=8288
