@@ -83,9 +83,9 @@ def create_new_task(name: str, input_params: dict) -> dict:
             "input_files": [],
             "flow_comfy": {},
         }
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to add to TaskQueue: %s", e)
+        LOGGER.exception("Failed to add `%s` to TaskQueue", name)
         raise
     finally:
         session.close()
@@ -107,9 +107,9 @@ def put_task_in_queue(task_details: dict) -> None:
         )
         session.add(new_task)
         session.commit()
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to add task: %s", e)
+        LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
         remove_task_files(task_details["task_id"], ["input"])
         raise
     finally:
@@ -132,8 +132,8 @@ def get_task(task_id: int) -> dict | None:
             "input_files": task.input_files,
             "flow_comfy": task.flow_comfy,
         }
-    except Exception as e:
-        LOGGER.exception("Failed to retrieve task: %s", e)
+    except Exception:
+        LOGGER.exception("Failed to retrieve task: %s", task_id)
         raise
     finally:
         session.close()
@@ -152,7 +152,9 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str]) -> dict:
             return json.loads(r.text)["task"]
         LOGGER.error("Server return status: %s", r.status_code)
     except Exception as e:
-        LOGGER.exception("Exception occurred: %s", e)
+        LOGGER.exception("Connect exception occurred")
+        if isinstance(e, httpx.ConnectError):
+            time.sleep(5)
     return {}
 
 
@@ -193,7 +195,7 @@ def get_incomplete_task_without_error_database(tasks_to_ask: list[str]) -> dict:
         }
     except Exception as e:
         session.rollback()
-        LOGGER.exception("Failed to retrieve task without error and incomplete progress: %s", e)
+        LOGGER.exception("Failed to retrieve task for processing: %s", e)
         return {}
     finally:
         session.close()
@@ -224,8 +226,8 @@ def get_tasks(name: str | None = None, finished: bool | None = None) -> dict:
             }
             for task in tasks
         }
-    except Exception as e:
-        LOGGER.exception("Failed to retrieve tasks: %s", e)
+    except Exception:
+        LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
         raise
     finally:
         session.close()
@@ -245,9 +247,9 @@ def remove_task_by_id_database(task_id: int) -> bool:
         if lock_result.rowcount + details_result.rowcount > 0:
             session.commit()
             return True
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task: %s", e)
+        LOGGER.exception("Failed to remove task: %s", task_id)
         raise
     finally:
         session.close()
@@ -275,9 +277,9 @@ def remove_task_by_name(name: str) -> None:
             session.execute(delete(TaskDetails).where(TaskDetails.task_id == task_id))
             session.commit()
             remove_task_files(task_id, ["output", "input"])
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task by name '%s': %s", name, e)
+        LOGGER.exception("Failed to remove task by name: %s", name)
         raise
     finally:
         session.close()
@@ -294,9 +296,9 @@ def remove_unfinished_task_by_id(task_id: int) -> bool:
             session.commit()
             remove_task_files(task_id, ["output", "input"])
             return True
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task: %s", e)
+        LOGGER.exception("Failed to remove task: %s", task_id)
         raise
     finally:
         session.close()
@@ -311,9 +313,9 @@ def remove_unfinished_tasks_by_name(name: str) -> bool:
         if result.rowcount > 0:
             session.commit()
             return True
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove incomplete TaskDetails: %s", e)
+        LOGGER.exception("Failed to remove incomplete TaskDetails for `%s`", name)
         raise
     finally:
         session.close()
@@ -404,6 +406,27 @@ def update_task_progress_server(task_details: dict) -> bool:
 def remove_active_task_lock():
     if ACTIVE_TASK:
         remove_task_lock(ACTIVE_TASK["task_id"])
+
+
+def init_active_task_inputs_from_server() -> bool:
+    if not (options.VIX_MODE == "WORKER" and options.VIX_HOST):
+        return True
+    input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
+    try:
+        for i in ACTIVE_TASK["input_files"]:
+            r = httpx.get(options.VIX_HOST.rstrip("/") + "/task-inputs", params={"input_name": i})
+            if httpx.codes.is_error(r.status_code):
+                raise f"Can not get input file, status={r.status_code}"
+            with builtins.open(os.path.join(input_directory, i), mode="wb") as input_file:
+                input_file.write(r.content)
+        return True
+    except Exception as e:
+        LOGGER.exception("Can not work on task")
+        ACTIVE_TASK["error"] = str(e)
+        update_task_progress(ACTIVE_TASK)
+        remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
+        remove_active_task_lock()
+        return False
 
 
 def upload_results_to_server() -> None:
@@ -498,7 +521,10 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
 
         ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names())
         if not ACTIVE_TASK:
-            time.sleep(0.1)
+            time.sleep(options.PAUSE_INTERVAL)
+            continue
+        if init_active_task_inputs_from_server() is False:
+            ACTIVE_TASK = {}
             continue
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
@@ -518,7 +544,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
                 ACTIVE_TASK["progress"] = 100.0
                 upload_results_to_server()
             update_task_progress(ACTIVE_TASK)
-            remove_active_task_lock()
+        remove_active_task_lock()
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
         need_gc = True

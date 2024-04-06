@@ -32,6 +32,8 @@ FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
 MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.json"
 # MODELS_CATALOG_URL = "./flows/models_catalog.json"
 
+PAUSE_INTERVAL = float(environ.get("PAUSE_INTERVAL", "0.1"))  # time to wait between ask for a next Task to process.
+
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
     global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR

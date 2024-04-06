@@ -166,6 +166,15 @@ async def tasks_remove(name: str):
     return responses.JSONResponse(content={"error": ""})
 
 
+@APP.get("/task-inputs")
+async def task_inputs(input_name: str):
+    input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
+    for filename in os.listdir(input_directory):
+        if filename == input_name:
+            return responses.FileResponse(os.path.join(input_directory, filename))
+    raise HTTPException(status_code=404, detail=f"Task input file `{input_name}` not found.")
+
+
 @APP.get("/task-results")
 async def task_results(task_id: str, node_id: int):
     result_prefix = f"{task_id}_{node_id}_"
