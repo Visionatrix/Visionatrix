@@ -12,10 +12,16 @@ FLOWS_DIR = environ.get("FLOWS_DIR", str(Path("./vix_flows").resolve()))
 MODELS_DIR = environ.get("MODELS_DIR", str(Path("./vix_models").resolve()))
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
 
-VIX_HOST = environ.get("VIX_HOST", "127.0.0.1")
-VIX_PORT = int(environ.get("VIX_PORT", "8288"))
+VIX_HOST = environ.get("VIX_HOST", "")  # in the `WORKER` mode this CAN act as a full URL of server
+VIX_PORT = environ.get("VIX_PORT", "")
 
 UI_DIR = environ.get("UI_DIR", "")
+VIX_MODE = environ.get("VIX_MODE", "DEFAULT")
+"""
+* Default - storage amd delivery of tasks(Server) + tasks processing(Worker)
+* Worker - only processing tasks for the Server(client consuming mode, no backend)
+* Server - only storage and managing of tasks
+"""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it always relative to TASKS_FILES_DIR"""
