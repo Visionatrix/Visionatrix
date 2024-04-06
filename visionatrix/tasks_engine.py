@@ -137,6 +137,8 @@ def get_task(task_id: int) -> dict | None:
 
 
 def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
+    if not tasks_to_ask:
+        return {}
     session = DB_SESSION_MAKER()
     try:
         task = (
