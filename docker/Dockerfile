@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 ENV VIX_HOST "127.0.0.1"
 ENV VIX_PORT 8288
