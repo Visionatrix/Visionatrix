@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.6 - 2024-04-08]
+
+### Added
+
+- **Docker** container as an alternative way for easy run.
+- **Scaling support**: ability to run instances of **Vix** in additional `Server` or `Worker` modes.
+
 ## [0.0.5 - 2024-03-30]
 
 ### Added
