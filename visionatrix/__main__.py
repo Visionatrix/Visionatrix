@@ -100,8 +100,12 @@ if __name__ == "__main__":
     elif args.command == "update":
         update()
     elif args.command == "run":
-        options.init_host_port_values(args.host, args.port)
-        options.init_runtime_flags(args.ui)
+        if args.host:
+            options.VIX_HOST = args.host
+        if args.port:
+            options.VIX_PORT = int(args.port)
+        if args.ui:
+            options.UI_DIR = args.ui
         run_backend()
     elif args.command == "install-flow":
         with builtins.open(args.flow, "rb") as fp:
