@@ -51,10 +51,11 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
             os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
-    if need_directml_flag() and "--directml" not in sys.argv:
-        sys.argv.append("--directml")
-    elif need_cpu_flag() and "--cpu" not in sys.argv:
-        sys.argv.append("--cpu")
+    if "--cpu" not in sys.argv and "--directml" not in sys.argv:
+        if need_directml_flag():
+            sys.argv.append("--directml")
+        elif need_cpu_flag():
+            sys.argv.append("--cpu")
 
     LOGGER.debug("command line arguments: %s", sys.argv)
 
