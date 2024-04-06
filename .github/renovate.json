@@ -5,6 +5,7 @@
     ":disableDependencyDashboard"
   ],
   "ignorePaths": [
+    "**/docker/**",
     "**/flows/**",
     "**/docs/**",
     "**/tests/**",
