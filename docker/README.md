@@ -84,5 +84,5 @@ docker compose up -d visionatrix_amd
 3. `visionatrix_cpu` - client and server on CPU without GPUs
 
 ```bash
-docker compuse up -d visionatrix_cpu
+docker compose up -d visionatrix_cpu
 ```
