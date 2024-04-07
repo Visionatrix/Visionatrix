@@ -77,21 +77,21 @@ export const useFlowsStore = defineStore('flowsStore', {
 				this.fetchFlowsAvailable(),
 				this.fetchFlowsInstalled(),
 			])
-			.then(() => {
-				this.loadFavorites()
-				this.fetchFlowResults().then((tasks_history) => {
-					this.initFlowResultsData(tasks_history)
-				}).then(() => {
-					this.restorePollingProcesses()
+				.then(() => {
+					this.loadFavorites()
+					this.fetchFlowResults().then((tasks_history) => {
+						this.initFlowResultsData(tasks_history)
+					}).then(() => {
+						this.restorePollingProcesses()
+					})
 				})
-			})
-			.then(() => {
-				const route = useRoute()
-				if (route.params.name) {
-					this.loading.current_flow = true
-					this.setCurrentFlow(<string>route.params.name)
-				}
-			})
+				.then(() => {
+					const route = useRoute()
+					if (route.params.name) {
+						this.loading.current_flow = true
+						this.setCurrentFlow(<string>route.params.name)
+					}
+				})
 		},
 
 		async fetchFlowsAvailable() {

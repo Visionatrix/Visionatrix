@@ -21,7 +21,7 @@ const collapsed = ref(true)
 					&nbsp;-
 					{{
 						`${flowStore.flowsRunningByName(flowStore.currentFlow?.name)
-						.filter((running) => running.progress > 0)[0]?.progress.toFixed(0) ?? 0}%`
+							.filter((running) => running.progress > 0)[0]?.progress.toFixed(0) ?? 0}%`
 					}}
 				</span>
 				<template v-if="flowStore.flowsRunningByNameWithErrors(flowStore?.currentFlow.name).length > 0">
@@ -41,51 +41,57 @@ const collapsed = ref(true)
 						canceling = false
 					})
 				}"
-				>Cancel all</UButton>
+			>
+				Cancel all
+			</UButton>
 		</div>
-		<div v-if="!collapsed"
-			v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name)"
-			class="mb-5">
-			<UProgress class="mb-3" :value="running?.progress" indicator :color="!running.error ? 'green' : 'red'"/>
-			<p class="text-sm mb-5 text-slate-500">
-				{{
-					Object.keys(running.input_params_mapped)
-						.filter((key) => {
-							return running.input_params_mapped[key] !== ''
+		<template v-if="!collapsed">
+			<div v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name)" :key="running.task_id" lass="mb-5">
+				<UProgress class="mb-3" :value="running?.progress" indicator :color="!running.error ? 'green' : 'red'" />
+				<p class="text-sm mb-5 text-slate-500">
+					{{
+						Object.keys(running.input_params_mapped)
+							.filter((key) => {
+								return running.input_params_mapped[key] !== ''
+							})
+							.map((key) => {
+								return `${key}: ${running.input_params_mapped[key]}`
+							}).join(' | ')
+					}}
+				</p>
+				<p v-if="running.error" class="text-red-500 p-3 mb-5 rounded-lg flex items-center overflow-x-auto">
+					<UIcon name="i-heroicons-exclamation-circle" class="mr-2 text-3xl" />
+					<span class="w-full">{{ running.error }}</span>
+				</p>
+				<UButton icon="i-heroicons-stop"
+					color="orange"
+					variant="outline"
+					:loading="canceling"
+					@click="() => {
+						canceling = true
+						flowStore.cancelRunningFlow(running).finally(() => {
+							canceling = false
 						})
-						.map((key) => {
-							return `${key}: ${running.input_params_mapped[key]}`
-						}).join(' | ')
-				}}
-			</p>
-			<p v-if="running.error" class="text-red-500 p-3 mb-5 rounded-lg flex items-center overflow-x-auto">
-				<UIcon name="i-heroicons-exclamation-circle" class="mr-2 text-3xl" />
-				<span class="w-full">{{ running.error }}</span>
-			</p>
-			<UButton icon="i-heroicons-stop"
-				color="orange"
-				variant="outline"
-				:loading="canceling"
-				@click="() => {
-					canceling = true
-					flowStore.cancelRunningFlow(running).finally(() => {
-						canceling = false
-					})
-				}"
-				>Cancel</UButton>
-			<UButton v-if="running.error"
-				class="ml-2"
-				icon="i-heroicons-arrow-path"
-				variant="outline"
-				:loading="restarting"
-				@click="() => {
-					restarting = true
-					flowStore.restartFlow(running).finally(() => {
-						restarting = false
-					})
-				}">
-				Restart</UButton>
-		</div>
+					}"
+				>
+					Cancel
+				</UButton>
+				<UButton v-if="running.error"
+					class="ml-2"
+					icon="i-heroicons-arrow-path"
+					variant="outline"
+					:loading="restarting"
+					@click="() => {
+						restarting = true
+						flowStore.restartFlow(running).finally(() => {
+							restarting = false
+						})
+					}"
+				>
+					Restart
+				</UButton>
+			</div>
+		</template>
 	</div>
 </template>
 

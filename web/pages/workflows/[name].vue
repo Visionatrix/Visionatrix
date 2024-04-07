@@ -3,10 +3,10 @@ const route = useRoute()
 
 const flowStore = useFlowsStore()
 
-flowStore.setCurrentFlow(<string>route.params.name)
+flowStore.setCurrentFlow(route.params.name as string)
 
-const settingUp = computed(() => flowStore.flowInstallingByName(<string>route.params.name) || false)
-const installing = computed(() => flowStore.flowInstallingByName(<string>route.params.name) || false)
+const settingUp = computed(() => flowStore.flowInstallingByName(route.params.name as string) || false)
+const installing = computed(() => flowStore.flowInstallingByName(route.params.name as string) || false)
 
 const deleting = ref(false)
 function deleteFlow() {
@@ -74,6 +74,7 @@ const collapsedCard = ref(false)
 								<UIcon name="i-heroicons-arrow-down-on-square-stack" class="mr-1" />
 								<b>Models ({{ flowStore.currentFlow?.models.length }}):</b>&nbsp;
 								<UBadge v-for="model in flowStore.currentFlow?.models"
+									:key="model.name"
 									class="m-1"
 									color="white"
 									variant="solid">
@@ -86,22 +87,22 @@ const collapsedCard = ref(false)
 							</p>
 							<p class="flex flex-row items-center text-md">
 								<b>Installed:</b>&nbsp;
-								<UIcon :name="flowStore.isFlowInstalled(<string>route.params.name) ?
-									'i-heroicons-check-badge'
-									: 'i-heroicons-x-mark'"
+								<UIcon :name="flowStore.isFlowInstalled(route.params.name as string) ?
+										'i-heroicons-check-badge'
+										: 'i-heroicons-x-mark'"
 									class="mx-1" />
 								<span :class="{
-									'text-green-500': flowStore.isFlowInstalled(<string>route.params.name),
-									'text-red-500': !flowStore.isFlowInstalled(<string>route.params.name),
-									}">
-									{{ flowStore.isFlowInstalled(<string>route.params.name) ? 'Yes' : 'No' }}
+									'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
+									'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
+								}">
+									{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Yes' : 'No' }}
 								</span>
 							</p>
 						</div>
 
 						<template v-if="!collapsedCard" #footer>
 							<div class="flex justify-end">
-								<UTooltip v-if="!flowStore.isFlowInstalled(<string>route.params.name)"
+								<UTooltip v-if="!flowStore.isFlowInstalled(route.params.name as string)"
 									text="Setup flow dependencies and configure it in ComfyUI"
 									:popper="{ placement: 'top' }" :open-delay="500">
 									<UButton icon="i-heroicons-arrow-down-tray"
@@ -113,7 +114,7 @@ const collapsedCard = ref(false)
 										{{ installing ? `${installing?.progress.toFixed(0)}% Setting up` : 'Setup flow' }}
 									</UButton>
 								</UTooltip>
-								<UDropdown v-if="flowStore.isFlowInstalled(<string>route.params.name)" :items="[
+								<UDropdown v-if="flowStore.isFlowInstalled(route.params.name as string)" :items="[
 									[{
 										label: 'Delete flow',
 										icon: 'i-heroicons-trash',
@@ -127,11 +128,11 @@ const collapsedCard = ref(false)
 					</UCard>
 				</div>
 				<div class="prompt-wrapper w-full">
-					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
+					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)" />
 				</div>
 			</div>
-			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name)" />
-			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(<string>route.params.name) || flowStore.flowResultsByName(<string>route.params.name).length > 0" />
+			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)" />
+			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string) || flowStore.flowResultsByName(route.params.name as string).length > 0" />
 		</template>
 		<template v-else>
 			<UProgress class="mb-3" />
