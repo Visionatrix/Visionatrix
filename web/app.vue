@@ -4,14 +4,12 @@ useSystemStore().startStatsPolling()
 </script>
 
 <template>
-  <div>
-    <div class="flex flex-col w-full h-screen justify-between">
-      <SystemStats />
-      <Navbar />
-      <NuxtPage class="w-full min-h-vh py-1.5 z-10" />
-    </div>
-    <UNotifications class="z-5" />
+  <div class="flex flex-col w-full h-screen">
+    <SystemStats />
+    <Navbar />
+    <NuxtPage class="w-full min-h-vh py-1.5 z-10" />
   </div>
+  <UNotifications class="z-5" />
 </template>
 
 <style>

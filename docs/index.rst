@@ -1,7 +1,7 @@
 Visionatrix documentation
 =========================
 
-Here will leave all docs that is not suitable for Readme file..
+Here will leave all docs that is not suitable for Readme file.
 
 .. toctree::
     :maxdepth: 1
@@ -9,6 +9,7 @@ Here will leave all docs that is not suitable for Readme file..
     Flows/index.rst
     Installation.rst
     CommandLineOptions.rst
+    ScalingInformation.rst
 
 Indices and tables
 ==================

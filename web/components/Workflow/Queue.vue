@@ -2,6 +2,7 @@
 const flowStore = useFlowsStore()
 
 const canceling = ref(false)
+const restarting = ref(false)
 const collapsed = ref(true)
 </script>
 
@@ -57,7 +58,7 @@ const collapsed = ref(true)
 						}).join(' | ')
 				}}
 			</p>
-			<p v-if="running.error" class="text-red-500 p-3 mb-5 rounded-lg flex items-center">
+			<p v-if="running.error" class="text-red-500 p-3 mb-5 rounded-lg flex items-center overflow-x-auto">
 				<UIcon name="i-heroicons-exclamation-circle" class="mr-2 text-3xl" />
 				<span class="w-full">{{ running.error }}</span>
 			</p>
@@ -72,6 +73,18 @@ const collapsed = ref(true)
 					})
 				}"
 				>Cancel</UButton>
+			<UButton v-if="running.error"
+				class="ml-2"
+				icon="i-heroicons-arrow-path"
+				variant="outline"
+				:loading="restarting"
+				@click="() => {
+					restarting = true
+					flowStore.restartFlow(running).finally(() => {
+						restarting = false
+					})
+				}">
+				Restart</UButton>
 		</div>
 	</div>
 </template>

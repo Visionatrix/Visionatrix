@@ -55,6 +55,10 @@ def download_model(
     progress_info: dict,
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
 ) -> bool:
+    if options.VIX_MODE == "SERVER":  # Server mode does not require "true" models
+        with builtins.open(save_path, "w", encoding="UTF-8") as file:
+            file.write("SERVER MODE")
+        return True
     try:
         with httpx.stream("GET", model["url"], follow_redirects=True) as response:
             linked_etag = ""
@@ -100,6 +104,8 @@ def download_model(
 
 
 def check_hash(etag: str, model_path: str | Path) -> bool:
+    if options.VIX_MODE == "SERVER":  # Server mode does not require "true" models
+        return True
     with builtins.open(model_path, "rb") as file:
         sha256_hash = hashlib.sha256()
         for byte_block in iter(lambda: file.read(4096), b""):

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.6 - 2024-04-08]
+
+### Added
+
+- **Docker** container as an alternative way for easy run.
+- **Scaling**: ability to run instances of **Vix** in additional `Server` or `Worker` modes.
+- `Restart` button in UI for tasks with `Error` status set.
+
+### Fixed
+
+``--cpu`` flag is automatically applied if AMD or NVIDIA PyTorch is not found.
+
 ## [0.0.5 - 2024-03-30]
 
 ### Added

@@ -1,12 +1,15 @@
 import asyncio
+import builtins
 import contextlib
 import gc
+import json
 import logging
 import os
 import time
 import typing
 from datetime import datetime
 
+import httpx
 from sqlalchemy import (
     JSON,
     Column,
@@ -60,7 +63,7 @@ class TaskLock(Base):
 
 LOGGER = logging.getLogger("visionatrix")
 DB_SESSION_MAKER: sessionmaker
-ACTIVE_TASK: dict
+ACTIVE_TASK: dict = {}
 
 
 def create_new_task(name: str, input_params: dict) -> dict:
@@ -80,9 +83,9 @@ def create_new_task(name: str, input_params: dict) -> dict:
             "input_files": [],
             "flow_comfy": {},
         }
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to add to TaskQueue: %s", e)
+        LOGGER.exception("Failed to add `%s` to TaskQueue", name)
         raise
     finally:
         session.close()
@@ -104,9 +107,9 @@ def put_task_in_queue(task_details: dict) -> None:
         )
         session.add(new_task)
         session.commit()
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to add task: %s", e)
+        LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
         remove_task_files(task_details["task_id"], ["input"])
         raise
     finally:
@@ -129,14 +132,33 @@ def get_task(task_id: int) -> dict | None:
             "input_files": task.input_files,
             "flow_comfy": task.flow_comfy,
         }
-    except Exception as e:
-        LOGGER.exception("Failed to retrieve task: %s", e)
+    except Exception:
+        LOGGER.exception("Failed to retrieve task: %s", task_id)
         raise
     finally:
         session.close()
 
 
 def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
+    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+        return get_incomplete_task_without_error_server(tasks_to_ask)
+    return get_incomplete_task_without_error_database(tasks_to_ask)
+
+
+def get_incomplete_task_without_error_server(tasks_to_ask: list[str]) -> dict:
+    try:
+        r = httpx.post(options.VIX_HOST.rstrip("/") + "/task-worker/get", data={"tasks_names": tasks_to_ask})
+        if not httpx.codes.is_error(r.status_code):
+            return json.loads(r.text)["task"]
+        LOGGER.error("Server return status: %s", r.status_code)
+    except Exception as e:
+        LOGGER.exception("Connect exception occurred")
+        if isinstance(e, httpx.ConnectError):
+            time.sleep(5)
+    return {}
+
+
+def get_incomplete_task_without_error_database(tasks_to_ask: list[str]) -> dict:
     if not tasks_to_ask:
         return {}
     session = DB_SESSION_MAKER()
@@ -173,7 +195,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
         }
     except Exception as e:
         session.rollback()
-        LOGGER.exception("Failed to retrieve task without error and incomplete progress: %s", e)
+        LOGGER.exception("Failed to retrieve task for processing: %s", e)
         return {}
     finally:
         session.close()
@@ -204,14 +226,20 @@ def get_tasks(name: str | None = None, finished: bool | None = None) -> dict:
             }
             for task in tasks
         }
-    except Exception as e:
-        LOGGER.exception("Failed to retrieve tasks: %s", e)
+    except Exception:
+        LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
         raise
     finally:
         session.close()
 
 
 def remove_task_by_id(task_id: int) -> bool:
+    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+        return remove_task_by_id_server(task_id)
+    return remove_task_by_id_database(task_id)
+
+
+def remove_task_by_id_database(task_id: int) -> bool:
     session = DB_SESSION_MAKER()
     try:
         lock_result = session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
@@ -219,13 +247,24 @@ def remove_task_by_id(task_id: int) -> bool:
         if lock_result.rowcount + details_result.rowcount > 0:
             session.commit()
             return True
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task: %s", e)
+        LOGGER.exception("Failed to remove task: %s", task_id)
         raise
     finally:
         session.close()
         remove_task_files(task_id, ["output", "input"])
+    return False
+
+
+def remove_task_by_id_server(task_id: int) -> bool:
+    try:
+        r = httpx.delete(options.VIX_HOST.rstrip("/") + "/task", params={"task_id": task_id})
+        if not httpx.codes.is_error(r.status_code):
+            return True
+        LOGGER.error("Server return status: %s", r.status_code)
+    except Exception as e:
+        LOGGER.exception("Exception occurred: %s", e)
     return False
 
 
@@ -238,9 +277,9 @@ def remove_task_by_name(name: str) -> None:
             session.execute(delete(TaskDetails).where(TaskDetails.task_id == task_id))
             session.commit()
             remove_task_files(task_id, ["output", "input"])
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task by name '%s': %s", name, e)
+        LOGGER.exception("Failed to remove task by name: %s", name)
         raise
     finally:
         session.close()
@@ -257,9 +296,9 @@ def remove_unfinished_task_by_id(task_id: int) -> bool:
             session.commit()
             remove_task_files(task_id, ["output", "input"])
             return True
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task: %s", e)
+        LOGGER.exception("Failed to remove task: %s", task_id)
         raise
     finally:
         session.close()
@@ -274,9 +313,9 @@ def remove_unfinished_tasks_by_name(name: str) -> bool:
         if result.rowcount > 0:
             session.commit()
             return True
-    except Exception as e:
+    except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove incomplete TaskDetails: %s", e)
+        LOGGER.exception("Failed to remove incomplete TaskDetails for `%s`", name)
         raise
     finally:
         session.close()
@@ -294,6 +333,12 @@ def remove_task_files(task_id: int, directories: list[str]) -> None:
 
 
 def remove_task_lock(task_id: int) -> None:
+    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+        return remove_task_lock_server(task_id)
+    return remove_task_lock_database(task_id)
+
+
+def remove_task_lock_database(task_id: int) -> None:
     session = DB_SESSION_MAKER()
     try:
         result = session.execute(delete(TaskLock).where(TaskLock.task_id == task_id))
@@ -306,23 +351,112 @@ def remove_task_lock(task_id: int) -> None:
         session.close()
 
 
+def remove_task_lock_server(task_id: int) -> None:
+    try:
+        r = httpx.delete(options.VIX_HOST.rstrip("/") + "/task-worker/lock", params={"task_id": task_id})
+        if httpx.codes.is_error(r.status_code):
+            LOGGER.error("Server return status: %s", r.status_code)
+    except Exception as e:
+        LOGGER.exception("Exception occurred: %s", e)
+
+
 def update_task_progress(task_details: dict) -> bool:
+    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+        return update_task_progress_server(task_details)
+    return update_task_progress_database(task_details["task_id"], task_details["progress"], task_details["error"])
+
+
+def update_task_progress_database(task_id: int, progress: float, error: str) -> bool:
     session = DB_SESSION_MAKER()
     try:
         result = session.execute(
-            update(TaskDetails)
-            .where(TaskDetails.task_id == task_details["task_id"])
-            .values(progress=task_details["progress"], error=task_details["error"])
+            update(TaskDetails).where(TaskDetails.task_id == task_id).values(progress=progress, error=error)
         )
         session.commit()
         return result.rowcount == 1
     except Exception as e:
         interrupt_processing()
         session.rollback()
-        LOGGER.exception("Task %s failed to update TaskDetails: %s", task_details["task_id"], e)
+        LOGGER.exception("Task %s failed to update TaskDetails: %s", task_id, e)
     finally:
         session.close()
     return False
+
+
+def update_task_progress_server(task_details: dict) -> bool:
+    try:
+        r = httpx.put(
+            options.VIX_HOST.rstrip("/") + "/task-worker/progress",
+            data={
+                "task_id": task_details["task_id"],
+                "progress": task_details["progress"],
+                "error": task_details["error"],
+            },
+        )
+        if not httpx.codes.is_error(r.status_code):
+            return True
+        LOGGER.error("Server return status: %s", r.status_code)
+    except Exception as e:
+        LOGGER.exception("Exception occurred: %s", e)
+    return False
+
+
+def remove_active_task_lock():
+    if ACTIVE_TASK:
+        remove_task_lock(ACTIVE_TASK["task_id"])
+
+
+def init_active_task_inputs_from_server() -> bool:
+    if not (options.VIX_MODE == "WORKER" and options.VIX_HOST):
+        return True
+    input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
+    try:
+        for i in ACTIVE_TASK["input_files"]:
+            r = httpx.get(options.VIX_HOST.rstrip("/") + "/task-inputs", params={"input_name": i})
+            if httpx.codes.is_error(r.status_code):
+                raise f"Can not get input file, status={r.status_code}"
+            with builtins.open(os.path.join(input_directory, i), mode="wb") as input_file:
+                input_file.write(r.content)
+        return True
+    except Exception as e:
+        LOGGER.exception("Can not work on task")
+        ACTIVE_TASK["error"] = str(e)
+        update_task_progress(ACTIVE_TASK)
+        remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
+        remove_active_task_lock()
+        return False
+
+
+def upload_results_to_server() -> None:
+    if not (options.VIX_MODE == "WORKER" and options.VIX_HOST):
+        return
+    files = []
+    result_prefix = str(ACTIVE_TASK["task_id"]) + "_"
+    target_directory = os.path.join(options.TASKS_FILES_DIR, "output")
+    try:
+        for filename in os.listdir(target_directory):
+            if filename.startswith(result_prefix):
+                fila_path = os.path.join(target_directory, filename)
+                file_handle = builtins.open(fila_path, mode="rb")  # pylint: disable=consider-using-with
+                files.append(
+                    ("files", (filename, file_handle)),
+                )
+        try:
+            r = httpx.put(
+                options.VIX_HOST.rstrip("/") + "/task-worker/results",
+                params={
+                    "task_id": ACTIVE_TASK["task_id"],
+                },
+                files=files,
+            )
+            if httpx.codes.is_error(r.status_code):
+                LOGGER.error("Server return status: %s", r.status_code)
+        except Exception as e:
+            LOGGER.exception("Exception occurred: %s", e)
+    finally:
+        for f in files:
+            f[1][1].close()
+    remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
@@ -385,7 +519,10 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
 
         ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names())
         if not ACTIVE_TASK:
-            time.sleep(0.1)
+            time.sleep(options.PAUSE_INTERVAL)
+            continue
+        if init_active_task_inputs_from_server() is False:
+            ACTIVE_TASK = {}
             continue
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
@@ -403,8 +540,9 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         else:
             if not ACTIVE_TASK["error"]:
                 ACTIVE_TASK["progress"] = 100.0
+                upload_results_to_server()
             update_task_progress(ACTIVE_TASK)
-            remove_task_lock(ACTIVE_TASK["task_id"])
+        remove_active_task_lock()
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
         need_gc = True
@@ -415,7 +553,8 @@ async def start_tasks_engine(comfy_queue: typing.Any, exit_event: asyncio.Event)
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
     init_database_engine()
-    _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
+    if options.VIX_MODE in ("DEFAULT", "WORKER"):
+        _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
 
 
 def init_database_engine() -> None:

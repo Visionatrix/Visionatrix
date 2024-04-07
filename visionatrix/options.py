@@ -12,10 +12,16 @@ FLOWS_DIR = environ.get("FLOWS_DIR", str(Path("./vix_flows").resolve()))
 MODELS_DIR = environ.get("MODELS_DIR", str(Path("./vix_models").resolve()))
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
 
-VIX_HOST = environ.get("VIX_HOST", "127.0.0.1")
-VIX_PORT = int(environ.get("VIX_PORT", "8288"))
+VIX_HOST = environ.get("VIX_HOST", "")  # in the `WORKER` mode this CAN act as a full URL of server
+VIX_PORT = environ.get("VIX_PORT", "")
 
 UI_DIR = environ.get("UI_DIR", "")
+VIX_MODE = environ.get("VIX_MODE", "DEFAULT")
+"""
+* DEFAULT - storage amd delivery of tasks(Server) + tasks processing(Worker)
+* WORKER - only processing tasks for the Server(client consuming mode, no backend)
+* SERVER - only storage and managing of tasks
+"""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it always relative to TASKS_FILES_DIR"""
@@ -25,6 +31,8 @@ FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
 # FLOWS_URL = "./flows.zip"
 MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.json"
 # MODELS_CATALOG_URL = "./flows/models_catalog.json"
+
+PAUSE_INTERVAL = float(environ.get("PAUSE_INTERVAL", "0.1"))  # time to wait between ask for a next Task to process.
 
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:

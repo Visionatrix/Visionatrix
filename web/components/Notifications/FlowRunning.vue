@@ -28,5 +28,8 @@ const running = computed(() => flowStore.running.reduce((running, runningFlow) =
 			variant="solid">
 			{{ running[flow_name].filter((r: FlowRunning) => r.progress > 0)[0]?.progress.toFixed(0) || 0 }}%
 		</UBadge>
+		<span v-if="running[flow_name].filter((r: FlowRunning) => r.error).length > 0" class="text-red-500">
+			({{ running[flow_name].filter((r: FlowRunning) => r.error).length }})
+		</span>
 	</div>
 </template>

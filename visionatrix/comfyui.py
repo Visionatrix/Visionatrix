@@ -35,6 +35,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--loglevel",
         "^run$",
         "visionatrix\\.backend",  # do not remove ourselves when starting with `uvicorn visionatrix.backend:APP`
+        "--mode",
     ]
     args_to_remove = []
     for i, c in enumerate(sys.argv):

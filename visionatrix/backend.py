@@ -1,11 +1,14 @@
 import asyncio
+import builtins
 import json
 import logging
 import os
+import shutil
 import signal
 import time
 import typing
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI, Form, HTTPException, UploadFile, responses
@@ -24,17 +27,23 @@ from .flows import (
     uninstall_flow,
 )
 from .tasks_engine import (
+    background_prompt_executor,
     create_new_task,
+    get_incomplete_task_without_error_database,
     get_task,
     get_tasks,
+    init_database_engine,
     put_task_in_queue,
-    remove_task_by_id,
+    remove_active_task_lock,
+    remove_task_by_id_database,
     remove_task_by_name,
     remove_task_files,
+    remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
     start_tasks_engine,
     task_progress_callback,
+    update_task_progress_database,
 )
 
 LOGGER = logging.getLogger("visionatrix")
@@ -145,9 +154,22 @@ async def task_progress(task_id: int):
     return responses.JSONResponse(content=r)
 
 
+@APP.post("/task-restart")
+async def task_restart(task_id: int):
+    if (r := get_task(task_id)) is None:
+        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+    if not r["error"]:
+        return responses.JSONResponse(status_code=400, content={"error": f"Task `{task_id}` has no error set."})
+    if r["progress"] == 100.0:
+        return responses.JSONResponse(status_code=400, content={"error": f"Task `{task_id}` already finished."})
+    update_task_progress_database(task_id, 0.0, "")
+    remove_task_lock_database(task_id)
+    return responses.JSONResponse(content={"error": ""})
+
+
 @APP.delete("/task")
 async def task_remove(task_id: int):
-    remove_task_by_id(task_id)
+    remove_task_by_id_database(task_id)
     return responses.JSONResponse(content={"error": ""})
 
 
@@ -155,6 +177,15 @@ async def task_remove(task_id: int):
 async def tasks_remove(name: str):
     remove_task_by_name(name)
     return responses.JSONResponse(content={"error": ""})
+
+
+@APP.get("/task-inputs")
+async def task_inputs(input_name: str):
+    input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
+    for filename in os.listdir(input_directory):
+        if filename == input_name:
+            return responses.FileResponse(os.path.join(input_directory, filename))
+    raise HTTPException(status_code=404, detail=f"Task input file `{input_name}` not found.")
 
 
 @APP.get("/task-results")
@@ -176,6 +207,42 @@ async def tasks_queue_clear(name: str):
 @APP.delete("/task-queue")
 async def task_queue_clear(task_id: int):
     remove_unfinished_task_by_id(task_id)
+    return responses.JSONResponse(content={"error": ""})
+
+
+@APP.post("/task-worker/get")
+async def task_worker_give_task(tasks_names: typing.Annotated[list[str], Form()]):
+    return responses.JSONResponse(
+        content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names)}
+    )
+
+
+@APP.put("/task-worker/progress")
+async def task_worker_update_progress(
+    task_id: typing.Annotated[int, Form()],
+    progress: typing.Annotated[float, Form()],
+    error: typing.Annotated[str, Form()] = "",
+):
+    r = update_task_progress_database(task_id, progress, error)
+    return responses.JSONResponse(content={"error": "" if r else "failed to update"})
+
+
+@APP.put("/task-worker/results")
+async def task_worker_put_results(task_id: int, files: list[UploadFile]):
+    if not get_task(task_id):
+        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+    output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
+    for r in files:
+        try:
+            with builtins.open(Path(output_directory).joinpath(r.filename), mode="wb") as out_file:
+                shutil.copyfileobj(r.file, out_file)
+        finally:
+            r.file.close()
+
+
+@APP.delete("/task-worker/lock")
+async def task_worker_remove_lock(task_id: int):
+    remove_task_lock_database(task_id)
     return responses.JSONResponse(content={"error": ""})
 
 
@@ -203,14 +270,34 @@ async def system_stats():
     return responses.JSONResponse(content=comfyui.system_stats())
 
 
-def run_backend(*args, **kwargs) -> None:
+def run_vix(*args, **kwargs) -> None:
+    if options.VIX_MODE == "WORKER" and options.UI_DIR:
+        LOGGER.error("`WORKER` mode is incompatible with UI")
+        return
+
     for i in ("input", "output"):
         os.makedirs(os.path.join(options.TASKS_FILES_DIR, i), exist_ok=True)
 
-    try:
-        uvicorn.run(APP, *args, host=options.VIX_HOST, port=options.VIX_PORT, **kwargs)
-    except KeyboardInterrupt:
-        print("Visionatrix is shutting down.")
+    if options.VIX_MODE != "WORKER":
+        try:
+            uvicorn.run(
+                APP,
+                *args,
+                host=options.VIX_HOST if options.VIX_HOST else "127.0.0.1",
+                port=int(options.VIX_PORT) if options.VIX_PORT else 8288,
+                **kwargs,
+            )
+        except KeyboardInterrupt:
+            print("Visionatrix is shutting down.")
+    else:
+        _, comfy_queue = comfyui.load(task_progress_callback)
+        if not options.VIX_HOST:
+            init_database_engine()  # we get tasks directly from the Database
+        try:
+            background_prompt_executor(comfy_queue, EXIT_EVENT)
+        except KeyboardInterrupt:
+            remove_active_task_lock()
+            print("Visionatrix is shutting down.")
 
 
 def __progress_install_callback(name: str, progress: float, error: str) -> None:
