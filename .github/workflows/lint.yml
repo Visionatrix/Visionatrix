@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  eslint:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,9 +16,11 @@ jobs:
           node-version: '20'
 
       - name: Install npm dependencies
-        working-directory: ./web
-        run: npm ci
+        run: |
+          cd ./web
+          npm ci
 
       - name: ESLint
-        working-directory: ./web
-        run: npm run lint
+        run: |
+          cd ./web
+          npm run lint
