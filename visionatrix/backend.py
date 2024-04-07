@@ -154,6 +154,19 @@ async def task_progress(task_id: int):
     return responses.JSONResponse(content=r)
 
 
+@APP.post("/task-restart")
+async def task_restart(task_id: int):
+    if (r := get_task(task_id)) is None:
+        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+    if not r["error"]:
+        return responses.JSONResponse(status_code=400, content={"error": f"Task `{task_id}` has no error set."})
+    if r["progress"] == 100.0:
+        return responses.JSONResponse(status_code=400, content={"error": f"Task `{task_id}` already finished."})
+    update_task_progress_database(task_id, 0.0, "")
+    remove_task_lock_database(task_id)
+    return responses.JSONResponse(content={"error": ""})
+
+
 @APP.delete("/task")
 async def task_remove(task_id: int):
     remove_task_by_id_database(task_id)
@@ -210,7 +223,7 @@ async def task_worker_update_progress(
     progress: typing.Annotated[float, Form()],
     error: typing.Annotated[str, Form()] = "",
 ):
-    r = update_task_progress_database({"task_id": task_id, "progress": progress, "error": error})
+    r = update_task_progress_database(task_id, progress, error)
     return responses.JSONResponse(content={"error": "" if r else "failed to update"})
 
 

@@ -363,23 +363,21 @@ def remove_task_lock_server(task_id: int) -> None:
 def update_task_progress(task_details: dict) -> bool:
     if options.VIX_MODE == "WORKER" and options.VIX_HOST:
         return update_task_progress_server(task_details)
-    return update_task_progress_database(task_details)
+    return update_task_progress_database(task_details["task_id"], task_details["progress"], task_details["error"])
 
 
-def update_task_progress_database(task_details: dict) -> bool:
+def update_task_progress_database(task_id: int, progress: float, error: str) -> bool:
     session = DB_SESSION_MAKER()
     try:
         result = session.execute(
-            update(TaskDetails)
-            .where(TaskDetails.task_id == task_details["task_id"])
-            .values(progress=task_details["progress"], error=task_details["error"])
+            update(TaskDetails).where(TaskDetails.task_id == task_id).values(progress=progress, error=error)
         )
         session.commit()
         return result.rowcount == 1
     except Exception as e:
         interrupt_processing()
         session.rollback()
-        LOGGER.exception("Task %s failed to update TaskDetails: %s", task_details["task_id"], e)
+        LOGGER.exception("Task %s failed to update TaskDetails: %s", task_id, e)
     finally:
         session.close()
     return False
