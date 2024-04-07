@@ -88,8 +88,7 @@ const deletingFlowResults = ref(false)
 					<USelect v-model="flowStore.resultsPageSize"
 						class="md:mx-3 w-fit mr-3"
 						:options="[5, 10, 20, 50, 100]"
-						:label="'Results per page'"
-						:placeholder="'Results per page'" />
+						:label="'Results per page'" />
 					<UDropdown :items="[
 						[{
 							label: 'Delete all results',
@@ -132,6 +131,7 @@ const deletingFlowResults = ref(false)
 					<NuxtImg v-if="flowResult.output_params.length === 1"
 						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
 						fit="outside"
+						loading="lazy"
 						:src="outputImgSrc({
 							task_id: flowResult.task_id,
 							node_id: flowResult.output_params[0].comfy_node_id
@@ -148,8 +148,11 @@ const deletingFlowResults = ref(false)
 						:ui="{ item: 'basis-full md:basis-1/2' }"
 						:page="1"
 						indicators>
-						<NuxtImg class="w-full cursor-pointer" :src="outputImgSrc(item)"
-							draggable="false" @click="() => openImageModal(outputImgSrc(item))" />
+						<NuxtImg class="w-full cursor-pointer"
+							loading="lazy"
+							:src="outputImgSrc(item)"
+							draggable="false"
+							@click="() => openImageModal(outputImgSrc(item))" />
 					</UCarousel>
 					<p class="text-sm text-slate-500 text-center mb-3">
 						{{

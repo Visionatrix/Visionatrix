@@ -28,12 +28,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 			]
 		},
 		paginatedFlows(state) {
-			const start = (state.page - 1) * state.pageSize
-			const end = start + state.pageSize
-			return [
+			return paginate([
 				...state.flows_installed,
 				...state.flows_available,
-			].slice(start, end)
+			], state.page, state.pageSize) as Flow[]
 		},
 		flowByName() {
 			return (name: string) => this.flows.find(flow => flow.name === name)
@@ -48,13 +46,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 		flowResultsByNamePaginated(state) {
 			return (name: string) => {
-				const start = (state.resultsPage - 1) * state.resultsPageSize
-				const end = start + state.resultsPageSize
 				if (state.flow_results_filter !== '') {
-					return state.flow_results.filter(flow => flow.flow_name === name && flow.input_params_mapped['prompt'].includes(state.flow_results_filter)).reverse().slice(start, end)
+					return paginate(state.flow_results.filter(flow => flow.flow_name === name && flow.input_params_mapped['prompt'].includes(state.flow_results_filter)).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
 				}
-				return state.flow_results.filter(flow => flow.flow_name === name).reverse().slice(start, end)
-			}
+				return paginate(state.flow_results.filter(flow => flow.flow_name === name).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+			}	
 		},
 		flowInstallingByName(state) {
 			return (name: string) => state.installing.find(flow => flow.flow_name === name) ?? null
@@ -302,6 +298,29 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
+		async restartFlow(running: FlowRunning) {
+			return $fetch(`${buildBackendApiUrl()}/task-restart?task_id=${running.task_id}`, {
+				method: 'POST',
+			}).then((res: any) => {
+				if (res.error !== '') {
+					const toast = useToast()
+					toast.add({
+						title: 'Failed to restart flow',
+						description: res.error,
+						timeout: 5000,
+					})
+					return
+				}
+				const runningFlow = this.running.find(flow => flow.task_id === running.task_id)
+				if (!runningFlow) {
+					return
+				}
+				runningFlow.error = ''
+				runningFlow.progress = 0
+				this.startFlowProgressPolling(running.task_id)
+			})
+		},
+
 		async deleteFlowResults(flow_name: string) {
 			return await $fetch(`${buildBackendApiUrl()}/tasks?name=${flow_name}`, {
 				method: 'DELETE',
@@ -479,7 +498,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 							input_params_mapped: runningFlow.input_params_mapped,
 						})
 					}
-				}).catch(() => {
+				}).catch((e): any => {
+					console.debug('Failed to fetch running flow progress: ', e)
 					clearInterval(interval)
 					this.running = this.running.filter(flow => flow.task_id !== task_id)
 				})
