@@ -18,9 +18,9 @@ VIX_PORT = environ.get("VIX_PORT", "")
 UI_DIR = environ.get("UI_DIR", "")
 VIX_MODE = environ.get("VIX_MODE", "DEFAULT")
 """
-* Default - storage amd delivery of tasks(Server) + tasks processing(Worker)
-* Worker - only processing tasks for the Server(client consuming mode, no backend)
-* Server - only storage and managing of tasks
+* DEFAULT - storage amd delivery of tasks(Server) + tasks processing(Worker)
+* WORKER - only processing tasks for the Server(client consuming mode, no backend)
+* SERVER - only storage and managing of tasks
 """
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
