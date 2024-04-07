@@ -20,7 +20,7 @@ const collapsedCard = ref(false)
 </script>
 
 <template>
-	<AppContainer class="lg:h-dvh">
+	<AppContainer>
 		<template v-if="!flowStore.loading.flows_available && !flowStore.loading.flows_installed && flowStore.currentFlow && !flowStore.$state.loading.tasks_history">
 			<div class="flex flex-col lg:flex-row flex-grow items-start w-full">
 				<div class="card-wrapper w-full lg:pr-5">

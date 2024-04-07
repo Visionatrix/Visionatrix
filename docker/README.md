@@ -1,6 +1,6 @@
 # Visionatrix in Docker
 
-You can build and run Visionatrix in Docker container with GPU device passed trough.
+You can build and run Visionatrix in Docker container with GPU device passthrough.
 
 ## Build docker image
 
@@ -71,18 +71,18 @@ The same container can be created using docker compose:
 
 1. `visionatrix_nvidia` - client and server with NVIDIA gpus attached
 
-```bash
-docker compose up -d visionatrix_nvidia
-```
+    ```bash
+    docker compose up -d visionatrix_nvidia
+    ```
 
 2. `visionatrix_amd` - client and server with AMD gpus attached
 
-```bash
-docker compose up -d visionatrix_amd
-```
+    ```bash
+    docker compose up -d visionatrix_amd
+    ```
 
 3. `visionatrix_cpu` - client and server on CPU without GPUs
 
-```bash
-docker compose up -d visionatrix_cpu
-```
+    ```bash
+    docker compose up -d visionatrix_cpu
+    ```

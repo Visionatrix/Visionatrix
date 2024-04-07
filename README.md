@@ -10,17 +10,16 @@ The goal of the project is to provide a user-friendly way for generating and pro
 
 To achieve this goal, the [ComfyUI](https://github.com/comfyanonymous/ComfyUI) project was chosen, since its flow format looks very great.
 
-**Visionatrix** projects provides:
+Visionatrix projects provides:
 
-1. Automatic installation in one click.
-2. Extended format of ComfyUI workflows.
-3. Constant task history.
-4. Backend endpoints for tasks & server management.
-5. User interface which is much simpler and user-oriented
-6. Support for command line options that ComfyUI supports.
+1. **Simplified Setup**: one-click installation process.
+2. **User-Centric Design**: interface is crafted with the user in mind, prioritizing ease of use.
+3. **Standardized Workflows**: workflows based on widely-adopted ComfyUI workflow format.
+4. **Seamless Integration**: backend endpoints for comprehensive task and server management.
+5. **Proven Reliability**: building on the solid foundation of ComfyUI, benefiting from extensive testing.
+6. **Scalability**: automatic task scheduling across multiple instances, facilitating efficient scaling.
 7. Multiple users support. _(in progress)_
 8. Connecting a custom user backend. _(in progress)_
-9. Support of queue manager to schedule tasks between multiply instances. _(in progress)_
 
 > [!NOTE]
 > The project is currently in the early development stage, expect breaking changes.
@@ -89,3 +88,4 @@ we'll provide more information in the documentation on how to use it with third-
   - [Available Flows](https://visionatrix.github.io/Visionatrix/Flows/index.html)
   - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation.html)
   - [Command Line Options](https://visionatrix.github.io/Visionatrix/CommandLineOptions.html)
+  - [Scaling information](https://visionatrix.github.io/Visionatrix/ScalingInformation.html)

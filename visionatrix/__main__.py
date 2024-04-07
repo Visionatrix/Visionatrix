@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from . import comfyui, install, options, run_backend, update
+from . import comfyui, install, options, run_vix, update
 from .flows import install_custom_flow
 
 
@@ -62,10 +62,13 @@ if __name__ == "__main__":
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
         subparser.add_argument("--models_dir", type=str, help="Directory for the models")
         if i[0] == "run":
-            subparser.add_argument("--host", type=str, help="Host to be used by Visionatrix backend")
-            subparser.add_argument("--port", type=str, help="Port to be used by Visionatrix backend")
+            subparser.add_argument(
+                "--host", type=str, help="Host to listen (DEFAULT or SERVER mode) / Address to connect to(WORKER mode)"
+            )
+            subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--ui", type=str, help="Folder with UI")
             subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
+            subparser.add_argument("--mode", choices=["WORKER", "SERVER"], help="VIX special operating mode")
             comfyui.add_arguments(subparser)
 
     args = parser.parse_args()
@@ -103,10 +106,12 @@ if __name__ == "__main__":
         if args.host:
             options.VIX_HOST = args.host
         if args.port:
-            options.VIX_PORT = int(args.port)
+            options.VIX_PORT = args.port
         if args.ui:
             options.UI_DIR = args.ui
-        run_backend()
+        if args.mode:
+            options.VIX_MODE = args.mode
+        run_vix()
     elif args.command == "install-flow":
         with builtins.open(args.flow, "rb") as fp:
             flow = json.loads(fp.read())
