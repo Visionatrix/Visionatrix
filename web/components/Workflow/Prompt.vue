@@ -1,10 +1,10 @@
 <script setup lang="ts">
 const flowStore  = useFlowsStore()
-let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_param => {
+const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_param => {
 	if (input_param.type === 'text') {
 		return ({
 			[input_param.name]: {
-				value: <string>input_param.default || '',
+				value: input_param.default as string || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -14,7 +14,7 @@ let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_para
 	else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
-				value: <number>input_param.default || 0,
+				value: input_param.default as number || 0,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -24,7 +24,7 @@ let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_para
 	else if (input_param.type === 'image') {
 		return ({
 			[input_param.name]: {
-				value: <any>input_param.default || {},
+				value: input_param.default as any || {},
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -33,7 +33,7 @@ let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_para
 	} else if (input_param.type === 'list') {
 		return ({
 			[input_param.name]: {
-				value: <any>input_param.default || Object.keys(<object>input_param.options)[0] || '',
+				value: input_param.default as any || Object.keys(input_param.options as object)[0] || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				options: input_param.options,
@@ -43,7 +43,7 @@ let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_para
 	} else if (input_param.type === 'bool') {
 		return ({
 			[input_param.name]: {
-				value: <boolean>input_param.default || false,
+				value: input_param.default as boolean || false,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -52,7 +52,7 @@ let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_para
 	} else if (input_param.type === 'range') {
 		return ({
 			[input_param.name]: {
-				value: <number>input_param.default || 0,
+				value: input_param.default as number || 0,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -64,12 +64,12 @@ let inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_para
 	}
 }) || [])
 
-let additionalInputParamsMap: any = ref([
+const additionalInputParamsMap: any = ref([
 	{
-		'seed': {
+		seed: {
 			name: 'seed',
 			display_name: 'Random seed',
-			value: <number>Math.floor(Math.random() * 1000000),
+			value: Math.floor(Math.random() * 1000000) as number,
 			type: 'number',
 			optional: true,
 			advanced: true,
@@ -104,10 +104,10 @@ const collapsed = ref(false)
 				:advanced="true" />
 
 			<UFormGroup label="Number of images">
-				<UInput type="number"
+				<UInput v-model="batchSize"
+					type="number"
 					min="1"
 					max="50"
-					v-model="batchSize"
 					label="Batch size"
 					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
@@ -137,7 +137,9 @@ const collapsed = ref(false)
 								running = false
 							})
 						}
-				}">Run prompt</UButton>
+					}">
+					Run prompt
+				</UButton>
 			</div>
 		</div>
 	</div>

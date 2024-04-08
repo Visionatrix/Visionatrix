@@ -7,11 +7,12 @@ const running = computed(() => flowStore.running.reduce((running, runningFlow) =
 	}
 	running[runningFlow.flow_name].push(runningFlow)
 	return running
-}, <any>{}))
+}, {} as any))
 </script>
 
 <template>
 	<div v-for="flow_name in Object.keys(running)"
+		:key="flow_name"
 		class="mb-3 last:mb-0">
 		<span>({{ running[flow_name].length }})</span>
 		Flow

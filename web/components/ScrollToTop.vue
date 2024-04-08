@@ -23,5 +23,5 @@ function scrollToTop() {
 		icon="i-heroicons-arrow-small-up"
 		color="black"
 		variant="outline"
-		@click="scrollToTop"/>
+		@click="scrollToTop" />
 </template>

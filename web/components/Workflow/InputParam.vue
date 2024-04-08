@@ -18,6 +18,7 @@ const props = defineProps({
 	}
 })
 
+// eslint-disable-next-line
 function createObjectUrl(file?: File) {
 	return file ? URL.createObjectURL(file) : ''
 }
@@ -86,7 +87,7 @@ onBeforeUnmount(() => {
 					@change="(event: Event) => {
 						const input = event.target as HTMLInputElement
 						const file = input.files?.[0]
-						inputParamsMap[index][inputParam.name].value = <File>file
+						inputParamsMap[index][inputParam.name].value = file as File
 						imagePreviewUrl = createObjectUrl(file)
 						console.debug('inputParamsMap', inputParamsMap)
 					}" />
@@ -121,22 +122,23 @@ onBeforeUnmount(() => {
 				</UModal>
 			</template>
 
+			<!-- eslint-disable vue/no-parsing-error -->
 			<USelectMenu v-if="inputParam.type === 'list'"
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:placeholder="inputParam.display_name"
-				:options="Object.keys(<object>inputParam.options)" />
+				:options="Object.keys(<object>inputParam.options)" /> <!-- eslint-disable-line vue/no-parsing-error -->
 
 			<UCheckbox v-if="inputParam.type === 'bool'"
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:label="inputParam?.display_name" />
 
 			<URange v-if="inputParam.type === 'range'"
+				v-model="inputParamsMap[index][inputParam.name].value"
 				:label="inputParam.display_name"
 				size="sm"
 				:min="inputParam.min"
 				:max="inputParam.max"
-				:step="inputParam.step"
-				v-model="inputParamsMap[index][inputParam.name].value" />
+				:step="inputParam.step" />
 		</template>
 	</UFormGroup>
 </template>
