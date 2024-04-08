@@ -1,9 +1,8 @@
 {
-  "name": "ai_media_wizard",
+  "name": "visionatrix",
   "version": "1.0.0",
   "description": "MediaAI for everyone",
   "private": true,
-  "type": "project",
   "scripts": {
     "build": "nuxt build --prerender",
     "dev": "nuxt dev --dotenv ./.env.dev",
@@ -15,24 +14,24 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@nuxt/ui": "^2.14.2",
-    "nuxt": "^3.10.3",
+    "@nuxt/ui": "^2.15.1",
+    "nuxt": "^3.11.2",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
-    "@nuxt/eslint-config": "^0.2.0",
-    "@nuxt/image": "^1.4.0",
-    "@nuxt/test-utils": "^3.11.0",
+    "@nuxt/eslint-config": "^0.3.1",
+    "@nuxt/image": "^1.5.0",
+    "@nuxt/test-utils": "^3.12.0",
     "@pinia/nuxt": "^0.5.1",
-    "@types/node": "^20.11.26",
-    "@vue/test-utils": "^2.4.4",
+    "@types/node": "^20.12.5",
+    "@vue/test-utils": "^2.4.5",
     "eslint": "^8.57.0",
     "happy-dom": "^13.8.2",
-    "playwright-core": "^1.42.1",
-    "typescript": "^5.3.3",
-    "vitest": "^1.3.1",
+    "playwright-core": "^1.43.0",
+    "typescript": "^5.4.4",
+    "vitest": "^1.4.0",
     "vue-tsc": "^1.8.27"
   }
 }

@@ -22,7 +22,7 @@ const advancedCollapsed = ref(!props.advanced)
 
 <template>
 	<div v-if="advanced" class="heading">
-		<h4 class="text-md font-bold cursor-pointer select-none flex items-center mb-3"@click="() => {
+		<h4 class="text-md font-bold cursor-pointer select-none flex items-center mb-3" @click="() => {
 			advancedCollapsed = !advancedCollapsed
 		}">
 			<UIcon :name="!advancedCollapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
@@ -33,15 +33,15 @@ const advancedCollapsed = ref(!props.advanced)
 	<div v-if="advancedCollapsed">
 		<WorkflowInputParam v-for="inputParam, index in flowStore.currentFlow.input_params"
 			:key="index"
+			:input-params-map="inputParamsMap"
 			:index="index"
 			:input-param="inputParam"
-			:input-params-map.sync="inputParamsMap"
 			:advanced="advanced" />
 		<WorkflowInputParam v-for="(inputParam, index) in additionalInputParamsMap"
 			:key="Object.keys(inputParam)[0]"
+			:input-params-map="additionalInputParamsMap"
 			:index="index"
 			:input-param="inputParam[Object.keys(inputParam)[0]]"
-			:input-params-map.sync="additionalInputParamsMap"
 			:advanced="advanced" />
 	</div>
 </template>

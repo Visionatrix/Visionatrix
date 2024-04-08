@@ -4,6 +4,7 @@ const flowStore = useFlowsStore()
 
 <template>
 	<div v-for="installingFlow in flowStore.installing"
+		:key="installingFlow.flow_name"
 		class="mb-3 last:mb-0 border-b p-3">
 		{{ installingFlow.progress.toFixed(0) }}% Setting up flow
 		<NuxtLink :to="`/workflows/${installingFlow.flow_name}`">

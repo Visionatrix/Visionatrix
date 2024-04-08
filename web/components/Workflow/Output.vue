@@ -56,8 +56,8 @@ const deletingFlowResults = ref(false)
 	<div id="output-container"
 		ref="outputContainer"
 		class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md my-10">
-		<ScrollToTop class="fixed bottom-5 right-5"
-			:show.sync="showScrollToTop"
+		<ScrollToTop :show="showScrollToTop"
+			class="fixed bottom-5 right-5"
 			target="output-container" />
 		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
 			@click="() => {
@@ -78,8 +78,8 @@ const deletingFlowResults = ref(false)
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
 				<UPagination v-if="results.length > flowStore.$state.resultsPageSize"
-					class="my-1 md:my-0"
 					v-model="flowStore.$state.resultsPage"
+					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
 					:total="results.length"
 					show-first
@@ -119,14 +119,17 @@ const deletingFlowResults = ref(false)
 										deletingFlowResults = false
 										deleteModalOpen = false
 									})
-								}">Yes</UButton>
+								}">
+								Yes
+							</UButton>
 							<UButton variant="outline" @click="() => deleteModalOpen = false">No</UButton>
 						</div>
 					</div>
 				</UModal>
 			</div>
-			<div class="results overflow-auto" v-if="hasOutputResult">
+			<div v-if="hasOutputResult" class="results overflow-auto">
 				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
+					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
 					<NuxtImg v-if="flowResult.output_params.length === 1"
 						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
@@ -141,7 +144,8 @@ const deletingFlowResults = ref(false)
 							node_id: flowResult.output_params[0].comfy_node_id
 						}))" />
 					<UCarousel v-else
-						class="mb-3 rounded-lg overflow-hidden" v-slot="{ item }"
+						v-slot="{ item }"
+						class="mb-3 rounded-lg overflow-hidden" 
 						:items="flowResult.output_params.map((result_output_param) => {
 							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id }
 						})"
@@ -157,12 +161,12 @@ const deletingFlowResults = ref(false)
 					<p class="text-sm text-slate-500 text-center mb-3">
 						{{
 							Object.keys(flowResult.input_params_mapped)
-							.filter((key) => {
-								return flowResult.input_params_mapped[key] !== ''
-							})
-							.map((key) => {
-								return `${key}: ${flowResult.input_params_mapped[key]}`
-							}).join(' | ')
+								.filter((key) => {
+									return flowResult.input_params_mapped[key] !== ''
+								})
+								.map((key) => {
+									return `${key}: ${flowResult.input_params_mapped[key]}`
+								}).join(' | ')
 						}}
 					</p>
 					<UButton
@@ -175,13 +179,15 @@ const deletingFlowResults = ref(false)
 					</UButton>
 				</div>
 			</div>
-			<p v-else class="text-center text-slate-500">No output results available</p>
+			<p v-else class="text-center text-slate-500">
+				No output results available
+			</p>
 		</template>
 		<UModal v-model="isModalOpen" class="z-[90]" :transition="false" fullscreen>
 			<UButton class="absolute top-4 right-4"
 				icon="i-heroicons-x-mark"
 				variant="ghost"
-				@click="() => isModalOpen = false"/>
+				@click="() => isModalOpen = false" />
 			<div class="flex items-center justify-center w-full h-full p-4"
 				@click.left="() => isModalOpen = false">
 				<NuxtImg v-if="modalImageSrc"
