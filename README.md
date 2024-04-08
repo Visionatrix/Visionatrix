@@ -12,12 +12,11 @@ To achieve this goal, the [ComfyUI](https://github.com/comfyanonymous/ComfyUI) p
 
 Visionatrix projects provides:
 
-  * **Simplified Setup**:  one-click installation process.
-  * **User-Centric Design**:  interface prioritizing ease of use.
-  * **Standardized Workflows**:  workflows based on ComfyUI workflow format.
-  * **Seamless Integration**:  backend endpoints for task and server management.
-  * **Proven Reliability**:  building on the solid foundation of ComfyUI.
-  * **Scalability**:  automatic task scheduling across multiple instances.
+  * *Simplified Setup*:  one-click installation process.
+  * *User-Centric Design*:  interface prioritizing ease of use.
+  * *Standardized Workflows*:  workflows based on ComfyUI workflow format.
+  * *Seamless Integration*:  backend endpoints for task and server management.
+  * *Scalability*:  automatic task scheduling across multiple instances.
   * Multiple users support. _(in progress)_
   * Connecting a custom user backend. _(in progress)_
 
