@@ -22,7 +22,7 @@ VIX_MODE = environ.get("VIX_MODE", "DEFAULT")
 * WORKER - only processing tasks for the Server(client consuming mode, no backend)
 * SERVER - only storage and managing of tasks
 """
-WORKER_AUTH = environ.get("WORKER_AUTH", "user:user")
+WORKER_AUTH = environ.get("WORKER_AUTH", "admin:admin")
 """Only for workers in the `Worker to Server` mode."""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")

@@ -74,6 +74,9 @@ By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 ![UI](/screenshots/screenshot_1.png)
 ![UI](/screenshots/screenshot_2.png)
 
+> [!NOTE]
+> The default username is **admin** with password **admin**.
+
 ## Update process
 
 Run `easy_install` script and select "**Update**" option.
