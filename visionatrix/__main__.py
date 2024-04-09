@@ -57,7 +57,7 @@ if __name__ == "__main__":
         subparser = subparsers.add_parser(i[0], help=i[1])
         if i[0] == "install-flow":
             subparser.add_argument("--flow", type=str, help="Path to `flow.json`", required=True)
-            subparser.add_argument("--flow_comfy", type=str, help="Path to `xyz_comfy.json`", required=True)
+            subparser.add_argument("--flow_comfy", type=str, help="Path to `flow_comfy.json`", required=True)
         subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
         subparser.add_argument("--models_dir", type=str, help="Directory for the models")

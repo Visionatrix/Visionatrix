@@ -50,3 +50,9 @@ Set the environment variable ``VIX_MODE`` to **WORKER** and set ``VIX_HOST`` wit
     ``DATABASE_URI`` will ignored in this scenario as well, as the worker does not need it.
 
 In this use case, the **vix_tasks_files** directory will contain only temporary files; after uploading results to the Server, the results from the worker instance will be cleared.
+
+For authentication on the server worker will use ``WORKER_AUTH`` environment variable, which must contain "**USER_ID:PASSWORD**".
+
+.. note::
+
+    Workers with an administrator account can process all tasks of all users, workers assigned to a user account can only process tasks created by that user.
