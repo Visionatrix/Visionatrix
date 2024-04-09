@@ -245,6 +245,18 @@
     "homepage": "https://civitai.com/models/25694?modelVersionId=143906",
     "hash": "84d76a0328ee5a1a2a1d466ba7478ab59183e3fea385441528aa4c5d567fd43e"
   },
+  "SDXL_lightning_4step": {
+    "regexes": [
+      {
+        "input_value": "^(?=.*(?i:sdxl))(?=.*(?i:lightning))(?=.*(?i:4step)).*",
+        "input_name": "^(?!.*(?i:lora)).*"
+      }
+    ],
+    "save_path": "checkpoints/sdxl_lightning_4step.safetensors",
+    "url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors",
+    "homepage": "https://huggingface.co/ByteDance/SDXL-Lightning",
+    "hash": "e0d996ee0013e79d9d3561f50fcafb9a17e3ff07b780358e3b66d67932c4d490"
+  },
   "SDXL_lightning_8step": {
     "regexes": [
       {
