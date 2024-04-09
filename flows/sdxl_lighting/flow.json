@@ -1,0 +1,58 @@
+{
+  "name": "sdxl_lighting",
+  "display_name": "SDXL Lighting",
+  "description": "Fast image generation",
+  "author": "bigcat88",
+  "homepage": "https://github.com/bigcat88",
+  "license": "",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/SDXL_Lighting.html",
+  "input_params": [
+    {
+      "name": "prompt",
+      "display_name": "Prompt",
+      "type": "text",
+      "optional": false,
+      "comfy_node_id": {
+        "6": {
+          "dest_field_name": ["inputs", "text"]
+        },
+        "13": {
+          "dest_field_name": ["inputs", "text"]
+        }
+      }
+    },
+    {
+      "name": "negative_prompt",
+      "display_name": "Negative Prompt",
+      "type": "text",
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "7": {
+          "dest_field_name": ["inputs", "text"]
+        },
+        "14": {
+          "dest_field_name": ["inputs", "text"]
+        }
+      }
+    },
+    {
+      "name": "steps_number",
+      "display_name": "Number of steps",
+      "type": "list",
+      "default": "8 steps",
+      "optional": true,
+      "advanced": true,
+      "options": {
+        "4 steps": ["12", 0],
+        "8 steps": ["8", 0]
+      },
+      "comfy_node_id": {
+        "9": {
+          "dest_field_name": ["inputs", "images"],
+          "value": ["8", 0]
+        }
+      }
+    }
+  ]
+}

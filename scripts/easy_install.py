@@ -96,7 +96,7 @@ def update_visionatrix():
 
 def install_all_flows():
     flows = [
-        "sdxl_lighting_8",
+        "sdxl_lighting",
         "playground_2_5_aesthetic",
         "photomaker_1",
         "juggernaut_lighting_loras",
