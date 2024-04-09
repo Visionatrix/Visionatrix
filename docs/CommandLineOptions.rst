@@ -81,3 +81,23 @@ Supported **ComfyUI** options
   --disable-smart-memory
                         Force ComfyUI to aggressively offload to regular ram
                         instead of keeping models in vram when it can.
+
+Additional commands
+-------------------
+
+install-flow
+''''''''''''
+
+Can be used for Workers that do not have a user interface.
+
+.. code-block:: shell
+
+    python3 -m visionatrix install-flow --directory path_to_folder
+
+Folder should contain ``flow.json`` and ``flow_comfy.json``
+
+.. code-block:: shell
+
+  python3 -m visionatrix install-flow --name photo_stickers
+
+This will install flow by it's ``ID`` which is equal to it's folder name `here <https://github.com/Visionatrix/Visionatrix/tree/main/flows>`_

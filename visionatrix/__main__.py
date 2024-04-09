@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from . import comfyui, install, options, run_vix, update
-from .flows import install_custom_flow
+from .flows import install_custom_flow, get_available_flows
 
 
 def get_log_level(log_level_str):
@@ -52,12 +52,18 @@ if __name__ == "__main__":
         ("install", "Performs cleanup & initialization"),
         ("update", "Performs update to the latest version"),
         ("run", "Starts the ComfyUI and Visionatrix backends"),
-        ("install-flow", "Install flow from folder"),
+        ("install-flow", "Install flow by name or from the folder"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
         if i[0] == "install-flow":
-            subparser.add_argument("--flow", type=str, help="Path to `flow.json`", required=True)
-            subparser.add_argument("--flow_comfy", type=str, help="Path to `flow_comfy.json`", required=True)
+            install_flow_group = subparser.add_mutually_exclusive_group(required=True)
+            install_flow_group.add_argument("--flow", type=str, help="Name of the flow")
+            install_flow_group.add_argument(
+                "--directory",
+                type=str,
+                help="Path to directory with `flow.json` and `flow_comfy.json`",
+            )
+
         subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
         subparser.add_argument("--models_dir", type=str, help="Directory for the models")
@@ -113,11 +119,23 @@ if __name__ == "__main__":
             options.VIX_MODE = args.mode
         run_vix()
     elif args.command == "install-flow":
-        with builtins.open(args.flow, "rb") as fp:
-            flow = json.loads(fp.read())
-        with builtins.open(args.flow_comfy, "rb") as fp:
-            flow_comfy = json.loads(fp.read())
-        install_custom_flow(flow=flow, flow_comfy=flow_comfy, progress_callback=__progress_callback)
+        install_flow = {}
+        if args.directory:
+            with builtins.open(Path(args.directory).joinpath("flow.json"), "rb") as fp:
+                install_flow = json.loads(fp.read())
+            with builtins.open(Path(args.directory).joinpath("flow_comfy.json"), "rb") as fp:
+                install_flow_comfy = json.loads(fp.read())
+        else:
+            flows, flows_comfy = get_available_flows()
+            for i, flow in enumerate(flows):
+                if flow["name"] == args.flow:
+                    install_flow = flow
+                    install_flow_comfy = flows_comfy[i]
+                    break
+            if not install_flow:
+                logging.getLogger("visionatrix").error("Can not find the specific flow: %s", args.flow)
+                sys.exit(2)
+        install_custom_flow(flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=__progress_callback)
     else:
         logging.getLogger("visionatrix").error("Unknown command")
         sys.exit(2)

@@ -15,7 +15,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="visionatrix" />
-    <option name="PARAMETERS" value="install-flow --flow flows/supir_upscaler/flow.json --flow_comfy flows/supir_upscaler/flow_comfy.json" />
+    <option name="PARAMETERS" value="install-flow --directory flows/sdxl_lighting_8" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="true" />
