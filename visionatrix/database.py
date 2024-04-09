@@ -65,26 +65,33 @@ class UserInfo(Base):
 
 
 def get_user(username: str, password: str) -> UserInfo | None:
-    userinfo = SESSION().query(UserInfo).filter_by(user_id=username).first()
-    if userinfo and PWD_CONTEXT.verify(password, userinfo.hashed_password):
-        return userinfo
-    return None
+    session = SESSION()
+    try:
+        userinfo = session.query(UserInfo).filter_by(user_id=username).first()
+        if userinfo and PWD_CONTEXT.verify(password, userinfo.hashed_password):
+            return userinfo
+        return None
+    finally:
+        session.close()
 
 
 def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:
     session = SESSION()
-    session.add(
-        UserInfo(
-            user_id=username,
-            full_name=full_name,
-            email=email,
-            hashed_password=PWD_CONTEXT.hash(password),
-            is_admin=is_admin,
-            disabled=disabled,
+    try:
+        session.add(
+            UserInfo(
+                user_id=username,
+                full_name=full_name,
+                email=email,
+                hashed_password=PWD_CONTEXT.hash(password),
+                is_admin=is_admin,
+                disabled=disabled,
+            )
         )
-    )
-    session.commit()
-    return True
+        session.commit()
+        return True
+    finally:
+        session.close()
 
 
 def init_database_engine() -> None:
