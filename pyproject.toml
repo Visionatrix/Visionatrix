@@ -44,8 +44,10 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "bcrypt==4.0.1",
   "fastapi>=0.109.2",
   "httpx>=0.25.2",
+  "passlib[bcrypt]",
   "pydantic>=2.1.1",
   "python-dotenv>=1",
   "python-multipart",
