@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from . import comfyui, install, options, run_vix, update
-from .flows import install_custom_flow, get_available_flows
+from .flows import get_available_flows, install_custom_flow
 
 
 def get_log_level(log_level_str):
