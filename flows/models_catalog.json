@@ -2,7 +2,8 @@
   "InstantID-ControlNet": {
     "regexes": [
     {
-      "class_name": "ControlNetLoader"
+      "class_name": "ControlNetLoader",
+      "input_value": "^(?=.*(?i:instantid)).*"
     }
   ],
   "save_path": "controlnet/instantid-controlnet.safetensors",
@@ -20,6 +21,54 @@
     "url": "https://huggingface.co/InstantX/InstantID/resolve/main/ip-adapter.bin",
     "homepage": "https://huggingface.co/InstantX/InstantID",
     "hash": "02b3618e36d803784166660520098089a81388e61a93ef8002aa79a5b1c546e1"
+  },
+  "Lora-Canny-Rank256": {
+    "regexes": [
+    {
+      "class_name": "ControlNetLoader",
+      "input_value": "^(?=.*(?i:control))(?=.*(?i:lora))(?=.*(?i:canny))(?=.*(?i:rank256)).*"
+    }
+  ],
+  "save_path": "controlnet/control-lora-canny-rank256.safetensors",
+  "url": "https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-canny-rank256.safetensors",
+  "homepage": "https://huggingface.co/stabilityai/control-lora",
+  "hash": "21f79f7368eff07f57bcd507ca91c0fc89070d7da182960ff24ed1d58310c3a7"
+  },
+  "Lora-Depth-Rank256": {
+    "regexes": [
+    {
+      "class_name": "ControlNetLoader",
+      "input_value": "^(?=.*(?i:control))(?=.*(?i:lora))(?=.*(?i:depth))(?=.*(?i:rank256)).*"
+    }
+  ],
+  "save_path": "controlnet/control-lora-depth-rank256.safetensors",
+  "url": "https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-depth-rank256.safetensors",
+  "homepage": "https://huggingface.co/stabilityai/control-lora",
+  "hash": "559d2468951bf254c13bacd9c5d05d01ad67b060f6a73e8131d26ebf459c1c79"
+  },
+  "Lora-Recolor-Rank256": {
+    "regexes": [
+    {
+      "class_name": "ControlNetLoader",
+      "input_value": "^(?=.*(?i:control))(?=.*(?i:lora))(?=.*(?i:recolor))(?=.*(?i:rank256)).*"
+    }
+  ],
+  "save_path": "controlnet/control-lora-recolor-rank256.safetensors",
+  "url": "https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-recolor-rank256.safetensors",
+  "homepage": "https://huggingface.co/stabilityai/control-lora",
+  "hash": "b0bf3c163b6f578b3a73e9cf61c3e4219ae9c2a06903663205d1251cf2498925"
+  },
+  "Lora-Sketch-Rank256": {
+    "regexes": [
+    {
+      "class_name": "ControlNetLoader",
+      "input_value": "^(?=.*(?i:control))(?=.*(?i:lora))(?=.*(?i:sketch))(?=.*(?i:rank256)).*"
+    }
+  ],
+  "save_path": "controlnet/control-lora-sketch-rank256.safetensors",
+  "url": "https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank256/control-lora-sketch-rank256.safetensors",
+  "homepage": "https://huggingface.co/stabilityai/control-lora",
+  "hash": "cf741a672fc3f753956260cb16101250f16c3c5bb3690a3d736bef66eafa7515"
   },
   "StickersRedmond": {
     "regexes": [

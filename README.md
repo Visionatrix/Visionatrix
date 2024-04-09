@@ -17,8 +17,8 @@ Visionatrix projects provides:
   * *Standardized Workflows*:  workflows based on ComfyUI workflow format.
   * *Seamless Integration*:  backend endpoints for task and server management.
   * *Scalability*:  automatic task scheduling across multiple instances.
-  * Multiple users support. _(in progress)_
-  * Connecting a custom user backend. _(in progress)_
+  * *User Support*: easily configured to work with multiple users.
+  * Connecting a custom user backend. _(in plans)_
 
 > [!NOTE]
 > The project is currently in the early development stage, expect breaking changes.
@@ -72,7 +72,7 @@ python -m visionatrix run --ui=client
 By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 > [!NOTE]
-> The default username is **admin** with password **admin**.
+> The default username is ***admin*** with password ***admin***.
 
 ![UI](/screenshots/screenshot_1.png)
 ![UI](/screenshots/screenshot_2.png)
@@ -91,3 +91,4 @@ we'll provide more information in the documentation on how to use it with third-
   - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation.html)
   - [Command Line Options](https://visionatrix.github.io/Visionatrix/CommandLineOptions.html)
   - [Scaling information](https://visionatrix.github.io/Visionatrix/ScalingInformation.html)
+  - [Technical information](https://visionatrix.github.io/Visionatrix/TechnicalInformation.html)
