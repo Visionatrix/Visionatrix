@@ -10,6 +10,7 @@ Here will leave all docs that is not suitable for Readme file.
     Installation.rst
     CommandLineOptions.rst
     ScalingInformation.rst
+    TechnicalInformation.rst
 
 Indices and tables
 ==================
