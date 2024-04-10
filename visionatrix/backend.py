@@ -405,6 +405,7 @@ def run_vix(*args, **kwargs) -> None:
         _, comfy_queue = comfyui.load(task_progress_callback)
         if not options.VIX_HOST:
             init_database_engine()  # we get tasks directly from the Database
+
         try:
             background_prompt_executor(comfy_queue, EXIT_EVENT)
         except KeyboardInterrupt:

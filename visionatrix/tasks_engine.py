@@ -237,7 +237,7 @@ def remove_task_by_id_server(task_id: int) -> bool:
         r = httpx.delete(options.VIX_HOST.rstrip("/") + "/task", params={"task_id": task_id}, auth=__worker_auth())
         if not httpx.codes.is_error(r.status_code):
             return True
-        LOGGER.error("Server return status: %s", r.status_code)
+        LOGGER.warning("Server return status: %s", r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
     return False
@@ -423,7 +423,7 @@ def init_active_task_inputs_from_server() -> bool:
         ACTIVE_TASK["error"] = str(e)
         update_task_progress(ACTIVE_TASK)
         remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
-        remove_active_task_lock()
+        remove_task_lock(ACTIVE_TASK["task_id"])
         return False
 
 
@@ -490,13 +490,6 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
     elif event == "execution_cached":
         increase_current_task_progress((len(data["nodes"]) - 1) * node_percent)
     elif event == "execution_interrupted":
-        remove_task_by_id(ACTIVE_TASK["task_id"])
-        ACTIVE_TASK["interrupted"] = True
-        return
-    else:
-        return
-    if not update_task_progress(ACTIVE_TASK):
-        interrupt_processing()
         ACTIVE_TASK["interrupted"] = True
 
 
@@ -537,6 +530,7 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
         execution_start_time = time.perf_counter()
+        threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
         prompt_executor.execute(
             ACTIVE_TASK["flow_comfy"],
             str(ACTIVE_TASK["task_id"]),
@@ -544,18 +538,34 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
             [str(i["comfy_node_id"]) for i in ACTIVE_TASK["outputs"]],
         )
         current_time = time.perf_counter()
-        if ACTIVE_TASK.get("interrupted", False):
-            remove_task_by_id(ACTIVE_TASK["task_id"])
-        else:
-            if not ACTIVE_TASK["error"]:
-                ACTIVE_TASK["progress"] = 100.0
-                ACTIVE_TASK["execution_time"] = current_time - execution_start_time
-                upload_results_to_server()
-            update_task_progress(ACTIVE_TASK)
-        remove_active_task_lock()
+        if ACTIVE_TASK.get("interrupted", False) is False and not ACTIVE_TASK["error"]:
+            ACTIVE_TASK["execution_time"] = current_time - execution_start_time
+            ACTIVE_TASK["progress"] = 100.0
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
         need_gc = True
+
+
+def update_task_progress_thread(active_task: dict) -> None:
+    last_info = active_task.copy()
+    try:
+        while True:
+            if last_info != active_task:
+                last_info = active_task.copy()
+                if last_info["progress"] == 100.0:
+                    upload_results_to_server()
+                    update_task_progress(last_info)
+                    break
+                if not update_task_progress(last_info):
+                    active_task["interrupted"] = True
+                    interrupt_processing()
+                    break
+                if last_info["error"]:
+                    break
+            else:
+                time.sleep(0.1)
+    finally:
+        remove_task_lock(last_info["task_id"])
 
 
 async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Event) -> None:
