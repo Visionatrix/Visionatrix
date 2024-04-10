@@ -5,6 +5,7 @@ import gc
 import json
 import logging
 import os
+import threading
 import time
 import typing
 from datetime import datetime
@@ -488,14 +489,20 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         ACTIVE_TASK["interrupted"] = True
 
 
-def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
+def background_prompt_executor(prompt_executor, exit_event: threading.Event):
     global ACTIVE_TASK
+    reply_count_no_tasks = 0
     last_gc_collect = 0
     need_gc = False
     gc_collect_interval = 10.0
 
     while True:
-        if exit_event.is_set():
+        if exit_event.wait(
+            min(
+                options.MIN_PAUSE_INTERVAL + reply_count_no_tasks * options.MAX_PAUSE_INTERVAL / 10,
+                options.MAX_PAUSE_INTERVAL,
+            ),
+        ):
             break
         if need_gc:
             current_time = time.perf_counter()
@@ -510,7 +517,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
 
         ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names())
         if not ACTIVE_TASK:
-            time.sleep(options.PAUSE_INTERVAL)
+            reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
             continue
         if init_active_task_inputs_from_server() is False:
             ACTIVE_TASK = {}
@@ -539,7 +546,7 @@ def background_prompt_executor(prompt_executor, exit_event: asyncio.Event):
         need_gc = True
 
 
-async def start_tasks_engine(comfy_queue: typing.Any, exit_event: asyncio.Event) -> None:
+async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Event) -> None:
     async def start_background_tasks_engine(prompt_executor):
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
