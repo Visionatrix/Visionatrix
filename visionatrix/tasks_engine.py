@@ -348,6 +348,7 @@ def remove_task_lock_server(task_id: int) -> None:
 
 
 def update_task_progress(task_details: dict) -> bool:
+    __update_temporary_execution_time(task_details)
     if options.VIX_MODE == "WORKER" and options.VIX_HOST:
         return update_task_progress_server(task_details)
     return update_task_progress_database(
@@ -398,6 +399,13 @@ def update_task_progress_server(task_details: dict) -> bool:
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
     return False
+
+
+def __update_temporary_execution_time(task_details: dict) -> None:
+    if task_details["progress"] == 100.0 or task_details["error"] or task_details.get("interrupted", False):
+        return
+    if "execution_start_time" in task_details:
+        task_details["execution_time"] = time.perf_counter() - task_details["execution_start_time"]
 
 
 def remove_active_task_lock():
@@ -537,6 +545,7 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
         execution_start_time = time.perf_counter()
+        ACTIVE_TASK["execution_start_time"] = execution_start_time
         threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
         prompt_executor.execute(
             ACTIVE_TASK["flow_comfy"],
