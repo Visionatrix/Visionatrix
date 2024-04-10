@@ -34,7 +34,13 @@ FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
 MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.json"
 # MODELS_CATALOG_URL = "./flows/models_catalog.json"
 
-PAUSE_INTERVAL = float(environ.get("PAUSE_INTERVAL", "0.1"))  # time to wait between ask for a next Task to process.
+MIN_PAUSE_INTERVAL = float(environ.get("MIN_PAUSE_INTERVAL", "0.1"))
+"""Start ``min_interval`` time value to wait between ask for a next Task to process."""
+MAX_PAUSE_INTERVAL = float(environ.get("MAX_PAUSE_INTERVAL", "1.0"))
+"""Max time to wait between ask for next Task, it will be reached starting from ``min_interval`` time in 10 steps.
+For example if there is no tasks, worker first time will wait ``min_interval``, second time it will be increased by
+``min(min_interval + max_interval / 10, max_interval)`` - this will make load on the server lower when nothing to do.
+"""
 
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:

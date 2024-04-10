@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import builtins
 import fnmatch
@@ -7,6 +6,7 @@ import logging
 import os
 import shutil
 import signal
+import threading
 import time
 import typing
 from contextlib import asynccontextmanager
@@ -61,7 +61,7 @@ from .tasks_engine import (
 
 LOGGER = logging.getLogger("visionatrix")
 FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
-EXIT_EVENT = asyncio.Event()
+EXIT_EVENT = threading.Event()
 VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]]
 
 
