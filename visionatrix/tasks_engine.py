@@ -481,6 +481,8 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         remove_task_by_id(ACTIVE_TASK["task_id"])
         ACTIVE_TASK["interrupted"] = True
         return
+    else:
+        return
     if not update_task_progress(ACTIVE_TASK):
         interrupt_processing()
         ACTIVE_TASK["interrupted"] = True
