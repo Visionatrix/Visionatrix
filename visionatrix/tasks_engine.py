@@ -40,6 +40,7 @@ def create_new_task(name: str, input_params: dict, user_info: database.UserInfo)
             "input_files": [],
             "flow_comfy": {},
             "user_id": user_info.user_id,
+            "execution_time": 0.0,
         }
     except Exception:
         session.rollback()
@@ -63,6 +64,7 @@ def put_task_in_queue(task_details: dict) -> None:
             input_files=task_details["input_files"],
             flow_comfy=task_details["flow_comfy"],
             user_id=task_details["user_id"],
+            execution_time=task_details["execution_time"],
         )
         session.add(new_task)
         session.commit()
@@ -94,6 +96,7 @@ def get_task(task_id: int, user_id: str | None = None) -> dict | None:
             "input_files": task.input_files,
             "flow_comfy": task.flow_comfy,
             "user_id": task.user_id,
+            "execution_time": task.execution_time,
         }
     except Exception:
         LOGGER.exception("Failed to retrieve task: %s", task_id)
@@ -159,6 +162,7 @@ def get_incomplete_task_without_error_database(tasks_to_ask: list[str], user_id:
             "input_files": task.input_files,
             "flow_comfy": task.flow_comfy,
             "user_id": task.user_id,
+            "execution_time": 0.0,
         }
     except Exception as e:
         session.rollback()
@@ -193,6 +197,7 @@ def get_tasks(name: str | None = None, finished: bool | None = None, user_id: st
                 "input_files": task.input_files,
                 "flow_comfy": task.flow_comfy,
                 "user_id": task.user_id,
+                "execution_time": task.execution_time,
             }
             for task in tasks
         }
@@ -232,7 +237,7 @@ def remove_task_by_id_server(task_id: int) -> bool:
         r = httpx.delete(options.VIX_HOST.rstrip("/") + "/task", params={"task_id": task_id}, auth=__worker_auth())
         if not httpx.codes.is_error(r.status_code):
             return True
-        LOGGER.error("Server return status: %s", r.status_code)
+        LOGGER.warning("Server return status: %s", r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
     return False
@@ -337,24 +342,30 @@ def remove_task_lock_server(task_id: int) -> None:
             auth=__worker_auth(),
         )
         if httpx.codes.is_error(r.status_code):
-            LOGGER.error("Server return status: %s", r.status_code)
+            LOGGER.warning("Server return status: %s", r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
 
 
 def update_task_progress(task_details: dict) -> bool:
+    __update_temporary_execution_time(task_details)
     if options.VIX_MODE == "WORKER" and options.VIX_HOST:
         return update_task_progress_server(task_details)
-    return update_task_progress_database(task_details["task_id"], task_details["progress"], task_details["error"])
+    return update_task_progress_database(
+        task_details["task_id"],
+        task_details["progress"],
+        task_details["error"],
+        task_details["execution_time"],
+    )
 
 
-def update_task_progress_database(task_id: int, progress: float, error: str) -> bool:
+def update_task_progress_database(task_id: int, progress: float, error: str, execution_time: float) -> bool:
     session = database.SESSION()
     try:
         result = session.execute(
             update(database.TaskDetails)
             .where(database.TaskDetails.task_id == task_id)
-            .values(progress=progress, error=error)
+            .values(progress=progress, error=error, execution_time=execution_time)
         )
         session.commit()
         return result.rowcount == 1
@@ -374,16 +385,27 @@ def update_task_progress_server(task_details: dict) -> bool:
             data={
                 "task_id": task_details["task_id"],
                 "progress": task_details["progress"],
+                "execution_time": task_details["execution_time"],
                 "error": task_details["error"],
             },
             auth=__worker_auth(),
         )
         if not httpx.codes.is_error(r.status_code):
             return True
-        LOGGER.error("Server return status: %s", r.status_code)
+        if r.status_code == 404:
+            LOGGER.warning("Server return status: %s", r.status_code)
+        else:
+            LOGGER.error("Server return status: %s", r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
     return False
+
+
+def __update_temporary_execution_time(task_details: dict) -> None:
+    if task_details["progress"] == 100.0 or task_details["error"] or task_details.get("interrupted", False):
+        return
+    if "execution_start_time" in task_details:
+        task_details["execution_time"] = time.perf_counter() - task_details["execution_start_time"]
 
 
 def remove_active_task_lock():
@@ -412,15 +434,16 @@ def init_active_task_inputs_from_server() -> bool:
         ACTIVE_TASK["error"] = str(e)
         update_task_progress(ACTIVE_TASK)
         remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
-        remove_active_task_lock()
+        remove_task_lock(ACTIVE_TASK["task_id"])
         return False
 
 
-def upload_results_to_server() -> None:
+def upload_results_to_server(task_id: int) -> bool:
     if not (options.VIX_MODE == "WORKER" and options.VIX_HOST):
-        return
+        return True
+    result = False
     files = []
-    result_prefix = str(ACTIVE_TASK["task_id"]) + "_"
+    result_prefix = str(task_id) + "_"
     target_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     try:
         for filename in os.listdir(target_directory):
@@ -434,19 +457,22 @@ def upload_results_to_server() -> None:
             r = httpx.put(
                 options.VIX_HOST.rstrip("/") + "/task-worker/results",
                 params={
-                    "task_id": ACTIVE_TASK["task_id"],
+                    "task_id": task_id,
                 },
                 files=files,
                 auth=__worker_auth(),
             )
-            if httpx.codes.is_error(r.status_code):
-                LOGGER.error("Server return status: %s", r.status_code)
+            if not httpx.codes.is_error(r.status_code):
+                result = True
+            else:
+                LOGGER.warning("Server return status: %s", r.status_code)
         except Exception as e:
             LOGGER.exception("Exception occurred: %s", e)
     finally:
         for f in files:
             f[1][1].close()
-    remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
+    remove_task_files(task_id, ["output", "input"])
+    return result
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
@@ -479,13 +505,6 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
     elif event == "execution_cached":
         increase_current_task_progress((len(data["nodes"]) - 1) * node_percent)
     elif event == "execution_interrupted":
-        remove_task_by_id(ACTIVE_TASK["task_id"])
-        ACTIVE_TASK["interrupted"] = True
-        return
-    else:
-        return
-    if not update_task_progress(ACTIVE_TASK):
-        interrupt_processing()
         ACTIVE_TASK["interrupted"] = True
 
 
@@ -526,6 +545,8 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
         execution_start_time = time.perf_counter()
+        ACTIVE_TASK["execution_start_time"] = execution_start_time
+        threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
         prompt_executor.execute(
             ACTIVE_TASK["flow_comfy"],
             str(ACTIVE_TASK["task_id"]),
@@ -533,17 +554,34 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
             [str(i["comfy_node_id"]) for i in ACTIVE_TASK["outputs"]],
         )
         current_time = time.perf_counter()
-        if ACTIVE_TASK.get("interrupted", False):
-            remove_task_by_id(ACTIVE_TASK["task_id"])
-        else:
-            if not ACTIVE_TASK["error"]:
-                ACTIVE_TASK["progress"] = 100.0
-                upload_results_to_server()
-            update_task_progress(ACTIVE_TASK)
-        remove_active_task_lock()
+        if ACTIVE_TASK.get("interrupted", False) is False and not ACTIVE_TASK["error"]:
+            ACTIVE_TASK["execution_time"] = current_time - execution_start_time
+            ACTIVE_TASK["progress"] = 100.0
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
         need_gc = True
+
+
+def update_task_progress_thread(active_task: dict) -> None:
+    last_info = active_task.copy()
+    try:
+        while True:
+            if last_info != active_task:
+                last_info = active_task.copy()
+                if last_info["progress"] == 100.0:
+                    if upload_results_to_server(last_info["task_id"]):
+                        update_task_progress(last_info)
+                    break
+                if not update_task_progress(last_info):
+                    active_task["interrupted"] = True
+                    interrupt_processing()
+                    break
+                if last_info["error"]:
+                    break
+            else:
+                time.sleep(0.1)
+    finally:
+        remove_task_lock(last_info["task_id"])
 
 
 async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Event) -> None:
