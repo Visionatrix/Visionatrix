@@ -40,6 +40,7 @@ def create_new_task(name: str, input_params: dict, user_info: database.UserInfo)
             "input_files": [],
             "flow_comfy": {},
             "user_id": user_info.user_id,
+            "execution_time": 0.0,
         }
     except Exception:
         session.rollback()
@@ -63,6 +64,7 @@ def put_task_in_queue(task_details: dict) -> None:
             input_files=task_details["input_files"],
             flow_comfy=task_details["flow_comfy"],
             user_id=task_details["user_id"],
+            execution_time=task_details["execution_time"],
         )
         session.add(new_task)
         session.commit()
@@ -94,6 +96,7 @@ def get_task(task_id: int, user_id: str | None = None) -> dict | None:
             "input_files": task.input_files,
             "flow_comfy": task.flow_comfy,
             "user_id": task.user_id,
+            "execution_time": task.execution_time,
         }
     except Exception:
         LOGGER.exception("Failed to retrieve task: %s", task_id)
@@ -159,6 +162,7 @@ def get_incomplete_task_without_error_database(tasks_to_ask: list[str], user_id:
             "input_files": task.input_files,
             "flow_comfy": task.flow_comfy,
             "user_id": task.user_id,
+            "execution_time": 0.0,
         }
     except Exception as e:
         session.rollback()
@@ -193,6 +197,7 @@ def get_tasks(name: str | None = None, finished: bool | None = None, user_id: st
                 "input_files": task.input_files,
                 "flow_comfy": task.flow_comfy,
                 "user_id": task.user_id,
+                "execution_time": task.execution_time,
             }
             for task in tasks
         }
@@ -345,16 +350,21 @@ def remove_task_lock_server(task_id: int) -> None:
 def update_task_progress(task_details: dict) -> bool:
     if options.VIX_MODE == "WORKER" and options.VIX_HOST:
         return update_task_progress_server(task_details)
-    return update_task_progress_database(task_details["task_id"], task_details["progress"], task_details["error"])
+    return update_task_progress_database(
+        task_details["task_id"],
+        task_details["progress"],
+        task_details["error"],
+        task_details["execution_time"],
+    )
 
 
-def update_task_progress_database(task_id: int, progress: float, error: str) -> bool:
+def update_task_progress_database(task_id: int, progress: float, error: str, execution_time: float) -> bool:
     session = database.SESSION()
     try:
         result = session.execute(
             update(database.TaskDetails)
             .where(database.TaskDetails.task_id == task_id)
-            .values(progress=progress, error=error)
+            .values(progress=progress, error=error, execution_time=execution_time)
         )
         session.commit()
         return result.rowcount == 1
@@ -374,6 +384,7 @@ def update_task_progress_server(task_details: dict) -> bool:
             data={
                 "task_id": task_details["task_id"],
                 "progress": task_details["progress"],
+                "execution_time": task_details["execution_time"],
                 "error": task_details["error"],
             },
             auth=__worker_auth(),
@@ -538,6 +549,7 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         else:
             if not ACTIVE_TASK["error"]:
                 ACTIVE_TASK["progress"] = 100.0
+                ACTIVE_TASK["execution_time"] = current_time - execution_start_time
                 upload_results_to_server()
             update_task_progress(ACTIVE_TASK)
         remove_active_task_lock()

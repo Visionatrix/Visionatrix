@@ -43,6 +43,7 @@ class TaskDetails(Base):
     flow_comfy = Column(JSON, default={})
     task_queue = relationship("TaskQueue")
     user_info = relationship("UserInfo", backref="task_details")
+    execution_time = Column(Float, default=0.0)
 
 
 class TaskLock(Base):

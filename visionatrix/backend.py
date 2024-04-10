@@ -242,7 +242,7 @@ async def task_restart(request: Request, task_id: int):
         return responses.JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": f"Task `{task_id}` already finished."}
         )
-    update_task_progress_database(task_id, 0.0, "")
+    update_task_progress_database(task_id, 0.0, "", 0.0)
     remove_task_lock_database(task_id)
     return responses.JSONResponse(content={"error": ""})
 
@@ -320,13 +320,14 @@ async def task_worker_update_progress(
     request: Request,
     task_id: typing.Annotated[int, Form()],
     progress: typing.Annotated[float, Form()],
+    execution_time: typing.Annotated[float, Form()],
     error: typing.Annotated[str, Form()] = "",
 ):
     if (r := get_task(task_id)) is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-    update_success = update_task_progress_database(task_id, progress, error)
+    update_success = update_task_progress_database(task_id, progress, error, execution_time)
     return responses.JSONResponse(content={"error": "" if update_success else "failed to update"})
 
 
