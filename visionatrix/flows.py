@@ -251,8 +251,8 @@ def flow_prepare_output_params(
 
 def process_seed_value(flow: dict, in_texts_params: dict, flow_comfy: dict[str, dict]) -> None:
     if "seed" in [i["name"] for i in flow["input_params"]]:
-        return  # skip automatic processing "seed" if it was manually defined in "flow.json"
-    random_seed = int(in_texts_params.get("seed", random.randint(1, 999999999)))
+        return  # skip automatic processing of "seed" if it was manually defined in "flow.json"
+    random_seed = in_texts_params.get("seed", random.randint(1, 3999999999))
     for node_details in flow_comfy.values():
         if "inputs" in node_details and "seed" in node_details["inputs"]:
             node_details["inputs"]["seed"] = random_seed

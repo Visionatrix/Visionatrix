@@ -29,7 +29,7 @@ from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui, options
-from .database import get_user, init_database_engine
+from .database import UserInfo, get_user, init_database_engine
 from .flows import (
     flow_prepare_output_params,
     get_available_flows,
@@ -180,27 +180,17 @@ async def flow_delete(request: Request, name: str):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.post("/task")
-async def task_run(
-    request: Request,
-    name: str = Form(),
-    input_params: str = Form(None),
-    files: list[UploadFile] = None,  # noqa
+async def __task_run(
+    name: str,
+    input_params: dict,
+    in_files: list[UploadFile],
+    flow: dict,
+    flow_comfy: dict,
+    user_info: UserInfo,
 ):
-    in_files = [i.file for i in files] if files else []
+    task_details = create_new_task(name, input_params, user_info)
     try:
-        input_params_list = json.loads(input_params) if input_params else []
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON format for params") from None
-
-    flow_comfy = {}
-    flow = get_installed_flow(name, flow_comfy)
-    if not flow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
-
-    task_details = create_new_task(name, input_params_list, request.scope["user_info"])
-    try:
-        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_list, in_files, task_details)
+        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params, in_files, task_details)
     except RuntimeError as e:
         remove_task_files(task_details["task_id"], ["input"])
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
@@ -215,7 +205,36 @@ async def task_run(
     task_details["flow_comfy"] = flow_comfy
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     put_task_in_queue(task_details)
-    return responses.JSONResponse(content={"task_id": str(task_details["task_id"])})
+    return task_details
+
+
+@APP.post("/task")
+async def task_run(
+    request: Request,
+    name: str = Form(),
+    count: int = Form(1),
+    input_params: str = Form(None),
+    files: list[UploadFile] = None,  # noqa
+):
+    in_files = [i.file for i in files] if files else []
+    try:
+        input_params_dict = json.loads(input_params) if input_params else {}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON format for params") from None
+    if "seed" in input_params_dict:
+        input_params_dict["seed"] = int(input_params_dict["seed"])
+
+    flow_comfy = {}
+    flow = get_installed_flow(name, flow_comfy)
+    if not flow:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
+    tasks_ids = []
+    for _ in range(count):
+        task_details = await __task_run(name, input_params_dict, in_files, flow, flow_comfy, request.scope["user_info"])
+        tasks_ids.append(task_details["task_id"])
+        if "seed" in input_params_dict:
+            input_params_dict["seed"] = input_params_dict["seed"] + 1
+    return responses.JSONResponse(content={"tasks_ids": tasks_ids})
 
 
 @APP.get("/tasks-progress")
