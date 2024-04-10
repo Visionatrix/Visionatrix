@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.7 - 2024-04-1x]
+
+### Added
+
+- Initial support for multiple users.
+- New `execution_time` field in Tasks.
+
+### Fixes
+
+- Many fixes to `Server` and `Worker` modes.
+
 ## [0.0.6 - 2024-04-08]
 
 ### Added
