@@ -102,7 +102,7 @@ def init_database_engine() -> None:
     if database_uri.startswith("sqlite:"):
         connect_args = {"check_same_thread": False}
         if database_uri.startswith("sqlite:///."):
-            database_uri = f"sqlite:///{os.path.abspath(os.path.join(options.TASKS_FILES_DIR, database_uri[10:]))}"
+            database_uri = f"sqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[10:]))}"
     engine = create_engine(database_uri, connect_args=connect_args)
     inspector = inspect(engine)
     is_new_database = not bool(inspector.get_table_names())

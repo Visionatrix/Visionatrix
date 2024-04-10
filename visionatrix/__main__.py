@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from . import comfyui, install, options, run_vix, update
+from . import comfyui, database, install, options, run_vix, update
 from .flows import get_available_flows, install_custom_flow
 
 
@@ -53,8 +53,18 @@ if __name__ == "__main__":
         ("update", "Performs update to the latest version"),
         ("run", "Starts the ComfyUI and Visionatrix backends"),
         ("install-flow", "Install flow by name or from the folder"),
+        ("create-user", "Create new user"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
+        if i[0] == "create-user":
+            subparser.add_argument("--name", type=str, help="User name(ID)", required=True)
+            subparser.add_argument("--password", type=str, help="User password", required=True)
+            subparser.add_argument("--full_name", type=str, help="Full User Name", default="John Doe")
+            subparser.add_argument("--email", type=str, help="User's email address", default="user@example.com")
+            subparser.add_argument("--admin", type=bool, help="Should user be admin", default=True)
+            subparser.add_argument("--disabled", type=bool, help="Should account be disabled", default=False)
+            continue
+
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
             install_flow_group.add_argument("--flow", type=str, help="Name of the flow")
@@ -85,6 +95,10 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
     logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
+    if args.command == "create-user":
+        database.init_database_engine()
+        database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
+        sys.exit(0)
     options.init_dirs_values(
         backend=args.backend_dir,
         flows=args.flows_dir,
