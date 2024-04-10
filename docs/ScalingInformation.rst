@@ -47,7 +47,7 @@ Set the environment variable ``VIX_MODE`` to **WORKER** and set ``VIX_HOST`` wit
 
 .. note:: ``VIX_PORT`` will be ignored, if a port is required, **VIX_HOST** should include it.
 
-    ``DATABASE_URI`` will ignored in this scenario as well, as the worker does not need it.
+    ``DATABASE_URI`` will be ignored in this scenario as well, as the worker does not need it.
 
 In this use case, the **vix_tasks_files** directory will contain only temporary files; after uploading results to the Server, the results from the worker instance will be cleared.
 

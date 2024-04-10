@@ -26,7 +26,7 @@ WORKER_AUTH = environ.get("WORKER_AUTH", "admin:admin")
 """Only for workers in the `Worker to Server` mode."""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
-"""for SQLite: if path is relative than it always relative to TASKS_FILES_DIR"""
+"""for SQLite: if path is relative than it always relative to the current directory"""
 
 ORG_URL = "https://github.com/Visionatrix/"
 FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
