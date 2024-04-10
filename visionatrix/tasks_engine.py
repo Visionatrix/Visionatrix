@@ -342,7 +342,7 @@ def remove_task_lock_server(task_id: int) -> None:
             auth=__worker_auth(),
         )
         if httpx.codes.is_error(r.status_code):
-            LOGGER.error("Server return status: %s", r.status_code)
+            LOGGER.warning("Server return status: %s", r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
 
@@ -391,7 +391,10 @@ def update_task_progress_server(task_details: dict) -> bool:
         )
         if not httpx.codes.is_error(r.status_code):
             return True
-        LOGGER.error("Server return status: %s", r.status_code)
+        if r.status_code == 404:
+            LOGGER.warning("Server return status: %s", r.status_code)
+        else:
+            LOGGER.error("Server return status: %s", r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
     return False
@@ -427,11 +430,12 @@ def init_active_task_inputs_from_server() -> bool:
         return False
 
 
-def upload_results_to_server() -> None:
+def upload_results_to_server(task_id: int) -> bool:
     if not (options.VIX_MODE == "WORKER" and options.VIX_HOST):
-        return
+        return True
+    result = False
     files = []
-    result_prefix = str(ACTIVE_TASK["task_id"]) + "_"
+    result_prefix = str(task_id) + "_"
     target_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     try:
         for filename in os.listdir(target_directory):
@@ -445,19 +449,22 @@ def upload_results_to_server() -> None:
             r = httpx.put(
                 options.VIX_HOST.rstrip("/") + "/task-worker/results",
                 params={
-                    "task_id": ACTIVE_TASK["task_id"],
+                    "task_id": task_id,
                 },
                 files=files,
                 auth=__worker_auth(),
             )
-            if httpx.codes.is_error(r.status_code):
-                LOGGER.error("Server return status: %s", r.status_code)
+            if not httpx.codes.is_error(r.status_code):
+                result = True
+            else:
+                LOGGER.warning("Server return status: %s", r.status_code)
         except Exception as e:
             LOGGER.exception("Exception occurred: %s", e)
     finally:
         for f in files:
             f[1][1].close()
-    remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
+    remove_task_files(task_id, ["output", "input"])
+    return result
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
@@ -553,8 +560,8 @@ def update_task_progress_thread(active_task: dict) -> None:
             if last_info != active_task:
                 last_info = active_task.copy()
                 if last_info["progress"] == 100.0:
-                    upload_results_to_server()
-                    update_task_progress(last_info)
+                    if upload_results_to_server(last_info["task_id"]):
+                        update_task_progress(last_info)
                     break
                 if not update_task_progress(last_info):
                     active_task["interrupted"] = True
