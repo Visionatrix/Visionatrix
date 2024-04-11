@@ -11,7 +11,7 @@ import typing
 from datetime import datetime
 
 import httpx
-from sqlalchemy import and_, delete, update
+from sqlalchemy import and_, delete, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -35,6 +35,36 @@ def __init_new_task_details(task_id: int, name: str, input_params: dict, user_in
         "flow_comfy": {},
         "user_id": user_info.user_id,
         "execution_time": 0.0,
+    }
+
+
+def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
+    return database.TaskDetails(
+        task_id=task_details["task_id"],
+        name=task_details["name"],
+        input_params=task_details["input_params"],
+        progress=task_details["progress"],
+        error=task_details["error"],
+        outputs=task_details["outputs"],
+        input_files=task_details["input_files"],
+        flow_comfy=task_details["flow_comfy"],
+        user_id=task_details["user_id"],
+        execution_time=task_details["execution_time"],
+    )
+
+
+def __task_details_to_dict(task_details: database.TaskDetails) -> dict:
+    return {
+        "task_id": task_details.task_id,
+        "progress": task_details.progress,
+        "error": task_details.error,
+        "name": task_details.name,
+        "input_params": task_details.input_params,
+        "outputs": task_details.outputs,
+        "input_files": task_details.input_files,
+        "flow_comfy": task_details.flow_comfy,
+        "user_id": task_details.user_id,
+        "execution_time": task_details.execution_time,
     }
 
 
@@ -66,21 +96,6 @@ async def create_new_task_async(name: str, input_params: dict, user_info: databa
     return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
 
 
-def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
-    return database.TaskDetails(
-        task_id=task_details["task_id"],
-        name=task_details["name"],
-        input_params=task_details["input_params"],
-        progress=task_details["progress"],
-        error=task_details["error"],
-        outputs=task_details["outputs"],
-        input_files=task_details["input_files"],
-        flow_comfy=task_details["flow_comfy"],
-        user_id=task_details["user_id"],
-        execution_time=task_details["execution_time"],
-    )
-
-
 def put_task_in_queue(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
     with database.SESSION() as session:
@@ -108,31 +123,29 @@ async def put_task_in_queue_async(task_details: dict) -> None:
 
 
 def get_task(task_id: int, user_id: str | None = None) -> dict | None:
-    session = database.SESSION()
-    try:
-        query = session.query(database.TaskDetails).filter(database.TaskDetails.task_id == task_id)
-        if user_id is not None:
-            query = query.filter(database.TaskDetails.user_id == user_id)
-        task = query.first()
-        if not task:
-            return None
-        return {
-            "task_id": task.task_id,
-            "progress": task.progress,
-            "error": task.error,
-            "name": task.name,
-            "input_params": task.input_params,
-            "outputs": task.outputs,
-            "input_files": task.input_files,
-            "flow_comfy": task.flow_comfy,
-            "user_id": task.user_id,
-            "execution_time": task.execution_time,
-        }
-    except Exception:
-        LOGGER.exception("Failed to retrieve task: %s", task_id)
-        raise
-    finally:
-        session.close()
+    with database.SESSION() as session:
+        try:
+            query = select(database.TaskDetails).filter(database.TaskDetails.task_id == task_id)
+            if user_id is not None:
+                query = query.filter(database.TaskDetails.user_id == user_id)
+            task = session.execute(query).scalar_one_or_none()
+            return __task_details_to_dict(task) if task else None
+        except Exception:
+            LOGGER.exception("Failed to retrieve task: %s", task_id)
+            raise
+
+
+async def get_task_async(task_id: int, user_id: str | None = None) -> dict | None:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = select(database.TaskDetails).filter(database.TaskDetails.task_id == task_id)
+            if user_id is not None:
+                query = query.filter(database.TaskDetails.user_id == user_id)
+            task = (await session.execute(query)).scalar_one_or_none()
+            return __task_details_to_dict(task) if task else None
+        except Exception:
+            LOGGER.exception("Failed to retrieve task: %s", task_id)
+            raise
 
 
 def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
@@ -399,21 +412,36 @@ def update_task_progress(task_details: dict) -> bool:
 
 
 def update_task_progress_database(task_id: int, progress: float, error: str, execution_time: float) -> bool:
-    session = database.SESSION()
-    try:
-        result = session.execute(
-            update(database.TaskDetails)
-            .where(database.TaskDetails.task_id == task_id)
-            .values(progress=progress, error=error, execution_time=execution_time)
-        )
-        session.commit()
-        return result.rowcount == 1
-    except Exception as e:
-        interrupt_processing()
-        session.rollback()
-        LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
-    finally:
-        session.close()
+    with database.SESSION() as session:
+        try:
+            result = session.execute(
+                update(database.TaskDetails)
+                .where(database.TaskDetails.task_id == task_id)
+                .values(progress=progress, error=error, execution_time=execution_time)
+            )
+            session.commit()
+            return result.rowcount == 1
+        except Exception as e:
+            interrupt_processing()
+            session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
+    return False
+
+
+async def update_task_progress_database_async(task_id: int, progress: float, error: str, execution_time: float) -> bool:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            result = await session.execute(
+                update(database.TaskDetails)
+                .where(database.TaskDetails.task_id == task_id)
+                .values(progress=progress, error=error, execution_time=execution_time)
+            )
+            await session.commit()
+            return result.rowcount == 1
+        except Exception as e:
+            interrupt_processing()
+            await session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
     return False
 
 
