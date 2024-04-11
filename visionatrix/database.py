@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session, relationship, sessionmaker
 from . import options
 
 SESSION: sessionmaker
-SESSION_AUTH: Session  # persistent session only for `get_user`
+SESSION_AUTH: Session  # persistent session for "SERVER" mode for `get_user` function.
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base = declarative_base()
 
@@ -66,6 +66,16 @@ class UserInfo(Base):
     disabled = Column(Boolean, default=False)
 
 
+DEFAULT_USER = UserInfo(
+    user_id="admin",
+    full_name="John Doe",
+    email="admin@example.com",
+    hashed_password=PWD_CONTEXT.hash("admin"),
+    is_admin=True,
+    disabled=False,
+)
+
+
 def get_user(username: str, password: str) -> UserInfo | None:
     userinfo = SESSION_AUTH.query(UserInfo).filter_by(user_id=username).first()
     if userinfo and PWD_CONTEXT.verify(password, userinfo.hashed_password):
@@ -106,12 +116,6 @@ def init_database_engine() -> None:
     Base.metadata.create_all(engine)
     SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     if is_new_database:
-        create_user(
-            "admin",
-            "John Doe",
-            "admin@example.com",
-            "admin",
-            is_admin=True,
-            disabled=False,
-        )
-    SESSION_AUTH = SESSION()
+        create_user(DEFAULT_USER.user_id, DEFAULT_USER.full_name, DEFAULT_USER.email, "admin", True, False)
+    if options.VIX_MODE == "SERVER":
+        SESSION_AUTH = SESSION()

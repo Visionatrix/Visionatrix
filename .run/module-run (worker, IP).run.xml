@@ -15,7 +15,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="visionatrix" />
-    <option name="PARAMETERS" value="--loglevel=WARNING run --mode=WORKER --host=http://127.0.0.1:8288 --tasks_files_dir=vix_worker_tasks_files" />
+    <option name="PARAMETERS" value="--loglevel=WARNING run --mode=WORKER --server http://127.0.0.1:8288 --tasks_files_dir=vix_worker_tasks_files" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="true" />

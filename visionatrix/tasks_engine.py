@@ -106,7 +106,7 @@ def get_task(task_id: int, user_id: str | None = None) -> dict | None:
 
 
 def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
-    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+    if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return get_incomplete_task_without_error_server(tasks_to_ask)
     return get_incomplete_task_without_error_database(tasks_to_ask)
 
@@ -114,7 +114,9 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
 def get_incomplete_task_without_error_server(tasks_to_ask: list[str]) -> dict:
     try:
         r = httpx.post(
-            options.VIX_HOST.rstrip("/") + "/task-worker/get", data={"tasks_names": tasks_to_ask}, auth=__worker_auth()
+            options.VIX_SERVER.rstrip("/") + "/task-worker/get",
+            data={"tasks_names": tasks_to_ask},
+            auth=__worker_auth(),
         )
         if not httpx.codes.is_error(r.status_code):
             return json.loads(r.text)["task"]
@@ -209,7 +211,7 @@ def get_tasks(name: str | None = None, finished: bool | None = None, user_id: st
 
 
 def remove_task_by_id(task_id: int) -> bool:
-    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+    if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return remove_task_by_id_server(task_id)
     return remove_task_by_id_database(task_id)
 
@@ -234,7 +236,7 @@ def remove_task_by_id_database(task_id: int) -> bool:
 
 def remove_task_by_id_server(task_id: int) -> bool:
     try:
-        r = httpx.delete(options.VIX_HOST.rstrip("/") + "/task", params={"task_id": task_id}, auth=__worker_auth())
+        r = httpx.delete(options.VIX_SERVER.rstrip("/") + "/task", params={"task_id": task_id}, auth=__worker_auth())
         if not httpx.codes.is_error(r.status_code):
             return True
         LOGGER.warning("Server return status: %s", r.status_code)
@@ -316,7 +318,7 @@ def remove_task_files(task_id: int, directories: list[str]) -> None:
 
 
 def remove_task_lock(task_id: int) -> None:
-    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+    if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return remove_task_lock_server(task_id)
     return remove_task_lock_database(task_id)
 
@@ -337,7 +339,7 @@ def remove_task_lock_database(task_id: int) -> None:
 def remove_task_lock_server(task_id: int) -> None:
     try:
         r = httpx.delete(
-            options.VIX_HOST.rstrip("/") + "/task-worker/lock",
+            options.VIX_SERVER.rstrip("/") + "/task-worker/lock",
             params={"task_id": task_id},
             auth=__worker_auth(),
         )
@@ -349,7 +351,7 @@ def remove_task_lock_server(task_id: int) -> None:
 
 def update_task_progress(task_details: dict) -> bool:
     __update_temporary_execution_time(task_details)
-    if options.VIX_MODE == "WORKER" and options.VIX_HOST:
+    if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return update_task_progress_server(task_details)
     return update_task_progress_database(
         task_details["task_id"],
@@ -381,7 +383,7 @@ def update_task_progress_database(task_id: int, progress: float, error: str, exe
 def update_task_progress_server(task_details: dict) -> bool:
     try:
         r = httpx.put(
-            options.VIX_HOST.rstrip("/") + "/task-worker/progress",
+            options.VIX_SERVER.rstrip("/") + "/task-worker/progress",
             data={
                 "task_id": task_details["task_id"],
                 "progress": task_details["progress"],
@@ -414,13 +416,13 @@ def remove_active_task_lock():
 
 
 def init_active_task_inputs_from_server() -> bool:
-    if not (options.VIX_MODE == "WORKER" and options.VIX_HOST):
+    if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
         return True
     input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     try:
         for i in enumerate(ACTIVE_TASK["input_files"]):
             r = httpx.get(
-                options.VIX_HOST.rstrip("/") + "/task-inputs",
+                options.VIX_SERVER.rstrip("/") + "/task-inputs",
                 params={"task_id": ACTIVE_TASK["task_id"], "input_index": i},
                 auth=__worker_auth(),
             )
@@ -439,7 +441,7 @@ def init_active_task_inputs_from_server() -> bool:
 
 
 def upload_results_to_server(task_id: int) -> bool:
-    if not (options.VIX_MODE == "WORKER" and options.VIX_HOST):
+    if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
         return True
     result = False
     files = []
@@ -455,7 +457,7 @@ def upload_results_to_server(task_id: int) -> bool:
                 )
         try:
             r = httpx.put(
-                options.VIX_HOST.rstrip("/") + "/task-worker/results",
+                options.VIX_SERVER.rstrip("/") + "/task-worker/results",
                 params={
                     "task_id": task_id,
                 },

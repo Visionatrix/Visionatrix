@@ -28,8 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import comfyui, options
-from .database import get_user, init_database_engine
+from . import comfyui, database, options
 from .flows import (
     flow_prepare_output_params,
     get_available_flows,
@@ -82,7 +81,9 @@ class VixAuthMiddleware:
 
         conn = HTTPConnection(scope)
         url_path = conn.url.path.lstrip("/")
-        if not fnmatch.filter(self._disable_for, url_path):
+        if options.VIX_MODE == "DEFAULT":
+            scope["user_info"] = database.DEFAULT_USER
+        elif not fnmatch.filter(self._disable_for, url_path):
             bad_auth_response = responses.Response(
                 "Not authenticated",
                 status.HTTP_401_UNAUTHORIZED,
@@ -102,7 +103,7 @@ class VixAuthMiddleware:
 
                     decoded_credentials = base64.b64decode(encoded_credentials).decode("ascii")
                     username, _, password = decoded_credentials.partition(":")
-                    if (userinfo := get_user(username, password)) is None or userinfo.disabled is True:
+                    if (userinfo := database.get_user(username, password)) is None or userinfo.disabled is True:
                         await bad_auth_response(scope, receive, send)
                         return
                 except ValueError:
@@ -403,8 +404,8 @@ def run_vix(*args, **kwargs) -> None:
             print("Visionatrix is shutting down.")
     else:
         _, comfy_queue = comfyui.load(task_progress_callback)
-        if not options.VIX_HOST:
-            init_database_engine()  # we get tasks directly from the Database
+        if not options.VIX_SERVER:
+            database.init_database_engine()  # we get tasks directly from the Database
 
         try:
             background_prompt_executor(comfy_queue, EXIT_EVENT)

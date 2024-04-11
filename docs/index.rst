@@ -9,7 +9,7 @@ Here will leave all docs that is not suitable for Readme file.
     Flows/index.rst
     Installation.rst
     CommandLineOptions.rst
-    ScalingInformation.rst
+    WorkingModes.rst
     TechnicalInformation.rst
 
 Indices and tables
