@@ -418,18 +418,26 @@ def remove_active_task_lock():
 def init_active_task_inputs_from_server() -> bool:
     if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
         return True
+    remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
     input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     try:
         for i in enumerate(ACTIVE_TASK["input_files"]):
-            r = httpx.get(
-                options.VIX_SERVER.rstrip("/") + "/task-inputs",
-                params={"task_id": ACTIVE_TASK["task_id"], "input_index": i},
-                auth=__worker_auth(),
-            )
-            if httpx.codes.is_error(r.status_code):
-                raise f"Can not get input file, status={r.status_code}"
-            with builtins.open(os.path.join(input_directory, ACTIVE_TASK["input_files"][i]), mode="wb") as input_file:
-                input_file.write(r.content)
+            for k in range(3):
+                r = httpx.get(
+                    options.VIX_SERVER.rstrip("/") + "/task-inputs",
+                    params={"task_id": ACTIVE_TASK["task_id"], "input_index": i},
+                    auth=__worker_auth(),
+                )
+                if r.status_code == httpx.codes.NOT_FOUND:
+                    raise f"Task {ACTIVE_TASK['task_id']} not found on server"
+                if not httpx.codes.is_error(r.status_code):
+                    with builtins.open(
+                        os.path.join(input_directory, ACTIVE_TASK["input_files"][i]), mode="wb"
+                    ) as input_file:
+                        input_file.write(r.content)
+                    break
+                if k == 2:
+                    raise f"Can not get input file, status={r.status_code}"
         return True
     except Exception as e:
         LOGGER.exception("Can not work on task")
@@ -443,7 +451,6 @@ def init_active_task_inputs_from_server() -> bool:
 def upload_results_to_server(task_id: int) -> bool:
     if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
         return True
-    result = False
     files = []
     result_prefix = str(task_id) + "_"
     target_directory = os.path.join(options.TASKS_FILES_DIR, "output")
@@ -456,25 +463,28 @@ def upload_results_to_server(task_id: int) -> bool:
                     ("files", (filename, file_handle)),
                 )
         try:
-            r = httpx.put(
-                options.VIX_SERVER.rstrip("/") + "/task-worker/results",
-                params={
-                    "task_id": task_id,
-                },
-                files=files,
-                auth=__worker_auth(),
-            )
-            if not httpx.codes.is_error(r.status_code):
-                result = True
-            else:
-                LOGGER.warning("Server return status: %s", r.status_code)
+            for i in range(3):
+                r = httpx.put(
+                    options.VIX_SERVER.rstrip("/") + "/task-worker/results",
+                    params={
+                        "task_id": task_id,
+                    },
+                    files=files,
+                    auth=__worker_auth(),
+                )
+                if r.status_code == httpx.codes.NOT_FOUND:
+                    return False
+                if not httpx.codes.is_error(r.status_code):
+                    return True
+                if i == 2:
+                    LOGGER.error("Server return status: %s", r.status_code)
         except Exception as e:
             LOGGER.exception("Exception occurred: %s", e)
     finally:
         for f in files:
             f[1][1].close()
-    remove_task_files(task_id, ["output", "input"])
-    return result
+        remove_task_files(task_id, ["output", "input"])
+    return False
 
 
 def increase_current_task_progress(percent_finished: float) -> None:
