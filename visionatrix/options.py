@@ -33,7 +33,7 @@ WORKER_NET_TIMEOUT = environ.get("WORKER_NET_TIMEOUT", "15.0")
 """Only for WORKER in the `Worker to Server` mode."""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
-"""for SQLite: if path is relative than it always relative to the current directory"""
+"""for SQLite: if path is relative than it is always relative to the current directory"""
 
 ORG_URL = "https://github.com/Visionatrix/"
 FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"

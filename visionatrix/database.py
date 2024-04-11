@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 
 from passlib.context import CryptContext
@@ -77,12 +78,21 @@ DEFAULT_USER = UserInfo(
     disabled=False,
 )
 
+AUTH_CACHE = {}
+
 
 async def get_user(username: str, password: str) -> UserInfo | None:
+    current_time = time.time()
+    if (cache_entry := AUTH_CACHE.get(username)) and (current_time - cache_entry["time"] < 7):
+        if cache_entry["password"] == password:
+            return cache_entry["data"]
+        del AUTH_CACHE[username]
+
     async with SESSION_ASYNC() as session:
         results = await session.execute(select(UserInfo).filter_by(user_id=username))
         user_info = results.scalar_one_or_none()
         if user_info and PWD_CONTEXT.verify(password, user_info.hashed_password):
+            AUTH_CACHE[username] = {"data": user_info, "time": current_time, "password": password}
             return user_info
     return None
 
