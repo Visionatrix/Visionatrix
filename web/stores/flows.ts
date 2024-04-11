@@ -436,7 +436,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 			// Restore running flow polling
 			this.running.forEach(flow => {
 				if (flow.error && flow.error !== '') {
-					console.debug('[restorePollingProcesses] skipping flow with error:', flow)
 					return
 				}
 				this.startFlowProgressPolling(flow.task_id)
@@ -515,12 +514,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 					}
 				}).catch((e): any => {
 					console.debug('Failed to fetch running flow progress: ', e)
-					const toast = useToast()
-					toast.add({
-						title: 'Failed to fetch running flow progress (task_id: ' + task_id + ')',
-						description: e.message,
-						timeout: 5000,
-					})
 					clearInterval(interval)
 					this.running = this.running.filter(flow => flow.task_id !== task_id)
 				})
