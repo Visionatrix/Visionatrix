@@ -29,6 +29,8 @@ VIX_SERVER = environ.get("VIX_SERVER", "")
 """Only for WORKER in the `Worker to Server` mode, should contain full URL of server ."""
 WORKER_AUTH = environ.get("WORKER_AUTH", "admin:admin")
 """Only for WORKER in the `Worker to Server` mode."""
+WORKER_NET_TIMEOUT = environ.get("WORKER_NET_TIMEOUT", "15.0")
+"""Only for WORKER in the `Worker to Server` mode."""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it always relative to the current directory"""

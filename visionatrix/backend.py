@@ -345,6 +345,7 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
                 shutil.copyfileobj(r.file, out_file)
         finally:
             r.file.close()
+    return responses.JSONResponse(content={"error": ""})
 
 
 @APP.delete("/task-worker/lock")

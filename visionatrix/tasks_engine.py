@@ -117,6 +117,7 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str]) -> dict:
             options.VIX_SERVER.rstrip("/") + "/task-worker/get",
             data={"tasks_names": tasks_to_ask},
             auth=__worker_auth(),
+            timeout=float(options.WORKER_NET_TIMEOUT),
         )
         if not httpx.codes.is_error(r.status_code):
             return json.loads(r.text)["task"]
@@ -236,7 +237,12 @@ def remove_task_by_id_database(task_id: int) -> bool:
 
 def remove_task_by_id_server(task_id: int) -> bool:
     try:
-        r = httpx.delete(options.VIX_SERVER.rstrip("/") + "/task", params={"task_id": task_id}, auth=__worker_auth())
+        r = httpx.delete(
+            options.VIX_SERVER.rstrip("/") + "/task",
+            params={"task_id": task_id},
+            auth=__worker_auth(),
+            timeout=float(options.WORKER_NET_TIMEOUT),
+        )
         if not httpx.codes.is_error(r.status_code):
             return True
         LOGGER.warning("Server return status: %s", r.status_code)
@@ -342,6 +348,7 @@ def remove_task_lock_server(task_id: int) -> None:
             options.VIX_SERVER.rstrip("/") + "/task-worker/lock",
             params={"task_id": task_id},
             auth=__worker_auth(),
+            timeout=float(options.WORKER_NET_TIMEOUT),
         )
         if httpx.codes.is_error(r.status_code):
             LOGGER.warning("Server return status: %s", r.status_code)
@@ -391,6 +398,7 @@ def update_task_progress_server(task_details: dict) -> bool:
                 "error": task_details["error"],
             },
             auth=__worker_auth(),
+            timeout=float(options.WORKER_NET_TIMEOUT),
         )
         if not httpx.codes.is_error(r.status_code):
             return True
@@ -418,33 +426,40 @@ def remove_active_task_lock():
 def init_active_task_inputs_from_server() -> bool:
     if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
         return True
-    remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
+    task_id = ACTIVE_TASK["task_id"]
+    remove_task_files(task_id, ["output", "input"])
     input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     try:
         for i in enumerate(ACTIVE_TASK["input_files"]):
             for k in range(3):
-                r = httpx.get(
-                    options.VIX_SERVER.rstrip("/") + "/task-inputs",
-                    params={"task_id": ACTIVE_TASK["task_id"], "input_index": i},
-                    auth=__worker_auth(),
-                )
-                if r.status_code == httpx.codes.NOT_FOUND:
-                    raise f"Task {ACTIVE_TASK['task_id']} not found on server"
-                if not httpx.codes.is_error(r.status_code):
+                try:
+                    r = httpx.get(
+                        options.VIX_SERVER.rstrip("/") + "/task-inputs",
+                        params={"task_id": task_id, "input_index": i},
+                        auth=__worker_auth(),
+                        timeout=float(options.WORKER_NET_TIMEOUT),
+                    )
+                    if r.status_code == httpx.codes.NOT_FOUND:
+                        raise f"Task {task_id}: not found on server"
+                    if httpx.codes.is_error(r.status_code):
+                        raise f"Task {task_id}: can not get input file, status={r.status_code}"
                     with builtins.open(
                         os.path.join(input_directory, ACTIVE_TASK["input_files"][i]), mode="wb"
                     ) as input_file:
                         input_file.write(r.content)
                     break
-                if k == 2:
-                    raise f"Can not get input file, status={r.status_code}"
+                except httpx.TimeoutException:
+                    if k != 2:
+                        LOGGER.warning("Task %s: attempt number %s: timeout exception occurred", task_id, i)
+                        continue
+                    raise
         return True
     except Exception as e:
         LOGGER.exception("Can not work on task")
         ACTIVE_TASK["error"] = str(e)
         update_task_progress(ACTIVE_TASK)
-        remove_task_files(ACTIVE_TASK["task_id"], ["output", "input"])
-        remove_task_lock(ACTIVE_TASK["task_id"])
+        remove_task_files(task_id, ["output", "input"])
+        remove_task_lock(task_id)
         return False
 
 
@@ -464,22 +479,28 @@ def upload_results_to_server(task_id: int) -> bool:
                 )
         try:
             for i in range(3):
-                r = httpx.put(
-                    options.VIX_SERVER.rstrip("/") + "/task-worker/results",
-                    params={
-                        "task_id": task_id,
-                    },
-                    files=files,
-                    auth=__worker_auth(),
-                )
-                if r.status_code == httpx.codes.NOT_FOUND:
-                    return False
-                if not httpx.codes.is_error(r.status_code):
-                    return True
-                if i == 2:
-                    LOGGER.error("Server return status: %s", r.status_code)
+                try:
+                    r = httpx.put(
+                        options.VIX_SERVER.rstrip("/") + "/task-worker/results",
+                        params={
+                            "task_id": task_id,
+                        },
+                        files=files,
+                        auth=__worker_auth(),
+                        timeout=float(options.WORKER_NET_TIMEOUT),
+                    )
+                    if r.status_code == httpx.codes.NOT_FOUND:
+                        return False
+                    if not httpx.codes.is_error(r.status_code):
+                        return True
+                    LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
+                except httpx.TimeoutException:
+                    if i != 2:
+                        LOGGER.warning("Task %s: attempt number %s: timeout exception occurred", task_id, i)
+                        continue
+                    LOGGER.error("Task %s: attempt number %s: timeout exception occurred, task failed.", task_id, i)
         except Exception as e:
-            LOGGER.exception("Exception occurred: %s", e)
+            LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
     finally:
         for f in files:
             f[1][1].close()
