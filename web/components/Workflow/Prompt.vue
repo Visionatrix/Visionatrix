@@ -123,6 +123,10 @@ const collapsed = ref(false)
 							batchSize
 						).finally(() => {
 							running = false
+							const seed = additionalInputParamsMap.find((inputParam: any) => {
+								return Object.keys(inputParam)[0] === 'seed'
+							})
+							seed.seed.value += batchSize + 1
 						})
 					}">
 					Run prompt
