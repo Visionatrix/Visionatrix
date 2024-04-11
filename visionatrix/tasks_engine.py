@@ -23,58 +23,88 @@ LOGGER = logging.getLogger("visionatrix")
 ACTIVE_TASK: dict = {}
 
 
+def __init_new_task_details(task_id: int, name: str, input_params: dict, user_info: database.UserInfo) -> dict:
+    return {
+        "task_id": task_id,
+        "name": name,
+        "input_params": input_params,
+        "progress": 0.0,
+        "error": "",
+        "outputs": [],
+        "input_files": [],
+        "flow_comfy": {},
+        "user_id": user_info.user_id,
+        "execution_time": 0.0,
+    }
+
+
 def create_new_task(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
-    session = database.SESSION()
-    try:
-        new_task_queue = database.TaskQueue()
-        session.add(new_task_queue)
-        session.commit()
-        remove_task_files(new_task_queue.id, ["output", "input"])
-        return {
-            "task_id": new_task_queue.id,
-            "name": name,
-            "input_params": input_params,
-            "progress": 0.0,
-            "error": "",
-            "outputs": [],
-            "input_files": [],
-            "flow_comfy": {},
-            "user_id": user_info.user_id,
-            "execution_time": 0.0,
-        }
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
-        raise
-    finally:
-        session.close()
+    with database.SESSION() as session:
+        try:
+            new_task_queue = database.TaskQueue()
+            session.add(new_task_queue)
+            session.commit()
+        except Exception:
+            session.rollback()
+            LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
+            raise
+    remove_task_files(new_task_queue.id, ["output", "input"])
+    return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
+
+
+async def create_new_task_async(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            new_task_queue = database.TaskQueue()
+            session.add(new_task_queue)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
+            raise
+    remove_task_files(new_task_queue.id, ["output", "input"])
+    return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
+
+
+def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
+    return database.TaskDetails(
+        task_id=task_details["task_id"],
+        name=task_details["name"],
+        input_params=task_details["input_params"],
+        progress=task_details["progress"],
+        error=task_details["error"],
+        outputs=task_details["outputs"],
+        input_files=task_details["input_files"],
+        flow_comfy=task_details["flow_comfy"],
+        user_id=task_details["user_id"],
+        execution_time=task_details["execution_time"],
+    )
 
 
 def put_task_in_queue(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
-    session = database.SESSION()
-    try:
-        new_task = database.TaskDetails(
-            task_id=task_details["task_id"],
-            name=task_details["name"],
-            input_params=task_details["input_params"],
-            progress=task_details["progress"],
-            error=task_details["error"],
-            outputs=task_details["outputs"],
-            input_files=task_details["input_files"],
-            flow_comfy=task_details["flow_comfy"],
-            user_id=task_details["user_id"],
-            execution_time=task_details["execution_time"],
-        )
-        session.add(new_task)
-        session.commit()
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
-        remove_task_files(task_details["task_id"], ["input"])
-        raise
-    finally:
-        session.close()
+    with database.SESSION() as session:
+        try:
+            session.add(__task_details_from_dict(task_details))
+            session.commit()
+        except Exception:
+            session.rollback()
+            LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
+            remove_task_files(task_details["task_id"], ["input"])
+            raise
+
+
+async def put_task_in_queue_async(task_details: dict) -> None:
+    LOGGER.debug("Put flow in queue: %s", task_details)
+    async with database.SESSION_ASYNC() as session:
+        try:
+            session.add(__task_details_from_dict(task_details))
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
+            remove_task_files(task_details["task_id"], ["input"])
+            raise
 
 
 def get_task(task_id: int, user_id: str | None = None) -> dict | None:
@@ -245,9 +275,9 @@ def remove_task_by_id_server(task_id: int) -> bool:
         )
         if not httpx.codes.is_error(r.status_code):
             return True
-        LOGGER.warning("Server return status: %s", r.status_code)
+        LOGGER.warning("Task %s: server return status: %s", task_id, r.status_code)
     except Exception as e:
-        LOGGER.exception("Exception occurred: %s", e)
+        LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
     return False
 
 
@@ -337,7 +367,7 @@ def remove_task_lock_database(task_id: int) -> None:
             session.commit()
     except Exception as e:
         session.rollback()
-        LOGGER.exception("Failed to remove task lock for task_id %s: %s", task_id, e)
+        LOGGER.exception("Task %s: failed to remove task lock: %s", task_id, e)
     finally:
         session.close()
 
@@ -351,7 +381,7 @@ def remove_task_lock_server(task_id: int) -> None:
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
         if httpx.codes.is_error(r.status_code):
-            LOGGER.warning("Server return status: %s", r.status_code)
+            LOGGER.warning("Task %s: server return status: %s", task_id, r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
 
@@ -381,7 +411,7 @@ def update_task_progress_database(task_id: int, progress: float, error: str, exe
     except Exception as e:
         interrupt_processing()
         session.rollback()
-        LOGGER.exception("Task %s failed to update TaskDetails: %s", task_id, e)
+        LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
     finally:
         session.close()
     return False
@@ -403,11 +433,11 @@ def update_task_progress_server(task_details: dict) -> bool:
         if not httpx.codes.is_error(r.status_code):
             return True
         if r.status_code == 404:
-            LOGGER.warning("Server return status: %s", r.status_code)
+            LOGGER.warning("Task %s: server return status: %s", task_details["task_id"], r.status_code)
         else:
-            LOGGER.error("Server return status: %s", r.status_code)
+            LOGGER.error("Task %s: server return status: %s", task_details["task_id"], r.status_code)
     except Exception as e:
-        LOGGER.exception("Exception occurred: %s", e)
+        LOGGER.exception("Task %s: exception occurred: %s", task_details["task_id"], e)
     return False
 
 
