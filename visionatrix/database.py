@@ -15,11 +15,12 @@ from sqlalchemy import (
     inspect,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import Session, relationship, sessionmaker
 
 from . import options
 
 SESSION: sessionmaker
+SESSION_AUTH: Session  # persistent session only for `get_user`
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base = declarative_base()
 
@@ -66,14 +67,10 @@ class UserInfo(Base):
 
 
 def get_user(username: str, password: str) -> UserInfo | None:
-    session = SESSION()
-    try:
-        userinfo = session.query(UserInfo).filter_by(user_id=username).first()
-        if userinfo and PWD_CONTEXT.verify(password, userinfo.hashed_password):
-            return userinfo
-        return None
-    finally:
-        session.close()
+    userinfo = SESSION_AUTH.query(UserInfo).filter_by(user_id=username).first()
+    if userinfo and PWD_CONTEXT.verify(password, userinfo.hashed_password):
+        return userinfo
+    return None
 
 
 def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:
@@ -96,7 +93,7 @@ def create_user(username: str, full_name: str, email: str, password: str, is_adm
 
 
 def init_database_engine() -> None:
-    global SESSION
+    global SESSION, SESSION_AUTH
     connect_args = {}
     database_uri = options.DATABASE_URI
     if database_uri.startswith("sqlite:"):
@@ -117,3 +114,4 @@ def init_database_engine() -> None:
             is_admin=True,
             disabled=False,
         )
+    SESSION_AUTH = SESSION()
