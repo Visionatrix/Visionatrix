@@ -25,14 +25,23 @@ SERVER
 In most scenarios, including home use, you likely have more than one device capable of handling AI tasks.
 In such cases, it is allowed and recommended to run the server part and the AI processing part of the task separately.
 
+.. warning:: **SQLite is not supported as a database in this mode.**
+
 Steps to run `Vix` in a Server mode:
 
 1. Set ``VIX_MODE`` environment variable to ``SERVER``
-2. Setup **MariaDB** or **PostgreSQL** database and set correct ``DATABASE_URI`` environment variable to point on it.
+2. Setup **PostgreSQL** *(recommended)* or **MariaDB** database and set correct ``DATABASE_URI`` environment variable to point on it.
+
+    .. note:: PgSQL example: ``DATABASE_URI="postgresql+psycopg://vix_user:vix_password@localhost:5432/vix_db"``
+
+    .. note:: For the **MySQL or MariaDB** to work you should additionally specify ``DATABASE_URI_ASYNC`` environment variable.
+
 3. Remove default ``admin`` user and create a new one with ``python3 -m visionatrix create-user`` command.
+
+    .. note:: This step is only necessary if you plan to make the instance accessible from the Internet.
+
 4. Connect at least one Worker to handle task processing.
 
-.. note:: Step **3** only required if you plan your instance to be available from internet.
 
 *We will provide a docker-compose file soon, with full server setup to deploy it in one click.*
 

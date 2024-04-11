@@ -103,7 +103,7 @@ class VixAuthMiddleware:
 
                     decoded_credentials = base64.b64decode(encoded_credentials).decode("ascii")
                     username, _, password = decoded_credentials.partition(":")
-                    if (userinfo := database.get_user(username, password)) is None or userinfo.disabled is True:
+                    if (userinfo := await database.get_user(username, password)) is None or userinfo.disabled is True:
                         await bad_auth_response(scope, receive, send)
                         return
                 except ValueError:

@@ -13,14 +13,16 @@ from sqlalchemy import (
     String,
     create_engine,
     inspect,
+    select,
 )
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, relationship, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker
 
 from . import options
 
 SESSION: sessionmaker
-SESSION_AUTH: Session  # persistent session for "SERVER" mode for `get_user` function.
+SESSION_ASYNC: async_sessionmaker  # only for the "SERVER" mode
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base = declarative_base()
 
@@ -76,10 +78,12 @@ DEFAULT_USER = UserInfo(
 )
 
 
-def get_user(username: str, password: str) -> UserInfo | None:
-    userinfo = SESSION_AUTH.query(UserInfo).filter_by(user_id=username).first()
-    if userinfo and PWD_CONTEXT.verify(password, userinfo.hashed_password):
-        return userinfo
+async def get_user(username: str, password: str) -> UserInfo | None:
+    async with SESSION_ASYNC() as session:
+        results = await session.execute(select(UserInfo).filter_by(user_id=username))
+        user_info = results.scalar_one_or_none()
+        if user_info and PWD_CONTEXT.verify(password, user_info.hashed_password):
+            return user_info
     return None
 
 
@@ -103,7 +107,7 @@ def create_user(username: str, full_name: str, email: str, password: str, is_adm
 
 
 def init_database_engine() -> None:
-    global SESSION, SESSION_AUTH
+    global SESSION, SESSION_ASYNC
     connect_args = {}
     database_uri = options.DATABASE_URI
     if database_uri.startswith("sqlite:"):
@@ -118,4 +122,7 @@ def init_database_engine() -> None:
     if is_new_database:
         create_user(DEFAULT_USER.user_id, DEFAULT_USER.full_name, DEFAULT_USER.email, "admin", True, False)
     if options.VIX_MODE == "SERVER":
-        SESSION_AUTH = SESSION()
+        async_engine = create_async_engine(
+            os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args
+        )
+        SESSION_ASYNC = async_sessionmaker(bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False)

@@ -622,7 +622,7 @@ async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Even
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
     database.init_database_engine()
-    if options.VIX_MODE in ("DEFAULT", "WORKER"):
+    if options.VIX_MODE != "SERVER":
         _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
 
 
