@@ -95,8 +95,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async fetchFlowsAvailable() {
+			const { $apiFetch } = useNuxtApp()
 			this.loading.flows_available = true
-			const flows = await $fetch(`${buildBackendApiUrl()}/flows-available`, {
+			const flows = await $apiFetch('/flows-available', {
 				method: 'GET',
 				timeout: 15000,
 			}).then((res) => {
@@ -118,9 +119,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async fetchFlowsInstalled() {
+			const { $apiFetch } = useNuxtApp()
 			console.debug('fetching installed flows')
 			this.loading.flows_installed = true
-			const flows = await $fetch(`${buildBackendApiUrl()}/flows-installed`, {
+			const flows = await $apiFetch('/flows-installed', {
 				method: 'GET',
 				timeout: 15000,
 			}).then((res) => {
@@ -142,8 +144,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async fetchFlowResults(): Promise<TasksHistory> {
+			const { $apiFetch } = useNuxtApp()
 			this.loading.tasks_history = true
-			return await $fetch(`${buildBackendApiUrl()}/tasks-progress`, {
+			return await $apiFetch('/tasks-progress', {
 				method: 'GET',
 			}).then((res) => {
 				this.loading.tasks_history = false
@@ -188,7 +191,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async setupFlow(flow: Flow) {
-			return await $fetch(`${buildBackendApiUrl()}/flow?name=${flow.name}`, {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/flow?name=${flow.name}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
@@ -212,7 +216,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async getFlowsInstallProgress() {
-			return await $fetch(`${buildBackendApiUrl()}/flow-progress-install`, {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch('/flow-progress-install', {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -221,7 +226,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async deleteFlow(flow: Flow) {
-			const response = await $fetch(`${buildBackendApiUrl()}/flow?name=${flow.name}`, {
+			const { $apiFetch } = useNuxtApp()
+			const response = await $apiFetch(`/flow?name=${flow.name}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -233,7 +239,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return response
 		},
 
-		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[]) {
+		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1) {
 			console.debug('input_params:', JSON.stringify(input_params.map((param: any) => {
 				const paramName = Object.keys(param)[0]
 				if (['text', 'list'].includes(param[paramName].type))
@@ -252,6 +258,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			console.debug('input_params_mapped:', input_params_mapped)
 
 			formData.append('name', flow.name)
+			formData.append('count', count.toString())
 			formData.append('input_params', JSON.stringify(input_params_mapped))
 
 			console.debug('form_data:', formData)
@@ -269,8 +276,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 				})
 			}
 
-
-			return await $fetch(`${buildBackendApiUrl()}/task`, {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch('/task', {
 				method: 'POST',
 				headers: {
 					'Access-Control-Allow-Origin': '*',
@@ -278,15 +285,16 @@ export const useFlowsStore = defineStore('flowsStore', {
 				body: formData,
 			}).then((res: any) => {
 				// Adding started flow to running list
-				this.running.push({
-					task_id: res?.task_id,
-					flow_name: flow.name,
-					progress: 0,
-					input_params_mapped: input_params_mapped,
-					outputs: [], // outputs are dynamic and populated later by polling task progress
+				res.tasks_ids.forEach((task_id: string) => {
+					this.running.push({
+						task_id: task_id,
+						flow_name: flow.name,
+						progress: 0,
+						input_params_mapped: input_params_mapped,
+						outputs: [], // outputs are dynamic and populated later by polling task progress
+					})
+					this.startFlowProgressPolling(task_id)
 				})
-				// Start polling for flow progress changes
-				this.startFlowProgressPolling(res?.task_id)
 			}).catch((e) => {
 				console.debug(e)
 				const toast = useToast()
@@ -299,7 +307,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async restartFlow(running: FlowRunning) {
-			return $fetch(`${buildBackendApiUrl()}/task-restart?task_id=${running.task_id}`, {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch(`/task-restart?task_id=${running.task_id}`, {
 				method: 'POST',
 			}).then((res: any) => {
 				if (res.error !== '') {
@@ -322,7 +331,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async deleteFlowResults(flow_name: string) {
-			return await $fetch(`${buildBackendApiUrl()}/tasks?name=${flow_name}`, {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/tasks?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
 				if (res?.error !== '') {
@@ -339,7 +349,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async cancelRunningFlows(flow_name: string) {
-			return await $fetch(`${buildBackendApiUrl()}/tasks-queue?name=${flow_name}`, {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/tasks-queue?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
 				if (res.error !== '') {
@@ -360,7 +371,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async cancelRunningFlow(running: FlowRunning) {
-			return await $fetch(`${buildBackendApiUrl()}/task-queue?task_id=${running.task_id}`, {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/task-queue?task_id=${running.task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -383,7 +395,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async getFlowProgress(task_id: string): Promise<FlowProgress> {
-			return await $fetch(`${buildBackendApiUrl()}/task-progress?task_id=${task_id}`, {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/task-progress?task_id=${task_id}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -422,7 +435,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 			// Restore running flow polling
 			this.running.forEach(flow => {
-				if (flow.error !== '') {
+				if (flow.error && flow.error !== '') {
+					console.debug('[restorePollingProcesses] skipping flow with error:', flow)
 					return
 				}
 				this.startFlowProgressPolling(flow.task_id)
@@ -496,10 +510,17 @@ export const useFlowsStore = defineStore('flowsStore', {
 							flow_name: flow.name,
 							output_params: progress.outputs,
 							input_params_mapped: runningFlow.input_params_mapped,
+							execution_time: progress?.execution_time || 0,
 						})
 					}
 				}).catch((e): any => {
 					console.debug('Failed to fetch running flow progress: ', e)
+					const toast = useToast()
+					toast.add({
+						title: 'Failed to fetch running flow progress (task_id: ' + task_id + ')',
+						description: e.message,
+						timeout: 5000,
+					})
 					clearInterval(interval)
 					this.running = this.running.filter(flow => flow.task_id !== task_id)
 				})
@@ -507,7 +528,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		deleteFlowHistory(task_id: string) {
-			$fetch(`${buildBackendApiUrl()}/task?task_id=${task_id}`, {
+			const { $apiFetch } = useNuxtApp()
+			$apiFetch(`/task?task_id=${task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -645,6 +667,7 @@ export interface FlowProgress {
 	flow?: any
 	comfy_flow?: any
 	outputs: FlowOutputParam[]
+	execution_time?: number
 }
 
 export interface FlowResult {
@@ -652,6 +675,7 @@ export interface FlowResult {
 	flow_name: string
 	output_params: FlowOutputParam[]
 	input_params_mapped: TaskHistoryInputParam
+	execution_time: number
 }
 
 export interface TasksHistory {
@@ -668,4 +692,5 @@ export interface TaskHistoryItem {
 	progress: number
 	error?: string
 	outputs: FlowOutputParam[]
+	execution_time: number
 }

@@ -5,6 +5,8 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		app: {
 			backendApiUrl: process.env.BACKEND_API_URL || '',
+			authUser: process.env.AUTH_USER || '',
+			authPassword: process.env.AUTH_PASSWORD || '',
 		}
 	},
 	app: {

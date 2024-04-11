@@ -117,26 +117,13 @@ const collapsed = ref(false)
 					:loading="running"
 					@click="() => {
 						running = true
-						// Run prompts according to batch size
-						for (let i = 0; i < batchSize; i++) {
-							// Increase the seed for each batch prompt
-							const seed = additionalInputParamsMap.find((inputParam: any) => {
-								return Object.keys(inputParam)[0] === 'seed'
-							})
-							if (seed && i > 0) {
-								seed.seed.value = (Number(seed.seed.value) + 1).toString()
-							}
-
-							flowStore.runFlow(
-								flowStore.currentFlow,
-								[...inputParamsMap, ...additionalInputParamsMap]
-							).then(() => {
-								if (i === batchSize - 1)
-									running = false
-							}).catch(() => {
-								running = false
-							})
-						}
+						flowStore.runFlow(
+							flowStore.currentFlow,
+							[...inputParamsMap, ...additionalInputParamsMap],
+							batchSize
+						).finally(() => {
+							running = false
+						})
 					}">
 					Run prompt
 				</UButton>
