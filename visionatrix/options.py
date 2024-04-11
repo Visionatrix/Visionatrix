@@ -21,7 +21,7 @@ UI_DIR = environ.get("UI_DIR", "")
 VIX_MODE = environ.get("VIX_MODE", "DEFAULT")
 """
 * DEFAULT - storage and delivery of tasks(Server) + tasks processing(Worker), authentication is disabled.
-* SERVER - only storage and managing of tasks, authentication is enabled.
+* SERVER - only storage and managing of tasks, authentication is enabled, requires PgSQL or MariaDB.
 * WORKER - only processing tasks for the Server(client consuming mode, no backend)
 """
 
