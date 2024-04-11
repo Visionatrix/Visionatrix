@@ -125,4 +125,6 @@ def init_database_engine() -> None:
         async_engine = create_async_engine(
             os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args
         )
-        SESSION_ASYNC = async_sessionmaker(bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False)
+        SESSION_ASYNC = async_sessionmaker(
+            bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
+        )
