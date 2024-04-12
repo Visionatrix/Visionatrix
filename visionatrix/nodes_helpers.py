@@ -7,4 +7,8 @@ def get_node_value(node: dict, path: list[str]) -> str | int | float:
 def set_node_value(node: dict, path: list[str], value: str | int | float | list) -> None:
     for key in path[:-1]:
         node = node[key]
-    node[path[-1]] = value
+    if isinstance(path[-1], list):  # we need to set multiple values at once
+        for i, k in enumerate(path[-1]):
+            node[k] = value[i]
+    else:
+        node[path[-1]] = value
