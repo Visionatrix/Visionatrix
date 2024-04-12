@@ -128,7 +128,7 @@ def init_database_engine() -> None:
     inspector = inspect(engine)
     is_new_database = not bool(inspector.get_table_names())
     Base.metadata.create_all(engine)
-    SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
     if is_new_database:
         create_user(DEFAULT_USER.user_id, DEFAULT_USER.full_name, DEFAULT_USER.email, "admin", True, False)
     if options.VIX_MODE == "SERVER":
