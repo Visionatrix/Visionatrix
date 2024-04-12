@@ -11,7 +11,7 @@ import typing
 from datetime import datetime
 
 import httpx
-from sqlalchemy import and_, delete, select, update
+from sqlalchemy import Row, and_, delete, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -53,7 +53,7 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
     )
 
 
-def __task_details_to_dict(task_details: database.TaskDetails) -> dict:
+def __task_details_to_dict(task_details: database.TaskDetails | type[database.TaskDetails]) -> dict:
     return {
         "task_id": task_details.task_id,
         "progress": task_details.progress,
@@ -64,6 +64,18 @@ def __task_details_to_dict(task_details: database.TaskDetails) -> dict:
         "input_files": task_details.input_files,
         "flow_comfy": task_details.flow_comfy,
         "user_id": task_details.user_id,
+        "execution_time": task_details.execution_time,
+    }
+
+
+def __task_details_short_to_dict(task_details: Row) -> dict:
+    return {
+        "progress": task_details.progress,
+        "error": task_details.error,
+        "name": task_details.name,
+        "input_params": task_details.input_params,
+        "outputs": task_details.outputs,
+        "input_files": task_details.input_files,
         "execution_time": task_details.execution_time,
     }
 
@@ -218,40 +230,76 @@ def get_incomplete_task_without_error_database(tasks_to_ask: list[str], user_id:
         session.close()
 
 
+def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
+    if full_info:
+        query = select(database.TaskDetails)
+    else:
+        query = select(
+            database.TaskDetails.task_id,
+            database.TaskDetails.name,
+            database.TaskDetails.progress,
+            database.TaskDetails.error,
+            database.TaskDetails.execution_time,
+            database.TaskDetails.input_params,
+            database.TaskDetails.input_files,
+            database.TaskDetails.outputs,
+        )
+    if user_id is not None:
+        query = query.filter(database.TaskDetails.user_id == user_id)
+    if name is not None:
+        query = query.filter(database.TaskDetails.name == name)
+    if finished is not None:
+        if finished:
+            query = query.filter(database.TaskDetails.progress == 100.0)
+        else:
+            query = query.filter(database.TaskDetails.progress < 100.0)
+    return query
+
+
 def get_tasks(name: str | None = None, finished: bool | None = None, user_id: str | None = None) -> dict:
-    session = database.SESSION()
-    try:
-        query = session.query(database.TaskDetails)
-        if user_id is not None:
-            query = query.filter(database.TaskDetails.user_id == user_id)
-        if name is not None:
-            query = query.filter(database.TaskDetails.name == name)
-        if finished is not None:
-            if finished:
-                query = query.filter(database.TaskDetails.progress == 100.0)
-            else:
-                query = query.filter(database.TaskDetails.progress < 100.0)
-        tasks = query.all()
-        return {
-            task.task_id: {
-                "task_id": task.task_id,
-                "progress": task.progress,
-                "error": task.error,
-                "name": task.name,
-                "input_params": task.input_params,
-                "outputs": task.outputs,
-                "input_files": task.input_files,
-                "flow_comfy": task.flow_comfy,
-                "user_id": task.user_id,
-                "execution_time": task.execution_time,
-            }
-            for task in tasks
-        }
-    except Exception:
-        LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
-        raise
-    finally:
-        session.close()
+    with database.SESSION() as session:
+        try:
+            query = __get_tasks_query(name, finished, user_id)
+            results = session.execute(query).scalars()
+            return {task.task_id: __task_details_to_dict(task) for task in results}
+        except Exception:
+            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
+            raise
+
+
+async def get_tasks_async(name: str | None = None, finished: bool | None = None, user_id: str | None = None) -> dict:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = __get_tasks_query(name, finished, user_id)
+            results = (await session.execute(query)).scalars()
+            return {task.task_id: __task_details_to_dict(task) for task in results}
+        except Exception:
+            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
+            raise
+
+
+def get_tasks_short(user_id: str, name: str | None = None, finished: bool | None = None) -> dict:
+    with database.SESSION() as session:
+        try:
+            query = __get_tasks_query(name, finished, user_id, full_info=False)
+            results = session.execute(query).all()
+            for i in results:
+                print(i.name)
+            return {task.task_id: __task_details_short_to_dict(task) for task in results}
+        except Exception:
+            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
+            raise
+
+
+async def get_tasks_short_async(user_id: str, name: str | None = None, finished: bool | None = None) -> dict:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = __get_tasks_query(name, finished, user_id, full_info=False)
+            results = (await session.execute(query)).all()
+            return {task.task_id: __task_details_short_to_dict(task) for task in results}
+        except Exception:
+            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
+            raise
 
 
 def remove_task_by_id(task_id: int) -> bool:

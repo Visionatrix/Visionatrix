@@ -47,6 +47,9 @@ from .tasks_engine import (
     get_task,
     get_task_async,
     get_tasks,
+    get_tasks_async,
+    get_tasks_short,
+    get_tasks_short_async,
     put_task_in_queue,
     put_task_in_queue_async,
     remove_active_task_lock,
@@ -250,7 +253,20 @@ async def task_run(
 
 @APP.get("/tasks-progress")
 async def tasks_progress(request: Request, name: str | None = None):
-    return responses.JSONResponse(content=get_tasks(name=name, user_id=request.scope["user_info"].user_id))
+    if options.VIX_MODE == "SERVER":
+        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id)
+    else:
+        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id)
+    return responses.JSONResponse(content=r)
+
+
+@APP.get("/tasks-progress-short")
+async def tasks_progress_short(request: Request, name: str | None = None):
+    if options.VIX_MODE == "SERVER":
+        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id)
+    else:
+        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id)
+    return responses.JSONResponse(content=r)
 
 
 @APP.get("/task-progress")
