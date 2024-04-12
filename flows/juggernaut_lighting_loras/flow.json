@@ -36,6 +36,7 @@
       "type": "list",
       "optional": true,
       "advanced": true,
+      "default": "2x3 (832x1216)",
       "options": {
         "1x1 (1024x1024)": [1024, 1024],
         "16x9 (1280x720)": [1280, 720],
