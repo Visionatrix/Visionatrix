@@ -11,6 +11,7 @@ It demonstrates superior performance over previous models and commercial systems
 
 Playground v2.5 outperforms widely-used models and even some closed-source systems in user studies focusing on aesthetic preferences.
 
+**Supports various aspect ratios.**
 
 Hardware
 """"""""
