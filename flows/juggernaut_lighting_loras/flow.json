@@ -29,6 +29,28 @@
           "dest_field_name": ["inputs", "text"]
         }
       }
+    },
+    {
+      "name": "aspect_ratio",
+      "display_name": "Aspect Ratio",
+      "type": "list",
+      "optional": true,
+      "advanced": true,
+      "default": "2x3 (832x1216)",
+      "options": {
+        "1x1 (1024x1024)": [1024, 1024],
+        "16x9 (1280x720)": [1280, 720],
+        "9x16 (720x1280)": [720, 1280],
+        "4x3 (1152x864)": [1152, 864],
+        "3x4 (864x1152)": [864, 1152],
+        "3x2 (1216x832)": [1216, 832],
+        "2x3 (832x1216)": [832, 1216]
+      },
+      "comfy_node_id": {
+        "244": {
+          "dest_field_name": ["inputs", ["width", "height"]]
+        }
+      }
     }
   ]
 }

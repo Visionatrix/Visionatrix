@@ -7,6 +7,8 @@ This flow is most suitable for generating people quickly and realistically.
 
 Although it sometimes has problems with eyes or hands, in most cases the quality is quite acceptable.
 
+**Supports various aspect ratios.**
+
 Hardware
 """"""""
 
