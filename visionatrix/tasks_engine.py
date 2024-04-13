@@ -536,7 +536,7 @@ def init_active_task_inputs_from_server() -> bool:
     remove_task_files(task_id, ["output", "input"])
     input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     try:
-        for i in enumerate(ACTIVE_TASK["input_files"]):
+        for i, _ in enumerate(ACTIVE_TASK["input_files"]):
             for k in range(3):
                 try:
                     r = httpx.get(
