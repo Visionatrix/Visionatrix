@@ -19,6 +19,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
 		showNotificationChip: false,
+		runningInterval: <any>{},
 	}),
 	getters: {
 		flows(state): Flow[] {
@@ -79,6 +80,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			])
 				.then(() => {
 					this.loadFavorites()
+					this.loadUserOptions()
 					this.fetchFlowResults().then((tasks_history) => {
 						this.initFlowResultsData(tasks_history)
 					}).then(() => {
@@ -179,6 +181,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						flow_name: task.name,
 						output_params: task.outputs,
 						input_params_mapped: task.input_params || null,
+						execution_time: task.execution_time || 0,
 					})
 				}
 			})
@@ -261,7 +264,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 			formData.append('count', count.toString())
 			formData.append('input_params', JSON.stringify(input_params_mapped))
 
-			console.debug('form_data:', formData)
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
@@ -276,6 +278,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 				})
 			}
 
+			console.debug('form_data:', formData)
+
 			const { $apiFetch } = useNuxtApp()
 			return await $apiFetch('/task', {
 				method: 'POST',
@@ -285,16 +289,19 @@ export const useFlowsStore = defineStore('flowsStore', {
 				body: formData,
 			}).then((res: any) => {
 				// Adding started flow to running list
-				res.tasks_ids.forEach((task_id: string) => {
+				res.tasks_ids.forEach((task_id: number) => {
+					input_params_mapped['seed'] = Number(input_params_mapped['seed']) + 1
 					this.running.push({
-						task_id: task_id,
+						task_id: task_id.toString(),
 						flow_name: flow.name,
 						progress: 0,
 						input_params_mapped: input_params_mapped,
 						outputs: [], // outputs are dynamic and populated later by polling task progress
 					})
-					this.startFlowProgressPolling(task_id)
 				})
+				if (!this.runningInterval[flow.name]) {
+					this.startFlowProgressPolling(flow.name)
+				}
 			}).catch((e) => {
 				console.debug(e)
 				const toast = useToast()
@@ -326,7 +333,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 				}
 				runningFlow.error = ''
 				runningFlow.progress = 0
-				this.startFlowProgressPolling(running.task_id)
+				if (!this.runningInterval[running.flow_name]) {
+					this.startFlowProgressPolling(running.flow_name)
+				}
 			})
 		},
 
@@ -394,9 +403,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
-		async getFlowProgress(task_id: string): Promise<FlowProgress> {
+		async getFlowsProgress(flow_name?: string): Promise<TasksHistory> {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/task-progress?task_id=${task_id}`, {
+			const url = flow_name ? `/tasks-progress-short?name=${flow_name}` : '/tasks-progress'
+			return await $apiFetch(url, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -433,12 +443,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					}
 				})
 			})
-			// Restore running flow polling
-			this.running.forEach(flow => {
-				if (flow.error && flow.error !== '') {
-					return
-				}
-				this.startFlowProgressPolling(flow.task_id)
+			Array.from(new Set(this.running.map(flow => flow.flow_name))).forEach(flow_name => {
+				this.startFlowProgressPolling(flow_name)
 			})
 		},
 
@@ -479,43 +485,41 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}, 3000)
 		},
 
-		startFlowProgressPolling(task_id: string) {
+		startFlowProgressPolling(flow_name: string) {
 			this.showNotificationChip = true
-			const interval = setInterval(async () => {
-				await this.getFlowProgress(task_id).then((progress) => {
-					const runningFlow = this.running.find(flow => flow.task_id === task_id)
-					if (!runningFlow) {
-						console.debug('flow not found: ', task_id)
-						clearInterval(interval)
-						return
-					}
-					runningFlow.progress = <number>progress.progress
-					if (progress.error !== '') {
-						clearInterval(interval)
-						runningFlow.error = progress.error
-						return
-					}
-					if (progress.progress === 100) {
-						clearInterval(interval)
-						// Remove finished flow from running list
-						this.running = this.running.filter(flow => flow.task_id !== task_id)
-						if (this.running.length === 0) {
-							this.showNotificationChip = false
+			this.runningInterval[flow_name] = setInterval(async () => {
+				await this.getFlowsProgress(flow_name).then((progress: TasksHistory[]|any) => {
+					Object.keys(progress).forEach((task_id: string) => {
+						const runningFlow = this.running.find(flow => Number(flow.task_id) === Number(task_id))
+						if (!runningFlow) {
+							return
 						}
-						// Save flow results history
-						const flow = <Flow>this.flowByName(runningFlow.flow_name)
-						this.flow_results.push({
-							task_id: task_id,
-							flow_name: flow.name,
-							output_params: progress.outputs,
-							input_params_mapped: runningFlow.input_params_mapped,
-							execution_time: progress?.execution_time || 0,
-						})
-					}
+						runningFlow.progress = <number>progress[task_id].progress
+						if (progress[task_id].error && progress[task_id].error !== '') {
+							runningFlow.error = progress[task_id].error
+							return
+						}
+						if (progress[task_id].progress === 100) {
+							// Remove finished flow from running list
+							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
+							if (this.running.length === 0) {
+								this.showNotificationChip = false
+								clearInterval(this.runningInterval[flow_name])
+							}
+							// Save flow results history
+							const flow = <Flow>this.flowByName(runningFlow.flow_name)
+							this.flow_results.push({
+								task_id: task_id.toString(),
+								flow_name: flow.name,
+								output_params: progress[task_id].outputs,
+								input_params_mapped: runningFlow.input_params_mapped,
+								execution_time: progress[task_id]?.execution_time || 0,
+							})
+						}
+					})
 				}).catch((e): any => {
 					console.debug('Failed to fetch running flow progress: ', e)
-					clearInterval(interval)
-					this.running = this.running.filter(flow => flow.task_id !== task_id)
+					clearInterval(this.runningInterval[flow_name])
 				})
 			}, 3000)
 		},
@@ -588,6 +592,20 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return 0
 			}
 		},
+
+		loadUserOptions() {
+			const user_options = localStorage.getItem('user_options')
+			if (user_options) {
+				const options = JSON.parse(user_options)
+				this.resultsPageSize = options.resultsPageSize
+			}
+		},
+
+		saveUserOptions() {
+			localStorage.setItem('user_options', JSON.stringify({
+				resultsPageSize: this.resultsPageSize,
+			}))
+		},
 	}
 })
 
@@ -605,7 +623,6 @@ export interface Flow {
 	homepage: string
 	license: string
 	documentation: string
-	comfy_flow: string
 	models: Model[]
 	input_params: FlowInputParam[]
 	available?: boolean
@@ -655,10 +672,12 @@ export interface FlowRunning {
 }
 
 export interface FlowProgress {
+	task_id: string
 	progress: number
 	error?: string
 	flow?: any
-	comfy_flow?: any
+	name: string
+	flow_comfy?: any
 	outputs: FlowOutputParam[]
 	execution_time?: number
 }
