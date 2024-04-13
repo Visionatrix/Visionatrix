@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.7 - 2024-04-1x]
+## [0.0.7 - 2024-04-14]
 
 ### Added
 
 - Initial support for multiple users.
 - New `execution_time` field in Tasks.
+- `Aspect Ratio` option in `Playground 2.5` and `Juggernaut Lighting` flows.
 
 ### Fixes
 

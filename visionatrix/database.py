@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 
 from passlib.context import CryptContext
@@ -13,14 +14,16 @@ from sqlalchemy import (
     String,
     create_engine,
     inspect,
+    select,
 )
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, relationship, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker
 
 from . import options
 
 SESSION: sessionmaker
-SESSION_AUTH: Session  # persistent session only for `get_user`
+SESSION_ASYNC: async_sessionmaker  # only for the "SERVER" mode
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base = declarative_base()
 
@@ -66,10 +69,31 @@ class UserInfo(Base):
     disabled = Column(Boolean, default=False)
 
 
-def get_user(username: str, password: str) -> UserInfo | None:
-    userinfo = SESSION_AUTH.query(UserInfo).filter_by(user_id=username).first()
-    if userinfo and PWD_CONTEXT.verify(password, userinfo.hashed_password):
-        return userinfo
+DEFAULT_USER = UserInfo(
+    user_id="admin",
+    full_name="John Doe",
+    email="admin@example.com",
+    hashed_password=PWD_CONTEXT.hash("admin"),
+    is_admin=True,
+    disabled=False,
+)
+
+AUTH_CACHE = {}
+
+
+async def get_user(username: str, password: str) -> UserInfo | None:
+    current_time = time.time()
+    if (cache_entry := AUTH_CACHE.get(username)) and (current_time - cache_entry["time"] < 7):
+        if cache_entry["password"] == password:
+            return cache_entry["data"]
+        del AUTH_CACHE[username]
+
+    async with SESSION_ASYNC() as session:
+        results = await session.execute(select(UserInfo).filter_by(user_id=username))
+        user_info = results.scalar_one_or_none()
+        if user_info and PWD_CONTEXT.verify(password, user_info.hashed_password):
+            AUTH_CACHE[username] = {"data": user_info, "time": current_time, "password": password}
+            return user_info
     return None
 
 
@@ -93,7 +117,7 @@ def create_user(username: str, full_name: str, email: str, password: str, is_adm
 
 
 def init_database_engine() -> None:
-    global SESSION, SESSION_AUTH
+    global SESSION, SESSION_ASYNC
     connect_args = {}
     database_uri = options.DATABASE_URI
     if database_uri.startswith("sqlite:"):
@@ -104,14 +128,13 @@ def init_database_engine() -> None:
     inspector = inspect(engine)
     is_new_database = not bool(inspector.get_table_names())
     Base.metadata.create_all(engine)
-    SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
     if is_new_database:
-        create_user(
-            "admin",
-            "John Doe",
-            "admin@example.com",
-            "admin",
-            is_admin=True,
-            disabled=False,
+        create_user(DEFAULT_USER.user_id, DEFAULT_USER.full_name, DEFAULT_USER.email, "admin", True, False)
+    if options.VIX_MODE == "SERVER":
+        async_engine = create_async_engine(
+            os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args
         )
-    SESSION_AUTH = SESSION()
+        SESSION_ASYNC = async_sessionmaker(
+            bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
+        )

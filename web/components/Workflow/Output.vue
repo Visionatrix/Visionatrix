@@ -26,6 +26,7 @@ watch(resultsPerPage, () => {
 	else if (flowStore.$state.resultsPage > Math.ceil(results.value.length / flowStore.$state.resultsPageSize)) {
 		flowStore.$state.resultsPage = Math.ceil(results.value.length / flowStore.$state.resultsPageSize)
 	}
+	flowStore.saveUserOptions()
 })
 
 onUnmounted(() => {
@@ -166,7 +167,11 @@ const deletingFlowResults = ref(false)
 								})
 								.map((key) => {
 									return `${key}: ${flowResult.input_params_mapped[key]}`
-								}).join(' | ')
+								}).join(' | ') 
+								+ `${flowResult.execution_time 
+									? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's' 
+									: ''
+								}`
 						}}
 					</p>
 					<UButton

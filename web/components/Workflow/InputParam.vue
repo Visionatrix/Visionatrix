@@ -84,9 +84,9 @@ onBeforeUnmount(() => {
 					accept="image/*"
 					class="w-full"
 					:label="inputParam.display_name"
-					@change="(event: Event) => {
-						const input = event.target as HTMLInputElement
-						const file = input.files?.[0]
+					@change="(files: FileList) => {
+						console.debug('files', files)
+						const file = files?.[0]
 						inputParamsMap[index][inputParam.name].value = file as File
 						imagePreviewUrl = createObjectUrl(file)
 						console.debug('inputParamsMap', inputParamsMap)
