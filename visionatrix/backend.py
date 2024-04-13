@@ -230,7 +230,7 @@ async def task_run(
     input_params: str = Form(None),
     files: list[UploadFile] = None,  # noqa
 ):
-    in_files = [i.file for i in files] if files else []
+    in_files = files if files else []
     try:
         input_params_dict = json.loads(input_params) if input_params else {}
     except json.JSONDecodeError:
