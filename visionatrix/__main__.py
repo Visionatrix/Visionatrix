@@ -78,10 +78,9 @@ if __name__ == "__main__":
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
         subparser.add_argument("--models_dir", type=str, help="Directory for the models")
         if i[0] == "run":
-            subparser.add_argument(
-                "--host", type=str, help="Host to listen (DEFAULT or SERVER mode) / Address to connect to(WORKER mode)"
-            )
+            subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
+            subparser.add_argument("--server", type=str, help="Address of Vix Server(WORKER mode)")
             subparser.add_argument("--ui", type=str, help="Folder with UI")
             subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
             subparser.add_argument("--mode", choices=["WORKER", "SERVER"], help="VIX special operating mode")
@@ -131,6 +130,8 @@ if __name__ == "__main__":
             options.UI_DIR = args.ui
         if args.mode:
             options.VIX_MODE = args.mode
+        if args.server:
+            options.VIX_SERVER = args.server
         run_vix()
     elif args.command == "install-flow":
         install_flow = {}

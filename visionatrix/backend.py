@@ -28,8 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import comfyui, options
-from .database import get_user, init_database_engine
+from . import comfyui, database, options
 from .flows import (
     flow_prepare_output_params,
     get_available_flows,
@@ -43,10 +42,16 @@ from .flows import (
 from .tasks_engine import (
     background_prompt_executor,
     create_new_task,
+    create_new_task_async,
     get_incomplete_task_without_error_database,
     get_task,
+    get_task_async,
     get_tasks,
+    get_tasks_async,
+    get_tasks_short,
+    get_tasks_short_async,
     put_task_in_queue,
+    put_task_in_queue_async,
     remove_active_task_lock,
     remove_task_by_id_database,
     remove_task_by_name,
@@ -57,6 +62,7 @@ from .tasks_engine import (
     start_tasks_engine,
     task_progress_callback,
     update_task_progress_database,
+    update_task_progress_database_async,
 )
 
 LOGGER = logging.getLogger("visionatrix")
@@ -82,7 +88,9 @@ class VixAuthMiddleware:
 
         conn = HTTPConnection(scope)
         url_path = conn.url.path.lstrip("/")
-        if not fnmatch.filter(self._disable_for, url_path):
+        if options.VIX_MODE == "DEFAULT":
+            scope["user_info"] = database.DEFAULT_USER
+        elif not fnmatch.filter(self._disable_for, url_path):
             bad_auth_response = responses.Response(
                 "Not authenticated",
                 status.HTTP_401_UNAUTHORIZED,
@@ -102,7 +110,7 @@ class VixAuthMiddleware:
 
                     decoded_credentials = base64.b64decode(encoded_credentials).decode("ascii")
                     username, _, password = decoded_credentials.partition(":")
-                    if (userinfo := get_user(username, password)) is None or userinfo.disabled is True:
+                    if (userinfo := await database.get_user(username, password)) is None or userinfo.disabled is True:
                         await bad_auth_response(scope, receive, send)
                         return
                 except ValueError:
@@ -180,27 +188,20 @@ async def flow_delete(request: Request, name: str):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.post("/task")
-async def task_run(
-    request: Request,
-    name: str = Form(),
-    input_params: str = Form(None),
-    files: list[UploadFile] = None,  # noqa
+async def __task_run(
+    name: str,
+    input_params: dict,
+    in_files: list[UploadFile],
+    flow: dict,
+    flow_comfy: dict,
+    user_info: database.UserInfo,
 ):
-    in_files = [i.file for i in files] if files else []
+    if options.VIX_MODE == "SERVER":
+        task_details = await create_new_task_async(name, input_params, user_info)
+    else:
+        task_details = create_new_task(name, input_params, user_info)
     try:
-        input_params_list = json.loads(input_params) if input_params else []
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON format for params") from None
-
-    flow_comfy = {}
-    flow = get_installed_flow(name, flow_comfy)
-    if not flow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
-
-    task_details = create_new_task(name, input_params_list, request.scope["user_info"])
-    try:
-        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_list, in_files, task_details)
+        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params, in_files, task_details)
     except RuntimeError as e:
         remove_task_files(task_details["task_id"], ["input"])
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
@@ -214,25 +215,78 @@ async def task_run(
         ) from None
     task_details["flow_comfy"] = flow_comfy
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
-    put_task_in_queue(task_details)
-    return responses.JSONResponse(content={"task_id": str(task_details["task_id"])})
+    if options.VIX_MODE == "SERVER":
+        await put_task_in_queue_async(task_details)
+    else:
+        put_task_in_queue(task_details)
+    return task_details
+
+
+@APP.post("/task")
+async def task_run(
+    request: Request,
+    name: str = Form(),
+    count: int = Form(1),
+    input_params: str = Form(None),
+    files: list[UploadFile] = None,  # noqa
+):
+    in_files = files if files else []
+    try:
+        input_params_dict = json.loads(input_params) if input_params else {}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON format for params") from None
+    if "seed" in input_params_dict:
+        input_params_dict["seed"] = int(input_params_dict["seed"])
+
+    flow_comfy = {}
+    flow = get_installed_flow(name, flow_comfy)
+    if not flow:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
+    tasks_ids = []
+    for _ in range(count):
+        task_details = await __task_run(name, input_params_dict, in_files, flow, flow_comfy, request.scope["user_info"])
+        tasks_ids.append(task_details["task_id"])
+        if "seed" in input_params_dict:
+            input_params_dict["seed"] = input_params_dict["seed"] + 1
+    return responses.JSONResponse(content={"tasks_ids": tasks_ids})
 
 
 @APP.get("/tasks-progress")
-async def tasks_progress(request: Request):
-    return responses.JSONResponse(content=get_tasks(user_id=request.scope["user_info"].user_id))
+async def tasks_progress(request: Request, name: str | None = None):
+    if options.VIX_MODE == "SERVER":
+        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id)
+    else:
+        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id)
+    return responses.JSONResponse(content=r)
+
+
+@APP.get("/tasks-progress-short")
+async def tasks_progress_short(request: Request, name: str | None = None):
+    if options.VIX_MODE == "SERVER":
+        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id)
+    else:
+        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id)
+    return responses.JSONResponse(content=r)
 
 
 @APP.get("/task-progress")
 async def task_progress(request: Request, task_id: int):
-    if (r := get_task(task_id, request.scope["user_info"].user_id)) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+    else:
+        r = get_task(task_id, request.scope["user_info"].user_id)
+    if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     return responses.JSONResponse(content=r)
 
 
 @APP.post("/task-restart")
 async def task_restart(request: Request, task_id: int):
-    if (r := get_task(task_id, request.scope["user_info"].user_id)) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+    else:
+        r = get_task(task_id, request.scope["user_info"].user_id)
+    if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if not r["error"]:
         return responses.JSONResponse(
@@ -242,14 +296,21 @@ async def task_restart(request: Request, task_id: int):
         return responses.JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": f"Task `{task_id}` already finished."}
         )
-    update_task_progress_database(task_id, 0.0, "", 0.0)
+    if options.VIX_MODE == "SERVER":
+        await update_task_progress_database_async(task_id, 0.0, "", 0.0)
+    else:
+        update_task_progress_database(task_id, 0.0, "", 0.0)
     remove_task_lock_database(task_id)
     return responses.JSONResponse(content={"error": ""})
 
 
 @APP.delete("/task")
 async def task_remove(request: Request, task_id: int):
-    if (r := get_task(task_id)) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id)
+    else:
+        r = get_task(task_id)
+    if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
@@ -265,7 +326,11 @@ async def tasks_remove(request: Request, name: str):
 
 @APP.get("/task-inputs")
 async def task_inputs(request: Request, task_id: int, input_index: int):
-    if (r := get_task(task_id)) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id)
+    else:
+        r = get_task(task_id)
+    if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
@@ -281,7 +346,11 @@ async def task_inputs(request: Request, task_id: int, input_index: int):
 
 @APP.get("/task-results")
 async def task_results(request: Request, task_id: int, node_id: int):
-    if get_task(task_id, request.scope["user_info"].user_id) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+    else:
+        r = get_task(task_id, request.scope["user_info"].user_id)
+    if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     result_prefix = f"{task_id}_{node_id}_"
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
@@ -323,17 +392,28 @@ async def task_worker_update_progress(
     execution_time: typing.Annotated[float, Form()],
     error: typing.Annotated[str, Form()] = "",
 ):
-    if (r := get_task(task_id)) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id)
+    else:
+        r = get_task(task_id)
+    if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-    update_success = update_task_progress_database(task_id, progress, error, execution_time)
+    if options.VIX_MODE == "SERVER":
+        update_success = await update_task_progress_database_async(task_id, progress, error, execution_time)
+    else:
+        update_success = update_task_progress_database(task_id, progress, error, execution_time)
     return responses.JSONResponse(content={"error": "" if update_success else "failed to update"})
 
 
 @APP.put("/task-worker/results")
 async def task_worker_put_results(request: Request, task_id: int, files: list[UploadFile]):
-    if (r := get_task(task_id)) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id)
+    else:
+        r = get_task(task_id)
+    if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
@@ -344,11 +424,16 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
                 shutil.copyfileobj(r.file, out_file)
         finally:
             r.file.close()
+    return responses.JSONResponse(content={"error": ""})
 
 
 @APP.delete("/task-worker/lock")
 async def task_worker_remove_lock(request: Request, task_id: int):
-    if (r := get_task(task_id)) is None:
+    if options.VIX_MODE == "SERVER":
+        r = await get_task_async(task_id)
+    else:
+        r = get_task(task_id)
+    if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
@@ -403,8 +488,8 @@ def run_vix(*args, **kwargs) -> None:
             print("Visionatrix is shutting down.")
     else:
         _, comfy_queue = comfyui.load(task_progress_callback)
-        if not options.VIX_HOST:
-            init_database_engine()  # we get tasks directly from the Database
+        if not options.VIX_SERVER:
+            database.init_database_engine()  # we get tasks directly from the Database
 
         try:
             background_prompt_executor(comfy_queue, EXIT_EVENT)

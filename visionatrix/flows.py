@@ -5,6 +5,7 @@ import logging
 import os
 import random
 import re
+import shutil
 import time
 import typing
 import zipfile
@@ -13,6 +14,7 @@ from shutil import rmtree
 from urllib.parse import urlparse
 
 import httpx
+from fastapi import UploadFile
 
 from . import options
 from .models import install_model
@@ -146,7 +148,7 @@ def prepare_flow_comfy(
     flow: dict,
     flow_comfy: dict,
     in_texts_params: dict,
-    in_files_params: list,
+    in_files_params: list[UploadFile],
     task_details: dict,
 ) -> dict:
     r = flow_comfy.copy()
@@ -212,7 +214,7 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
 
 
 def prepare_flow_comfy_files_params(
-    flow: dict, in_files_params: list, task_id: int, task_details: dict, r: dict
+    flow: dict, in_files_params: list[UploadFile], task_id: int, task_details: dict, r: dict
 ) -> None:
     files_params = [i for i in flow["input_params"] if i["type"] in ("image", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
@@ -227,10 +229,8 @@ def prepare_flow_comfy_files_params(
             set_node_value(node, k_v["dest_field_name"], file_name)
             perform_node_connections(r, k, k_v)
         with builtins.open(os.path.join(options.TASKS_FILES_DIR, "input", file_name), mode="wb") as fp:
-            if hasattr(v, "read"):
-                fp.write(v.read())
-            else:
-                fp.write(bytes(v))
+            v.file.seek(0)
+            shutil.copyfileobj(v.file, fp)
             task_details["input_files"].append(file_name)
 
 
@@ -251,8 +251,8 @@ def flow_prepare_output_params(
 
 def process_seed_value(flow: dict, in_texts_params: dict, flow_comfy: dict[str, dict]) -> None:
     if "seed" in [i["name"] for i in flow["input_params"]]:
-        return  # skip automatic processing "seed" if it was manually defined in "flow.json"
-    random_seed = int(in_texts_params.get("seed", random.randint(1, 999999999)))
+        return  # skip automatic processing of "seed" if it was manually defined in "flow.json"
+    random_seed = in_texts_params.get("seed", random.randint(1, 3999999999))
     for node_details in flow_comfy.values():
         if "inputs" in node_details and "seed" in node_details["inputs"]:
             node_details["inputs"]["seed"] = random_seed
