@@ -9,6 +9,9 @@ def set_node_value(node: dict, path: list[str], value: str | int | float | list)
         node = node[key]
     if isinstance(path[-1], list):  # we need to set multiple values at once
         for i, k in enumerate(path[-1]):
-            node[k] = value[i]
+            if isinstance(value, list | tuple):
+                node[k] = value[i]
+            else:
+                node[k] = value
     else:
         node[path[-1]] = value

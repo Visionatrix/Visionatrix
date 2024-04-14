@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Initial support for multiple users.
 - New `execution_time` field in Tasks.
 - `Aspect Ratio` option in `Playground 2.5` and `Juggernaut Lighting` flows.
+- Optional parameter for downscaling of input image to SUPIR workflow.
 
 ### Fixes
 

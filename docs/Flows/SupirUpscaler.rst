@@ -5,7 +5,7 @@ SUPIR Upscaler
 
 *This workflow is added mostly for research purposes, it is still in development.*
 
-**Memory requirements are directly related to the input image resolution.**
+**Memory requirements are directly related to the input image resolution, so we have added optional downscaling of input.**
 
 .. note:: Currently for `macOS runners` `Diffusion type` must be set to `fp32`.
 
@@ -17,6 +17,8 @@ From our testing on AMD 7900XTX with `24 GB`:
 
 1. `1024x1024` image - **failed**.
 2. `1024x683` image - **success**.
+3. `864x864` image - **failed**.
+4. `832x832` image - **success**.
 
 Hardware
 """"""""

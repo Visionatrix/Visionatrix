@@ -1,7 +1,7 @@
 {
   "name": "supir_upscaler",
   "display_name": "SUPIR Upscaler",
-  "description": "High-End Image Upscaler 2x-4x (beta)",
+  "description": "High-End Image Upscaler 2x-4x",
   "author": "akihungac",
   "homepage": "https://openart.ai/workflows/profile/akihungac",
   "license": "",
@@ -26,9 +26,26 @@
       "optional": true,
       "advanced": true,
       "comfy_node_id": {
-        "42": {
-          "dest_field_name": ["inputs", "upscale_by"],
-          "value": 2
+        "81": {
+          "dest_field_name": ["inputs", "images"],
+          "value": ["42", 0]
+        }
+      }
+    },
+    {
+      "name": "downscale_input_to",
+      "display_name": "If input size is larger, scale down to",
+      "type": "range",
+      "optional": true,
+      "advanced": true,
+      "default": 832,
+      "min": 512,
+      "max": 2048,
+      "step": 32,
+      "comfy_node_id": {
+        "83": {
+          "dest_field_name": ["inputs", ["width", "height"]],
+          "internal_type": "int"
         }
       }
     },
@@ -59,7 +76,7 @@
       "optional": true,
       "advanced": true,
       "comfy_node_id": {
-        "42": {
+        "21": {
           "dest_field_name": ["inputs", "fp8_unet"],
           "value": true
         }

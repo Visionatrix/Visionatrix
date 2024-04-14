@@ -32,9 +32,9 @@ Steps to run `Vix` in a Server mode:
 1. Set ``VIX_MODE`` environment variable to ``SERVER``
 2. Setup **PostgreSQL** *(recommended)* or **MariaDB** database and set correct ``DATABASE_URI`` environment variable to point on it.
 
-    .. note:: PgSQL example: ``DATABASE_URI="postgresql+psycopg://vix_user:vix_password@localhost:5432/vix_db"``
+    .. note:: `PgSQL example <https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg>`_: ``DATABASE_URI="postgresql+psycopg://vix_user:vix_password@localhost:5432/vix_db"``
 
-    .. note:: For the **MySQL or MariaDB** to work you should additionally specify ``DATABASE_URI_ASYNC`` environment variable.
+    .. note:: For the `MySQL or MariaDB <https://docs.sqlalchemy.org/en/20/dialects/mysql.html#module-sqlalchemy.dialects.mysql.aiomysql>`_ to work you should additionally specify ``DATABASE_URI_ASYNC`` environment variable.
 
 3. Remove default ``admin`` user and create a new one with ``python3 -m visionatrix create-user`` command.
 
