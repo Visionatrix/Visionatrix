@@ -48,6 +48,7 @@ BASIC_NODE_LIST = {
     },
     "ComfyUI-WD14-Tagger": {},
     "ComfyUI-SUPIR": {},
+    "ComfyUI_essentials": {},
 }
 
 

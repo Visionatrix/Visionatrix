@@ -81,6 +81,8 @@ Run `easy_install` script and select "**Update**" option.
 
 If you have any questions, we will try to answer them, do not hesitate to create [Discussion](https://github.com/Visionatrix/Visionatrix/discussions/new/choose) and ask.
 
+Some examples of workflow results can be found in **Twitter** by tag [#Visionatrix](https://twitter.com/search?q=%23Visionatrix&src=typed_query)
+
 - [Documentation](https://visionatrix.github.io/Visionatrix/)
   - [Available Flows](https://visionatrix.github.io/Visionatrix/Flows/index.html)
   - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation.html)

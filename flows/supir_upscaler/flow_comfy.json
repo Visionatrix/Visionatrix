@@ -1,7 +1,7 @@
 {
   "2": {
     "inputs": {
-      "image": "shakira.jpeg",
+      "image": "input.png",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -31,7 +31,7 @@
   },
   "7": {
     "inputs": {
-      "seed": 57932251158957,
+      "seed": 1,
       "steps": 45,
       "cfg_scale_start": 4,
       "cfg_scale_end": 4,
@@ -179,7 +179,7 @@
         0
       ],
       "image": [
-        "2",
+        "83",
         0
       ]
     },
@@ -228,8 +228,8 @@
   },
   "42": {
     "inputs": {
-      "upscale_by": 1,
-      "seed": 1107808691466134,
+      "upscale_by": 2,
+      "seed": 1,
       "steps": 20,
       "cfg": 5.5,
       "sampler_name": "euler",
@@ -328,15 +328,33 @@
   },
   "81": {
     "inputs": {
-      "filename_prefix": "ComfyUI",
+      "filename_prefix": "output",
       "images": [
-        "42",
+        "10",
         0
       ]
     },
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
+    }
+  },
+  "83": {
+    "inputs": {
+      "width": 832,
+      "height": 832,
+      "interpolation": "lanczos",
+      "keep_proportion": true,
+      "condition": "downscale if bigger",
+      "multiple_of": 32,
+      "image": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "ImageResize+",
+    "_meta": {
+      "title": "🔧 Image Resize"
     }
   }
 }
