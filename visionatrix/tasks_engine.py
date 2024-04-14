@@ -283,8 +283,6 @@ def get_tasks_short(user_id: str, name: str | None = None, finished: bool | None
         try:
             query = __get_tasks_query(name, finished, user_id, full_info=False)
             results = session.execute(query).all()
-            for i in results:
-                print(i.name)
             return {task.task_id: __task_details_short_to_dict(task) for task in results}
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)

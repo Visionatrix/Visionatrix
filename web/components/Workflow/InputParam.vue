@@ -48,7 +48,8 @@ onBeforeUnmount(() => {
 
 <template>
 	<UFormGroup v-if="(inputParam?.advanced || false) === advanced"
-		:label="formGroupLabel" class="mb-3">
+		:label="formGroupLabel" class="mb-3"
+		:help="inputParam.type === 'range' ? `value: ${inputParamsMap[index][inputParam.name].value}` : ''">
 		<template #hint>
 			<span v-if="!inputParam.optional" class="text-red-300">required</span>
 		</template>
@@ -77,9 +78,8 @@ onBeforeUnmount(() => {
 					inputParamsMap[index][inputParam.name].value = input.value
 				}" />
 
-			<div class="flex flex-row flex-grow items-center justify-between">
-				<UInput v-if="inputParam.type === 'image'"
-					ref="imageInput"
+			<div v-if="inputParam.type === 'image'" class="flex flex-row flex-grow items-center justify-between">
+				<UInput ref="imageInput"
 					type="file"
 					accept="image/*"
 					class="w-full"
