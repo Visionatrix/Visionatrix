@@ -48,4 +48,4 @@ repos:
             ]
 
 # Exclude the client and web folders
-exclude: ^(client|web)/
+exclude: ^(visionatrix/client|web)/

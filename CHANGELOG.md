@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.8 - 2024-04-20]
+
+### Added
+
+- Windows Portable `CUDA`/`CPU` version.
+
 ## [0.0.7 - 2024-04-14]
 
 ### Added

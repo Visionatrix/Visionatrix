@@ -1,5 +1,6 @@
 import argparse
 import builtins
+import importlib.resources
 import json
 import logging
 import sys
@@ -81,9 +82,10 @@ if __name__ == "__main__":
             subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--server", type=str, help="Address of Vix Server(WORKER mode)")
-            subparser.add_argument("--ui", type=str, help="Folder with UI")
             subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
             subparser.add_argument("--mode", choices=["WORKER", "SERVER"], help="VIX special operating mode")
+            subparser.add_argument("--ui", nargs="?", default="", help="Enable WebUI (DEFAULT or SERVER mode)")
+            subparser.add_argument("--disable-device-detection", action="store_true", default=False)
             comfyui.add_arguments(subparser)
 
     args = parser.parse_args()
@@ -99,9 +101,9 @@ if __name__ == "__main__":
         database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
         sys.exit(0)
     options.init_dirs_values(
-        backend=args.backend_dir,
-        flows=args.flows_dir,
-        models=args.models_dir,
+        backend=getattr(args, "backend_dir", ""),
+        flows=getattr(args, "flows_dir", ""),
+        models=getattr(args, "models_dir", ""),
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
     if args.command == "install":
@@ -126,7 +128,9 @@ if __name__ == "__main__":
             options.VIX_HOST = args.host
         if args.port:
             options.VIX_PORT = args.port
-        if args.ui:
+        if args.ui is None:  # `--ui`: enable default UI
+            options.UI_DIR = str(importlib.resources.files("visionatrix").joinpath("client"))
+        elif args.ui != "":
             options.UI_DIR = args.ui
         if args.mode:
             options.VIX_MODE = args.mode
@@ -152,6 +156,6 @@ if __name__ == "__main__":
                 sys.exit(2)
         install_custom_flow(flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=__progress_callback)
     else:
-        logging.getLogger("visionatrix").error("Unknown command")
+        logging.getLogger("visionatrix").error("Unknown command: '%s'", args.command)
         sys.exit(2)
     sys.exit(0)

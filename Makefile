@@ -16,5 +16,5 @@ help:
 .PHONY: build-client
 build-client:
 	@echo "Building client..."
-	@rm -rf client
-	@cd web && npm run build && cp -r .output/public ../client
+	@rm -rf visionatrix/client
+	@cd web && npm run build && cp -r .output/public ../visionatrix/client

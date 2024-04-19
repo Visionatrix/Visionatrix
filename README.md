@@ -65,7 +65,7 @@ If you want to perform manual installation, take a look at [documentation](https
 ### Run **Visionatrix**
 
 ```console
-python -m visionatrix run --ui=client
+python -m visionatrix run --ui
 ```
 
 By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
