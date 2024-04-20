@@ -289,19 +289,19 @@ export const useFlowsStore = defineStore('flowsStore', {
 				body: formData,
 			}).then((res: any) => {
 				// Adding started flow to running list
-				res.tasks_ids.forEach((task_id: number) => {
-					input_params_mapped['seed'] = Number(input_params_mapped['seed']) + 1
+				res.tasks_ids.forEach((task_id: number, index: number) => {
 					this.running.push({
 						task_id: task_id.toString(),
 						flow_name: flow.name,
 						progress: 0,
-						input_params_mapped: input_params_mapped,
+						input_params_mapped: {
+							...input_params_mapped,
+							seed: Number(input_params_mapped['seed']) + index,
+						},
 						outputs: [], // outputs are dynamic and populated later by polling task progress
 					})
 				})
-				if (!this.runningInterval[flow.name]) {
-					this.startFlowProgressPolling(flow.name)
-				}
+				this.startFlowProgressPolling(flow.name)
 			}).catch((e) => {
 				console.debug(e)
 				const toast = useToast()
@@ -333,9 +333,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				}
 				runningFlow.error = ''
 				runningFlow.progress = 0
-				if (!this.runningInterval[running.flow_name]) {
-					this.startFlowProgressPolling(running.flow_name)
-				}
+				this.startFlowProgressPolling(running.flow_name)
 			})
 		},
 
@@ -487,6 +485,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		startFlowProgressPolling(flow_name: string) {
 			this.showNotificationChip = true
+			if (flow_name in this.runningInterval
+				&& this.runningInterval[flow_name] !== null
+				&& this.running.some(flow => flow.flow_name === flow_name)
+			) {
+				// Polling already running for this flow
+				return
+			}
 			this.runningInterval[flow_name] = setInterval(async () => {
 				await this.getFlowsProgress(flow_name).then((progress: TasksHistory[]|any) => {
 					Object.keys(progress).forEach((task_id: string) => {
