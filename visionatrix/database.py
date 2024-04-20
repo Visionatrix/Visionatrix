@@ -83,7 +83,7 @@ AUTH_CACHE = {}
 
 async def get_user(username: str, password: str) -> UserInfo | None:
     current_time = time.time()
-    if (cache_entry := AUTH_CACHE.get(username)) and (current_time - cache_entry["time"] < 7):
+    if (cache_entry := AUTH_CACHE.get(username)) and (current_time - cache_entry["time"] < 15):
         if cache_entry["password"] == password:
             return cache_entry["data"]
         del AUTH_CACHE[username]
