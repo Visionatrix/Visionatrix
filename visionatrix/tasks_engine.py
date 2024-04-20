@@ -492,26 +492,32 @@ async def update_task_progress_database_async(task_id: int, progress: float, err
 
 
 def update_task_progress_server(task_details: dict) -> bool:
-    try:
-        r = httpx.put(
-            options.VIX_SERVER.rstrip("/") + "/task-worker/progress",
-            data={
-                "task_id": task_details["task_id"],
-                "progress": task_details["progress"],
-                "execution_time": task_details["execution_time"],
-                "error": task_details["error"],
-            },
-            auth=__worker_auth(),
-            timeout=float(options.WORKER_NET_TIMEOUT),
-        )
-        if not httpx.codes.is_error(r.status_code):
-            return True
-        if r.status_code == 404:
-            LOGGER.warning("Task %s: server return status: %s", task_details["task_id"], r.status_code)
-        else:
-            LOGGER.error("Task %s: server return status: %s", task_details["task_id"], r.status_code)
-    except Exception as e:
-        LOGGER.exception("Task %s: exception occurred: %s", task_details["task_id"], e)
+    task_id = task_details["task_id"]
+    for i in range(3):
+        try:
+            r = httpx.put(
+                options.VIX_SERVER.rstrip("/") + "/task-worker/progress",
+                data={
+                    "task_id": task_id,
+                    "progress": task_details["progress"],
+                    "execution_time": task_details["execution_time"],
+                    "error": task_details["error"],
+                },
+                auth=__worker_auth(),
+                timeout=float(options.WORKER_NET_TIMEOUT),
+            )
+            if not httpx.codes.is_error(r.status_code):
+                return True
+            if r.status_code == 404:
+                LOGGER.info("Task %s: missing on server.", task_id)
+            else:
+                LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
+            return False
+        except (httpx.TimeoutException, httpx.RemoteProtocolError):
+            if i != 2:
+                LOGGER.warning("Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i)
+                continue
+            LOGGER.error("Task %s: attempt number %s: timeout or protocol exception occurred, task failed.", task_id, i)
     return False
 
 

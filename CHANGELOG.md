@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Windows Portable `CUDA`/`CPU` version.
 
+### Fixes
+
+- Various bugs were fixed in the distributed Server-Worker mode.
+
 ## [0.0.7 - 2024-04-14]
 
 ### Added
