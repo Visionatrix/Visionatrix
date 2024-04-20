@@ -1,6 +1,7 @@
 import subprocess
 import os
 import sys
+import stat
 from pathlib import Path
 from shutil import rmtree
 
@@ -8,6 +9,9 @@ from shutil import rmtree
 INITIAL_RERUN = "--rerun" in sys.argv
 PARENT_DIR = Path(__file__).parent
 VENV_NAME = ".venv" if PARENT_DIR.parent.joinpath(".venv").exists() else "venv"
+PYTHON_EMBEDED = os.path.split(os.path.split(sys.executable)[0])[1] == "python_embeded"
+COMPUTE_DEVICE = os.environ.get("COMPUTE_DEVICE", "")
+GH_BUILD_RELEASE = os.environ.get("BUILD_RELEASE", "0") == "1"
 
 
 def main_entry():
@@ -43,48 +47,55 @@ def main_entry():
             else:
                 print("exiting")
     elif INITIAL_RERUN:
-        os.chdir(PARENT_DIR.parent)
+        os.chdir(PARENT_DIR.parent.parent if PYTHON_EMBEDED else PARENT_DIR.parent)
         reinstall()
     else:
-        q = input("No existing installation found, start first installation? (Y/N) ")
+        q = "Y" if GH_BUILD_RELEASE else input("No existing installation found, start first installation? (Y/N) ")
         if q.lower() == "y":
-            first_run()
-        else:
-            print("exiting")
+            sys.exit(first_run())
+        print("exiting")
+    sys.exit(0)
 
 
-def first_run():
-    clone_repository()
+def first_run() -> int:
+    clone_vix_repository()
     os.remove(__file__)
     folder_name = "visionatrix" if Path("visionatrix").exists() else "Visionatrix"
-    subprocess.run(
+    r = subprocess.run(
         [sys.executable, Path(f"{folder_name}/scripts/easy_install.py"), "--rerun"],
         check=False, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+    return r.returncode
 
 
 def reinstall():
-    if Path(VENV_NAME).exists():
-        c = input(f"{VENV_NAME} folder already exists. Remove it? (Y/N): ").lower()
-        if c == "y":
-            rmtree(VENV_NAME)
-            print(f"Removed `{VENV_NAME}` folder.")
-    if not Path(VENV_NAME).exists():
-        create_venv()
+    if not PYTHON_EMBEDED:
+        if Path(VENV_NAME).exists():
+            c = input(f"{VENV_NAME} folder already exists. Remove it? (Y/N): ").lower()
+            if c == "y":
+                rmtree(VENV_NAME, onerror=remove_readonly)
+                print(f"Removed `{VENV_NAME}` folder.")
+        if not Path(VENV_NAME).exists():
+            create_venv()
     install_graphics_card_packages()
     print("Installing Visionatrix")
-    venv_run("pip install .")
+    if PYTHON_EMBEDED:
+        venv_run("python -m pip install Visionatrix/.")
+    else:
+        venv_run("python -m pip install .")
     print("Preparing Visionatrix working instance..")
     venv_run("python -m visionatrix install")
+    if GH_BUILD_RELEASE:
+        return
     c = input("Installation finished. Run Visionatrix? (Y/N): ").lower()
     if c == "y":
         run_visionatrix()
     else:
         print("You can run in manually later. From activated virtual environment execute:")
-        print("python -m visionatrix run --ui=client")
+        print("python -m visionatrix run --ui")
 
 
 def run_visionatrix():
-    venv_run("python -m visionatrix run --ui=client")
+    venv_run("python -m visionatrix run --ui")
 
 
 def update_visionatrix():
@@ -112,10 +123,13 @@ def install_all_flows():
         venv_run(f"python -m visionatrix {param_template}")
 
 
-def clone_repository() -> None:
+def clone_vix_repository() -> None:
     try:
         print("Cloning Visionatrix repository..")
-        subprocess.check_call(["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"])
+        if PYTHON_EMBEDED:
+            subprocess.check_call(["git", "clone", "--depth", "1", "https://github.com/Visionatrix/Visionatrix.git"])
+        else:
+            subprocess.check_call(["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"])
         print("Repository cloned successfully.")
     except subprocess.CalledProcessError as e:
         print("An error occurred while trying to clone the repository:", str(e))
@@ -138,10 +152,13 @@ def create_venv() -> None:
 
 
 def venv_run(command: str) -> None:
-    if sys.platform.lower() == "win32":
-        command = f"call {VENV_NAME}/Scripts/activate.bat && {command}"
+    if PYTHON_EMBEDED:
+        command = command.replace("python", sys.executable)
     else:
-        command = f". {VENV_NAME}/bin/activate && {command}"
+        if sys.platform.lower() == "win32":
+            command = f"call {VENV_NAME}/Scripts/activate.bat && {command}"
+        else:
+            command = f". {VENV_NAME}/bin/activate && {command}"
     try:
         print(f"executing(pwf={os.getcwd()}): {command}")
         subprocess.check_call(command, shell=True)
@@ -153,21 +170,31 @@ def venv_run(command: str) -> None:
 def install_graphics_card_packages():
     if sys.platform.lower() == "darwin":
         return
-    q = "Do you want to install packages for an AMD or NVIDIA graphics card? Enter AMD, NVIDIA, or skip(default): "
-    c = input(q).lower()
+    if COMPUTE_DEVICE:
+        c = COMPUTE_DEVICE.lower()
+    else:
+        q = "Do you want to install packages for an AMD or NVIDIA graphics card? Enter AMD, NVIDIA, or skip(default): "
+        c = input(q).lower()
+    pip_install = "python -m pip install -U "
     if c == "amd":
         print("Installing packages for AMD graphics card...")
         if sys.platform.lower() == "win32":
-            venv_run("pip install -U torch-directml")
+            venv_run(pip_install + "torch-directml")
         else:
             venv_run(
-                "pip install -U --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/rocm6.0"
+                pip_install + "--pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/rocm6.0"
             )
     elif c == "nvidia":
         print("Installing packages for NVIDIA graphics card...")
-        venv_run("pip install -U torch torchvision --extra-index-url https://download.pytorch.org/whl/cu121")
+        venv_run(pip_install + "torch torchvision --extra-index-url https://download.pytorch.org/whl/cu121")
     else:
         print("Skipping graphics card package installation.")
+
+
+def remove_readonly(func, path, _):
+    """Clear the readonly bit and reattempt the removal."""
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 
 if __name__ == "__main__":

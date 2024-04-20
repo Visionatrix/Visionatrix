@@ -7,7 +7,7 @@ They can be specified when starting manually:
 
 .. code-block:: shell
 
-    python3 -m visionatrix run --ui=client --use-split-cross-attention --disable-smart-memory
+    python3 -m visionatrix run --ui --use-split-cross-attention --disable-smart-memory
 
 Here are the list of the supported options command line options related to `Visionatrix` for **run** command:
 
@@ -25,8 +25,7 @@ Here are the list of the supported options command line options related to `Visi
                             Default: ``vix_task_files``
   --host HOST           Host to be used by Visionatrix
   --port PORT           Port to be used by Visionatrix
-  --ui UI               Folder with UI. **Required to be specified if you wish to have persistent task history.**
-                            Has not default value, specify ``--ui=client`` to run with default Visionatrix UI.
+  --ui                  Flag to enable User interface(JS frontend).
 
 Supported **ComfyUI** options
 -----------------------------

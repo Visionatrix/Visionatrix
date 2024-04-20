@@ -27,15 +27,15 @@ Visionatrix projects provides:
 Requirements:
 
 - Python `3.10`*(recommended)* or higher
-- Available `git` command (for Windows get it [here](https://gitforwindows.org/))
+- GPU with at least minimum `10 GB` of memory *(12GB is recommended)*
+
+### Linux/macOS/WSL:
 
 Download and execute `easy_install.py` script:
 
 > [!NOTE]
 > It will clone this repository into the current folder and perform the installation.
 > After installation you can always run `easy_install` from the "scripts" folder.
-
-### Linux/macOS/WSL:
 
 With **wget**:
 ```console
@@ -47,35 +47,44 @@ or with **curl**:
 curl -o easy_install.py https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py && python3 easy_install.py
 ```
 
-### Windows
+After that, answer the script's questions and in most cases everything should work.
 
-> [!NOTE]
-> If you plan to use `Direct-ML` - **Python3.10** is the only currently supported version by it.
->
-> **Requires**: Installed `Microsoft Visual C++ Build Tools` required to build some packages that does not provide binary wheels.
+Command to run Visionatrix from the activated virtual environment with it:
 
 ```console
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py" -OutFile "easy_install.py"; python3 easy_install.py
+python -m visionatrix run --ui
 ```
 
-### After that, answer the script's questions and in most cases everything should work.
+### Windows
+
+We provide a [portable version](https://github.com/Visionatrix/Visionatrix/releases) in the form of an archive.
+This eliminates the need to have `Git` and `Visual Studio` compilers installed.
+Currently, only versions for CUDA/CPU is build, if there will be request we can add `Direct-ML` version too.
+
+1. Go to Releases
+2. Download `vix_portable_cuda.7z.001` and `vix_portable_cuda.7z.002`, it is one archive.
+3. Unpack it and run `run_nvidia_gpu.bat` or `run_cpu.bat`
+
+### Manual Installation
 
 If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/Visionatrix/Installation.html) how to do that.
 
-### Run **Visionatrix**
-
-```console
-python -m visionatrix run --ui=client
-```
+### User Interface of **Visionatrix**
 
 By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 ![UI](/screenshots/screenshot_1.png)
 ![UI](/screenshots/screenshot_2.png)
 
-## Update process
+## Update process (Linux/macOS)
 
 Run `easy_install` script and select "**Update**" option.
+
+> [!NOTE]
+> For portable Windows releases update is a bit tricky:
+> 1. Unpack new portable version
+> 2. Move `vix_models`, `vix_tasks_files` and `tasks_history.db` to it from the old one
+> 3. In most cases where there were no breaking changes it will be enough
 
 ## More Information
 

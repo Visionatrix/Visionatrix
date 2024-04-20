@@ -74,7 +74,7 @@ Run Visionatrix
 
 Execute from the activated virtual environment **run** command using :command:`python`::
 
-    python -m visionatrix run --ui=client
+    python -m visionatrix run --ui
 
 
 Manual Update
