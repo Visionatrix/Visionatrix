@@ -127,6 +127,7 @@
       "supir_model": "SUPIR-v0Q.ckpt",
       "fp8_unet": false,
       "diffusion_dtype": "auto",
+      "high_vram": false,
       "model": [
         "22",
         0
@@ -355,6 +356,15 @@
     "class_type": "ImageResize+",
     "_meta": {
       "title": "🔧 Image Resize"
+    }
+  },
+  "84": {
+    "inputs": {
+      "filename_prefix": "output_2"
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
     }
   }
 }
