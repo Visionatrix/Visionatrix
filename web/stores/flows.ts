@@ -289,13 +289,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 				body: formData,
 			}).then((res: any) => {
 				// Adding started flow to running list
-				res.tasks_ids.forEach((task_id: number) => {
-					input_params_mapped['seed'] = Number(input_params_mapped['seed']) + 1
+				res.tasks_ids.forEach((task_id: number, index: number) => {
 					this.running.push({
 						task_id: task_id.toString(),
 						flow_name: flow.name,
 						progress: 0,
-						input_params_mapped: input_params_mapped,
+						input_params_mapped: {
+							...input_params_mapped,
+							seed: Number(input_params_mapped['seed']) + index,
+						},
 						outputs: [], // outputs are dynamic and populated later by polling task progress
 					})
 				})
