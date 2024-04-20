@@ -93,4 +93,5 @@ jobs:
           commit: ${{ github.ref }}
           draft: false
           body: ${{ env.CHANGELOG }}
+          token: ${{ secrets.PAT_VIX_GH }}
           artifacts: "vix_portable_cuda.7z*"
