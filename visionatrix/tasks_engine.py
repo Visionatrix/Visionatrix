@@ -715,6 +715,7 @@ def update_task_progress_thread(active_task: dict) -> None:
                     break
                 if last_info["error"]:
                     break
+                active_task["execution_time"] = last_info["execution_time"]
             else:
                 time.sleep(0.1)
     finally:
