@@ -142,7 +142,19 @@
     "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-Lightning",
     "hash": "c8df560d2992ac04299412be6a36fa53a4e7a1b74f27b94867ad3f84f4b425a5"
   },
-  "JuggernautXL_v8Rundiffusion": {
+  "JuggernautXL_v9RunDiffusionPhoto2": {
+    "regexes": [
+      {
+        "input_value": "^(?=.*(?i:juggernaut))(?=.*(?i:XL))(?=.*(?i:v9))(?=.*(?i:Rundiffusion)).*",
+        "input_name": "^(?!.*(?i:lora)).*"
+      }
+    ],
+    "save_path": "checkpoints/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+    "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+    "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9",
+    "hash": "c9e3e68f89b8e38689e1097d4be4573cf308de4e3fd044c64ca697bdb4aa8bca"
+  },
+  "JuggernautXL_v8RunDiffusion": {
     "regexes": [
       {
         "input_value": "^(?=.*(?i:juggernaut))(?=.*(?i:XL))(?=.*(?i:v8))(?=.*(?i:Rundiffusion)).*",
@@ -240,7 +252,7 @@
         "input_value": "^(?=.*(?i:epicrealism))(?=.*(?i:naturalSinRC1)).*"
       }
     ],
-    "save_path": "checkpoints/sd15/epicrealism_naturalSinRC1VAE.safetensors",
+    "save_path": "checkpoints/epicrealism_naturalSinRC1VAE.safetensors",
     "url": "https://huggingface.co/Justin-Choo/epiCRealism-Natural_Sin_RC1_VAE/resolve/main/epicrealism_naturalSinRC1VAE.safetensors",
     "homepage": "https://civitai.com/models/25694?modelVersionId=143906",
     "hash": "84d76a0328ee5a1a2a1d466ba7478ab59183e3fea385441528aa4c5d567fd43e"
