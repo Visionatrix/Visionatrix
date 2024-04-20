@@ -550,9 +550,9 @@ def init_active_task_inputs_from_server() -> bool:
                         timeout=float(options.WORKER_NET_TIMEOUT),
                     )
                     if r.status_code == httpx.codes.NOT_FOUND:
-                        raise f"Task {task_id}: not found on server"
+                        raise RuntimeError(f"Task {task_id}: not found on server")
                     if httpx.codes.is_error(r.status_code):
-                        raise f"Task {task_id}: can not get input file, status={r.status_code}"
+                        raise RuntimeError(f"Task {task_id}: can not get input file, status={r.status_code}")
                     with builtins.open(
                         os.path.join(input_directory, ACTIVE_TASK["input_files"][i]), mode="wb"
                     ) as input_file:
