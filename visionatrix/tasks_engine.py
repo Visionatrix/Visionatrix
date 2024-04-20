@@ -558,9 +558,9 @@ def init_active_task_inputs_from_server() -> bool:
                     ) as input_file:
                         input_file.write(r.content)
                     break
-                except httpx.TimeoutException:
+                except (httpx.TimeoutException, httpx.RemoteProtocolError):
                     if k != 2:
-                        LOGGER.warning("Task %s: attempt number %s: timeout exception occurred", task_id, i)
+                        LOGGER.warning("Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i)
                         continue
                     raise
         return True
@@ -604,11 +604,13 @@ def upload_results_to_server(task_id: int) -> bool:
                     if not httpx.codes.is_error(r.status_code):
                         return True
                     LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
-                except httpx.TimeoutException:
+                except (httpx.TimeoutException, httpx.RemoteProtocolError):
                     if i != 2:
-                        LOGGER.warning("Task %s: attempt number %s: timeout exception occurred", task_id, i)
+                        LOGGER.warning("Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i)
                         continue
-                    LOGGER.error("Task %s: attempt number %s: timeout exception occurred, task failed.", task_id, i)
+                    LOGGER.error(
+                        "Task %s: attempt number %s: timeout or protocol exception occurred, task failed.", task_id, i
+                    )
         except Exception as e:
             LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
     finally:
