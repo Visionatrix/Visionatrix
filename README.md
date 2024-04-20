@@ -49,7 +49,7 @@ curl -o easy_install.py https://raw.githubusercontent.com/Visionatrix/Visionatri
 
 After that, answer the script's questions and in most cases everything should work.
 
-Command to run Visionatrix from the activated virtual environment with it:
+Command to launch Visionatrix from an activated virtual environment::
 
 ```console
 python -m visionatrix run --ui
@@ -57,11 +57,11 @@ python -m visionatrix run --ui
 
 ### Windows
 
-We provide a [portable version](https://github.com/Visionatrix/Visionatrix/releases) in the form of an archive.
+We provide a **portable version** in the form of an archive.
 This eliminates the need to have `Git` and `Visual Studio` compilers installed.
 Currently, only versions for CUDA/CPU is build, if there will be request we can add `Direct-ML` version too.
 
-1. Go to Releases
+1. Go to [Releases](https://github.com/Visionatrix/Visionatrix/releases)
 2. Download `vix_portable_cuda.7z.001` and `vix_portable_cuda.7z.002`, it is one archive.
 3. Unpack it and run `run_nvidia_gpu.bat` or `run_cpu.bat`
 
