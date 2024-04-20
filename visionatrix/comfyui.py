@@ -24,6 +24,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 
     sys.path.append(options.BACKEND_DIR)
 
+    no_device_detection = "--disable-device-detection" in sys.argv
     filter_list = [
         "--host",
         "--port",
@@ -37,6 +38,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "visionatrix\\.backend",  # do not remove ourselves when starting with `uvicorn visionatrix.backend:APP`
         "--mode",
         "--server",
+        "--disable-device-detection",
     ]
     args_to_remove = []
     for i, c in enumerate(sys.argv):
@@ -53,7 +55,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
             os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
-    if "--cpu" not in sys.argv and "--directml" not in sys.argv:
+    if not no_device_detection and "--cpu" not in sys.argv and "--directml" not in sys.argv:
         if need_directml_flag():
             sys.argv.append("--directml")
         elif need_cpu_flag():
@@ -150,7 +152,7 @@ def system_stats() -> dict:
         "system": {
             "os": os.name,
             "python_version": sys.version,
-            "embedded_python": os.path.split(os.path.split(sys.executable)[0])[1] == "python_embeded",
+            "embedded_python": options.PYTHON_EMBEDED,
         },
         "devices": [
             {

@@ -1,15 +1,19 @@
 """Options to change Visionatrix runtime behavior."""
 
-from os import environ
+import sys
+from os import environ, path
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-BACKEND_DIR = environ.get("BACKEND_DIR", str(Path("./vix_backend").resolve()))
-FLOWS_DIR = environ.get("FLOWS_DIR", str(Path("./vix_flows").resolve()))
-MODELS_DIR = environ.get("MODELS_DIR", str(Path("./vix_models").resolve()))
+PYTHON_EMBEDED = path.split(path.split(sys.executable)[0])[1] == "python_embeded"
+BACKEND_DIR = environ.get(
+    "BACKEND_DIR", str(Path("vix_backend") if PYTHON_EMBEDED else Path("./vix_backend").resolve())
+)
+FLOWS_DIR = environ.get("FLOWS_DIR", str(Path("vix_flows") if PYTHON_EMBEDED else Path("./vix_flows").resolve()))
+MODELS_DIR = environ.get("MODELS_DIR", str(Path("vix_models") if PYTHON_EMBEDED else Path("./vix_models").resolve()))
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
 
 VIX_HOST = environ.get("VIX_HOST", "")

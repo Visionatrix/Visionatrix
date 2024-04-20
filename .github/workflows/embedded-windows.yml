@@ -1,0 +1,96 @@
+name: Windows embedded release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: windows-rel-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_MAJOR: 10
+  PYTHON_MINOR: 10
+  BUILD_RELEASE: 1
+
+jobs:
+  windows_2019_cuda:
+    name: Windows:2019-x86_64-CUDA
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python download
+        shell: bash
+        run: |
+          curl https://www.python.org/ftp/python/3.${{ env.PYTHON_MAJOR }}.${{ env.PYTHON_MINOR }}/python-3.${{ env.PYTHON_MAJOR }}.${{ env.PYTHON_MINOR }}-embed-amd64.zip -o python_embeded.zip
+
+      - name: Unzip & prepare Python package
+        shell: bash
+        run: |
+          unzip python_embeded.zip -d python_embeded
+          mkdir vix_portable
+          mv python_embeded vix_portable/
+          cd vix_portable/python_embeded
+          echo 'import site' >> ./python3${{ env.PYTHON_MINOR }}._pth
+          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          ./python.exe get-pip.py
+          ./python.exe -m pip install hatchling Cython
+          ./python.exe -m pip install git+https://github.com/Visionatrix/PixelOE.git
+          cd ../..
+
+      - name: Install Vix
+        shell: bash
+        run: |
+          cp scripts/easy_install.py vix_portable/easy_install.py
+          cp scripts/python_embeded/run_cpu.bat vix_portable/
+          cp scripts/python_embeded/run_nvidia_gpu.bat vix_portable/
+          cd vix_portable
+          ./python_embeded/python.exe easy_install.py
+          rm -rf Visionatrix
+          cd ..
+        env:
+          COMPUTE_DEVICE: "NVIDIA"
+
+      - name: Archive Vix
+        shell: bash
+        run: |
+          "C:\Program Files\7-Zip\7z.exe" a -t7z -m0=lzma -mx=8 -mfb=64 -md=32m -ms=on -mf=BCJ2 -v2100000000b vix_portable_cuda.7z vix_portable
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vix_portable_cuda.7z
+          path: vix_portable_cuda.7z*
+          if-no-files-found: error
+
+  publish_release:
+    needs: [windows_2019_cuda]
+    name: Publish release
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get tag
+        run: |
+          RELEASE_VERSION=$(sed -n "s/^__version__.*\"\(.*\)\"$/\\1/p" ./visionatrix/_version.py)
+          echo RELEASE_TAG="v$RELEASE_VERSION" >> $GITHUB_ENV
+          CHANGELOG=$(grep -oPz "(?s)##\s\[$RELEASE_VERSION.+?(?=##\s\[|$)" ./CHANGELOG.md | tr -d '\0' | sed /^$/d | sed '1d')
+          CHANGELOG=$(echo "$CHANGELOG" | sed '$!N;s/^###.*\n#/#/;P;D' | sed '$!N;s/^###.*\n#/#/;P;D' | sed '${/^###/d;}')
+          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+          echo "$CHANGELOG" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: vix_portable_cuda.7z
+
+      - name: Create release draft
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          name: ${{ env.RELEASE_TAG }}
+          tag: ${{ env.RELEASE_TAG }}
+          commit: ${{ github.ref }}
+          draft: false
+          body: ${{ env.CHANGELOG }}
+          artifacts: "vix_portable_cuda.7z*"

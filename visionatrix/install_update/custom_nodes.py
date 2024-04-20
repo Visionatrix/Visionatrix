@@ -1,8 +1,11 @@
 import logging
 import os
 import sys
+import tempfile
 from pathlib import Path
 from subprocess import run
+
+import httpx
 
 from .. import options
 from ..models import install_model
@@ -53,6 +56,11 @@ BASIC_NODE_LIST = {
 
 
 def install_base_custom_nodes() -> None:
+    if sys.platform.lower() == "win32" and sys.version_info.minor == 10:
+        install_wheel(
+            "https://github.com/Gourieff/Assets/raw/main/Insightface/insightface-0.7.3-cp310-cp310-win_amd64.whl",
+            "insightface-0.7.3-cp310-cp310-win_amd64.whl",
+        )
     for node_name, node_details in BASIC_NODE_LIST.items():
         install_base_custom_node(node_name, node_details)
 
@@ -101,3 +109,17 @@ def _run_install_script(custom_nodes_dir: str | Path, node_name: str) -> None:
     if node_install_script.exists() is True:
         LOGGER.info("Running `%s` install script", node_name)
         run([sys.executable, node_install_script], check=True)
+
+
+def install_wheel(url: str, file_name: str):
+    LOGGER.info("Installing `%s`", url)
+    temp_dir = tempfile.gettempdir()
+    temp_file_path = os.path.join(temp_dir, file_name)
+    with open(temp_file_path, "wb") as temp_file, httpx.stream("GET", url, follow_redirects=True) as response:
+        response.raise_for_status()
+        for chunk in response.iter_bytes():
+            temp_file.write(chunk)
+    try:
+        run([sys.executable, "-m", "pip", "install", temp_file_path], check=True)
+    finally:
+        os.remove(temp_file_path)

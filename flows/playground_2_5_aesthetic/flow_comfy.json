@@ -344,7 +344,7 @@
   },
   "235": {
     "inputs": {
-      "ckpt_name": "sd15/epicrealism_naturalSinRC1VAE.safetensors"
+      "ckpt_name": "epicrealism_naturalSinRC1VAE.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
