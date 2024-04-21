@@ -148,7 +148,7 @@ def prepare_flow_comfy(
     flow: dict,
     flow_comfy: dict,
     in_texts_params: dict,
-    in_files_params: list[UploadFile],
+    in_files_params: list[UploadFile | dict],
     task_details: dict,
 ) -> dict:
     r = flow_comfy.copy()
@@ -214,7 +214,7 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
 
 
 def prepare_flow_comfy_files_params(
-    flow: dict, in_files_params: list[UploadFile], task_id: int, task_details: dict, r: dict
+    flow: dict, in_files_params: list[UploadFile | dict], task_id: int, task_details: dict, r: dict
 ) -> None:
     files_params = [i for i in flow["input_params"] if i["type"] in ("image", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
@@ -228,10 +228,17 @@ def prepare_flow_comfy_files_params(
                 raise RuntimeError(f"Bad comfy or visionatrix flow, node with id=`{k}` can not be found.")
             set_node_value(node, k_v["dest_field_name"], file_name)
             perform_node_connections(r, k, k_v)
-        with builtins.open(os.path.join(options.TASKS_FILES_DIR, "input", file_name), mode="wb") as fp:
-            v.file.seek(0)
-            shutil.copyfileobj(v.file, fp)
-            task_details["input_files"].append(file_name)
+        result_path = os.path.join(options.TASKS_FILES_DIR, "input", file_name)
+        if isinstance(v, dict):
+            input_file = os.path.join(options.TASKS_FILES_DIR, "input", f"{v['task_id']}_{v['input_index']}")
+            if not os.path.exists(input_file):
+                raise RuntimeError(f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found.")
+            shutil.copy(input_file, result_path)
+        else:
+            with builtins.open(result_path, mode="wb") as fp:
+                v.file.seek(0)
+                shutil.copyfileobj(v.file, fp)
+        task_details["input_files"].append(file_name)
 
 
 def flow_prepare_output_params(
