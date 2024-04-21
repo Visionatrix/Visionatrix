@@ -385,7 +385,9 @@ async def task_results(request: Request, task_id: int, node_id: int):
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     for filename in os.listdir(output_directory):
         if filename.startswith(result_prefix):
-            return responses.FileResponse(os.path.join(output_directory, filename))
+            base_name, extension = os.path.splitext(filename)
+            content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension
+            return responses.FileResponse(os.path.join(output_directory, filename), filename=content_disposition)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
     )
