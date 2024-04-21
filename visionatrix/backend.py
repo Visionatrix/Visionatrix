@@ -377,10 +377,14 @@ async def task_queue_clear(request: Request, task_id: int):
 
 
 @APP.post("/task-worker/get")
-async def task_worker_give_task(request: Request, tasks_names: typing.Annotated[list[str], Form()]):
+async def task_worker_give_task(
+    request: Request,
+    tasks_names: typing.Annotated[list[str], Form()],
+    last_task_name: typing.Annotated[str, Form()] = "",
+):
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     return responses.JSONResponse(
-        content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names, user_id)}
+        content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names, user_id, last_task_name)}
     )
 
 

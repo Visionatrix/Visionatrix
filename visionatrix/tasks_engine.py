@@ -11,7 +11,7 @@ import typing
 from datetime import datetime
 
 import httpx
-from sqlalchemy import Row, and_, delete, select, update
+from sqlalchemy import Row, and_, delete, desc, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -160,17 +160,17 @@ async def get_task_async(task_id: int, user_id: str | None = None) -> dict | Non
             raise
 
 
-def get_incomplete_task_without_error(tasks_to_ask: list[str]) -> dict:
+def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: str) -> dict:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        return get_incomplete_task_without_error_server(tasks_to_ask)
-    return get_incomplete_task_without_error_database(tasks_to_ask)
+        return get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
+    return get_incomplete_task_without_error_database(tasks_to_ask, last_task_name)
 
 
-def get_incomplete_task_without_error_server(tasks_to_ask: list[str]) -> dict:
+def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
     try:
         r = httpx.post(
             options.VIX_SERVER.rstrip("/") + "/task-worker/get",
-            data={"tasks_names": tasks_to_ask},
+            data={"tasks_names": tasks_to_ask, "last_task_name": last_task_name},
             auth=__worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
@@ -184,7 +184,9 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str]) -> dict:
     return {}
 
 
-def get_incomplete_task_without_error_database(tasks_to_ask: list[str], user_id: str | None = None) -> dict:
+def get_incomplete_task_without_error_database(
+    tasks_to_ask: list[str], last_task_name: str, user_id: str | None = None
+) -> dict:
     if not tasks_to_ask:
         return {}
     session = database.SESSION()
@@ -200,16 +202,25 @@ def get_incomplete_task_without_error_database(tasks_to_ask: list[str], user_id:
         )
         if user_id is not None:
             query = query.filter(database.TaskDetails.user_id == user_id)
+        if last_task_name and last_task_name in tasks_to_ask:
+            query = query.order_by(desc(database.TaskDetails.name == last_task_name))
         task = query.first()
         if not task:
             return {}
-        try:
-            lock = database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow())
-            session.add(lock)
-            session.commit()
-        except IntegrityError:
-            session.rollback()
-            return {}
+        return lock_task_and_return_details(session, task)
+    except Exception as e:
+        session.rollback()
+        LOGGER.exception("Failed to retrieve task for processing: %s", e)
+        return {}
+    finally:
+        session.close()
+
+
+def lock_task_and_return_details(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
+    try:
+        lock = database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow())
+        session.add(lock)
+        session.commit()
         return {
             "task_id": task.task_id,
             "progress": 0.0,
@@ -222,12 +233,9 @@ def get_incomplete_task_without_error_database(tasks_to_ask: list[str], user_id:
             "user_id": task.user_id,
             "execution_time": 0.0,
         }
-    except Exception as e:
+    except IntegrityError:
         session.rollback()
-        LOGGER.exception("Failed to retrieve task for processing: %s", e)
         return {}
-    finally:
-        session.close()
 
 
 def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
@@ -656,6 +664,7 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
 def background_prompt_executor(prompt_executor, exit_event: threading.Event):
     global ACTIVE_TASK
     reply_count_no_tasks = 0
+    last_task_name = ""
     last_gc_collect = 0
     need_gc = False
     gc_collect_interval = 10.0
@@ -679,13 +688,14 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
                 last_gc_collect = current_time
                 need_gc = False
 
-        ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names())
+        ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names(), last_task_name)
         if not ACTIVE_TASK:
             reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
             continue
         if init_active_task_inputs_from_server() is False:
             ACTIVE_TASK = {}
             continue
+        last_task_name = ACTIVE_TASK["name"]
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
