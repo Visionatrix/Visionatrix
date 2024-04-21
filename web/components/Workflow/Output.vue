@@ -34,6 +34,12 @@ onUnmounted(() => {
 	flowStore.$state.resultsPage = 1
 })
 
+const emit = defineEmits(['copy-prompt-inputs'])
+
+function copyPromptInputs(flowResult: FlowResult) {
+	emit('copy-prompt-inputs', flowResult.input_params_mapped)
+}
+
 function openImageModal(src: string) {
 	modalImageSrc.value = src
 	isModalOpen.value = true
@@ -51,6 +57,11 @@ const isModalOpen = ref(false)
 const modalImageSrc = ref('')
 const deleteModalOpen = ref(false)
 const deletingFlowResults = ref(false)
+
+const showSendToFlowModal = ref(false)
+const sendToImgSrc = ref('')
+const sendToFlowResult = ref<FlowResult|any>(null)
+const sentDoOutputParamIndex = ref(0)
 </script>
 
 <template>
@@ -147,17 +158,37 @@ const deletingFlowResults = ref(false)
 					<UCarousel v-else
 						v-slot="{ item }"
 						class="mb-3 rounded-lg overflow-hidden" 
-						:items="flowResult.output_params.map((result_output_param) => {
-							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id }
+						:items="flowResult.output_params.map((result_output_param, index) => {
+							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id, index }
 						})"
-						:ui="{ item: 'basis-full md:basis-1/2' }"
+						:ui="{ 
+							item: 'basis-full md:basis-1/2',
+							indicators: {
+								wrapper: 'relative bottom-0 mt-4'
+							}
+						}"
 						:page="1"
 						indicators>
-						<NuxtImg class="w-full cursor-pointer"
-							loading="lazy"
-							:src="outputImgSrc(item)"
-							draggable="false"
-							@click="() => openImageModal(outputImgSrc(item))" />
+						<div class="flex flex-col basis-full">
+							<NuxtImg class="w-full cursor-pointer mx-auto"
+								loading="lazy"
+								:src="outputImgSrc(item)"
+								draggable="false"
+								@click="() => openImageModal(outputImgSrc(item))" />
+							<UButton
+								class="mt-2 w-fit mx-auto"
+								icon="i-heroicons-arrow-uturn-up-solid"
+								color="violet"
+								variant="outline"
+								@click="() => {
+									showSendToFlowModal = true
+									sendToFlowResult = flowResult
+									sendToImgSrc = outputImgSrc(item)
+									sentDoOutputParamIndex = item.index
+								}">
+								Send to flow
+							</UButton>
+						</div>
 					</UCarousel>
 					<p class="text-sm text-slate-500 text-center mb-3">
 						{{
@@ -174,15 +205,51 @@ const deletingFlowResults = ref(false)
 								}`
 						}}
 					</p>
-					<UButton
-						class="w-fit mx-auto"
-						color="red"
-						icon="i-heroicons-trash"
-						variant="outline"
-						@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
-						Delete
-					</UButton>
+					<div class="w-full flex justify-center items-center overflow-x-scroll">
+						<UButton
+							class="mr-3"
+							color="red"
+							icon="i-heroicons-trash"
+							variant="outline"
+							@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
+							Delete
+						</UButton>
+						<UDropdown :items="[
+								[{
+									label: 'Use params',
+									labelClass: 'text-cyan-500',
+									icon: 'i-heroicons-document-duplicate-16-solid',
+									iconClass: 'bg-cyan-500',
+									click: () => copyPromptInputs(flowResult),
+								}],
+								[{
+									label: 'Send to flow',
+									labelClass: 'text-violet-500',
+									icon: 'i-heroicons-arrow-uturn-up-solid',
+									iconClass: 'bg-violet-500',
+									click: () => {
+										showSendToFlowModal = true
+										sendToFlowResult = flowResult
+										sendToImgSrc = outputImgSrc({
+											task_id: flowResult.task_id,
+											node_id: flowResult.output_params[0].comfy_node_id
+										})
+										sentDoOutputParamIndex = 0
+									},
+									disabled: flowResult.output_params.length !== 1
+								}]
+							]"
+							mode="click"
+							:popper="{ placement: 'bottom-end' }">
+							<UButton color="white" icon="i-heroicons-ellipsis-vertical-16-solid" />
+						</UDropdown>
+					</div>
 				</div>
+				<WorkflowSendToFlowModal
+					v-model="showSendToFlowModal"
+					:flow-result="sendToFlowResult"
+					:output-img-src="sendToImgSrc"
+					:output-param-index="sentDoOutputParamIndex" />
 			</div>
 			<p v-else class="text-center text-slate-500">
 				No output results available

@@ -507,9 +507,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
 							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
-							if (this.running.length === 0) {
+							if (this.running.filter(flow => flow.flow_name === flow_name).length === 0) {
 								this.showNotificationChip = false
 								clearInterval(this.runningInterval[flow_name])
+								this.runningInterval[flow_name] = null
 							}
 							// Save flow results history
 							const flow = <Flow>this.flowByName(runningFlow.flow_name)
@@ -525,6 +526,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				}).catch((e): any => {
 					console.debug('Failed to fetch running flow progress: ', e)
 					clearInterval(this.runningInterval[flow_name])
+					this.runningInterval[flow_name] = null
 				})
 			}, 3000)
 		},
