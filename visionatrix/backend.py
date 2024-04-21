@@ -384,7 +384,7 @@ async def task_worker_give_task(
 ):
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     return responses.JSONResponse(
-        content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names, user_id, last_task_name)}
+        content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names, last_task_name, user_id)}
     )
 
 
