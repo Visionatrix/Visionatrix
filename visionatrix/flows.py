@@ -230,10 +230,27 @@ def prepare_flow_comfy_files_params(
             perform_node_connections(r, k, k_v)
         result_path = os.path.join(options.TASKS_FILES_DIR, "input", file_name)
         if isinstance(v, dict):
-            input_file = os.path.join(options.TASKS_FILES_DIR, "input", f"{v['task_id']}_{v['input_index']}")
-            if not os.path.exists(input_file):
-                raise RuntimeError(f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found.")
-            shutil.copy(input_file, result_path)
+            if "input_index" in v:
+                input_file = os.path.join(options.TASKS_FILES_DIR, "input", f"{v['task_id']}_{v['input_index']}")
+                if not os.path.exists(input_file):
+                    raise RuntimeError(
+                        f"Bad flow, file from task_id=`{v['task_id']}`, index=`{v['input_index']}` not found."
+                    )
+                shutil.copy(input_file, result_path)
+            elif "node_id" in v:
+                input_file = ""
+                result_prefix = f"{v['task_id']}_{v['node_id']}_"
+                output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
+                for filename in os.listdir(output_directory):
+                    if filename.startswith(result_prefix):
+                        input_file = os.path.join(output_directory, filename)
+                if not input_file or not os.path.exists(input_file):
+                    raise RuntimeError(
+                        f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found."
+                    )
+                shutil.copy(input_file, result_path)
+            else:
+                raise RuntimeError("Bad flow, `input_index` or `node_id` should be present.")
         else:
             with builtins.open(result_path, mode="wb") as fp:
                 v.file.seek(0)

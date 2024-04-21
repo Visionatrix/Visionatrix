@@ -253,11 +253,21 @@ async def task_run(
     for i in files if files else []:
         if isinstance(i, str):
             try:
-                in_files.append(json.loads(i))
+                input_file_info = json.loads(i)
             except json.JSONDecodeError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid files input:{i}"
                 ) from None
+            if "task_id" not in input_file_info:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter"
+                ) from None
+            if not get_task(input_file_info["task_id"], request.scope["user_info"].user_id):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing task with id={input_file_info['task_id']}",
+                ) from None
+            in_files.append(input_file_info)
         else:
             in_files.append(i)
     try:
