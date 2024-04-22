@@ -16,6 +16,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flow_results: <FlowResult[]>[],
 		flows_available: <Flow[]>[],
 		flows_installed: <Flow[]>[],
+		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
 		showNotificationChip: false,
@@ -267,7 +268,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
-				return param[paramName].type === 'image' && param[paramName].value instanceof File
+				return param[paramName].type === 'image' 
+					&& (param[paramName].value instanceof File || typeof param[paramName].value === 'string')
 			})
 			console.debug('file_input_params:', file_input_params)
 			if (file_input_params.length > 0) {
@@ -310,6 +312,16 @@ export const useFlowsStore = defineStore('flowsStore', {
 					description: e.message,
 					timeout: 5000,
 				})
+			})
+		},
+
+		async fetchSubFlows(input_type: string) {
+			if (this.sub_flows.length > 0) {
+				return
+			}
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch(`/flows-sub-flows?input_type=${input_type}`).then((res) => {
+				this.sub_flows = <Flow[]>res
 			})
 		},
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps({
+const props = defineProps({
 	show: {
 		type: Boolean,
 		required: false,
@@ -19,13 +19,90 @@ defineProps({
 })
 
 const flowStore = useFlowsStore()
-// list of flows supported "send to flow" feature
-const supportedFlows = computed(
-	() => flowStore.flows.filter(flow => flow.name !== flowStore.currentFlow.name)
-		.map(flow => ({ label: flow.display_name, value: flow.name }))
-)
-const selectedFlow = ref(supportedFlows.value[0] || '')
+const subFlows = computed(() => {
+	return flowStore.sub_flows.map((flow) => {
+		return {
+			value: flow.name,
+			label: `${flow.display_name} - ${flow.description}`,
+		}
+	})
+})
+const selectedFlow = ref(subFlows.value[0] || '')
 const sending = ref(false)
+
+const emit = defineEmits(['update:show'])
+
+function sendToFlow() {
+	console.debug('[Send to flow]: ', selectedFlow.value)
+	const targetFlow: Flow|any = flowStore.flows_installed.find((flow) => flow.name === selectedFlow.value.value)
+	if (!targetFlow) {
+		const toast = useToast()
+		toast.add({
+			title: `Target sub-flow "${selectedFlow.value.value}" not found`,
+			description: 'Please, verify the target sub-flow is installed and available and try again',
+			timeout: 5000,
+		})
+		return
+	}
+	// Build target flow input_params_map array with default values
+	const input_params_map: any = targetFlow.input_params.reduce((acc: FlowInputParam[], input_param: FlowInputParam) => {
+		const input_param_map: any = {}
+		if (input_param.type === 'text') {
+			input_param_map[input_param.name] = {
+				value: input_param.default as string || '',
+				type: input_param.type,
+			}
+		}
+		else if (input_param.type === 'number') {
+			input_param_map[input_param.name] = {
+				value: input_param.default as number || 0,
+				type: input_param.type,
+			}
+		}
+		else if (input_param.type === 'image') {
+			input_param_map[input_param.name] = {
+				value: JSON.stringify({
+					task_id: props.flowResult.task_id,
+					node_id: props.flowResult.output_params[props.outputParamIndex].comfy_node_id,
+				}) || '',
+				type: input_param.type,
+			}
+		} else if (input_param.type === 'list') {
+			input_param_map[input_param.name] = {
+				value: Object.keys(input_param.options as object)[0] || '',
+				type: input_param.type,
+				options: input_param.options,
+			}
+		} else if (input_param.type === 'bool') {
+			input_param_map[input_param.name] = {
+				value: input_param.default as boolean || false,
+				type: input_param.type
+			}
+		} else if (input_param.type === 'range') {
+			input_param_map[input_param.name] = {
+				value: input_param.default as number || 0,
+				type: input_param.type
+			}
+		}
+		acc.push(input_param_map)
+		return acc
+	}, [])
+
+	console.debug('[Send to flow]: input_params_map', input_params_map)
+
+	sending.value = true
+	flowStore.runFlow(targetFlow, input_params_map).finally(() => {
+		sending.value = false
+		emit('update:show', false)
+	})
+}
+
+onBeforeMount(() => {
+	// TODO: change to dynamic according to the output type
+	flowStore.fetchSubFlows('image').then(() => {
+		selectedFlow.value = subFlows.value[0] || ''
+	})
+})
 </script>
 
 <template>
@@ -47,7 +124,11 @@ const sending = ref(false)
 				}}
 			</p>
 			<p class="text-md text-center text-red-500 mb-4">
-				<USelectMenu v-model="selectedFlow" class="w-full" :options="supportedFlows" />
+				<USelectMenu
+					v-model="selectedFlow"
+					class="w-full"
+					size="lg"
+					:options="subFlows" />
 			</p>
 			<div class="flex justify-end">
 				<UButton
@@ -55,7 +136,7 @@ const sending = ref(false)
 					color="violet"
 					variant="outline"
 					:loading="sending"
-					@click="() => console.debug('Send to flow')">
+					@click="sendToFlow">
 					Send
 				</UButton>
 			</div>

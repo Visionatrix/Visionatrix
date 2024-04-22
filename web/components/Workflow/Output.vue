@@ -161,7 +161,7 @@ const sentDoOutputParamIndex = ref(0)
 						:items="flowResult.output_params.map((result_output_param, index) => {
 							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id, index }
 						})"
-						:ui="{ 
+						:ui="{
 							item: 'basis-full md:basis-1/2',
 							indicators: {
 								wrapper: 'relative bottom-0 mt-4'
@@ -249,7 +249,8 @@ const sentDoOutputParamIndex = ref(0)
 					v-model="showSendToFlowModal"
 					:flow-result="sendToFlowResult"
 					:output-img-src="sendToImgSrc"
-					:output-param-index="sentDoOutputParamIndex" />
+					:output-param-index="sentDoOutputParamIndex"
+					@update:show="(value) => showSendToFlowModal = value" />
 			</div>
 			<p v-else class="text-center text-slate-500">
 				No output results available
