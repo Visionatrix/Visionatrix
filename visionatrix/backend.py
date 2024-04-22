@@ -262,7 +262,7 @@ async def task_run(
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter"
                 ) from None
-            if not get_task(input_file_info["task_id"], request.scope["user_info"].user_id):
+            if not get_task(int(input_file_info["task_id"]), request.scope["user_info"].user_id):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Missing task with id={input_file_info['task_id']}",
