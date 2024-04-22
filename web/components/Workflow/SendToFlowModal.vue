@@ -126,10 +126,12 @@ onBeforeMount(() => {
 			</p>
 			<p class="text-md text-center text-red-500 mb-4">
 				<USelectMenu
+					v-if="subFlows.length > 0"
 					v-model="selectedFlow"
 					class="w-full"
 					size="lg"
 					:options="subFlows" />
+				<span v-else>No sub-flows available</span>
 			</p>
 			<div class="flex justify-end">
 				<UButton
@@ -137,6 +139,7 @@ onBeforeMount(() => {
 					color="violet"
 					variant="outline"
 					:loading="sending"
+					:disabled="subFlows.length === 0"
 					@click="sendToFlow">
 					Send
 				</UButton>
