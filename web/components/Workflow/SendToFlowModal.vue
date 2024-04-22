@@ -34,7 +34,8 @@ const emit = defineEmits(['update:show'])
 
 function sendToFlow() {
 	console.debug('[Send to flow]: ', selectedFlow.value)
-	const targetFlow: Flow|any = flowStore.flows_installed.find((flow) => flow.name === selectedFlow.value.value)
+	const targetFlow: Flow|any = flowStore.sub_flows.find((flow) => flow.name === selectedFlow.value.value && flow.display_name === selectedFlow.value.label.split(' - ')[0])
+	console.debug('[Send to flow]: targetFlow', targetFlow)
 	if (!targetFlow) {
 		const toast = useToast()
 		toast.add({
