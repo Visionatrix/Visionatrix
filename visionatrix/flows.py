@@ -28,6 +28,11 @@ CACHE_AVAILABLE_FLOWS = {
     "flows": [],
     "flows_comfy": [],
 }
+CACHE_INSTALLED_FLOWS = {
+    "update_time": time.time() - 11,
+    "flows": [],
+    "flows_comfy": [],
+}
 
 
 def get_available_flows() -> [list[dict[str, typing.Any]], list[dict[str, typing.Any]]]:
@@ -80,8 +85,15 @@ def get_not_installed_flows(flows_comfy: list | None = None) -> list[dict[str, t
 
 
 def get_installed_flows(flows_comfy: list | None = None) -> list[dict[str, typing.Any]]:
+    if time.time() < CACHE_INSTALLED_FLOWS["update_time"] + 10:
+        if flows_comfy is not None:
+            flows_comfy.extend(CACHE_INSTALLED_FLOWS["flows_comfy"])
+        return CACHE_INSTALLED_FLOWS["flows"]
+
+    CACHE_INSTALLED_FLOWS["update_time"] = time.time()
     flows = [entry for entry in Path(options.FLOWS_DIR).iterdir() if entry.is_dir()]
     r = []
+    r_comfy = []
     for flow in flows:
         flow_fp = flow.joinpath("flow.json")
         flow_comfy_fp = flow.joinpath("flow_comfy.json")
@@ -90,8 +102,10 @@ def get_installed_flows(flows_comfy: list | None = None) -> list[dict[str, typin
             _flow_comfy = json.loads(flow_comfy_fp.read_bytes())
             fill_flow_models_from_comfy_flow(_flow, _flow_comfy)
             r.append(_flow)
-            if flows_comfy is not None:
-                flows_comfy.append(_flow_comfy)
+            r_comfy.append(_flow_comfy)
+    CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
+    if flows_comfy is not None:
+        flows_comfy.extend(r_comfy)
     return r
 
 
