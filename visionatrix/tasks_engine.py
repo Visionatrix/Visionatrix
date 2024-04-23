@@ -591,7 +591,7 @@ def upload_results_to_server(task_id: int) -> bool:
         for filename in os.listdir(target_directory):
             if filename.startswith(result_prefix):
                 fila_path = os.path.join(target_directory, filename)
-                file_handle = builtins.open(fila_path, mode="rb")  # pylint: disable=consider-using-with
+                file_handle = builtins.open(fila_path, mode="rb")  # noqa pylint: disable=consider-using-with
                 files.append(
                     ("files", (filename, file_handle)),
                 )
