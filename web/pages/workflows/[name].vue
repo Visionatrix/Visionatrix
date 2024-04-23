@@ -17,6 +17,11 @@ function deleteFlow() {
 }
 
 const collapsedCard = ref(false)
+
+const workflowPrompt = ref<any>(null)
+const copyPromptInputs = function (inputs: any[]) {
+	workflowPrompt.value?.copyPromptInputs(inputs)
+}
 </script>
 
 <template>
@@ -120,19 +125,23 @@ const collapsedCard = ref(false)
 										icon: 'i-heroicons-trash',
 										click: deleteFlow,
 									}]
-								]" mode="click" label="Options" :popper="{ placement: 'bottom-end' }">
-									<UButton color="white" label="Options" trailing-icon="i-heroicons-chevron-down-20-solid" />
+								]" mode="click" label="Actions" :popper="{ placement: 'bottom-end' }">
+									<UButton color="white" label="Actions" trailing-icon="i-heroicons-chevron-down-20-solid" />
 								</UDropdown>
 							</div>
 						</template>
 					</UCard>
 				</div>
 				<div class="prompt-wrapper w-full">
-					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)" />
+					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)"
+						ref="workflowPrompt" />
 				</div>
 			</div>
 			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)" />
-			<WorkflowOutput v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string) || flowStore.flowResultsByName(route.params.name as string).length > 0" />
+			<WorkflowOutput v-if="!deleting
+					&& flowStore.isFlowInstalled(route.params.name as string) 
+					|| flowStore.flowResultsByName(route.params.name as string).length > 0"
+				@copy-prompt-inputs="(inputs: any[]) => copyPromptInputs(inputs)" />
 		</template>
 		<template v-else>
 			<UProgress class="mb-3" />

@@ -1,10 +1,17 @@
 <script setup lang="ts">
 const flowStore  = useFlowsStore()
+
+// load input_params_map object from local storage by flow name
+let prev_input_params_map: TaskHistoryInputParam|any = localStorage.getItem(`input_params_map_${flowStore.currentFlow?.name}`)
+if (prev_input_params_map) {
+	prev_input_params_map = JSON.parse(prev_input_params_map)
+}
+
 const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_param => {
 	if (input_param.type === 'text') {
 		return ({
 			[input_param.name]: {
-				value: input_param.default as string || '',
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as string || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -14,7 +21,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
-				value: input_param.default as number || 0,
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -24,7 +31,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	else if (input_param.type === 'image') {
 		return ({
 			[input_param.name]: {
-				value: input_param.default as any || {},
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || {},
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -33,7 +40,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'list') {
 		return ({
 			[input_param.name]: {
-				value: input_param.default as any || Object.keys(input_param.options as object)[0] || '',
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || Object.keys(input_param.options as object)[0] || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				options: input_param.options,
@@ -43,7 +50,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'bool') {
 		return ({
 			[input_param.name]: {
-				value: input_param.default as boolean || false,
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as boolean || false,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -52,7 +59,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'range') {
 		return ({
 			[input_param.name]: {
-				value: input_param.default as number || 0,
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -79,13 +86,48 @@ const additionalInputParamsMap: any = ref([
 	}
 ])
 
+function copyPromptInputs(input_params_map: TaskHistoryInputParam) {
+	console.debug('Copy prompt inputs', input_params_map)
+	Object.keys(input_params_map).forEach((input_param_name: any) => {
+		const inputParamIndex = inputParamsMap.value.findIndex((inputParam: any) => Object.keys(inputParam)[0] === input_param_name)
+		if (inputParamIndex !== -1) {
+			inputParamsMap.value[inputParamIndex][input_param_name].value = input_params_map[input_param_name]
+		}
+	})
+	const target = document.getElementById('prompt')
+	if (target) {
+		target.scrollIntoView({ behavior: 'smooth' })
+	}
+}
+
+defineExpose({
+	copyPromptInputs
+})
+
+
+inputParamsMap.value.forEach((inputParam: any) => {
+	const input_param_name = Object.keys(inputParam)[0]
+	if (inputParam[input_param_name].type !== 'image') {
+		watch(() => inputParam[input_param_name].value, () => {
+			const input_params_map: any = {}
+			inputParamsMap.value.forEach((inputParam: any) => {
+				const input_param_name = Object.keys(inputParam)[0]
+				input_params_map[input_param_name] = inputParam[input_param_name].value
+			})
+			localStorage.setItem(`input_params_map_${flowStore.currentFlow?.name}`, JSON.stringify(input_params_map))
+		})
+	}
+})
+
 const running = ref(false)
 const batchSize = ref(1)
 const collapsed = ref(false)
 </script>
 
 <template>
-	<div v-if="flowStore.currentFlow" class="w-full my-10 lg:my-0 p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg">
+	<div v-if="flowStore.currentFlow"
+		id="prompt"
+		class="w-full my-10 lg:my-0 p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg">
 		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3" @click="() => {
 			collapsed = !collapsed
 		}">
