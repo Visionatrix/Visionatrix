@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Optimization: priority of execution of task of the same type as the last one, if possible.
 
+### Fixed
+
+- Added cache for installed Workflows list to not read it from disk everytime.
+
 ## [0.0.8 - 2024-04-20]
 
 ### Added

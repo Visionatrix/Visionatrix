@@ -1,5 +1,6 @@
 import base64
 import builtins
+import copy
 import fnmatch
 import json
 import logging
@@ -164,6 +165,24 @@ async def flows_available():
     return responses.JSONResponse(content=get_not_installed_flows())
 
 
+@APP.get("/flows-sub-flows")
+async def flows_from(input_type: typing.Literal["image", "video"]):
+    r = []
+    for i in get_installed_flows():
+        for sub_flow in i.get("sub_flows", []):
+            if sub_flow["type"] == input_type:
+                transformed_flow = copy.deepcopy(i)
+                transformed_flow.pop("sub_flows")
+                transformed_flow["display_name"] = sub_flow["display_name"]
+                for sub_flow_input_params in sub_flow.get("input_params", []):
+                    for k2 in transformed_flow["input_params"]:
+                        if k2["name"] == sub_flow_input_params["name"]:
+                            k2.update(**sub_flow_input_params)
+                            break
+                r.append(transformed_flow)
+    return responses.JSONResponse(content=r)
+
+
 @APP.put("/flow")
 def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     __require_admin(request)
@@ -191,7 +210,7 @@ async def flow_delete(request: Request, name: str):
 async def __task_run(
     name: str,
     input_params: dict,
-    in_files: list[UploadFile],
+    in_files: list[UploadFile | dict],
     flow: dict,
     flow_comfy: dict,
     user_info: database.UserInfo,
@@ -228,9 +247,29 @@ async def task_run(
     name: str = Form(),
     count: int = Form(1),
     input_params: str = Form(None),
-    files: list[UploadFile] = None,  # noqa
+    files: list[UploadFile | str] = None,  # noqa
 ):
-    in_files = files if files else []
+    in_files = []
+    for i in files if files else []:
+        if isinstance(i, str):
+            try:
+                input_file_info = json.loads(i)
+            except json.JSONDecodeError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid files input:{i}"
+                ) from None
+            if "task_id" not in input_file_info:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter"
+                ) from None
+            if not get_task(int(input_file_info["task_id"]), request.scope["user_info"].user_id):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing task with id={input_file_info['task_id']}",
+                ) from None
+            in_files.append(input_file_info)
+        else:
+            in_files.append(i)
     try:
         input_params_dict = json.loads(input_params) if input_params else {}
     except json.JSONDecodeError:
@@ -356,7 +395,9 @@ async def task_results(request: Request, task_id: int, node_id: int):
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     for filename in os.listdir(output_directory):
         if filename.startswith(result_prefix):
-            return responses.FileResponse(os.path.join(output_directory, filename))
+            base_name, extension = os.path.splitext(filename)
+            content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension
+            return responses.FileResponse(os.path.join(output_directory, filename), filename=content_disposition)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
     )

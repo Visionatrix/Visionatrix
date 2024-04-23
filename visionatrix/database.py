@@ -37,7 +37,7 @@ class TaskDetails(Base):
     __tablename__ = "tasks_details"
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
-    user_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
     progress = Column(Float, default=0.0)
     error = Column(String, default="")
     name = Column(String, default="")
