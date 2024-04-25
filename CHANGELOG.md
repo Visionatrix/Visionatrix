@@ -6,7 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `Send to` button - in one click, send the result of one workflow for processing to another.
 - Optimization: priority of execution of task of the same type as the last one, if possible.
+
+### Changed
+
+- AMD graphic cards: `Nightly PyTorch 2.3` replaced with `stable` version.
 
 ### Fixed
 
