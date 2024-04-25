@@ -34,9 +34,9 @@ Activate Virtual Environment(**Windows**) with :command:`powershell`::
 .. note::
     On macOS with Apple Silicon currently no action is needed.
 
-For AMD graphic cards on **Linux** install development version of PyTorch using :command:`pip`::
+For AMD graphic cards on **Linux** install **ROCM** version of PyTorch using :command:`pip`::
 
-    pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/rocm6.0
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.0
 
 
 ---------
@@ -53,7 +53,7 @@ For AMD graphics cards on **Windows** install PyTorch with DirectML support usin
 
 For NVIDIA graphics cards on **both Linux or Windows** install PyTorch using :command:`pip`::
 
-    pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu121
+    pip install torch torchvision torchaudio
 
 
 Install Visionatrix
