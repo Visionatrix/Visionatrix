@@ -1,7 +1,7 @@
 {
   "name": "comicu_portrait",
   "display_name": "Comicu Portrait",
-  "description": "Person portrait in Simple Anime style",
+  "description": "Person portrait in Anime style",
   "author": "Datou",
   "homepage": "https://openart.ai/workflows/datou/comicu/8fIWdL2KU2myMdfigoWk",
   "license": "",
@@ -15,6 +15,28 @@
       "comfy_node_id": {
         "340": {
           "dest_field_name": ["inputs", "image"]
+        }
+      }
+    },
+    {
+      "name": "disable_simplest",
+      "display_name": "Disable Simple style",
+      "type": "bool",
+      "optional": true,
+      "advanced": true,
+      "default": false,
+      "comfy_node_id" : {
+        "384": {
+          "dest_field_name": ["inputs", ["lora_name", "positive"]],
+          "value": ["None", "[1{gender}] {prompt}, line-sketch, ((looking at viewer, clear background, white background)), best quality"]
+        },
+        "336": {
+          "dest_field_name": ["inputs", "weight"],
+          "value": 0.6
+        },
+        "357": {
+          "dest_field_name": ["inputs", ["scheduler", "sampler_name"]],
+          "value": ["normal", "euler_ancestral"]
         }
       }
     },

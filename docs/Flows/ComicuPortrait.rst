@@ -3,9 +3,11 @@
 ComicU Anime Portrait
 =====================
 
-Create an anime sketch image from a photo of a person.
+Create an anime(sketch by default) image from a photo of a person.
 
 **Prompt** is optional, something like emotions can be used there: *smile, sad, serious, etc*.
+
+.. note:: *If you ticked the "Disable Simple style" you can try add something like* **line-sketch** *to the prompt.*
 
 Part of the flow runs on the CPU, part on the GPU, the flow is quite fast and convenient for everyday use.
 
