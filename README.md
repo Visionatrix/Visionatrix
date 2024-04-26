@@ -20,7 +20,7 @@ Visionatrix projects provides:
   * *User Support*:  easily configured to work with multiple users.
 
 > [!NOTE]
-> The project is currently in the early development stage, expect breaking changes.
+> The project is currently in the development stage, expect breaking changes.
 
 ## Easy installation for home use
 

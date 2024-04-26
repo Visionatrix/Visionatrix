@@ -8,8 +8,9 @@ from shutil import rmtree
 from subprocess import run
 
 import yaml
+from packaging.version import Version
 
-from .. import options
+from .. import _version, options
 from .custom_nodes import install_base_custom_nodes
 
 LOGGER = logging.getLogger("visionatrix")
@@ -58,7 +59,19 @@ def install(operations_mask: list[bool]) -> None:
             LOGGER.info("Removing existing Backend directory: %s", options.BACKEND_DIR)
             rmtree(options.BACKEND_DIR, onerror=remove_readonly)
         os.makedirs(options.BACKEND_DIR)
-        run(f"git clone https://github.com/Visionatrix/ComfyUI.git {options.BACKEND_DIR}".split(), check=True)
+        clone_command = "git clone "
+        what_where_clone = f"https://github.com/Visionatrix/ComfyUI.git {options.BACKEND_DIR}"
+        clone_env = None
+        if options.PYTHON_EMBEDED:
+            clone_command += "--depth 1 " + what_where_clone
+        elif Version(_version.__version__).is_devrelease:
+            clone_command += what_where_clone
+        else:
+            clone_env = os.environ.copy()
+            clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+            clone_command += f"-b v{_version.__version__} " + what_where_clone
+        print("Executing: ", clone_command)
+        run(clone_command.split(), check=True, env=clone_env)
         run(
             [sys.executable, "-m", "pip", "install", "-r", os.path.join(options.BACKEND_DIR, "requirements.txt")],
             check=True,

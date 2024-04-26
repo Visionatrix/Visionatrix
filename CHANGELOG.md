@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.9 - 2024-04-xx]
+## [0.0.9 - 2024-04-2x]
 
 ### Added
 
 - `Send to` button - in one click, send the result of one workflow for processing to another.
 - Optimization: priority of execution of task of the same type as the last one, if possible.
+- From now on, each repository will be tagged each release, allowing you to install a specific version of **Vix**.
 
 ### Changed
 

@@ -6,8 +6,9 @@ from pathlib import Path
 from subprocess import run
 
 import httpx
+from packaging.version import Version
 
-from .. import options
+from .. import _version, options
 from ..models import install_model
 
 LOGGER = logging.getLogger("visionatrix")
@@ -69,10 +70,20 @@ def install_base_custom_node(node_name: str, node_details: dict) -> None:
     custom_nodes_dir = Path(options.BACKEND_DIR).joinpath("custom_nodes")
     LOGGER.info("Cloning `%s`", node_name)
     git_flags = node_details.get("git_flags", "")
-    run(
-        f"git clone {options.ORG_URL}{node_name}.git {git_flags} {os.path.join(custom_nodes_dir, node_name)}".split(),
-        check=True,
-    )
+    github_url = f"{options.ORG_URL}{node_name}.git"
+    clone_command = "git clone "
+    what_clone = f"{os.path.join(custom_nodes_dir, node_name)}"
+    clone_env = None
+    if options.PYTHON_EMBEDED:
+        clone_command += f"{github_url} {git_flags} --depth 1 {what_clone}"
+    elif Version(_version.__version__).is_devrelease:
+        clone_command += f"{github_url} {git_flags} {what_clone}"
+    else:
+        clone_env = os.environ.copy()
+        clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+        clone_command += f"-b v{_version.__version__} {github_url} {git_flags} {what_clone}"
+    print("Executing: ", clone_command)
+    run(clone_command.split(), check=True, env=clone_env)
     _install_requirements(custom_nodes_dir, node_name, node_details)
     _run_install_script(custom_nodes_dir, node_name)
     if "models" in node_details:
