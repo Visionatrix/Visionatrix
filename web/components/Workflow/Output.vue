@@ -205,7 +205,7 @@ const sentDoOutputParamIndex = ref(0)
 								}`
 						}}
 					</p>
-					<div class="w-full flex justify-center items-center overflow-x-scroll">
+					<div class="w-full flex justify-center items-center">
 						<UButton
 							class="mr-3"
 							color="red"
