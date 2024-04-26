@@ -70,10 +70,15 @@ def first_run() -> int:
 def reinstall():
     if not PYTHON_EMBEDED:
         if Path(VENV_NAME).exists():
-            c = input(f"{VENV_NAME} folder already exists. Remove it? (Y/N): ").lower()
-            if c == "y":
-                rmtree(VENV_NAME, onerror=remove_readonly)
-                print(f"Removed `{VENV_NAME}` folder.")
+            if sys.executable.find(VENV_NAME) == -1:
+                c = input(f"{VENV_NAME} folder already exists. Remove it? (Y/N): ").lower()
+                if c == "y":
+                    rmtree(VENV_NAME, onerror=remove_readonly)
+                    print(f"Removed `{VENV_NAME}` folder.")
+            else:
+                c = input("Can't remove virtual environment, current script use it. Continue? (Y/N): ").lower()
+                if c != "y":
+                    return
         if not Path(VENV_NAME).exists():
             create_venv()
     install_graphics_card_packages()
@@ -115,7 +120,8 @@ def install_all_flows():
         "photo_stickers",
         "ghibli_portrait",
         "comicu_portrait",
-        "vintage_portrait"
+        "vintage_portrait",
+        "supir_upscaler",
     ]
 
     for i in flows:
@@ -125,11 +131,13 @@ def install_all_flows():
 
 def clone_vix_repository() -> None:
     try:
-        print("Cloning Visionatrix repository..")
         if PYTHON_EMBEDED:
-            subprocess.check_call(["git", "clone", "--depth", "1", "https://github.com/Visionatrix/Visionatrix.git"])
+            clone_command = ["git", "clone", "--depth", "1", "https://github.com/Visionatrix/Visionatrix.git"]
         else:
-            subprocess.check_call(["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"])
+            clone_command = ["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"]
+        print("Cloning Visionatrix repository...")
+        print(clone_command)
+        subprocess.check_call(clone_command)
         print("Repository cloned successfully.")
     except subprocess.CalledProcessError as e:
         print("An error occurred while trying to clone the repository:", str(e))
