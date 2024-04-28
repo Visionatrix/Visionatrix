@@ -2,18 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.9 - 2024-04-27]
+## [0.0.9 - 2024-04-28]
+
+Breaking change: please remove old `juggernaut_lighting_loras` folder from *vix_flows* folders.
 
 ### Added
 
 - `Send to` button - in one click, send the result of one workflow for processing to another.
 - Optimization: priority of execution of task of the same type as the last one, if possible.
-- From now on, each repository will be tagged each release, allowing you to install a specific version of **Vix**.
 - `ComicU` flow: added option to make clear Anime style portraits.
+- `Juggernaut XL` flow: easy use of the latest **Juggernaut X** model.
+- From now on, each repository will be tagged each release, allowing you to install a specific version of **Vix**.
 
 ### Changed
 
 - AMD graphic cards: `Nightly PyTorch 2.3` replaced with `stable` version.
+- `Juggernaut Lighting Loras` renamed to `Juggernaut Lite` flow.
 
 ### Fixed
 

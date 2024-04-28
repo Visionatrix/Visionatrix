@@ -142,6 +142,18 @@
     "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-Lightning",
     "hash": "c8df560d2992ac04299412be6a36fa53a4e7a1b74f27b94867ad3f84f4b425a5"
   },
+  "JuggernautXL_v8RunDiffusion": {
+    "regexes": [
+      {
+        "input_value": "^(?=.*(?i:juggernaut))(?=.*(?i:XL))(?=.*(?i:v8))(?=.*(?i:Rundiffusion)).*",
+        "input_name": "^(?!.*(?i:lora)).*"
+      }
+    ],
+    "save_path": "checkpoints/juggernautXL_v8Rundiffusion.safetensors",
+    "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8/resolve/main/juggernautXL_v8Rundiffusion.safetensors",
+    "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8",
+    "hash": "aeb7e9e6897a1e58b10494bd989d001e3d4bc9b634633cd7b559838f612c2867"
+  },
   "JuggernautXL_v9RunDiffusionPhoto2": {
     "regexes": [
       {
@@ -154,17 +166,17 @@
     "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9",
     "hash": "c9e3e68f89b8e38689e1097d4be4573cf308de4e3fd044c64ca697bdb4aa8bca"
   },
-  "JuggernautXL_v8RunDiffusion": {
+  "Juggernaut_X_RunDiffusion_NSFW": {
     "regexes": [
       {
-        "input_value": "^(?=.*(?i:juggernaut))(?=.*(?i:XL))(?=.*(?i:v8))(?=.*(?i:Rundiffusion)).*",
+        "input_value": "^(?=.*(?i:juggernaut))(?=.*(?i:X))(?=.*(?i:Rundiffusion))(?=.*(?i:NSFW)).*",
         "input_name": "^(?!.*(?i:lora)).*"
       }
     ],
-    "save_path": "checkpoints/juggernautXL_v8Rundiffusion.safetensors",
-    "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8/resolve/main/juggernautXL_v8Rundiffusion.safetensors",
-    "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v8",
-    "hash": "aeb7e9e6897a1e58b10494bd989d001e3d4bc9b634633cd7b559838f612c2867"
+    "save_path": "checkpoints/Juggernaut-X-RunDiffusion-NSFW.safetensors",
+    "url": "https://huggingface.co/RunDiffusion/Juggernaut-X-v10/resolve/main/Juggernaut-X-RunDiffusion-NSFW.safetensors",
+    "homepage": "https://huggingface.co/RunDiffusion/Juggernaut-X-v10",
+    "hash": "d91d35736d8f2be038f760a9b0009a771ecf0a417e9b38c244a84ea4cb9c0c45"
   },
   "SDXL_lightning_8step_lora": {
     "regexes": [
