@@ -244,19 +244,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1) {
-			console.debug('input_params:', JSON.stringify(input_params.map((param: any) => {
-				const paramName = Object.keys(param)[0]
-				if (['text', 'list'].includes(param[paramName].type))
-					return { [paramName]: param[paramName].value }
-			})))
-
 			const formData = new FormData()
 
-			// Map input_params to an object key=input_param_name, value=input_param_value
 			const input_params_mapped: any = {}
 			input_params.forEach(param => {
 				const paramName = Object.keys(param)[0]
-				if (param[paramName].type !== 'image')
+				if (param[paramName].type !== 'image' && param[paramName].value !== '')
 					input_params_mapped[paramName] = param[paramName].value
 			})
 			console.debug('input_params_mapped:', input_params_mapped)
@@ -417,6 +410,16 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const { $apiFetch } = useNuxtApp()
 			const url = flow_name ? `/tasks-progress-short?name=${flow_name}` : '/tasks-progress'
 			return await $apiFetch(url, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+		},
+
+		async fetchFlowComfy(task_id: string) {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/task-progress?task_id=${task_id}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -616,7 +619,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const user_options = localStorage.getItem('user_options')
 			if (user_options) {
 				const options = JSON.parse(user_options)
-				this.resultsPageSize = options.resultsPageSize
+				this.resultsPageSize = Number(options.resultsPageSize)
 			}
 		},
 

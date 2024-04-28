@@ -6,7 +6,8 @@ const props = defineProps({
 	},
 	flowResult: {
 		type: Object,
-		required: true,
+		required: false,
+		default: () => null,
 	},
 	outputImgSrc: {
 		type: String,
