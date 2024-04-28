@@ -1,0 +1,135 @@
+{
+  "2": {
+    "inputs": {
+      "ckpt_name": "Juggernaut-X-RunDiffusion-NSFW.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "13": {
+    "inputs": {
+      "vae_name": "sdxl_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "27": {
+    "inputs": {
+      "seed": 485559209255425,
+      "steps": 40,
+      "cfg": 4,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "254",
+        0
+      ],
+      "positive": [
+        "243",
+        0
+      ],
+      "negative": [
+        "242",
+        0
+      ],
+      "latent_image": [
+        "244",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "116": {
+    "inputs": {
+      "samples": [
+        "27",
+        0
+      ],
+      "vae": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "242": {
+    "inputs": {
+      "text": "embedding:ng_deepnegative_v1_75t, embedding:negative_hand-neg,  (worst quality, low quality:2), lowres, bad anatomy, normal quality, monochrome, grayscale, ((signature, text, watermark))",
+      "clip": [
+        "254",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "243": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "254",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "244": {
+    "inputs": {
+      "width": 832,
+      "height": 1216,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "254": {
+    "inputs": {
+      "lora_name": "add-detail-xl.safetensors",
+      "strength_model": 0.5,
+      "strength_clip": 1,
+      "model": [
+        "2",
+        0
+      ],
+      "clip": [
+        "2",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "267": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  }
+}
