@@ -1,7 +1,7 @@
-.. _Juggernaut_Lighting_LoRAs:
+.. _Juggernaut_Lite:
 
-Juggernaut Lighting Loras
-=========================
+Juggernaut Lite
+===============
 
 This flow is most suitable for generating people quickly and realistically.
 
@@ -23,14 +23,14 @@ Time to generate 1 image:
 Examples
 """"""""
 
-.. image:: /FlowsResults/Juggernaut_Lighting_LoRAs_1.png
+.. image:: /FlowsResults/Juggernaut_Lite_1.png
 
 Prompt: "*portrait of hero wearing cuirass sitting on the chair, high details, photo realistic*"  (seed: 2)
 
-.. image:: /FlowsResults/Juggernaut_Lighting_LoRAs_2.png
+.. image:: /FlowsResults/Juggernaut_Lite_2.png
 
 Prompt: "*portrait of elf man in obsidian armor looking at viewer from the dark, contrast, high details*"  (seed: 1)
 
-.. image:: /FlowsResults/Juggernaut_Lighting_LoRAs_3.png
+.. image:: /FlowsResults/Juggernaut_Lite_3.png
 
 Prompt: "*portrait rage tiger*"  (seed: 2)

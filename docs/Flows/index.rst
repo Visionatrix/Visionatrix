@@ -6,7 +6,8 @@ Available Flows
 
    SDXL_Lighting
    Playground_2_5_aesthetic
-   Juggernaut_Lighting_LoRAs
+   Juggernaut_Lite
+   Juggernaut_XL
    Stable_Cascade
    VintagePortrait
    Photomaker_1
