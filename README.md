@@ -62,7 +62,7 @@ This eliminates the need to have `Git` and `Visual Studio` compilers installed.
 Currently, only versions for CUDA/CPU is build, if there will be request we can add `Direct-ML` version too.
 
 1. Go to [Releases](https://github.com/Visionatrix/Visionatrix/releases)
-2. Download `vix_portable_cuda.7z.001` and `vix_portable_cuda.7z.002`, it is one archive.
+2. Download `vix_portable_cuda.7z.001` *(and `vix_portable_cuda.7z.002`, if present, then this is one archive)*.
 3. Unpack it and run `run_nvidia_gpu.bat` or `run_cpu.bat`
 
 ### Manual Installation
