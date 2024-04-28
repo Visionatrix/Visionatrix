@@ -1,11 +1,11 @@
 {
-  "name": "juggernaut_lighting_loras",
-  "display_name": "Juggernaut: Lighting LoRAs",
+  "name": "juggernaut_lite",
+  "display_name": "Juggernaut Lite",
   "description": "Juggernaut + LoRAs with post processing",
   "author": "Valomar",
   "homepage": "https://comfyworkflows.com/profile/86edf4d7-d110-498d-b4e0-4cacadee750e",
   "license": "",
-  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Juggernaut_Lighting_LoRAs.html",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/Juggernaut_Lite.html",
   "input_params": [
     {
       "name": "prompt",

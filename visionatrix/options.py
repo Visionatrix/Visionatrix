@@ -41,7 +41,7 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 
 ORG_URL = "https://github.com/Visionatrix/"
 FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
-# FLOWS_URL = "./flows.zip"
+# FLOWS_URL = "./flows.zip"  # zip -r flows.zip flows -x "flows/models_catalog.json"
 MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.json"
 # MODELS_CATALOG_URL = "./flows/models_catalog.json"
 
