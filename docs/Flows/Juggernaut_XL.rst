@@ -11,6 +11,8 @@ Prompting information can be found here: `Juggernaut-X prompting <https://storag
 
 **Supports various aspect ratios.**
 
+**Supports fast generation using the Align Steps technique**
+
 Hardware
 """"""""
 
@@ -18,7 +20,7 @@ Hardware
 
 Time to generate 1 image:
 
-- AMD 7900 XTX: **12.7 sec**
+- AMD 7900 XTX: **15.8 sec** / **6.7 sec**
 - NVIDIA RTX 3060 (12 GB): **? sec**
 - Apple M2 Max: **? sec**
 
