@@ -53,6 +53,20 @@
       }
     },
     {
+      "name": "fast_run",
+      "display_name": "Fast run",
+      "type": "bool",
+      "default": false,
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "267": {
+          "dest_field_name": ["inputs", "images"],
+          "value": ["275", 0]
+        }
+      }
+    },
+    {
       "name": "prompt_strength",
       "display_name": "Prompt strength",
       "type": "range",
@@ -64,6 +78,10 @@
       "step": 0.1,
       "comfy_node_id" : {
         "27" : {
+          "dest_field_name": ["inputs", "cfg"],
+          "internal_type": "float"
+        },
+        "268" : {
           "dest_field_name": ["inputs", "cfg"],
           "internal_type": "float"
         }
