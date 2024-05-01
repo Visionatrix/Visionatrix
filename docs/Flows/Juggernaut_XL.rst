@@ -21,8 +21,8 @@ Hardware
 Time to generate 1 image:
 
 - AMD 7900 XTX: **15.8 sec** / **6.7 sec**
-- NVIDIA RTX 3060 (12 GB): **? sec**
-- Apple M2 Max: **? sec**
+- NVIDIA RTX 3060 (12 GB): **35 sec** / **13.5 sec**
+- Apple M2 Max: **93 sec** / **39 sec**
 
 Examples
 """"""""
