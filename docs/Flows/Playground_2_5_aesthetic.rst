@@ -13,6 +13,8 @@ Playground v2.5 outperforms widely-used models and even some closed-source syste
 
 **Supports various aspect ratios.**
 
+**Supports fast generation using the Align Steps technique**
+
 Hardware
 """"""""
 
@@ -20,23 +22,28 @@ Hardware
 
 Time to generate 1 image:
 
-- AMD 7900 XTX: **17.5 sec** (no face) / **52 sec** (one face)
+- AMD 7900 XTX: **17.5 sec** (no face) / **29 sec** (one face)
 - NVIDIA RTX 3060 (12 GB): **33 sec** (no face) / **46 sec** (one face)
-- Apple M2 Max: **99.8 sec** (no face) / **190 sec** (one face)
+- Apple M2 Max: **99.8 sec** (no face) / **160 sec** (one face)
 
-.. note:: results may vary, as FaceDetailer will post-process image only if it detects face.
+.. note:: Results may vary, as FaceDetailer will post-process image only if it detects face.
 
 Examples
 """"""""
 
+.. note:: *On the right is an image with the "fast run" option*
+
 .. image:: /FlowsResults/Playground_2_5_aesthetic_1.png
+.. image:: /FlowsResults/Playground_2_5_aesthetic_1-fast.png
 
 Prompt: "*girl in suite looking at viewer, high quality, 8k, bright colors*"  (seed: 5)
 
 .. image:: /FlowsResults/Playground_2_5_aesthetic_2.png
+.. image:: /FlowsResults/Playground_2_5_aesthetic_2-fast.png
 
 Prompt: "*cat in suite looking at viewer, high quality, 8k, bright colors*"  (seed: 5)
 
 .. image:: /FlowsResults/Playground_2_5_aesthetic_3.png
+.. image:: /FlowsResults/Playground_2_5_aesthetic_3-fast.png
 
 Prompt: "*Dragon in forest, vivid colors*"  (seed: 3)
