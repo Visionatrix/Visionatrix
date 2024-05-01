@@ -19,10 +19,10 @@
   },
   "27": {
     "inputs": {
-      "seed": 485559209255425,
-      "steps": 40,
+      "seed": 376336750880278,
+      "steps": 50,
       "cfg": 4,
-      "sampler_name": "dpmpp_2m",
+      "sampler_name": "euler",
       "scheduler": "karras",
       "denoise": 1,
       "model": [
@@ -130,6 +130,77 @@
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
+    }
+  },
+  "268": {
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 618748884544708,
+      "cfg": 4,
+      "model": [
+        "254",
+        0
+      ],
+      "positive": [
+        "243",
+        0
+      ],
+      "negative": [
+        "242",
+        0
+      ],
+      "sampler": [
+        "273",
+        0
+      ],
+      "sigmas": [
+        "270",
+        0
+      ],
+      "latent_image": [
+        "244",
+        0
+      ]
+    },
+    "class_type": "SamplerCustom",
+    "_meta": {
+      "title": "SamplerCustom"
+    }
+  },
+  "270": {
+    "inputs": {
+      "model_type": "SDXL",
+      "steps": 20,
+      "denoise": 1
+    },
+    "class_type": "AlignYourStepsScheduler",
+    "_meta": {
+      "title": "AlignYourStepsScheduler"
+    }
+  },
+  "273": {
+    "inputs": {
+      "sampler_name": "dpmpp_2m"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "275": {
+    "inputs": {
+      "samples": [
+        "268",
+        0
+      ],
+      "vae": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
     }
   }
 }
