@@ -9,13 +9,13 @@
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "face_detailer"
+      "title": "CLIP Text Encode (Prompt)"
     }
   },
   "58": {
     "inputs": {
       "sharpen_radius": 1,
-      "sigma": 0.30000000000000004,
+      "sigma": 0.3,
       "alpha": 0.1,
       "image": [
         "126",
@@ -36,7 +36,7 @@
       "sub_threshold": 0.5,
       "sub_dilation": 0,
       "sub_bbox_expansion": 0,
-      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_threshold": 0.7000000000000001,
       "post_dilation": 0,
       "bbox_detector": [
         "221",
@@ -77,7 +77,7 @@
       "guide_size": 512,
       "guide_size_for": true,
       "max_size": 1024,
-      "seed": 1125899906842624,
+      "seed": 767016419755284,
       "steps": 20,
       "cfg": 3.5,
       "sampler_name": "dpmpp_2m",
@@ -145,7 +145,7 @@
       "guide_size": 512,
       "guide_size_for": true,
       "max_size": 1024,
-      "seed": 1125899906842624,
+      "seed": 228245828688511,
       "steps": 20,
       "cfg": 3.5,
       "sampler_name": "dpmpp_2m",
@@ -213,7 +213,7 @@
       "guide_size": 512,
       "guide_size_for": true,
       "max_size": 1024,
-      "seed": 1125899906842624,
+      "seed": 277343974126122,
       "steps": 20,
       "cfg": 3.5,
       "sampler_name": "dpmpp_2m",
@@ -361,19 +361,19 @@
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "face_detailer"
+      "title": "CLIP Text Encode (Prompt)"
     }
   },
   "238": {
     "inputs": {
-      "seed": 62122468004907,
+      "seed": 5,
       "steps": 50,
       "cfg": 3,
       "sampler_name": "euler",
       "scheduler": "normal",
       "denoise": 1,
       "model": [
-        "226",
+        "232",
         0
       ],
       "positive": [
@@ -412,13 +412,68 @@
   },
   "246": {
     "inputs": {
-      "width": 1216,
-      "height": 832,
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
     "_meta": {
       "title": "Empty Latent Image"
+    }
+  },
+  "247": {
+    "inputs": {
+      "model_type": "SDXL",
+      "steps": 20,
+      "denoise": 1
+    },
+    "class_type": "AlignYourStepsScheduler",
+    "_meta": {
+      "title": "AlignYourStepsScheduler"
+    }
+  },
+  "248": {
+    "inputs": {
+      "sampler_name": "dpmpp_2m"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "249": {
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 5,
+      "cfg": 3,
+      "model": [
+        "232",
+        0
+      ],
+      "positive": [
+        "229",
+        0
+      ],
+      "negative": [
+        "230",
+        0
+      ],
+      "sampler": [
+        "248",
+        0
+      ],
+      "sigmas": [
+        "247",
+        0
+      ],
+      "latent_image": [
+        "246",
+        0
+      ]
+    },
+    "class_type": "SamplerCustom",
+    "_meta": {
+      "title": "SamplerCustom"
     }
   }
 }

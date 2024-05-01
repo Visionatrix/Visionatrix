@@ -51,6 +51,41 @@
           "dest_field_name": ["inputs", ["width", "height"]]
         }
       }
+    },
+    {
+      "name": "fast_run",
+      "display_name": "Fast run",
+      "type": "bool",
+      "default": false,
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "240": {
+          "dest_field_name": ["inputs", "samples"],
+          "value": ["249", 0]
+        }
+      }
+    },
+    {
+      "name": "prompt_strength",
+      "display_name": "Prompt strength",
+      "type": "range",
+      "optional": true,
+      "advanced": true,
+      "default": 3.0,
+      "min": 3.0,
+      "max": 5.0,
+      "step": 0.1,
+      "comfy_node_id" : {
+        "238" : {
+          "dest_field_name": ["inputs", "cfg"],
+          "internal_type": "float"
+        },
+        "249" : {
+          "dest_field_name": ["inputs", "cfg"],
+          "internal_type": "float"
+        }
+      }
     }
   ]
 }
