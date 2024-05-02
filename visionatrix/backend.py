@@ -26,6 +26,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -155,18 +156,46 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     )
 
 
-@APP.get("/flows-installed")
+class Flow(BaseModel):
+    name: str
+    display_name: str
+    description: str
+    author: str
+    homepage: str
+    license: str
+    documentation: str
+    sub_flows: list[dict] | None = []
+    input_params: list[dict]
+
+
+@APP.get("/flows-installed", response_model=list[Flow])
 async def flows_installed():
+    """
+    Return the list of installed flows. Each flow can potentially be converted into a task. The response
+    includes details such as the name, display name, description, author, homepage URL, and other relevant
+    information about each flow.
+    """
     return responses.JSONResponse(content=get_installed_flows())
 
 
-@APP.get("/flows-available")
+@APP.get("/flows-available", response_model=list[Flow])
 async def flows_available():
+    """
+    Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
+    similar to the installed flows, which includes metadata and configuration parameters.
+    """
     return responses.JSONResponse(content=get_not_installed_flows())
 
 
-@APP.get("/flows-sub-flows")
+@APP.get("/flows-sub-flows", response_model=list[Flow])
 async def flows_from(input_type: typing.Literal["image", "video"]):
+    """
+    Retrieves a list of flows designed to post-process the results from other flows, filtering by the type
+    of input they handle, either 'image' or 'video'. This endpoint is particularly useful for chaining workflows
+    where the output of one flow becomes the input to another. It modifies the main flow's structure by adopting
+    sub-flow's display name and selectively merging input parameters from the sub-flows into the main flow's parameters
+    based on matching names.
+    """
     r = []
     for i in get_installed_flows():
         for sub_flow in i.get("sub_flows", []):
@@ -185,7 +214,19 @@ async def flows_from(input_type: typing.Literal["image", "video"]):
 
 @APP.put("/flow")
 def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
+    """
+    Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges
+    to perform the installation. If another flow installation is already in progress, it prevents a new
+    installation to avoid conflicts, returning a 409 Conflict HTTP status.
+
+    This endpoint schedules a background task for the installation process using the specified flow name. It
+    checks the availability of the flow in the list of available flows and starts the installation if the flow
+    is found. It ensures that no two installations can run concurrently.
+    """
     __require_admin(request)
+    if any(i for i in FLOW_INSTALL_STATUS.values() if i["progress"] < 100.0 and i["error"] == ""):
+        return responses.JSONResponse(status_code=409, content={"error": "Another flow installation is in progress."})
+
     flows, flows_comfy = get_available_flows()
     for i, flow in enumerate(flows):
         if flow["name"] == name:
@@ -197,11 +238,20 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
 
 @APP.get("/flow-progress-install")
 async def flow_progress_install():
+    """
+    Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint
+    returns a dictionary showing the installation status for each flow.
+
+    Status is not persistent and will be reset upon restart
+    """
     return responses.JSONResponse(content=FLOW_INSTALL_STATUS)
 
 
 @APP.delete("/flow")
 async def flow_delete(request: Request, name: str):
+    """
+    Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.
+    """
     __require_admin(request)
     uninstall_flow(name)
     return responses.JSONResponse(content={"error": ""})
@@ -423,6 +473,12 @@ async def task_worker_give_task(
     tasks_names: typing.Annotated[list[str], Form()],
     last_task_name: typing.Annotated[str, Form()] = "",
 ):
+    """
+    Retrieves an incomplete task for a `worker` to process. Workers provide a list of tasks names they can handle
+    and optionally the name of the last task they were working on to prioritize similar types of tasks. If a
+    worker is associated with an admin account, it can retrieve tasks regardless of user assignment; otherwise,
+    it retrieves only those assigned to the user.
+    """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     return responses.JSONResponse(
         content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names, last_task_name, user_id)}
@@ -437,6 +493,12 @@ async def task_worker_update_progress(
     execution_time: typing.Annotated[float, Form()],
     error: typing.Annotated[str, Form()] = "",
 ):
+    """
+    Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
+    and if the requester is authorized to update its progress. If the task is not found or unauthorized,
+    a 404 HTTP error is raised, and `worker` should stop and consider the task canceled.
+    If successful, the task's progress, execution time, and error message are updated in the database.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
@@ -454,6 +516,11 @@ async def task_worker_update_progress(
 
 @APP.put("/task-worker/results")
 async def task_worker_put_results(request: Request, task_id: int, files: list[UploadFile]):
+    """
+    Saves the result files for a specific task on the server. This endpoint checks if the task exists
+    and if the `worker` making the request has the authorization to upload results.
+    If the task is not found or the user is unauthorized, a 404 HTTP error is raised.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
@@ -474,6 +541,12 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
 
 @APP.delete("/task-worker/lock")
 async def task_worker_remove_lock(request: Request, task_id: int):
+    """
+    Unlocks a task specified by the `task_id`. This endpoint checks if the task exists
+    and if the `worker` making the request has the authorization to unlock it.
+    If the task is not found or the user is unauthorized, it raises an HTTP 404 error.
+    If the conditions are met, the lock on the task is removed.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
