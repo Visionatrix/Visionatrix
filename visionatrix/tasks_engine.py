@@ -11,7 +11,7 @@ import typing
 from datetime import datetime
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import Row, and_, delete, desc, select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -25,31 +25,40 @@ ACTIVE_TASK: dict = {}
 
 
 class TaskDetailsOutputs(BaseModel):
-    comfy_node_id: int
-    type: str
+    """Contains information for retrieving the results of a ComfyUI workflow."""
+
+    comfy_node_id: int = Field(..., description="ID of the ComfyUI node containing the result.")
+    type: str = Field(
+        ..., description="Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
+    )
 
 
 class TaskDetailsShort(BaseModel):
-    progress: float
-    error: str
-    name: str
-    input_params: dict
-    outputs: list[TaskDetailsOutputs]
-    input_files: list[str]
-    execution_time: float
+    """Brief information about the Task."""
+
+    progress: float = Field(
+        ..., description="Progress from 0 to 100, task results are only available once progress reaches 100."
+    )
+    error: str = Field(
+        ..., description="If this field is not empty, it indicates an error that occurred during task execution."
+    )
+    name: str = Field(..., description="The unique identifier of the flow.")
+    input_params: dict = Field(
+        ..., description="Incoming textual parameters based on which the ComfyUI workflow was generated."
+    )
+    outputs: list[TaskDetailsOutputs] = Field(..., description="ComfyUI nodes from which results can be retrieved.")
+    input_files: list[str] = Field(
+        ..., description="Incoming file parameters based on which the ComfyUI workflow was generated."
+    )
+    execution_time: float = Field(..., description="Execution time of the ComfyUI workflow in seconds.")
 
 
-class TaskDetails(BaseModel):
-    task_id: int
-    progress: float
-    error: str
-    name: str
-    input_params: dict
-    outputs: list[TaskDetailsOutputs]
-    input_files: list[str]
-    flow_comfy: dict
-    user_id: str
-    execution_time: float
+class TaskDetails(TaskDetailsShort):
+    """Detailed information about the Task."""
+
+    task_id: int = Field(..., description="Unique identifier of the task.")
+    flow_comfy: dict = Field(..., description="The final generated ComfyUI workflow.")
+    user_id: str = Field(..., description="User ID to whom the task belongs.")
 
 
 def __init_new_task_details(task_id: int, name: str, input_params: dict, user_info: database.UserInfo) -> dict:

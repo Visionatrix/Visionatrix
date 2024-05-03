@@ -26,7 +26,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -158,16 +158,41 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     )
 
 
+class SubFlow(BaseModel):
+    """
+    A SubFlow modifies or extends a Flow by overwriting certain parameters like display_name and input_params.
+    """
+
+    display_name: str = Field(..., description="The new display name when this subflow's parameters are used.")
+    type: str = Field(..., description="The type of object this subflow is applicable to, e.g., 'image' or 'video'.")
+    input_params: list[dict] = Field(
+        ..., description="List of input parameters specific to this subflow, replacing the original flow's parameters."
+    )
+
+
 class Flow(BaseModel):
-    name: str
-    display_name: str
-    description: str
-    author: str
-    homepage: str
-    license: str
-    documentation: str
-    sub_flows: list[dict] | None = []
-    input_params: list[dict]
+    """
+    Flows serve as add-ons to ComfyUI workflows, determining the parameters to be displayed and populated.
+    They also allow for the modification of ComfyUI workflow behavior based on incoming parameters.
+    """
+
+    name: str = Field(..., description="The unique identifier of the flow.")
+    display_name: str = Field(..., description="The user-friendly name of the flow.")
+    description: str = Field("", description="A brief explanation of the flow's purpose and functionality.")
+    author: str = Field(..., description="The creator or maintainer of the flow.")
+    homepage: str = Field("", description="A URL to the flow's homepage or the author's website.")
+    license: str = Field("", description="The type of license under which the flow is made available.")
+    documentation: str = Field("", description="A URL linking to detailed documentation for the flow.")
+    sub_flows: list[SubFlow] = Field(
+        default=[], description="A list of subflows derived from this flow, allowing customization or extension."
+    )
+    input_params: list[dict] = Field(
+        ..., description="Initial set of parameters required to launch the flow, potentially modifiable by subflows."
+    )
+
+
+class TaskRunResults(BaseModel):
+    tasks_ids: list[int] = Field(..., description="List of IDs representing the tasks that were created.")
 
 
 @APP.get("/flows-installed")
@@ -305,12 +330,15 @@ async def __task_run(
 @APP.post("/task")
 async def task_run(
     request: Request,
-    name: str = Form(),
-    count: int = Form(1),
-    input_params: str = Form(None),
-    files: list[UploadFile | str] = None,  # noqa
-):
-    """TO-DO"""
+    name: str = Form(description="Name of the flow from which the task should be created"),
+    count: int = Form(1, description="Number of tasks to be created"),
+    input_params: str = Form(None, description="List of input parameters as an encoded json string"),
+    files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
+) -> TaskRunResults:
+    """
+    Endpoint to initiate the creation and execution of tasks within the Vix workflow environment,
+    handling both file inputs and task-related parameters.
+    """
     in_files = []
     for i in files if files else []:
         if isinstance(i, str):
@@ -349,7 +377,10 @@ async def task_run(
         tasks_ids.append(task_details["task_id"])
         if "seed" in input_params_dict:
             input_params_dict["seed"] = input_params_dict["seed"] + 1
-    return responses.JSONResponse(content={"tasks_ids": tasks_ids})
+    try:
+        return TaskRunResults.model_validate({"tasks_ids": tasks_ids})
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
 @APP.get("/tasks-progress")
