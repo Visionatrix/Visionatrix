@@ -42,6 +42,8 @@ from .flows import (
     uninstall_flow,
 )
 from .tasks_engine import (
+    TaskDetails,
+    TaskDetailsShort,
     background_prompt_executor,
     create_new_task,
     create_new_task_async,
@@ -168,27 +170,33 @@ class Flow(BaseModel):
     input_params: list[dict]
 
 
-@APP.get("/flows-installed", response_model=list[Flow])
-async def flows_installed():
+@APP.get("/flows-installed")
+async def flows_installed() -> list[Flow]:
     """
     Return the list of installed flows. Each flow can potentially be converted into a task. The response
     includes details such as the name, display name, description, author, homepage URL, and other relevant
     information about each flow.
     """
-    return responses.JSONResponse(content=get_installed_flows())
+    try:
+        return [Flow.model_validate(flow) for flow in get_installed_flows()]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
-@APP.get("/flows-available", response_model=list[Flow])
-async def flows_available():
+@APP.get("/flows-available")
+async def flows_available() -> list[Flow]:
     """
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
     similar to the installed flows, which includes metadata and configuration parameters.
     """
-    return responses.JSONResponse(content=get_not_installed_flows())
+    try:
+        return [Flow.model_validate(flow) for flow in get_not_installed_flows()]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
-@APP.get("/flows-sub-flows", response_model=list[Flow])
-async def flows_from(input_type: typing.Literal["image", "video"]):
+@APP.get("/flows-sub-flows")
+async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]:
     """
     Retrieves a list of flows designed to post-process the results from other flows, filtering by the type
     of input they handle, either 'image' or 'video'. This endpoint is particularly useful for chaining workflows
@@ -209,7 +217,10 @@ async def flows_from(input_type: typing.Literal["image", "video"]):
                             k2.update(**sub_flow_input_params)
                             break
                 r.append(transformed_flow)
-    return responses.JSONResponse(content=r)
+    try:
+        return [Flow.model_validate(flow) for flow in r]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
 @APP.put("/flow")
@@ -299,6 +310,7 @@ async def task_run(
     input_params: str = Form(None),
     files: list[UploadFile | str] = None,  # noqa
 ):
+    """TO-DO"""
     in_files = []
     for i in files if files else []:
         if isinstance(i, str):
@@ -341,36 +353,55 @@ async def task_run(
 
 
 @APP.get("/tasks-progress")
-async def tasks_progress(request: Request, name: str | None = None):
+async def tasks_progress(request: Request, name: str | None = None) -> dict[int, TaskDetails]:
+    """
+    Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id)
     else:
         r = get_tasks(name=name, user_id=request.scope["user_info"].user_id)
-    return responses.JSONResponse(content=r)
+    return r
 
 
 @APP.get("/tasks-progress-short")
-async def tasks_progress_short(request: Request, name: str | None = None):
+async def tasks_progress_short(request: Request, name: str | None = None) -> dict[int, TaskDetailsShort]:
+    """
+    Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id)
     else:
         r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id)
-    return responses.JSONResponse(content=r)
+    return r
 
 
 @APP.get("/task-progress")
-async def task_progress(request: Request, task_id: int):
+async def task_progress(request: Request, task_id: int) -> TaskDetails:
+    """
+    Retrieves the full task details of a specified task by task ID.
+    Access is restricted to the task owner or an administrator.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id, request.scope["user_info"].user_id)
     else:
         r = get_task(task_id, request.scope["user_info"].user_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    return responses.JSONResponse(content=r)
+    try:
+        return TaskDetails.model_validate(r)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
 @APP.post("/task-restart")
 async def task_restart(request: Request, task_id: int):
+    """
+    Restarts a task specified by `task_id` if it has encountered an error or is not yet completed.
+    Only tasks that have errors can be restarted, and tasks that are fully completed cannot be restarted.
+    This endpoint checks the task's current status and resets its progress, allowing it to be re-executed.
+    Access to this action is restricted to the task's owner or an administrator.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id, request.scope["user_info"].user_id)
     else:
@@ -395,6 +426,10 @@ async def task_restart(request: Request, task_id: int):
 
 @APP.delete("/task")
 async def task_remove(request: Request, task_id: int):
+    """
+    Removes a finished or errored task from the system using the task ID.
+    Access is limited to the task owner or administrators.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
@@ -409,12 +444,21 @@ async def task_remove(request: Request, task_id: int):
 
 @APP.delete("/tasks")
 async def tasks_remove(request: Request, name: str):
+    """
+    Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.
+    """
     remove_task_by_name(name, request.scope["user_info"].user_id)
     return responses.JSONResponse(content={"error": ""})
 
 
 @APP.get("/task-inputs")
 async def task_inputs(request: Request, task_id: int, input_index: int):
+    """
+    Retrieves a specific input file for a task, identified by `task_id` and `input_index`. This endpoint
+    allows access to input files regardless of whether the task is in queue or has finished. The input index
+    is used to select among multiple input files if more than one was provided for the task.
+    Administrators can access inputs of any task, while regular users can only access inputs of their own tasks.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
@@ -435,6 +479,11 @@ async def task_inputs(request: Request, task_id: int, input_index: int):
 
 @APP.get("/task-results")
 async def task_results(request: Request, task_id: int, node_id: int):
+    """
+    Retrieves the result file associated with a specific task and node ID. This function searches for
+    output files in the designated output directory that match the task and node identifiers.
+    If the specific result file is not found, or if the task does not exist, 404 HTTP error is returned.
+    """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id, request.scope["user_info"].user_id)
     else:
@@ -455,12 +504,18 @@ async def task_results(request: Request, task_id: int, node_id: int):
 
 @APP.delete("/tasks-queue")
 async def tasks_queue_clear(request: Request, name: str):
+    """
+    Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.
+    """
     remove_unfinished_tasks_by_name(name, request.scope["user_info"].user_id)
     return responses.JSONResponse(content={"error": ""})
 
 
 @APP.delete("/task-queue")
 async def task_queue_clear(request: Request, task_id: int):
+    """
+    Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.
+    """
     if get_task(task_id, request.scope["user_info"].user_id) is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     remove_unfinished_task_by_id(task_id)
@@ -497,16 +552,15 @@ async def task_worker_update_progress(
     Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
     and if the requester is authorized to update its progress. If the task is not found or unauthorized,
     a 404 HTTP error is raised, and `worker` should stop and consider the task canceled.
-    If successful, the task's progress, execution time, and error message are updated in the database.
     """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
         r = get_task(task_id)
     if r is None:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if options.VIX_MODE == "SERVER":
         update_success = await update_task_progress_database_async(task_id, progress, error, execution_time)
     else:
@@ -519,16 +573,16 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
     """
     Saves the result files for a specific task on the server. This endpoint checks if the task exists
     and if the `worker` making the request has the authorization to upload results.
-    If the task is not found or the user is unauthorized, a 404 HTTP error is raised.
+    If the task is not found or unauthorized, a 404 HTTP error is raised.
     """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
         r = get_task(task_id)
     if r is None:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     for r in files:
         try:
@@ -544,33 +598,44 @@ async def task_worker_remove_lock(request: Request, task_id: int):
     """
     Unlocks a task specified by the `task_id`. This endpoint checks if the task exists
     and if the `worker` making the request has the authorization to unlock it.
-    If the task is not found or the user is unauthorized, it raises an HTTP 404 error.
-    If the conditions are met, the lock on the task is removed.
+    If the task is not found or unauthorized, a 404 HTTP error is raised.
     """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id)
     else:
         r = get_task(task_id)
     if r is None:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     remove_task_lock_database(task_id)
     return responses.JSONResponse(content={"error": ""})
 
 
 @APP.post("/engine-interrupt")
 async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
+    """
+    Interrupts the currently executing task. This is primarily an internal function and should be used
+    cautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`
+    endpoints. Requires administrative privileges to execute.
+    """
+
     def __interrupt_task():
         comfyui.interrupt_processing()
 
     __require_admin(request)
-    b_tasks.add_task(__interrupt_task)
+    if options.VIX_MODE != "SERVER":
+        b_tasks.add_task(__interrupt_task)
     return responses.JSONResponse(content={"error": ""})
 
 
 @APP.post("/shutdown")
 async def shutdown(request: Request, b_tasks: BackgroundTasks):
+    """
+    Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process
+    after a short delay, ensuring any final operations can complete. Access is restricted to administrators only.
+    """
+
     def __shutdown_vix():
         time.sleep(1.0)
         os.kill(os.getpid(), signal.SIGINT)

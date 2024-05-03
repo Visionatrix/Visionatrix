@@ -11,6 +11,7 @@ import typing
 from datetime import datetime
 
 import httpx
+from pydantic import BaseModel
 from sqlalchemy import Row, and_, delete, desc, select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -21,6 +22,34 @@ from .flows import get_installed_flows_names
 LOGGER = logging.getLogger("visionatrix")
 
 ACTIVE_TASK: dict = {}
+
+
+class TaskDetailsOutputs(BaseModel):
+    comfy_node_id: int
+    type: str
+
+
+class TaskDetailsShort(BaseModel):
+    progress: float
+    error: str
+    name: str
+    input_params: dict
+    outputs: list[TaskDetailsOutputs]
+    input_files: list[str]
+    execution_time: float
+
+
+class TaskDetails(BaseModel):
+    task_id: int
+    progress: float
+    error: str
+    name: str
+    input_params: dict
+    outputs: list[TaskDetailsOutputs]
+    input_files: list[str]
+    flow_comfy: dict
+    user_id: str
+    execution_time: float
 
 
 def __init_new_task_details(task_id: int, name: str, input_params: dict, user_info: database.UserInfo) -> dict:
@@ -264,45 +293,65 @@ def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | No
     return query
 
 
-def get_tasks(name: str | None = None, finished: bool | None = None, user_id: str | None = None) -> dict:
+def get_tasks(
+    name: str | None = None,
+    finished: bool | None = None,
+    user_id: str | None = None,
+) -> dict[int, TaskDetails]:
     with database.SESSION() as session:
         try:
             query = __get_tasks_query(name, finished, user_id)
             results = session.execute(query).scalars()
-            return {task.task_id: __task_details_to_dict(task) for task in results}
+            return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
 
 
-async def get_tasks_async(name: str | None = None, finished: bool | None = None, user_id: str | None = None) -> dict:
+async def get_tasks_async(
+    name: str | None = None,
+    finished: bool | None = None,
+    user_id: str | None = None,
+) -> dict[int, TaskDetails]:
     async with database.SESSION_ASYNC() as session:
         try:
             query = __get_tasks_query(name, finished, user_id)
             results = (await session.execute(query)).scalars()
-            return {task.task_id: __task_details_to_dict(task) for task in results}
+            return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
 
 
-def get_tasks_short(user_id: str, name: str | None = None, finished: bool | None = None) -> dict:
+def get_tasks_short(
+    user_id: str,
+    name: str | None = None,
+    finished: bool | None = None,
+) -> dict[int, TaskDetailsShort]:
     with database.SESSION() as session:
         try:
             query = __get_tasks_query(name, finished, user_id, full_info=False)
             results = session.execute(query).all()
-            return {task.task_id: __task_details_short_to_dict(task) for task in results}
+            return {
+                task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
+            }
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
 
 
-async def get_tasks_short_async(user_id: str, name: str | None = None, finished: bool | None = None) -> dict:
+async def get_tasks_short_async(
+    user_id: str,
+    name: str | None = None,
+    finished: bool | None = None,
+) -> dict[int, TaskDetailsShort]:
     async with database.SESSION_ASYNC() as session:
         try:
             query = __get_tasks_query(name, finished, user_id, full_info=False)
             results = (await session.execute(query)).all()
-            return {task.task_id: __task_details_short_to_dict(task) for task in results}
+            return {
+                task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
+            }
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
