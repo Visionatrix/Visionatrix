@@ -156,12 +156,14 @@ def install_custom_flow(
     with builtins.open(os.path.join(str(local_flow_dir), "flow_comfy.json"), mode="w", encoding="utf-8") as fp:
         json.dump(flow_comfy, fp)
     progress_info["current"] = 100.0
+    CACHE_INSTALLED_FLOWS["update_time"] = 0
     if progress_callback is not None:
         progress_callback(flow.name, progress_info["current"], "")
 
 
 def uninstall_flow(flow_name: str) -> None:
     rmtree(os.path.join(options.FLOWS_DIR, flow_name), ignore_errors=True)
+    CACHE_INSTALLED_FLOWS["update_time"] = 0
 
 
 def prepare_flow_comfy(
