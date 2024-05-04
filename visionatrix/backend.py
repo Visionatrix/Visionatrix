@@ -26,12 +26,12 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui, database, options
 from .flows import (
+    Flow,
     flow_prepare_output_params,
     get_available_flows,
     get_installed_flow,
@@ -41,6 +41,7 @@ from .flows import (
     prepare_flow_comfy,
     uninstall_flow,
 )
+from .pydantic_models import TaskRunResults
 from .tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
@@ -158,43 +159,6 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     )
 
 
-class SubFlow(BaseModel):
-    """
-    A SubFlow modifies or extends a Flow by overwriting certain parameters like display_name and input_params.
-    """
-
-    display_name: str = Field(..., description="The new display name when this subflow's parameters are used.")
-    type: str = Field(..., description="The type of object this subflow is applicable to, e.g., 'image' or 'video'.")
-    input_params: list[dict] = Field(
-        ..., description="List of input parameters specific to this subflow, replacing the original flow's parameters."
-    )
-
-
-class Flow(BaseModel):
-    """
-    Flows serve as add-ons to ComfyUI workflows, determining the parameters to be displayed and populated.
-    They also allow for the modification of ComfyUI workflow behavior based on incoming parameters.
-    """
-
-    name: str = Field(..., description="The unique identifier of the flow.")
-    display_name: str = Field(..., description="The user-friendly name of the flow.")
-    description: str = Field("", description="A brief explanation of the flow's purpose and functionality.")
-    author: str = Field(..., description="The creator or maintainer of the flow.")
-    homepage: str = Field("", description="A URL to the flow's homepage or the author's website.")
-    license: str = Field("", description="The type of license under which the flow is made available.")
-    documentation: str = Field("", description="A URL linking to detailed documentation for the flow.")
-    sub_flows: list[SubFlow] = Field(
-        default=[], description="A list of subflows derived from this flow, allowing customization or extension."
-    )
-    input_params: list[dict] = Field(
-        ..., description="Initial set of parameters required to launch the flow, potentially modifiable by subflows."
-    )
-
-
-class TaskRunResults(BaseModel):
-    tasks_ids: list[int] = Field(..., description="List of IDs representing the tasks that were created.")
-
-
 @APP.get("/flows-installed")
 async def flows_installed() -> list[Flow]:
     """
@@ -202,10 +166,7 @@ async def flows_installed() -> list[Flow]:
     includes details such as the name, display name, description, author, homepage URL, and other relevant
     information about each flow.
     """
-    try:
-        return [Flow.model_validate(flow) for flow in get_installed_flows()]
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
+    return get_installed_flows()
 
 
 @APP.get("/flows-available")
@@ -214,10 +175,7 @@ async def flows_available() -> list[Flow]:
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
     similar to the installed flows, which includes metadata and configuration parameters.
     """
-    try:
-        return [Flow.model_validate(flow) for flow in get_not_installed_flows()]
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
+    return get_not_installed_flows()
 
 
 @APP.get("/flows-sub-flows")
@@ -231,21 +189,17 @@ async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]
     """
     r = []
     for i in get_installed_flows():
-        for sub_flow in i.get("sub_flows", []):
-            if sub_flow["type"] == input_type:
+        for sub_flow in i.sub_flows:
+            if sub_flow.type == input_type:
                 transformed_flow = copy.deepcopy(i)
-                transformed_flow.pop("sub_flows")
-                transformed_flow["display_name"] = sub_flow["display_name"]
-                for sub_flow_input_params in sub_flow.get("input_params", []):
-                    for k2 in transformed_flow["input_params"]:
+                transformed_flow.display_name = sub_flow.display_name
+                for sub_flow_input_params in sub_flow.input_params:
+                    for k2 in transformed_flow.input_params:
                         if k2["name"] == sub_flow_input_params["name"]:
                             k2.update(**sub_flow_input_params)
                             break
                 r.append(transformed_flow)
-    try:
-        return [Flow.model_validate(flow) for flow in r]
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
+    return r
 
 
 @APP.put("/flow")
@@ -263,9 +217,10 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     if any(i for i in FLOW_INSTALL_STATUS.values() if i["progress"] < 100.0 and i["error"] == ""):
         return responses.JSONResponse(status_code=409, content={"error": "Another flow installation is in progress."})
 
-    flows, flows_comfy = get_available_flows()
+    flows_comfy = []
+    flows = get_available_flows(flows_comfy)
     for i, flow in enumerate(flows):
-        if flow["name"] == name:
+        if flow.name == name:
             FLOW_INSTALL_STATUS[name] = {"progress": 0.0, "error": ""}
             b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
             return responses.JSONResponse(content={"error": ""})
@@ -297,7 +252,7 @@ async def __task_run(
     name: str,
     input_params: dict,
     in_files: list[UploadFile | dict],
-    flow: dict,
+    flow: Flow,
     flow_comfy: dict,
     user_info: database.UserInfo,
 ):

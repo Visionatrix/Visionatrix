@@ -8,6 +8,7 @@ import httpx
 
 from . import options
 from .nodes_helpers import get_node_value, set_node_value
+from .pydantic_models import AIResourceModel, Flow
 
 LOGGER = logging.getLogger("visionatrix")
 MODEL_LOAD_CLASSES = {
@@ -32,11 +33,11 @@ MODEL_LOAD_CLASSES = {
 MODELS_CATALOG: dict[str, dict] = {}
 
 
-def fill_flow_models_from_comfy_flow(flow: dict, flow_comfy: dict[str, dict]) -> None:
-    if "models" in flow:
+def fill_flow_models_from_comfy_flow(flow: Flow, flow_comfy: dict[str, dict]) -> None:
+    if flow.models:
         return
     models_catalog = get_models_catalog()
-    models_info = []
+    models_info: list[AIResourceModel] = []
     for node_details in flow_comfy.values():
         if (load_class := MODEL_LOAD_CLASSES.get(node_details.get("class_type"))) is None:
             continue
@@ -47,16 +48,13 @@ def fill_flow_models_from_comfy_flow(flow: dict, flow_comfy: dict[str, dict]) ->
             not_found = True
             for model, model_details in models_catalog.items():
                 if match_replace_model(model_details, node_input_model_name, node_details, node_model_load_path):
-                    if model not in [i["name"] for i in models_info]:
-                        model_info = model_details.copy()
-                        model_info.pop("regexes")
-                        model_info["name"] = model
-                        models_info.append(model_info)
+                    if model not in [i.name for i in models_info]:
+                        models_info.append(AIResourceModel(**model_details, name=model))
                     not_found = False
                     break
             if not_found:
                 LOGGER.error("Can not map model for:\n%s", node_details)
-    flow["models"] = models_info
+    flow.models = models_info
 
 
 def match_replace_model(

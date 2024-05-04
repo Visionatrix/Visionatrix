@@ -10,6 +10,7 @@ from packaging.version import Version
 
 from .. import _version, options
 from ..models import install_model
+from ..pydantic_models import AIResourceModel
 
 LOGGER = logging.getLogger("visionatrix")
 BASIC_NODE_LIST = {
@@ -23,26 +24,23 @@ BASIC_NODE_LIST = {
             "onnxruntime": {},
         },
         "models": [
-            {
-                "name": "antelopev2",
-                "save_path": "{root}models/insightface/models/antelopev2.zip",
-                "url": "https://huggingface.co/MonsterMMORPG/tools/resolve/main/antelopev2.zip",
-                "homepage": "",
-                "license": "",
-                "hash": "8e182f14fc6e80b3bfa375b33eb6cff7ee05d8ef7633e738d1c89021dcf0c5c5",
-            },
+            AIResourceModel(
+                name="antelopev2",
+                save_path="{root}models/insightface/models/antelopev2.zip",
+                url="https://huggingface.co/MonsterMMORPG/tools/resolve/main/antelopev2.zip",
+                hash="8e182f14fc6e80b3bfa375b33eb6cff7ee05d8ef7633e738d1c89021dcf0c5c5",
+            ),
         ],
     },
     "ComfyUI-BRIA_AI-RMBG": {
         "models": [
-            {
-                "name": "RMGB-1.4",
-                "save_path": "{root}custom_nodes/ComfyUI-BRIA_AI-RMBG/RMBG-1.4/model.pth",
-                "url": "https://huggingface.co/briaai/RMBG-1.4/resolve/main/model.pth",
-                "homepage": "https://huggingface.co/briaai/RMBG-1.4",
-                "license": "bria-rmbg-1.4",
-                "hash": "893c16c340b1ddafc93e78457a4d94190da9b7179149f8574284c83caebf5e8c",
-            },
+            AIResourceModel(
+                name="RMGB-1.4",
+                save_path="{root}custom_nodes/ComfyUI-BRIA_AI-RMBG/RMBG-1.4/model.pth",
+                url="https://huggingface.co/briaai/RMBG-1.4/resolve/main/model.pth",
+                homepage="https://huggingface.co/briaai/RMBG-1.4",
+                hash="893c16c340b1ddafc93e78457a4d94190da9b7179149f8574284c83caebf5e8c",
+            ),
         ],
     },
     "efficiency-nodes-comfyui": {

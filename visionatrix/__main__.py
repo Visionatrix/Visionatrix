@@ -8,6 +8,7 @@ from pathlib import Path
 
 from . import comfyui, database, install, options, run_vix, update
 from .flows import get_available_flows, install_custom_flow
+from .pydantic_models import Flow
 
 
 def get_log_level(log_level_str):
@@ -141,13 +142,14 @@ if __name__ == "__main__":
         install_flow = {}
         if args.directory:
             with builtins.open(Path(args.directory).joinpath("flow.json"), "rb") as fp:
-                install_flow = json.loads(fp.read())
+                install_flow = Flow.model_validate(json.loads(fp.read()))
             with builtins.open(Path(args.directory).joinpath("flow_comfy.json"), "rb") as fp:
                 install_flow_comfy = json.loads(fp.read())
         else:
-            flows, flows_comfy = get_available_flows()
+            flows_comfy = []
+            flows = get_available_flows(flows_comfy)
             for i, flow in enumerate(flows):
-                if flow["name"] == args.flow:
+                if flow.name == args.flow:
                     install_flow = flow
                     install_flow_comfy = flows_comfy[i]
                     break
