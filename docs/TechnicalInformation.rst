@@ -11,6 +11,7 @@ Currently installed ComfyUI nodes:
  * `ComfyUI-WD14-Tagger <https://github.com/Visionatrix/ComfyUI-WD14-Tagger>`_
  * `ComfyUI-SUPIR <https://github.com/Visionatrix/ComfyUI-SUPIR>`_
  * `ComfyUI_essentials <https://github.com/Visionatrix/ComfyUI_essentials>`_
+ * `rgthree-comfy <https://github.com/Visionatrix/rgthree-comfy>`_
 
 We are gradually expanding the list.
 The main reason many components are missing is that they are quite difficult to install and we take the position
