@@ -27,6 +27,31 @@ const imageInput = ref(null)
 const imagePreviewUrl = ref('')
 const imagePreviewModalOpen = ref(false)
 
+const targetImageDimensions = ref({width: 0, height: 0})
+
+function loadTargetImageDimensions() {
+	const sourceInputParamName = props.inputParamsMap[props.index][props.inputParam.name].source_input_name
+	const sourceImageParam: any = props.inputParamsMap.find((inputParam: any) => {
+		const key = Object.keys(inputParam)[0]
+		if (key === sourceInputParamName) {
+			return inputParam[key]
+		}
+	})
+	getImageDimensions(sourceImageParam[sourceInputParamName].value)
+}
+
+onMounted(() => {
+	if (props.inputParam.type === 'range_scale') {
+		loadTargetImageDimensions()
+	}
+})
+
+if (props.inputParam.type === 'range_scale') {
+	watch(props.inputParamsMap, () => {
+		loadTargetImageDimensions()
+	})
+}
+
 function removeImagePreview() {
 	URL.revokeObjectURL(imagePreviewUrl.value)
 	imagePreviewUrl.value = ''
@@ -41,6 +66,30 @@ const formGroupLabel = computed(() => {
 	return props.inputParam.type !== 'bool' ? props.inputParam.display_name : ''
 })
 
+function getImageDimensions(file: File) {
+	if (!(file instanceof File)) {
+		targetImageDimensions.value.width = 0
+		targetImageDimensions.value.height = 0
+		return
+	}
+	const objectUrl = URL.createObjectURL(file)
+	const img = new Image()
+	img.onload = function() {
+		targetImageDimensions.value.width = img.naturalWidth
+		targetImageDimensions.value.height = img.naturalHeight
+		URL.revokeObjectURL(img.src)
+	}
+	img.src = objectUrl
+}
+
+const formGroupHelp = computed(() => {
+	if (props.inputParam.type === 'range_scale') {
+		const scaleFactor = props.inputParamsMap[props.index][props.inputParam.name].value as number
+		return `value: ${scaleFactor}x (${targetImageDimensions.value.width}x${targetImageDimensions.value.height} -> ${targetImageDimensions.value.width * scaleFactor}x${targetImageDimensions.value.height * scaleFactor})`
+	}
+	return ['range', 'range_scale'].includes(props.inputParam.type) ? `value: ${props.inputParamsMap[props.index][props.inputParam.name].value}` : ''
+})
+
 onBeforeUnmount(() => {
 	URL.revokeObjectURL(imagePreviewUrl.value)
 })
@@ -49,7 +98,7 @@ onBeforeUnmount(() => {
 <template>
 	<UFormGroup v-if="(inputParam?.advanced || false) === advanced"
 		:label="formGroupLabel" class="mb-3"
-		:help="inputParam.type === 'range' ? `value: ${inputParamsMap[index][inputParam.name].value}` : ''">
+		:help="formGroupHelp">
 		<template #hint>
 			<span v-if="!inputParam.optional" class="text-red-300">required</span>
 		</template>
@@ -132,7 +181,7 @@ onBeforeUnmount(() => {
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:label="inputParam?.display_name" />
 
-			<URange v-if="inputParam.type === 'range'"
+			<URange v-if="['range', 'range_scale'].includes(inputParam.type)"
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:label="inputParam.display_name"
 				size="sm"

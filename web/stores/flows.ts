@@ -671,6 +671,7 @@ export interface FlowInputParam {
 	min?: number
 	max?: number
 	step?: number
+	source_input_name?: string
 }
 
 export interface FlowOutputParam {

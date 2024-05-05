@@ -160,6 +160,7 @@ const sentDoOutputParamIndex = ref(0)
 						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
 						fit="outside"
 						loading="lazy"
+						:placeholder="[50, 25, 75, 5]"
 						:src="outputImgSrc({
 							task_id: flowResult.task_id,
 							node_id: flowResult.output_params[0].comfy_node_id
@@ -185,6 +186,7 @@ const sentDoOutputParamIndex = ref(0)
 						<div class="flex flex-col basis-full">
 							<NuxtImg class="w-full cursor-pointer mx-auto"
 								loading="lazy"
+								:placeholder="[50, 25, 75, 5]"
 								:src="outputImgSrc(item)"
 								draggable="false"
 								@click="() => openImageModal(outputImgSrc(item))" />
@@ -286,6 +288,7 @@ const sentDoOutputParamIndex = ref(0)
 				<NuxtImg v-if="modalImageSrc"
 					class="lg:h-full"
 					fit="inside"
+					:placeholder="[50, 25, 75, 5]"
 					:src="modalImageSrc" />
 			</div>
 		</UModal>
