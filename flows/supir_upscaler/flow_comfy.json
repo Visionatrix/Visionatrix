@@ -166,7 +166,6 @@
       "replace_underscore": false,
       "trailing_comma": false,
       "exclude_tags": "bad quality, blurry, messy",
-      "tags": "solo, looking_at_viewer, 1boy, monochrome, male_focus, greyscale, glasses, facial_hair, portrait, beard, stubble, realistic",
       "image": [
         "107",
         0
@@ -186,28 +185,11 @@
         0
       ],
       "text_b": "high quality, detailed",
-      "text_c": "",
-      "result": "solo, looking_at_viewer, 1boy, monochrome, male_focus, greyscale, glasses, facial_hair, portrait, beard, stubble, realistic, high quality, detailed"
+      "text_c": ""
     },
     "class_type": "StringFunction|pysssss",
     "_meta": {
       "title": "String Function 🐍"
-    }
-  },
-  "92": {
-    "inputs": {
-      "image_a": [
-        "10",
-        0
-      ],
-      "image_b": [
-        "107",
-        0
-      ]
-    },
-    "class_type": "Image Comparer (rgthree)",
-    "_meta": {
-      "title": "Image Comparer (rgthree)"
     }
   },
   "100": {
