@@ -285,7 +285,7 @@ def flow_prepare_output_params(
 ) -> None:
     for param in outputs:
         r_node = flow_comfy[param]
-        if r_node["class_type"] in ("KSampler (Efficient)", "WD14Tagger|pysssss"):
+        if r_node["class_type"] in ("KSampler (Efficient)", "WD14Tagger|pysssss", "StringFunction|pysssss"):
             continue
         if r_node["class_type"] != "SaveImage":
             raise RuntimeError(

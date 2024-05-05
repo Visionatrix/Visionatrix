@@ -31,7 +31,7 @@
   "input_params": [
     {
       "name": "image",
-      "display_name": "Low resolution image",
+      "display_name": "Image to upscale",
       "type": "image",
       "optional": false,
       "comfy_node_id": {
@@ -43,7 +43,7 @@
     {
       "name": "result_resolution",
       "display_name": "Output image size factor",
-      "type": "image_scale",
+      "type": "range_scale",
       "source_input_name": "image",
       "optional": true,
       "advanced": true,
