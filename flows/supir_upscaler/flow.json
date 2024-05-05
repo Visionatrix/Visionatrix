@@ -1,14 +1,14 @@
 {
   "name": "supir_upscaler",
   "display_name": "SUPIR Upscaler",
-  "description": "High-End Image Upscaler 2x-4x",
+  "description": "High-End Image Upscaler 1.1x-4x",
   "author": "akihungac",
   "homepage": "https://openart.ai/workflows/profile/akihungac",
   "license": "",
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/SupirUpscaler.html",
   "sub_flows": [
     {
-      "display_name": "SUPIR(2x)",
+      "display_name": "SUPIR(1.5x)",
       "type": "image",
       "input_params": [
         {
@@ -18,7 +18,7 @@
       ]
     },
     {
-      "display_name": "SUPIR(4x)",
+      "display_name": "SUPIR(2x)",
       "type": "image",
       "input_params": [
         {
@@ -41,33 +41,20 @@
       }
     },
     {
-      "name": "upscale_at_end",
-      "display_name": "Perform additional 2x upscale after SUPIR",
-      "type": "bool",
-      "default": false,
+      "name": "result_resolution",
+      "display_name": "Output image size factor",
+      "type": "image_scale",
+      "source_input_name": "image",
       "optional": true,
       "advanced": true,
+      "default": 2.0,
+      "min": 1.1,
+      "max": 4.0,
+      "step": 0.1,
       "comfy_node_id": {
-        "84": {
-          "dest_field_name": ["inputs", "images"],
-          "value": ["42", 0]
-        }
-      }
-    },
-    {
-      "name": "downscale_input_to",
-      "display_name": "If input size is larger, scale down to",
-      "type": "range",
-      "optional": true,
-      "advanced": true,
-      "default": 832,
-      "min": 512,
-      "max": 2048,
-      "step": 32,
-      "comfy_node_id": {
-        "83": {
-          "dest_field_name": ["inputs", ["width", "height"]],
-          "internal_type": "int"
+        "104": {
+          "dest_field_name": ["inputs", "scale_by"],
+          "internal_type": "float"
         }
       }
     },
@@ -91,8 +78,22 @@
       }
     },
     {
+      "name": "sampler",
+      "display_name": "Sharpening",
+      "type": "bool",
+      "default": true,
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "7": {
+          "dest_field_name": ["inputs", "sampler"],
+          "value": "TiledRestoreDPMPP2MSampler"
+        }
+      }
+    },
+    {
       "name": "low_resource",
-      "display_name": "Low resource mode(fp8_unet)",
+      "display_name": "Low resource mode",
       "type": "bool",
       "default": false,
       "optional": true,
@@ -101,6 +102,22 @@
         "21": {
           "dest_field_name": ["inputs", "fp8_unet"],
           "value": true
+        },
+        "7": {
+          "dest_field_name": ["inputs", ["sampler_tile_size", "sampler_tile_stride"]],
+          "value": [512, 256]
+        },
+        "5": {
+          "dest_field_name": ["inputs", ["decoder_tile_size", "encoder_tile_size"]],
+          "value": [512, 512]
+        },
+        "10": {
+          "dest_field_name": ["inputs", "decoder_tile_size"],
+          "value": 512
+        },
+        "11": {
+          "dest_field_name": ["inputs", "encoder_tile_size"],
+          "value": 512
         }
       }
     }
