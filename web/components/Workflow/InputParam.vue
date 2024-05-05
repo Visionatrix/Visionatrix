@@ -85,7 +85,7 @@ function getImageDimensions(file: File) {
 const formGroupHelp = computed(() => {
 	if (props.inputParam.type === 'range_scale') {
 		const scaleFactor = props.inputParamsMap[props.index][props.inputParam.name].value as number
-		return `value: ${scaleFactor}x (${targetImageDimensions.value.width}x${targetImageDimensions.value.height} -> ${targetImageDimensions.value.width * scaleFactor}x${targetImageDimensions.value.height * scaleFactor})`
+		return `value: ${scaleFactor}x (${targetImageDimensions.value.width}x${targetImageDimensions.value.height} -> ${(targetImageDimensions.value.width * scaleFactor).toFixed(1)}x${(targetImageDimensions.value.height * scaleFactor).toFixed(1)})`
 	}
 	return ['range', 'range_scale'].includes(props.inputParam.type) ? `value: ${props.inputParamsMap[props.index][props.inputParam.name].value}` : ''
 })
