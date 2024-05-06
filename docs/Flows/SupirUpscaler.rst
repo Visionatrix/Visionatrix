@@ -5,35 +5,25 @@ SUPIR Upscaler
 
 *This workflow is added mostly for research purposes, it is still in development.*
 
-**Memory requirements are directly related to the input image resolution, so we have added optional downscaling of input.**
+**Memory requirements(both VRAM and RAM) are directly related to the input image resolution.**
 
 .. note:: Currently for `macOS runners` `Diffusion type` must be set to `fp32`.
+
+.. note:: Low memory mode: reduces the size of processed tiles to **256**.
+
+.. note:: If you have a very small input image and the result is **less than 1024** (512 for low memory mode) pixels in width **or** height, **tiles should be disabled**.
 
 From `ComfyUI-SUPIR repo <https://github.com/kijai/ComfyUI-SUPIR>`_:
 
 `Memory requirements are directly related to the input image resolution. In my testing I was able to run 512x512 to 1024x1024 with a 10GB 3080 GPU, and other tests on 24GB GPU to up 3072x3072. System RAM requirements are also hefty, don't know numbers but I would guess under 32GB is going to have issues, tested with 64GB.`
 
-From our testing on AMD 7900XTX with `24 GB`:
-
-1. `1024x1024` image - **failed**.
-2. `1024x683` image - **success**.
-3. `864x864` image - **failed**.
-4. `832x832` image - **success**.
-
 Hardware
 """"""""
 
-- **Required memory: 10 GB and much more**
+- **Minimum: 12 GB VRAM , 32 GB RAM**
+- **Recommended: 16-24 GB VRAM, 64 GB RAM**
 
-Time to upscale 1 image(256x256):
-
-- AMD 7900 XTX: **23 sec** / **24 sec** (2x additional upscale)
-- NVIDIA RTX 3060 (12 GB): **x sec** / **x sec** (2x additional upscale)
-
-Time to upscale 1 image(512x512):
-
-- AMD 7900 XTX: **60 sec** / **85 sec** (2x additional upscale)
-- NVIDIA RTX 3060 (12 GB): **65 sec** / **116 sec** (2x additional upscale)
+*We will not describe the specific time it takes for scaling, because... the flow is still in development and we are constantly trying to improve it.*
 
 Examples
 """"""""
