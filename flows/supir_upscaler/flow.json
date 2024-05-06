@@ -1,29 +1,29 @@
 {
   "name": "supir_upscaler",
   "display_name": "SUPIR Upscaler",
-  "description": "High-End Image Upscaler 1.1x-4x",
+  "description": "High-End Image Upscaler 1.1x-3x",
   "author": "akihungac",
   "homepage": "https://openart.ai/workflows/profile/akihungac",
   "license": "",
   "documentation": "https://visionatrix.github.io/Visionatrix/Flows/SupirUpscaler.html",
   "sub_flows": [
     {
-      "display_name": "SUPIR(1.5x)",
+      "display_name": "SUPIR Upscaler(1.5x)",
       "type": "image",
       "input_params": [
         {
-          "name": "upscale_at_end",
-          "default": false
+          "name": "scale_factor",
+          "default": 1.5
         }
       ]
     },
     {
-      "display_name": "SUPIR(2x)",
+      "display_name": "SUPIR Upscaler(2x)",
       "type": "image",
       "input_params": [
         {
-          "name": "upscale_at_end",
-          "default": true
+          "name": "scale_factor",
+          "default": 2.0
         }
       ]
     }
@@ -41,15 +41,15 @@
       }
     },
     {
-      "name": "result_resolution",
+      "name": "scale_factor",
       "display_name": "Output image size factor",
       "type": "range_scale",
       "source_input_name": "image",
-      "optional": true,
+      "optional": false,
       "advanced": true,
       "default": 2.0,
       "min": 1.1,
-      "max": 4.0,
+      "max": 3.0,
       "step": 0.1,
       "comfy_node_id": {
         "104": {
@@ -78,11 +78,11 @@
       }
     },
     {
-      "name": "sampler",
-      "display_name": "Sharpening",
+      "name": "sharper",
+      "display_name": "Sharper",
       "type": "bool",
       "default": true,
-      "optional": true,
+      "optional": false,
       "advanced": true,
       "comfy_node_id": {
         "7": {
@@ -92,8 +92,8 @@
       }
     },
     {
-      "name": "low_resource",
-      "display_name": "Low resource mode",
+      "name": "low_memory",
+      "display_name": "Low memory mode",
       "type": "bool",
       "default": false,
       "optional": true,
@@ -109,15 +109,34 @@
         },
         "5": {
           "dest_field_name": ["inputs", ["decoder_tile_size", "encoder_tile_size"]],
-          "value": [512, 512]
+          "value": [256, 256]
         },
         "10": {
           "dest_field_name": ["inputs", "decoder_tile_size"],
-          "value": 512
+          "value": 256
         },
         "11": {
           "dest_field_name": ["inputs", "encoder_tile_size"],
-          "value": 512
+          "value": 256
+        }
+      }
+    },
+    {
+      "name": "disable_tiling",
+      "display_name": "Disable tiling(use for small images)",
+      "type": "bool",
+      "default": false,
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "7": {
+          "src_field_name": ["inputs", "sampler"],
+          "dest_field_name": ["inputs", "sampler"],
+          "modify_param": [
+            {
+              "sub": ["^Tiled", ""]
+            }
+          ]
         }
       }
     }

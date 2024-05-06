@@ -1,7 +1,7 @@
 {
   "2": {
     "inputs": {
-      "image": "output_00022_.png",
+      "image": "input.png",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -12,8 +12,8 @@
   "5": {
     "inputs": {
       "use_tiled_vae": true,
-      "encoder_tile_size": 1024,
-      "decoder_tile_size": 1024,
+      "encoder_tile_size": 512,
+      "decoder_tile_size": 512,
       "encoder_dtype": "auto",
       "SUPIR_VAE": [
         "21",
@@ -91,7 +91,7 @@
   "10": {
     "inputs": {
       "use_tiled_vae": true,
-      "decoder_tile_size": 1024,
+      "decoder_tile_size": 512,
       "SUPIR_VAE": [
         "21",
         1
@@ -109,7 +109,7 @@
   "11": {
     "inputs": {
       "use_tiled_vae": true,
-      "encoder_tile_size": 1024,
+      "encoder_tile_size": 512,
       "encoder_dtype": "auto",
       "SUPIR_VAE": [
         "5",
@@ -192,42 +192,6 @@
       "title": "String Function 🐍"
     }
   },
-  "100": {
-    "inputs": {
-      "image": [
-        "104",
-        0
-      ]
-    },
-    "class_type": "GetImageSize+",
-    "_meta": {
-      "title": "🔧 Get Image Size"
-    }
-  },
-  "103": {
-    "inputs": {
-      "width": [
-        "100",
-        1
-      ],
-      "height": [
-        "100",
-        0
-      ],
-      "interpolation": "lanczos",
-      "keep_proportion": true,
-      "condition": "always",
-      "multiple_of": 32,
-      "image": [
-        "104",
-        0
-      ]
-    },
-    "class_type": "ImageResize+",
-    "_meta": {
-      "title": "🔧 Image Resize"
-    }
-  },
   "104": {
     "inputs": {
       "upscale_method": "lanczos",
@@ -257,20 +221,70 @@
   },
   "107": {
     "inputs": {
-      "width": 1024,
-      "height": 1024,
+      "width": [
+        "109",
+        0
+      ],
+      "height": [
+        "110",
+        0
+      ],
       "interpolation": "lanczos",
       "keep_proportion": true,
-      "condition": "upscale if smaller",
+      "condition": "always",
       "multiple_of": 32,
       "image": [
-        "103",
+        "104",
         0
       ]
     },
     "class_type": "ImageResize+",
     "_meta": {
       "title": "🔧 Image Resize"
+    }
+  },
+  "108": {
+    "inputs": {
+      "image": [
+        "104",
+        0
+      ]
+    },
+    "class_type": "GetImageSize+",
+    "_meta": {
+      "title": "🔧 Get Image Size"
+    }
+  },
+  "109": {
+    "inputs": {
+      "python_expression": "((a + 31) // 32) * 32",
+      "print_to_console": "False",
+      "a": [
+        "108",
+        0
+      ],
+      "b": 0,
+      "c": 0
+    },
+    "class_type": "Evaluate Integers",
+    "_meta": {
+      "title": "Evaluate Integers"
+    }
+  },
+  "110": {
+    "inputs": {
+      "python_expression": "((a + 31) // 32) * 32",
+      "print_to_console": "False",
+      "a": [
+        "108",
+        1
+      ],
+      "b": 0,
+      "c": 0
+    },
+    "class_type": "Evaluate Integers",
+    "_meta": {
+      "title": "Evaluate Integers"
     }
   }
 }
