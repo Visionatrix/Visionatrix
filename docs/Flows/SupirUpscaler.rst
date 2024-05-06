@@ -20,8 +20,8 @@ From `ComfyUI-SUPIR repo <https://github.com/kijai/ComfyUI-SUPIR>`_:
 Hardware
 """"""""
 
-- **Minimum: 10 GB VRAM , 32 GB RAM**
-- **Recommended: 16 GB VRAM, 64 GB RAM**
+- **Minimum: 12 GB VRAM , 32 GB RAM**
+- **Recommended: 16-24 GB VRAM, 64 GB RAM**
 
 *We will not describe the specific time it takes for scaling, because... the flow is still in development and we are constantly trying to improve it.*
 

@@ -109,15 +109,15 @@
         },
         "5": {
           "dest_field_name": ["inputs", ["decoder_tile_size", "encoder_tile_size"]],
-          "value": [256, 256]
+          "value": [512, 512]
         },
         "10": {
           "dest_field_name": ["inputs", "decoder_tile_size"],
-          "value": 256
+          "value": 512
         },
         "11": {
           "dest_field_name": ["inputs", "encoder_tile_size"],
-          "value": 256
+          "value": 512
         }
       }
     },

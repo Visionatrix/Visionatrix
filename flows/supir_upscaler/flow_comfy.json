@@ -12,8 +12,8 @@
   "5": {
     "inputs": {
       "use_tiled_vae": true,
-      "encoder_tile_size": 512,
-      "decoder_tile_size": 512,
+      "encoder_tile_size": 1024,
+      "decoder_tile_size": 1024,
       "encoder_dtype": "auto",
       "SUPIR_VAE": [
         "21",
@@ -91,7 +91,7 @@
   "10": {
     "inputs": {
       "use_tiled_vae": true,
-      "decoder_tile_size": 512,
+      "decoder_tile_size": 1024,
       "SUPIR_VAE": [
         "21",
         1
@@ -109,7 +109,7 @@
   "11": {
     "inputs": {
       "use_tiled_vae": true,
-      "encoder_tile_size": 512,
+      "encoder_tile_size": 1024,
       "encoder_dtype": "auto",
       "SUPIR_VAE": [
         "5",
