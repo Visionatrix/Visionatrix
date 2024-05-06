@@ -246,6 +246,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1) {
 			const formData = new FormData()
 
+			console.debug('input_params:', input_params)
+
 			const input_params_mapped: any = {}
 			input_params.forEach(param => {
 				const paramName = Object.keys(param)[0]

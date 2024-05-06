@@ -80,7 +80,7 @@ function sendToFlow() {
 				value: input_param.default as boolean || false,
 				type: input_param.type
 			}
-		} else if (input_param.type === 'range') {
+		} else if (['range', 'range_scale'].includes(input_param.type)) {
 			input_param_map[input_param.name] = {
 				value: input_param.default as number || 0,
 				type: input_param.type
