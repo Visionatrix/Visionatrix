@@ -56,17 +56,21 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				advanced: input_param.advanced || false,
 			}
 		})
-	} else if (input_param.type === 'range') {
+	} else if (['range', 'range_scale'].includes(input_param.type)) {
+		const param: any = {
+			value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
+			type: input_param.type,
+			optional: input_param.optional,
+			advanced: input_param.advanced || false,
+			min: input_param.min || 0,
+			max: input_param.max || 100,
+			step: input_param.step || 1,
+		}
+		if (input_param.type === 'range_scale') {
+			param.source_input_name = input_param.source_input_name
+		}
 		return ({
-			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
-				type: input_param.type,
-				optional: input_param.optional,
-				advanced: input_param.advanced || false,
-				min: input_param.min || 0,
-				max: input_param.max || 100,
-				step: input_param.step || 1,
-			}
+			[input_param.name]: param
 		})
 	}
 }) || [])

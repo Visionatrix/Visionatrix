@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0 - 2024-05-0x]
+
+### Added
+
+- Option `Fast(AlignYourSteps)` for `Aesthetic(Playground)` and `Juggernaut` workflows.
+
+### Changed
+
+- **SUPIR Upscaler workflow rework**: tiles support(to process large images), optional "soft" mode without sharpening.
+
+### Fixed
+
+- Miscellaneous fixes and enhancements
+
 ## [0.0.9 - 2024-04-28]
 
 Breaking change: please remove old `juggernaut_lighting_loras` folder from *vix_flows* folders.

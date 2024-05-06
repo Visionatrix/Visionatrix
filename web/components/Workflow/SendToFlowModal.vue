@@ -71,7 +71,7 @@ function sendToFlow() {
 			}
 		} else if (input_param.type === 'list') {
 			input_param_map[input_param.name] = {
-				value: Object.keys(input_param.options as object)[0] || '',
+				value: input_param.default || Object.keys(input_param.options as object)[0] || '',
 				type: input_param.type,
 				options: input_param.options,
 			}
@@ -80,7 +80,7 @@ function sendToFlow() {
 				value: input_param.default as boolean || false,
 				type: input_param.type
 			}
-		} else if (input_param.type === 'range') {
+		} else if (['range', 'range_scale'].includes(input_param.type)) {
 			input_param_map[input_param.name] = {
 				value: input_param.default as number || 0,
 				type: input_param.type

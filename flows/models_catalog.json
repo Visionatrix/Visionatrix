@@ -337,7 +337,7 @@
     "homepage": "https://github.com/xinntao/Real-ESRGAN",
     "hash": "49fafd45f8fd7aa8d31ab2a22d14d91b536c34494a5cfe31eb5d89c2fa266abb"
   },
-  "LEOSAMs-HelloWorld-XL": {
+  "LEOSAMs-HelloWorld-XL-5.0-GPT4V": {
     "regexes": [
       {
         "input_value": "^(?=.*(?i:leosams))(?=.*(?i:Helloworld))(?=.*(?i:XL))(?=.*(?i:50GPT4V)).*"
@@ -347,6 +347,17 @@
     "url": "https://civitai.com/api/download/models/338512?type=Model&format=SafeTensor&size=full&fp=fp16",
     "homepage": "https://civitai.com/models/43977/leosams-helloworld-xl",
     "hash": "D8FD60692A589F3BE4A4C205AE4FA5A1D686B44A1CC20C7953715A95AB5070CF"
+  },
+  "LEOSAMs-HelloWorld-XL-6.0": {
+    "regexes": [
+      {
+        "input_value": "^(?=.*(?i:leosams))(?=.*(?i:Helloworld))(?=.*(?i:XL))(?=.*(?i:60)).*"
+      }
+    ],
+    "save_path": "checkpoints/leosamsHelloworldXL_helloworldXL60.safetensors",
+    "url": "https://civitai.com/api/download/models/456751",
+    "homepage": "https://civitai.com/models/43977/leosams-helloworld-xl",
+    "hash": "8CA0BADE3C3FC4B412D34FB6A0AB99EC7F54AEDD06BF7C61753DEA863F86796F"
   },
   "Shinkawa-Youji-XL-LoRA": {
     "regexes": [

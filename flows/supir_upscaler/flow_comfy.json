@@ -12,15 +12,15 @@
   "5": {
     "inputs": {
       "use_tiled_vae": true,
-      "encoder_tile_size": 512,
-      "decoder_tile_size": 512,
+      "encoder_tile_size": 1024,
+      "decoder_tile_size": 1024,
       "encoder_dtype": "auto",
       "SUPIR_VAE": [
         "21",
         1
       ],
       "image": [
-        "32",
+        "107",
         0
       ]
     },
@@ -42,7 +42,7 @@
       "control_scale_end": 1,
       "restore_cfg": 1,
       "keep_model_loaded": false,
-      "sampler": "RestoreDPMPP2MSampler",
+      "sampler": "TiledRestoreEDMSampler",
       "sampler_tile_size": 1024,
       "sampler_tile_stride": 512,
       "SUPIR_model": [
@@ -69,8 +69,11 @@
   },
   "9": {
     "inputs": {
-      "positive_prompt": "high quality, detailed, photograph ",
-      "negative_prompt": "bad quality, blurry, messy",
+      "positive_prompt": [
+        "88",
+        0
+      ],
+      "negative_prompt": "bad quality, blurry, messy, low detail, low resolution",
       "SUPIR_model": [
         "21",
         0
@@ -88,7 +91,7 @@
   "10": {
     "inputs": {
       "use_tiled_vae": true,
-      "decoder_tile_size": 512,
+      "decoder_tile_size": 1024,
       "SUPIR_VAE": [
         "21",
         1
@@ -106,7 +109,7 @@
   "11": {
     "inputs": {
       "use_tiled_vae": true,
-      "encoder_tile_size": 512,
+      "encoder_tile_size": 1024,
       "encoder_dtype": "auto",
       "SUPIR_VAE": [
         "5",
@@ -148,7 +151,7 @@
   },
   "22": {
     "inputs": {
-      "ckpt_name": "leosamsHelloworldXL_helloworldXL50GPT4V.safetensors"
+      "ckpt_name": "leosamsHelloworldXL_helloworldXL60.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
@@ -162,9 +165,9 @@
       "character_threshold": 0.85,
       "replace_underscore": false,
       "trailing_comma": false,
-      "exclude_tags": "blurry",
+      "exclude_tags": "bad quality, blurry, messy",
       "image": [
-        "32",
+        "107",
         0
       ]
     },
@@ -173,161 +176,37 @@
       "title": "WD14 Tagger 🐍"
     }
   },
-  "32": {
+  "88": {
     "inputs": {
-      "upscale_model": [
-        "33",
-        0
-      ],
-      "image": [
-        "83",
-        0
-      ]
-    },
-    "class_type": "ImageUpscaleWithModel",
-    "_meta": {
-      "title": "Upscale Image (using Model)"
-    }
-  },
-  "33": {
-    "inputs": {
-      "model_name": "RealESRGAN_x2plus.pth"
-    },
-    "class_type": "UpscaleModelLoader",
-    "_meta": {
-      "title": "Load Upscale Model"
-    }
-  },
-  "39": {
-    "inputs": {
-      "text": [
+      "action": "append",
+      "tidy_tags": "yes",
+      "text_a": [
         "24",
         0
       ],
-      "clip": [
-        "22",
-        1
-      ]
+      "text_b": "high quality, detailed",
+      "text_c": ""
     },
-    "class_type": "CLIPTextEncode",
+    "class_type": "StringFunction|pysssss",
     "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
+      "title": "String Function 🐍"
     }
   },
-  "40": {
+  "104": {
     "inputs": {
-      "text": "bad quality, blurry, messy, low detail, low resolution,",
-      "clip": [
-        "22",
-        1
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
-    }
-  },
-  "42": {
-    "inputs": {
-      "upscale_by": 2,
-      "seed": 1,
-      "steps": 20,
-      "cfg": 5.5,
-      "sampler_name": "euler",
-      "scheduler": "normal",
-      "denoise": 0.1,
-      "mode_type": "Linear",
-      "tile_width": 1024,
-      "tile_height": 1024,
-      "mask_blur": 8,
-      "tile_padding": 32,
-      "seam_fix_mode": "None",
-      "seam_fix_denoise": 1,
-      "seam_fix_width": 64,
-      "seam_fix_mask_blur": 8,
-      "seam_fix_padding": 16,
-      "force_uniform_tiles": true,
-      "tiled_decode": false,
+      "upscale_method": "lanczos",
+      "scale_by": 2,
       "image": [
-        "10",
-        0
-      ],
-      "model": [
-        "50",
-        1
-      ],
-      "positive": [
-        "50",
-        4
-      ],
-      "negative": [
-        "50",
-        5
-      ],
-      "vae": [
-        "50",
-        3
-      ],
-      "upscale_model": [
-        "33",
+        "2",
         0
       ]
     },
-    "class_type": "UltimateSDUpscale",
+    "class_type": "ImageScaleBy",
     "_meta": {
-      "title": "Ultimate SD Upscale"
+      "title": "Upscale Image By"
     }
   },
-  "50": {
-    "inputs": {
-      "basic_pipe": [
-        "51",
-        0
-      ]
-    },
-    "class_type": "FromBasicPipe_v2",
-    "_meta": {
-      "title": "FromBasicPipe_v2"
-    }
-  },
-  "51": {
-    "inputs": {
-      "model": [
-        "22",
-        0
-      ],
-      "clip": [
-        "22",
-        1
-      ],
-      "vae": [
-        "52",
-        0
-      ],
-      "positive": [
-        "39",
-        0
-      ],
-      "negative": [
-        "40",
-        0
-      ]
-    },
-    "class_type": "ToBasicPipe",
-    "_meta": {
-      "title": "ToBasicPipe"
-    }
-  },
-  "52": {
-    "inputs": {
-      "vae_name": "sdxl_vae.safetensors"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "81": {
+  "106": {
     "inputs": {
       "filename_prefix": "output",
       "images": [
@@ -340,16 +219,22 @@
       "title": "Save Image"
     }
   },
-  "83": {
+  "107": {
     "inputs": {
-      "width": 832,
-      "height": 832,
+      "width": [
+        "109",
+        0
+      ],
+      "height": [
+        "110",
+        0
+      ],
       "interpolation": "lanczos",
       "keep_proportion": true,
-      "condition": "downscale if bigger",
+      "condition": "always",
       "multiple_of": 32,
       "image": [
-        "2",
+        "104",
         0
       ]
     },
@@ -358,13 +243,48 @@
       "title": "🔧 Image Resize"
     }
   },
-  "84": {
+  "108": {
     "inputs": {
-      "filename_prefix": "output_2"
+      "image": [
+        "104",
+        0
+      ]
     },
-    "class_type": "SaveImage",
+    "class_type": "GetImageSize+",
     "_meta": {
-      "title": "Save Image"
+      "title": "🔧 Get Image Size"
+    }
+  },
+  "109": {
+    "inputs": {
+      "python_expression": "((a + 31) // 32) * 32",
+      "print_to_console": "False",
+      "a": [
+        "108",
+        0
+      ],
+      "b": 0,
+      "c": 0
+    },
+    "class_type": "Evaluate Integers",
+    "_meta": {
+      "title": "Evaluate Integers"
+    }
+  },
+  "110": {
+    "inputs": {
+      "python_expression": "((a + 31) // 32) * 32",
+      "print_to_console": "False",
+      "a": [
+        "108",
+        1
+      ],
+      "b": 0,
+      "c": 0
+    },
+    "class_type": "Evaluate Integers",
+    "_meta": {
+      "title": "Evaluate Integers"
     }
   }
 }

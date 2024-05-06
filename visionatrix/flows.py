@@ -174,7 +174,7 @@ def prepare_flow_comfy(
     task_details: dict,
 ) -> dict:
     r = flow_comfy.copy()
-    for i in [i for i in flow.input_params if i["type"] in ("text", "number", "list", "bool", "range")]:
+    for i in [i for i in flow.input_params if i["type"] in ("text", "number", "list", "bool", "range", "range_scale")]:
         v = prepare_flow_comfy_get_input_value(in_texts_params, i)
         if v is None:
             continue
@@ -182,10 +182,10 @@ def prepare_flow_comfy(
             node = r.get(k, {})
             if not node:
                 raise RuntimeError(f"Bad comfy or visionatrix flow, node with id=`{k}` can not be found.")
-            if i["type"] == "bool":
-                v_copy = k_v["value"]
-            elif "src_field_name" in k_v:
+            if "src_field_name" in k_v:
                 v_copy = get_node_value(node, k_v["src_field_name"])
+            elif i["type"] == "bool":
+                v_copy = k_v["value"]
             else:
                 v_copy = v
             for mod_operations in k_v.get("modify_param", []):
@@ -285,7 +285,12 @@ def flow_prepare_output_params(
 ) -> None:
     for param in outputs:
         r_node = flow_comfy[param]
-        if r_node["class_type"] in ("KSampler (Efficient)", "WD14Tagger|pysssss"):
+        if r_node["class_type"] in (
+            "KSampler (Efficient)",
+            "WD14Tagger|pysssss",
+            "StringFunction|pysssss",
+            "Evaluate Integers",
+        ):
             continue
         if r_node["class_type"] != "SaveImage":
             raise RuntimeError(

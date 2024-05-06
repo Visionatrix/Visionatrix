@@ -52,6 +52,7 @@ BASIC_NODE_LIST = {
     "ComfyUI-SUPIR": {},
     "ComfyUI_essentials": {},
     "rgthree-comfy": {},
+    "ComfyUI-Custom-Scripts": {},
 }
 
 
