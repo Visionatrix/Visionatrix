@@ -71,7 +71,7 @@ function sendToFlow() {
 			}
 		} else if (input_param.type === 'list') {
 			input_param_map[input_param.name] = {
-				value: Object.keys(input_param.options as object)[0] || '',
+				value: input_param.default || Object.keys(input_param.options as object)[0] || '',
 				type: input_param.type,
 				options: input_param.options,
 			}
