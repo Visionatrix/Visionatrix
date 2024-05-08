@@ -65,6 +65,19 @@ function downloadFlowComfy(flow_name: string, task_id: string) {
 	})
 }
 
+const currentPageNumber = computed(() => {
+	return flowStore.$state.resultsPage
+})
+
+watch(currentPageNumber, () => {
+	const target = document.getElementById('output-container')
+	if (target) {
+		target.scrollIntoView({ behavior: 'smooth' })
+	}
+})
+
+const img = useImage()
+
 const collapsed = ref(false)
 const isModalOpen = ref(false)
 const modalImageSrc = ref('')
@@ -160,7 +173,7 @@ const sentDoOutputParamIndex = ref(0)
 						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
 						fit="outside"
 						loading="lazy"
-						:placeholder="[50, 25, 75, 5]"
+						:placeholder="img('/vix_logo.png', { f: 'png', blur: 3, q: 50 })"
 						:src="outputImgSrc({
 							task_id: flowResult.task_id,
 							node_id: flowResult.output_params[0].comfy_node_id
@@ -186,7 +199,7 @@ const sentDoOutputParamIndex = ref(0)
 						<div class="flex flex-col basis-full">
 							<NuxtImg class="w-full cursor-pointer mx-auto"
 								loading="lazy"
-								:placeholder="[50, 25, 75, 5]"
+								placeholder="/vix_logo.png"
 								:src="outputImgSrc(item)"
 								draggable="false"
 								@click="() => openImageModal(outputImgSrc(item))" />
@@ -207,17 +220,19 @@ const sentDoOutputParamIndex = ref(0)
 					</UCarousel>
 					<p class="text-sm text-slate-500 text-center mb-3">
 						{{
-							Object.keys(flowResult.input_params_mapped)
-								.filter((key) => {
-									return flowResult.input_params_mapped[key] !== ''
-								})
-								.map((key) => {
-									return `${key}: ${flowResult.input_params_mapped[key]}`
-								}).join(' | ') 
-								+ `${flowResult.execution_time 
-									? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's' 
-									: ''
-								}`
+							[
+								'#' + flowResult.task_id,
+								...Object.keys(flowResult.input_params_mapped)
+									.filter((key) => {
+										return flowResult.input_params_mapped[key] !== ''
+									})
+									.map((key) => {
+										return `${key}: ${flowResult.input_params_mapped[key]}`
+									}),
+							].join(' | ') + `${flowResult.execution_time 
+								? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's' 
+								: ''
+							}`
 						}}
 					</p>
 					<div class="w-full flex justify-center items-center">
@@ -288,7 +303,8 @@ const sentDoOutputParamIndex = ref(0)
 				<NuxtImg v-if="modalImageSrc"
 					class="lg:h-full"
 					fit="inside"
-					:placeholder="[50, 25, 75, 5]"
+					loading="lazy"
+					placeholder="/vix_logo.png"
 					:src="modalImageSrc" />
 			</div>
 		</UModal>

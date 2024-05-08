@@ -517,9 +517,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 							return
 						}
 						runningFlow.progress = <number>progress[task_id].progress
+						// progress[task_id].error = 'Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... '
 						if (progress[task_id].error && progress[task_id].error !== '') {
 							runningFlow.error = progress[task_id].error
 							return
+						}
+						if (progress[task_id].execution_time) {
+							runningFlow.execution_time = progress[task_id].execution_time
 						}
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
@@ -694,6 +698,7 @@ export interface FlowRunning {
 	input_params_mapped: TaskHistoryInputParam
 	outputs: FlowOutputParam[]
 	error?: string
+	execution_time?: number
 }
 
 export interface FlowProgress {
