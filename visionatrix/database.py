@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from passlib.context import CryptContext
 from sqlalchemy import (
@@ -38,7 +38,7 @@ class TaskDetails(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
     user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
-    progress = Column(Float, default=0.0)
+    progress = Column(Float, default=0.0, index=True)
     error = Column(String, default="")
     name = Column(String, default="")
     input_params = Column(JSON, default={})
@@ -47,6 +47,9 @@ class TaskDetails(Base):
     flow_comfy = Column(JSON, default={})
     task_queue = relationship("TaskQueue")
     user_info = relationship("UserInfo", backref="task_details")
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, nullable=True, default=None)
+    finished_at = Column(DateTime, nullable=True, default=None)
     execution_time = Column(Float, default=0.0)
 
 
@@ -54,7 +57,7 @@ class TaskLock(Base):
     __tablename__ = "task_locks"
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
-    locked_at = Column(DateTime, default=datetime.utcnow)
+    locked_at = Column(DateTime, default=datetime.now(timezone.utc))
     task_queue = relationship("TaskQueue", backref="lock")
 
 

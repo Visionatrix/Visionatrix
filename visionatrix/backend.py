@@ -381,10 +381,11 @@ async def task_progress(request: Request, task_id: int) -> TaskDetails:
 
 
 @APP.post("/task-restart")
-async def task_restart(request: Request, task_id: int):
+async def task_restart(request: Request, task_id: int, force: bool = False):
     """
     Restarts a task specified by `task_id` if it has encountered an error or is not yet completed.
-    Only tasks that have errors can be restarted, and tasks that are fully completed cannot be restarted.
+    Only tasks that have errors can be restarted unless `force` is set to `True`,
+    which allows restarting any non-completed tasks.
     This endpoint checks the task's current status and resets its progress, allowing it to be re-executed.
     Access to this action is restricted to the task's owner or an administrator.
     """
@@ -394,14 +395,15 @@ async def task_restart(request: Request, task_id: int):
         r = get_task(task_id, request.scope["user_info"].user_id)
     if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-    if not r["error"]:
-        return responses.JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": f"Task `{task_id}` has no error set."}
-        )
     if r["progress"] == 100.0:
         return responses.JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": f"Task `{task_id}` already finished."}
         )
+    if not r["error"] and not force:
+        return responses.JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, content={"error": f"Task `{task_id}` has no error set."}
+        )
+
     if options.VIX_MODE == "SERVER":
         await update_task_progress_database_async(task_id, 0.0, "", 0.0)
     else:
