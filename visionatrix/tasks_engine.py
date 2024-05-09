@@ -8,7 +8,7 @@ import os
 import threading
 import time
 import typing
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import Row, and_, delete, desc, select, update
@@ -22,6 +22,27 @@ from .pydantic_models import TaskDetails, TaskDetailsShort
 LOGGER = logging.getLogger("visionatrix")
 
 ACTIVE_TASK: dict = {}
+
+TASK_DETAILS_COLUMNS_SHORT = [
+    database.TaskDetails.task_id,
+    database.TaskDetails.name,
+    database.TaskDetails.progress,
+    database.TaskDetails.error,
+    database.TaskDetails.execution_time,
+    database.TaskDetails.input_params,
+    database.TaskDetails.input_files,
+    database.TaskDetails.outputs,
+    database.TaskLock.locked_at,
+]
+
+TASK_DETAILS_COLUMNS = [
+    *TASK_DETAILS_COLUMNS_SHORT,
+    database.TaskDetails.flow_comfy,
+    database.TaskDetails.user_id,
+    database.TaskDetails.created_at,
+    database.TaskDetails.updated_at,
+    database.TaskDetails.finished_at,
+]
 
 
 def __init_new_task_details(task_id: int, name: str, input_params: dict, user_info: database.UserInfo) -> dict:
@@ -50,23 +71,26 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         input_files=task_details["input_files"],
         flow_comfy=task_details["flow_comfy"],
         user_id=task_details["user_id"],
+        created_at=task_details.get("created_at"),
+        updated_at=task_details.get("updated_at"),
+        finished_at=task_details.get("finished_at"),
         execution_time=task_details["execution_time"],
     )
 
 
-def __task_details_to_dict(task_details: database.TaskDetails | type[database.TaskDetails]) -> dict:
-    return {
-        "task_id": task_details.task_id,
-        "progress": task_details.progress,
-        "error": task_details.error,
-        "name": task_details.name,
-        "input_params": task_details.input_params,
-        "outputs": task_details.outputs,
-        "input_files": task_details.input_files,
-        "flow_comfy": task_details.flow_comfy,
-        "user_id": task_details.user_id,
-        "execution_time": task_details.execution_time,
-    }
+def __task_details_to_dict(task_details: Row) -> dict:
+    r = __task_details_short_to_dict(task_details)
+    r.update(
+        {
+            "task_id": task_details.task_id,
+            "flow_comfy": task_details.flow_comfy,
+            "user_id": task_details.user_id,
+            "created_at": task_details.created_at,
+            "updated_at": task_details.updated_at,
+            "finished_at": task_details.finished_at,
+        }
+    )
+    return r
 
 
 def __task_details_short_to_dict(task_details: Row) -> dict:
@@ -78,6 +102,7 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "outputs": task_details.outputs,
         "input_files": task_details.input_files,
         "execution_time": task_details.execution_time,
+        "locked_at": task_details.locked_at,
     }
 
 
@@ -135,13 +160,20 @@ async def put_task_in_queue_async(task_details: dict) -> None:
             raise
 
 
+def __get_task_query(task_id: int, user_id: str | None):
+    query = select(*TASK_DETAILS_COLUMNS)
+    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+    query = query.filter(database.TaskDetails.task_id == task_id)
+    if user_id is not None:
+        query = query.filter(database.TaskDetails.user_id == user_id)
+    return query
+
+
 def get_task(task_id: int, user_id: str | None = None) -> dict | None:
     with database.SESSION() as session:
         try:
-            query = select(database.TaskDetails).filter(database.TaskDetails.task_id == task_id)
-            if user_id is not None:
-                query = query.filter(database.TaskDetails.user_id == user_id)
-            task = session.execute(query).scalar_one_or_none()
+            query = __get_task_query(task_id, user_id)
+            task = session.execute(query).one_or_none()
             return __task_details_to_dict(task) if task else None
         except Exception:
             LOGGER.exception("Failed to retrieve task: %s", task_id)
@@ -151,10 +183,8 @@ def get_task(task_id: int, user_id: str | None = None) -> dict | None:
 async def get_task_async(task_id: int, user_id: str | None = None) -> dict | None:
     async with database.SESSION_ASYNC() as session:
         try:
-            query = select(database.TaskDetails).filter(database.TaskDetails.task_id == task_id)
-            if user_id is not None:
-                query = query.filter(database.TaskDetails.user_id == user_id)
-            task = (await session.execute(query)).scalar_one_or_none()
+            query = __get_task_query(task_id, user_id)
+            task = (await session.execute(query)).one_or_none()
             return __task_details_to_dict(task) if task else None
         except Exception:
             LOGGER.exception("Failed to retrieve task: %s", task_id)
@@ -240,19 +270,9 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
 
 
 def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
-    if full_info:
-        query = select(database.TaskDetails)
-    else:
-        query = select(
-            database.TaskDetails.task_id,
-            database.TaskDetails.name,
-            database.TaskDetails.progress,
-            database.TaskDetails.error,
-            database.TaskDetails.execution_time,
-            database.TaskDetails.input_params,
-            database.TaskDetails.input_files,
-            database.TaskDetails.outputs,
-        )
+    query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT))
+    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     if name is not None:
@@ -273,7 +293,7 @@ def get_tasks(
     with database.SESSION() as session:
         try:
             query = __get_tasks_query(name, finished, user_id)
-            results = session.execute(query).scalars()
+            results = session.execute(query).all()
             return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
@@ -288,7 +308,7 @@ async def get_tasks_async(
     async with database.SESSION_ASYNC() as session:
         try:
             query = __get_tasks_query(name, finished, user_id)
-            results = (await session.execute(query)).scalars()
+            results = (await session.execute(query)).all()
             return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
@@ -489,10 +509,16 @@ def update_task_progress(task_details: dict) -> bool:
 def update_task_progress_database(task_id: int, progress: float, error: str, execution_time: float) -> bool:
     with database.SESSION() as session:
         try:
+            update_values = {
+                "progress": progress,
+                "error": error,
+                "execution_time": execution_time,
+                "updated_at": datetime.now(timezone.utc),
+            }
+            if progress == 100.0:
+                update_values["finished_at"] = datetime.now(timezone.utc)
             result = session.execute(
-                update(database.TaskDetails)
-                .where(database.TaskDetails.task_id == task_id)
-                .values(progress=progress, error=error, execution_time=execution_time)
+                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
             session.commit()
             return result.rowcount == 1
@@ -506,10 +532,16 @@ def update_task_progress_database(task_id: int, progress: float, error: str, exe
 async def update_task_progress_database_async(task_id: int, progress: float, error: str, execution_time: float) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
+            update_values = {
+                "progress": progress,
+                "error": error,
+                "execution_time": execution_time,
+                "updated_at": datetime.now(timezone.utc),
+            }
+            if progress == 100.0:
+                update_values["finished_at"] = datetime.now(timezone.utc)
             result = await session.execute(
-                update(database.TaskDetails)
-                .where(database.TaskDetails.task_id == task_id)
-                .values(progress=progress, error=error, execution_time=execution_time)
+                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
             await session.commit()
             return result.rowcount == 1
