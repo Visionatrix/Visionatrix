@@ -4,13 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [0.1.0 - 2024-05-0x]
 
+Breaking change: new database needs to be created(new fields was added), just delete the old one.
+
 ### Added
 
 - Option `Fast(AlignYourSteps)` for `Aesthetic(Playground)` and `Juggernaut` workflows.
+- `locked_at`, `created_at`, `updated_at`, `finished_at` - new fields in the task details.
 
 ### Changed
 
 - **SUPIR Upscaler workflow rework**: tiles support(to process large images), optional "soft" mode without sharpening.
+- `/task-restart` endpoint: added `force` optional parameter, which allows to restart the task which has no "error" state set.
 
 ### Fixed
 

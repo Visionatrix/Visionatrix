@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -86,12 +88,16 @@ class TaskDetailsShort(BaseModel):
     input_files: list[str] = Field(
         ..., description="Incoming file parameters based on which the ComfyUI workflow was generated."
     )
+    locked_at: datetime | None = Field(None, description="Lock time if task is locked.")
     execution_time: float = Field(..., description="Execution time of the ComfyUI workflow in seconds.")
 
 
 class TaskDetails(TaskDetailsShort):
     """Detailed information about the Task."""
 
+    created_at: datetime = Field(..., description="Task creation time.")
+    updated_at: datetime | None = Field(None, description="Last task update time.")
+    finished_at: datetime | None = Field(None, description="Finish time of the task.")
     task_id: int = Field(..., description="Unique identifier of the task.")
     flow_comfy: dict = Field(..., description="The final generated ComfyUI workflow.")
     user_id: str = Field(..., description="User ID to whom the task belongs.")
