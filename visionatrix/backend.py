@@ -20,6 +20,7 @@ from fastapi import (
     FastAPI,
     Form,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     responses,
@@ -42,7 +43,7 @@ from .flows import (
     prepare_flow_comfy,
     uninstall_flow,
 )
-from .pydantic_models import TaskRunResults, WorkerDetails
+from .pydantic_models import TaskRunResults, WorkerDetails, WorkerDetailsRequest
 from .tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
@@ -56,6 +57,8 @@ from .tasks_engine import (
     get_tasks_async,
     get_tasks_short,
     get_tasks_short_async,
+    get_workers_details,
+    get_workers_details_async,
     put_task_in_queue,
     put_task_in_queue_async,
     remove_active_task_lock,
@@ -516,7 +519,7 @@ async def task_queue_clear(request: Request, task_id: int):
 @APP.post("/task-worker/get")
 async def task_worker_give_task(
     request: Request,
-    worker_details: typing.Annotated[WorkerDetails, Body()],
+    worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
     tasks_names: typing.Annotated[list[str], Body()],
     last_task_name: typing.Annotated[str, Body()] = "",
 ):
@@ -540,7 +543,7 @@ async def task_worker_give_task(
 @APP.put("/task-worker/progress")
 async def task_worker_update_progress(
     request: Request,
-    worker_details: typing.Annotated[WorkerDetails, Body()],
+    worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
     task_id: typing.Annotated[int, Body()],
     progress: typing.Annotated[float, Body()],
     execution_time: typing.Annotated[float, Body()],
@@ -647,10 +650,34 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
     return responses.JSONResponse(content={"error": ""})
 
 
-# TO-DO: remove this, no needed
 @APP.get("/system_stats")
 async def system_stats():
+    # TO-DO: remove this endpoint completely, no needed with new **/workers_info**
     return responses.JSONResponse(content=comfyui.get_worker_details())
+
+
+@APP.get("/workers_info")
+async def workers_info(
+    request: Request,
+    last_seen_interval: int = Query(
+        0,
+        description="The time interval in seconds within which workers must have marked themselves active. "
+        "If specified, only workers who have reported activity within this interval will be returned.",
+    ),
+    worker_id: str = Query("", description="An optional worker ID to retrieve details for a specific worker."),
+) -> list[WorkerDetails]:
+    """
+    Fetches details about workers including their system and device information.
+    This endpoint allows filtering of workers based on their last active status and can also
+    retrieve information for a specific worker if a worker ID is provided.
+    Useful for monitoring and managing worker resources in distributed computing environments.
+    """
+    user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
+    if options.VIX_MODE == "SERVER":
+        r = await get_workers_details_async(user_id, last_seen_interval, worker_id)
+    else:
+        r = get_workers_details(user_id, last_seen_interval, worker_id)
+    return r
 
 
 def run_vix(*args, **kwargs) -> None:

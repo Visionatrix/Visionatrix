@@ -8,7 +8,7 @@ import os
 import threading
 import time
 import typing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from sqlalchemy import Row, and_, delete, desc, select, update
@@ -22,7 +22,12 @@ from .comfyui import (
     soft_empty_cache,
 )
 from .flows import get_installed_flows_names
-from .pydantic_models import TaskDetails, TaskDetailsShort, WorkerDetails
+from .pydantic_models import (
+    TaskDetails,
+    TaskDetailsShort,
+    WorkerDetails,
+    WorkerDetailsRequest,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -111,7 +116,7 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
     }
 
 
-def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetails) -> tuple[str, str, dict]:
+def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetailsRequest) -> tuple[str, str, dict]:
     worker_device = worker_details.devices[0]
     return (
         f"{worker_user_id}:{worker_details.system.hostname}:[{worker_device.name}]:{worker_device.index}",
@@ -127,6 +132,7 @@ def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDeta
             "torch_vram_free": worker_device.torch_vram_free,
             "ram_total": worker_details.ram_total,
             "ram_free": worker_details.ram_free,
+            "last_seen": datetime.now(timezone.utc),
         },
     )
 
@@ -220,7 +226,10 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
     return get_incomplete_task_without_error_database(
-        database.DEFAULT_USER.user_id, WorkerDetails.model_validate(get_worker_details()), tasks_to_ask, last_task_name
+        database.DEFAULT_USER.user_id,
+        WorkerDetailsRequest.model_validate(get_worker_details()),
+        tasks_to_ask,
+        last_task_name,
     )
 
 
@@ -248,7 +257,7 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
 
 def get_incomplete_task_without_error_database(
     worker_user_id: str,
-    worker_details: WorkerDetails,
+    worker_details: WorkerDetailsRequest,
     tasks_to_ask: list[str],
     last_task_name: str,
     user_id: str | None = None,
@@ -284,6 +293,7 @@ def get_incomplete_task_without_error_database(
         if result.rowcount == 0:
             session.add(
                 database.Worker(
+                    user_id=worker_user_id,
                     worker_id=worker_id,
                     device_name=worker_device_name,
                     **worker_info_values,
@@ -326,7 +336,6 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
 def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
     query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT))
     query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
-
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     if name is not None:
@@ -336,6 +345,18 @@ def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | No
             query = query.filter(database.TaskDetails.progress == 100.0)
         else:
             query = query.filter(database.TaskDetails.progress < 100.0)
+    return query
+
+
+def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id: str):
+    query = select(database.Worker)
+    if user_id is not None:
+        query = query.filter(database.Worker.user_id == user_id)
+    if last_seen_interval > 0:
+        time_threshold = datetime.now(timezone.utc) - timedelta(seconds=last_seen_interval)
+        query = query.filter(database.Worker.last_seen >= time_threshold)
+    if worker_id:
+        query = query.filter(database.Worker.worker_id == worker_id)
     return query
 
 
@@ -558,7 +579,7 @@ def update_task_progress(task_details: dict) -> bool:
         task_details["error"],
         task_details["execution_time"],
         database.DEFAULT_USER.user_id,
-        WorkerDetails.model_validate(get_worker_details()),
+        WorkerDetailsRequest.model_validate(get_worker_details()),
     )
 
 
@@ -568,7 +589,7 @@ def update_task_progress_database(
     error: str,
     execution_time: float,
     worker_user_id: str,
-    worker_details: WorkerDetails,
+    worker_details: WorkerDetailsRequest,
 ) -> bool:
     with database.SESSION() as session:
         try:
@@ -605,7 +626,7 @@ async def update_task_progress_database_async(
     error: str,
     execution_time: float,
     worker_user_id: str,
-    worker_details: WorkerDetails,
+    worker_details: WorkerDetailsRequest,
 ) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
@@ -935,3 +956,27 @@ async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Even
 def __worker_auth() -> tuple[str, str]:
     name, password = options.WORKER_AUTH.split(":")
     return name, password
+
+
+def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
+    with database.SESSION() as session:
+        try:
+            query = __get_workers_query(user_id, last_seen_interval, worker_id)
+            results = session.execute(query).scalars().all()
+            return [WorkerDetails.model_validate(i) for i in results]
+        except Exception:
+            LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)
+            raise
+
+
+async def get_workers_details_async(
+    user_id: str | None, last_seen_interval: int, worker_id: str
+) -> list[WorkerDetails]:
+    async with database.SESSION() as session:
+        try:
+            query = __get_workers_query(user_id, last_seen_interval, worker_id)
+            results = (await session.execute(query)).scalars().all()
+            return [WorkerDetails.model_validate(i) for i in results]
+        except Exception:
+            LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)
+            raise

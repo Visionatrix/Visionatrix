@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskRunResults(BaseModel):
@@ -62,13 +62,21 @@ class Flow(BaseModel):
     )
 
 
-class TaskDetailsOutputs(BaseModel):
+# class TaskDetailsInput(BaseModel):
+#     """Information about input file to a ComfyUI workflow."""
+#     TO-DO:
+#     file_name: str
+#     file_size: int
+
+
+class TaskDetailsOutput(BaseModel):
     """Contains information for retrieving the results of a ComfyUI workflow."""
 
     comfy_node_id: int = Field(..., description="ID of the ComfyUI node containing the result.")
     type: str = Field(
         ..., description="Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
     )
+    # TO-DO: size field
 
 
 class TaskDetailsShort(BaseModel):
@@ -84,7 +92,7 @@ class TaskDetailsShort(BaseModel):
     input_params: dict = Field(
         ..., description="Incoming textual parameters based on which the ComfyUI workflow was generated."
     )
-    outputs: list[TaskDetailsOutputs] = Field(..., description="ComfyUI nodes from which results can be retrieved.")
+    outputs: list[TaskDetailsOutput] = Field(..., description="ComfyUI nodes from which results can be retrieved.")
     input_files: list[str] = Field(
         ..., description="Incoming file parameters based on which the ComfyUI workflow was generated."
     )
@@ -103,7 +111,7 @@ class TaskDetails(TaskDetailsShort):
     user_id: str = Field(..., description="User ID to whom the task belongs.")
 
 
-class WorkerDetailsSystem(BaseModel):
+class WorkerDetailsSystemRequest(BaseModel):
     """Provides OS and Python environment details of the worker."""
 
     hostname: str = Field(..., description="Hostname of the worker machine")
@@ -112,7 +120,7 @@ class WorkerDetailsSystem(BaseModel):
     embedded_python: bool = Field(..., description="Flag indicating if Python is embedded (portable) or not")
 
 
-class WorkerDetailsDevice(BaseModel):
+class WorkerDetailsDeviceRequest(BaseModel):
     """Provides detailed information about the computing device and memory status."""
 
     name: str = Field(..., description="Full computing device name")
@@ -124,10 +132,38 @@ class WorkerDetailsDevice(BaseModel):
     torch_vram_free: int = Field(0, description="Free VRAM managed by PyTorch in bytes")
 
 
-class WorkerDetails(BaseModel):
+class WorkerDetailsRequest(BaseModel):
     """Consolidates system and device information relevant to a worker handling AI tasks."""
 
-    system: WorkerDetailsSystem = Field(...)
+    system: WorkerDetailsSystemRequest = Field(...)
+    devices: list[WorkerDetailsDeviceRequest] = Field(...)
     ram_total: int = Field(0, description="Total RAM on the worker in bytes")
     ram_free: int = Field(0, description="Free RAM on the worker in bytes")
-    devices: list[WorkerDetailsDevice] = Field(...)
+    last_seen: datetime = Field(datetime.now(timezone.utc), description="Last seen time")
+
+
+class WorkerDetails(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int = Field(..., description="The primary key for the worker record, automatically incremented.")
+    user_id: str = Field(..., description="The foreign key from the 'users' table, non-nullable.")
+    worker_id: str = Field(
+        ...,
+        description="Uniq identifier for the worker, constructed from user_id, hostname, device name and device index.",
+    )
+    last_seen: datetime = Field(..., description="The timestamp of the worker's last activity, stored in UTC.")
+
+    os: str | None = Field(None, description="Operating system type of the worker's machine, such as 'posix' or 'nt'.")
+    version: str | None = Field(None, description="The version of Python running on the worker's machine.")
+    embedded_python: bool = Field(
+        default=False, description="Indicates whether the Python environment is embedded (portable)."
+    )
+
+    device_name: str | None = Field(None, description="Name of the computing device.")
+    device_type: str | None = Field(None, description="Type of the computing device, such as 'cuda' or 'cpu'.")
+    vram_total: int | None = Field(None, description="Total VRAM available on the device in bytes.")
+    vram_free: int | None = Field(None, description="Free VRAM available on the device in bytes.")
+    torch_vram_total: int | None = Field(None, description="Total VRAM managed by PyTorch in bytes.")
+    torch_vram_free: int | None = Field(None, description="Free VRAM managed by PyTorch that is currently unused.")
+    ram_total: int | None = Field(None, description="Total RAM available on the worker in bytes.")
+    ram_free: int | None = Field(None, description="Free RAM available on the worker in bytes.")

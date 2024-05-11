@@ -66,7 +66,9 @@ class TaskLock(Base):
 class Worker(Base):
     __tablename__ = "workers"
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
     worker_id = Column(String, comment="user_id:hostname:device_name:device_index", unique=True)
+    last_seen = Column(DateTime, default=datetime.now(timezone.utc), index=True)
 
     os = Column(String)
     version = Column(String)
