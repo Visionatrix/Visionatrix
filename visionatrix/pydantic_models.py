@@ -101,3 +101,33 @@ class TaskDetails(TaskDetailsShort):
     task_id: int = Field(..., description="Unique identifier of the task.")
     flow_comfy: dict = Field(..., description="The final generated ComfyUI workflow.")
     user_id: str = Field(..., description="User ID to whom the task belongs.")
+
+
+class WorkerDetailsSystem(BaseModel):
+    """Provides OS and Python environment details of the worker."""
+
+    hostname: str = Field(..., description="Hostname of the worker machine")
+    os: str = Field(..., description="Operating system type, e.g., 'posix', 'nt'")
+    version: str = Field(..., description="Python version information")
+    embedded_python: bool = Field(..., description="Flag indicating if Python is embedded (portable) or not")
+
+
+class WorkerDetailsDevice(BaseModel):
+    """Provides detailed information about the computing device and memory status."""
+
+    name: str = Field(..., description="Full computing device name")
+    type: str = Field("", description="Type of the device such as 'cuda' or 'cpu'")
+    index: int = Field(0, description="Computing device index")
+    vram_total: int = Field(0, description="Total VRAM available on the device in bytes")
+    vram_free: int = Field(0, description="Free VRAM available on the device in bytes")
+    torch_vram_total: int = Field(0, description="Total VRAM managed by PyTorch in bytes")
+    torch_vram_free: int = Field(0, description="Free VRAM managed by PyTorch in bytes")
+
+
+class WorkerDetails(BaseModel):
+    """Consolidates system and device information relevant to a worker handling AI tasks."""
+
+    system: WorkerDetailsSystem = Field(...)
+    ram_total: int = Field(0, description="Total RAM on the worker in bytes")
+    ram_free: int = Field(0, description="Free RAM on the worker in bytes")
+    devices: list[WorkerDetailsDevice] = Field(...)

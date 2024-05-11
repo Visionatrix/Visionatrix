@@ -16,6 +16,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import (
     BackgroundTasks,
+    Body,
     FastAPI,
     Form,
     HTTPException,
@@ -41,7 +42,7 @@ from .flows import (
     prepare_flow_comfy,
     uninstall_flow,
 )
-from .pydantic_models import TaskRunResults
+from .pydantic_models import TaskRunResults, WorkerDetails
 from .tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
@@ -66,6 +67,8 @@ from .tasks_engine import (
     remove_unfinished_tasks_by_name,
     start_tasks_engine,
     task_progress_callback,
+    task_restart_database,
+    task_restart_database_async,
     update_task_progress_database,
     update_task_progress_database_async,
 )
@@ -405,9 +408,9 @@ async def task_restart(request: Request, task_id: int, force: bool = False):
         )
 
     if options.VIX_MODE == "SERVER":
-        await update_task_progress_database_async(task_id, 0.0, "", 0.0)
+        await task_restart_database_async(task_id)
     else:
-        update_task_progress_database(task_id, 0.0, "", 0.0)
+        task_restart_database(task_id)
     remove_task_lock_database(task_id)
     return responses.JSONResponse(content={"error": ""})
 
@@ -513,8 +516,9 @@ async def task_queue_clear(request: Request, task_id: int):
 @APP.post("/task-worker/get")
 async def task_worker_give_task(
     request: Request,
-    tasks_names: typing.Annotated[list[str], Form()],
-    last_task_name: typing.Annotated[str, Form()] = "",
+    worker_details: typing.Annotated[WorkerDetails, Body()],
+    tasks_names: typing.Annotated[list[str], Body()],
+    last_task_name: typing.Annotated[str, Body()] = "",
 ):
     """
     Retrieves an incomplete task for a `worker` to process. Workers provide a list of tasks names they can handle
@@ -524,17 +528,23 @@ async def task_worker_give_task(
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     return responses.JSONResponse(
-        content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names, last_task_name, user_id)}
+        content={
+            "error": "",
+            "task": get_incomplete_task_without_error_database(
+                request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
+            ),
+        }
     )
 
 
 @APP.put("/task-worker/progress")
 async def task_worker_update_progress(
     request: Request,
-    task_id: typing.Annotated[int, Form()],
-    progress: typing.Annotated[float, Form()],
-    execution_time: typing.Annotated[float, Form()],
-    error: typing.Annotated[str, Form()] = "",
+    worker_details: typing.Annotated[WorkerDetails, Body()],
+    task_id: typing.Annotated[int, Body()],
+    progress: typing.Annotated[float, Body()],
+    execution_time: typing.Annotated[float, Body()],
+    error: typing.Annotated[str, Body()] = "",
 ):
     """
     Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
@@ -550,9 +560,13 @@ async def task_worker_update_progress(
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if options.VIX_MODE == "SERVER":
-        update_success = await update_task_progress_database_async(task_id, progress, error, execution_time)
+        update_success = await update_task_progress_database_async(
+            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+        )
     else:
-        update_success = update_task_progress_database(task_id, progress, error, execution_time)
+        update_success = update_task_progress_database(
+            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+        )
     return responses.JSONResponse(content={"error": "" if update_success else "failed to update"})
 
 
@@ -633,9 +647,10 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
     return responses.JSONResponse(content={"error": ""})
 
 
+# TO-DO: remove this, no needed
 @APP.get("/system_stats")
 async def system_stats():
-    return responses.JSONResponse(content=comfyui.system_stats())
+    return responses.JSONResponse(content=comfyui.get_worker_details())
 
 
 def run_vix(*args, **kwargs) -> None:

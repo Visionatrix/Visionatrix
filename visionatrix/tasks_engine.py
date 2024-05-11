@@ -15,9 +15,14 @@ from sqlalchemy import Row, and_, delete, desc, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
-from .comfyui import cleanup_models, interrupt_processing, soft_empty_cache
+from .comfyui import (
+    cleanup_models,
+    get_worker_details,
+    interrupt_processing,
+    soft_empty_cache,
+)
 from .flows import get_installed_flows_names
-from .pydantic_models import TaskDetails, TaskDetailsShort
+from .pydantic_models import TaskDetails, TaskDetailsShort, WorkerDetails
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -104,6 +109,26 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "execution_time": task_details.execution_time,
         "locked_at": task_details.locked_at,
     }
+
+
+def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetails) -> tuple[str, str, dict]:
+    worker_device = worker_details.devices[0]
+    return (
+        f"{worker_user_id}:{worker_details.system.hostname}:[{worker_device.name}]:{worker_device.index}",
+        worker_device.name,
+        {
+            "os": worker_details.system.os,
+            "version": worker_details.system.version,
+            "embedded_python": worker_details.system.embedded_python,
+            "device_type": worker_device.type,
+            "vram_total": worker_device.vram_total,
+            "vram_free": worker_device.vram_free,
+            "torch_vram_total": worker_device.torch_vram_total,
+            "torch_vram_free": worker_device.torch_vram_free,
+            "ram_total": worker_details.ram_total,
+            "ram_free": worker_details.ram_free,
+        },
+    )
 
 
 def create_new_task(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
@@ -194,14 +219,20 @@ async def get_task_async(task_id: int, user_id: str | None = None) -> dict | Non
 def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: str) -> dict:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
-    return get_incomplete_task_without_error_database(tasks_to_ask, last_task_name)
+    return get_incomplete_task_without_error_database(
+        database.DEFAULT_USER.user_id, WorkerDetails.model_validate(get_worker_details()), tasks_to_ask, last_task_name
+    )
 
 
 def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
     try:
         r = httpx.post(
             options.VIX_SERVER.rstrip("/") + "/task-worker/get",
-            data={"tasks_names": tasks_to_ask, "last_task_name": last_task_name},
+            json={
+                "worker_details": get_worker_details(),
+                "tasks_names": tasks_to_ask,
+                "last_task_name": last_task_name,
+            },
             auth=__worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
@@ -216,11 +247,16 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
 
 
 def get_incomplete_task_without_error_database(
-    tasks_to_ask: list[str], last_task_name: str, user_id: str | None = None
+    worker_user_id: str,
+    worker_details: WorkerDetails,
+    tasks_to_ask: list[str],
+    last_task_name: str,
+    user_id: str | None = None,
 ) -> dict:
     if not tasks_to_ask:
         return {}
     session = database.SESSION()
+    locked_task = {}
     try:
         query = session.query(database.TaskDetails).outerjoin(
             database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
@@ -238,10 +274,29 @@ def get_incomplete_task_without_error_database(
         task = query.first()
         if not task:
             return {}
-        return lock_task_and_return_details(session, task)
+        if not (locked_task := lock_task_and_return_details(session, task)):
+            return {}
+        worker_id, worker_device_name, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
+        result = session.execute(
+            update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+        )
+        session.commit()
+        if result.rowcount == 0:
+            session.add(
+                database.Worker(
+                    worker_id=worker_id,
+                    device_name=worker_device_name,
+                    **worker_info_values,
+                )
+            )
+            session.commit()
+        return locked_task
     except Exception as e:
         session.rollback()
         LOGGER.exception("Failed to retrieve task for processing: %s", e)
+        if locked_task:
+            session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == locked_task["task_id"]))
+            session.commit()
         return {}
     finally:
         session.close()
@@ -249,8 +304,7 @@ def get_incomplete_task_without_error_database(
 
 def lock_task_and_return_details(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
     try:
-        lock = database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow())
-        session.add(lock)
+        session.add(database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow()))
         session.commit()
         return {
             "task_id": task.task_id,
@@ -503,20 +557,95 @@ def update_task_progress(task_details: dict) -> bool:
         task_details["progress"],
         task_details["error"],
         task_details["execution_time"],
+        database.DEFAULT_USER.user_id,
+        WorkerDetails.model_validate(get_worker_details()),
     )
 
 
-def update_task_progress_database(task_id: int, progress: float, error: str, execution_time: float) -> bool:
+def update_task_progress_database(
+    task_id: int,
+    progress: float,
+    error: str,
+    execution_time: float,
+    worker_user_id: str,
+    worker_details: WorkerDetails,
+) -> bool:
     with database.SESSION() as session:
         try:
+            worker_id, _, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
             update_values = {
                 "progress": progress,
                 "error": error,
                 "execution_time": execution_time,
                 "updated_at": datetime.now(timezone.utc),
+                "worker_id": worker_id,
             }
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
+            result = session.execute(
+                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
+            )
+            session.commit()
+            if (task_updated := result.rowcount == 1) is True:
+                session.execute(
+                    update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+                )
+                session.commit()
+            return task_updated
+        except Exception as e:
+            interrupt_processing()
+            session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
+    return False
+
+
+async def update_task_progress_database_async(
+    task_id: int,
+    progress: float,
+    error: str,
+    execution_time: float,
+    worker_user_id: str,
+    worker_details: WorkerDetails,
+) -> bool:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            worker_id, _, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
+            update_values = {
+                "progress": progress,
+                "error": error,
+                "execution_time": execution_time,
+                "updated_at": datetime.now(timezone.utc),
+                "worker_id": worker_id,
+            }
+            if progress == 100.0:
+                update_values["finished_at"] = datetime.now(timezone.utc)
+            result = await session.execute(
+                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
+            )
+            await session.commit()
+            if (task_updated := result.rowcount == 1) is True:
+                await session.execute(
+                    update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+                )
+                await session.commit()
+            return task_updated
+        except Exception as e:
+            interrupt_processing()
+            await session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
+    return False
+
+
+def task_restart_database(task_id: int) -> bool:
+    with database.SESSION() as session:
+        try:
+            update_values = {
+                "progress": 0.0,
+                "error": "",
+                "execution_time": 0.0,
+                "updated_at": datetime.now(timezone.utc),
+                "worker_id": None,
+            }
             result = session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
@@ -525,21 +654,20 @@ def update_task_progress_database(task_id: int, progress: float, error: str, exe
         except Exception as e:
             interrupt_processing()
             session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
+            LOGGER.exception("Task %s: failed to restart: %s", task_id, e)
     return False
 
 
-async def update_task_progress_database_async(task_id: int, progress: float, error: str, execution_time: float) -> bool:
+async def task_restart_database_async(task_id: int) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
             update_values = {
-                "progress": progress,
-                "error": error,
-                "execution_time": execution_time,
+                "progress": 0.0,
+                "error": "",
+                "execution_time": 0.0,
                 "updated_at": datetime.now(timezone.utc),
+                "worker_id": None,
             }
-            if progress == 100.0:
-                update_values["finished_at"] = datetime.now(timezone.utc)
             result = await session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
@@ -548,22 +676,24 @@ async def update_task_progress_database_async(task_id: int, progress: float, err
         except Exception as e:
             interrupt_processing()
             await session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
+            LOGGER.exception("Task %s: failed to restart: %s", task_id, e)
     return False
 
 
 def update_task_progress_server(task_details: dict) -> bool:
     task_id = task_details["task_id"]
+    request_data = {
+        "worker_details": get_worker_details(),
+        "task_id": task_id,
+        "progress": task_details["progress"],
+        "execution_time": task_details["execution_time"],
+        "error": task_details["error"],
+    }
     for i in range(3):
         try:
             r = httpx.put(
                 options.VIX_SERVER.rstrip("/") + "/task-worker/progress",
-                data={
-                    "task_id": task_id,
-                    "progress": task_details["progress"],
-                    "execution_time": task_details["execution_time"],
-                    "error": task_details["error"],
-                },
+                json=request_data,
                 auth=__worker_auth(),
                 timeout=float(options.WORKER_NET_TIMEOUT),
             )

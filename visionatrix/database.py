@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from passlib.context import CryptContext
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -38,6 +39,7 @@ class TaskDetails(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
     user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    worker_id = Column(String, ForeignKey("workers.worker_id"), nullable=True, default=None, index=True)
     progress = Column(Float, default=0.0, index=True)
     error = Column(String, default="")
     name = Column(String, default="")
@@ -48,7 +50,7 @@ class TaskDetails(Base):
     task_queue = relationship("TaskQueue")
     user_info = relationship("UserInfo", backref="task_details")
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, nullable=True, default=None)
+    updated_at = Column(DateTime, nullable=True, default=None, index=True)
     finished_at = Column(DateTime, nullable=True, default=None)
     execution_time = Column(Float, default=0.0)
 
@@ -59,6 +61,26 @@ class TaskLock(Base):
     task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
     locked_at = Column(DateTime, default=datetime.now(timezone.utc))
     task_queue = relationship("TaskQueue", backref="lock")
+
+
+class Worker(Base):
+    __tablename__ = "workers"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    worker_id = Column(String, comment="user_id:hostname:device_name:device_index", unique=True)
+
+    os = Column(String)
+    version = Column(String)
+    embedded_python = Column(Boolean, default=False)
+
+    device_name = Column(String)
+    device_type = Column(String)
+
+    vram_total = Column(BigInteger)
+    vram_free = Column(BigInteger)
+    torch_vram_total = Column(BigInteger)
+    torch_vram_free = Column(BigInteger)
+    ram_total = Column(BigInteger)
+    ram_free = Column(BigInteger)
 
 
 class UserInfo(Base):
