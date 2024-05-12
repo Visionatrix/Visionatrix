@@ -14,10 +14,20 @@ import sys
 import typing
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from socket import gethostname
+
+from psutil import virtual_memory
 
 from . import options
 
 LOGGER = logging.getLogger("visionatrix")
+
+SYSTEM_DETAILS = {
+    "hostname": gethostname(),
+    "os": os.name,
+    "version": sys.version,
+    "embedded_python": options.PYTHON_EMBEDED,
+}
 
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
@@ -140,8 +150,8 @@ def soft_empty_cache() -> None:
     comfy.model_management.soft_empty_cache()
 
 
-def system_stats() -> dict:
-    """Full 1:1 copy of code from ComfyUI server.py file."""
+def torch_device_info() -> dict:
+    """1:1 copy of code from ComfyUI server.py file."""
     import comfy  # noqa
 
     device = comfy.model_management.get_torch_device()
@@ -149,22 +159,22 @@ def system_stats() -> dict:
     vram_total, torch_vram_total = comfy.model_management.get_total_memory(device, torch_total_too=True)
     vram_free, torch_vram_free = comfy.model_management.get_free_memory(device, torch_free_too=True)
     return {
-        "system": {
-            "os": os.name,
-            "python_version": sys.version,
-            "embedded_python": options.PYTHON_EMBEDED,
-        },
-        "devices": [
-            {
-                "name": device_name,
-                "type": device.type,
-                "index": device.index,
-                "vram_total": vram_total,
-                "vram_free": vram_free,
-                "torch_vram_total": torch_vram_total,
-                "torch_vram_free": torch_vram_free,
-            }
-        ],
+        "name": device_name,
+        "type": device.type,
+        "index": 0 if device.index is None else device.index,
+        "vram_total": vram_total,
+        "vram_free": vram_free,
+        "torch_vram_total": torch_vram_total,
+        "torch_vram_free": torch_vram_free,
+    }
+
+
+def get_worker_details() -> dict:
+    return {
+        "system": SYSTEM_DETAILS,
+        "ram_total": virtual_memory().total,
+        "ram_free": virtual_memory().available,
+        "devices": [torch_device_info()],
     }
 
 

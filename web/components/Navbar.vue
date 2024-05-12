@@ -22,6 +22,10 @@ const themingToggleIconClass = computed(() => {
 					<span class="font-bold text-neutral-400 hover:text-neutral-300 mr-1">Visionatrix</span>
 				</ULink>
 				<div class="flex items-center">
+					<ULink to="/settings">
+						<UButton class="lg:px-3 py-2" icon="i-heroicons-cog-6-tooth-20-solid" variant="ghost" color="white" />
+					</ULink>
+
 					<NotificationsPopover />
 
 					<UButton :icon="themingToggleIconClass"

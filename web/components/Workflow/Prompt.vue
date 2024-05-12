@@ -80,7 +80,7 @@ const additionalInputParamsMap: any = ref([
 		seed: {
 			name: 'seed',
 			display_name: 'Random seed',
-			value: Math.floor(Math.random() * 1000000) as number,
+			value: Math.floor(Math.random() * 10000000) as number,
 			type: 'number',
 			optional: true,
 			advanced: true,

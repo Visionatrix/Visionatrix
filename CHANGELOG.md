@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.0 - 2024-05-0x]
+## [0.1.0 - 2024-05-13]
 
 Breaking change: new database needs to be created(new fields was added), just delete the old one.
 
@@ -10,6 +10,7 @@ Breaking change: new database needs to be created(new fields was added), just de
 
 - Option `Fast(AlignYourSteps)` for `Aesthetic(Playground)` and `Juggernaut` workflows.
 - `locked_at`, `created_at`, `updated_at`, `finished_at` - new fields in the task details.
+- `/workers_info` endpoint to get information about Workers instead of `/system_stats`.
 
 ### Changed
 
@@ -18,7 +19,7 @@ Breaking change: new database needs to be created(new fields was added), just de
 
 ### Fixed
 
-- Miscellaneous fixes and enhancements
+- Miscellaneous fixes and enhancements.
 
 ## [0.0.9 - 2024-04-28]
 

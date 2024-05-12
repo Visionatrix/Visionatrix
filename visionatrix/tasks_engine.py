@@ -1,4 +1,3 @@
-import asyncio
 import builtins
 import contextlib
 import gc
@@ -8,16 +7,26 @@ import os
 import threading
 import time
 import typing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from sqlalchemy import Row, and_, delete, desc, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
-from .comfyui import cleanup_models, interrupt_processing, soft_empty_cache
+from .comfyui import (
+    cleanup_models,
+    get_worker_details,
+    interrupt_processing,
+    soft_empty_cache,
+)
 from .flows import get_installed_flows_names
-from .pydantic_models import TaskDetails, TaskDetailsShort
+from .pydantic_models import (
+    TaskDetails,
+    TaskDetailsShort,
+    WorkerDetails,
+    WorkerDetailsRequest,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -33,6 +42,7 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.input_files,
     database.TaskDetails.outputs,
     database.TaskLock.locked_at,
+    database.TaskDetails.worker_id,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -103,7 +113,29 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "input_files": task_details.input_files,
         "execution_time": task_details.execution_time,
         "locked_at": task_details.locked_at,
+        "worker_id": task_details.worker_id,
     }
+
+
+def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetailsRequest) -> tuple[str, str, dict]:
+    worker_device = worker_details.devices[0]
+    return (
+        f"{worker_user_id}:{worker_details.system.hostname}:[{worker_device.name}]:{worker_device.index}",
+        worker_device.name,
+        {
+            "os": worker_details.system.os,
+            "version": worker_details.system.version,
+            "embedded_python": worker_details.system.embedded_python,
+            "device_type": worker_device.type,
+            "vram_total": worker_device.vram_total,
+            "vram_free": worker_device.vram_free,
+            "torch_vram_total": worker_device.torch_vram_total,
+            "torch_vram_free": worker_device.torch_vram_free,
+            "ram_total": worker_details.ram_total,
+            "ram_free": worker_details.ram_free,
+            "last_seen": datetime.now(timezone.utc),
+        },
+    )
 
 
 def create_new_task(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
@@ -120,20 +152,6 @@ def create_new_task(name: str, input_params: dict, user_info: database.UserInfo)
     return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
 
 
-async def create_new_task_async(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            new_task_queue = database.TaskQueue()
-            session.add(new_task_queue)
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
-            raise
-    remove_task_files(new_task_queue.id, ["output", "input"])
-    return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
-
-
 def put_task_in_queue(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
     with database.SESSION() as session:
@@ -142,19 +160,6 @@ def put_task_in_queue(task_details: dict) -> None:
             session.commit()
         except Exception:
             session.rollback()
-            LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
-            remove_task_files(task_details["task_id"], ["input"])
-            raise
-
-
-async def put_task_in_queue_async(task_details: dict) -> None:
-    LOGGER.debug("Put flow in queue: %s", task_details)
-    async with database.SESSION_ASYNC() as session:
-        try:
-            session.add(__task_details_from_dict(task_details))
-            await session.commit()
-        except Exception:
-            await session.rollback()
             LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
             remove_task_files(task_details["task_id"], ["input"])
             raise
@@ -180,28 +185,26 @@ def get_task(task_id: int, user_id: str | None = None) -> dict | None:
             raise
 
 
-async def get_task_async(task_id: int, user_id: str | None = None) -> dict | None:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            query = __get_task_query(task_id, user_id)
-            task = (await session.execute(query)).one_or_none()
-            return __task_details_to_dict(task) if task else None
-        except Exception:
-            LOGGER.exception("Failed to retrieve task: %s", task_id)
-            raise
-
-
 def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: str) -> dict:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
-    return get_incomplete_task_without_error_database(tasks_to_ask, last_task_name)
+    return get_incomplete_task_without_error_database(
+        database.DEFAULT_USER.user_id,
+        WorkerDetailsRequest.model_validate(get_worker_details()),
+        tasks_to_ask,
+        last_task_name,
+    )
 
 
 def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
     try:
         r = httpx.post(
             options.VIX_SERVER.rstrip("/") + "/task-worker/get",
-            data={"tasks_names": tasks_to_ask, "last_task_name": last_task_name},
+            json={
+                "worker_details": get_worker_details(),
+                "tasks_names": tasks_to_ask,
+                "last_task_name": last_task_name,
+            },
             auth=__worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
@@ -216,12 +219,29 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
 
 
 def get_incomplete_task_without_error_database(
-    tasks_to_ask: list[str], last_task_name: str, user_id: str | None = None
+    worker_user_id: str,
+    worker_details: WorkerDetailsRequest,
+    tasks_to_ask: list[str],
+    last_task_name: str,
+    user_id: str | None = None,
 ) -> dict:
     if not tasks_to_ask:
         return {}
     session = database.SESSION()
     try:
+        worker_id, worker_device_name, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
+        result = session.execute(
+            update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+        )
+        if result.rowcount == 0:
+            session.add(
+                database.Worker(
+                    user_id=worker_user_id,
+                    worker_id=worker_id,
+                    device_name=worker_device_name,
+                    **worker_info_values,
+                )
+            )
         query = session.query(database.TaskDetails).outerjoin(
             database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
         )
@@ -237,6 +257,7 @@ def get_incomplete_task_without_error_database(
             query = query.order_by(desc(database.TaskDetails.name == last_task_name))
         task = query.first()
         if not task:
+            session.commit()
             return {}
         return lock_task_and_return_details(session, task)
     except Exception as e:
@@ -249,8 +270,7 @@ def get_incomplete_task_without_error_database(
 
 def lock_task_and_return_details(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
     try:
-        lock = database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow())
-        session.add(lock)
+        session.add(database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow()))
         session.commit()
         return {
             "task_id": task.task_id,
@@ -272,7 +292,6 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
 def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
     query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT))
     query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
-
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     if name is not None:
@@ -282,6 +301,18 @@ def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | No
             query = query.filter(database.TaskDetails.progress == 100.0)
         else:
             query = query.filter(database.TaskDetails.progress < 100.0)
+    return query
+
+
+def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id: str):
+    query = select(database.Worker)
+    if user_id is not None:
+        query = query.filter(database.Worker.user_id == user_id)
+    if last_seen_interval > 0:
+        time_threshold = datetime.now(timezone.utc) - timedelta(seconds=last_seen_interval)
+        query = query.filter(database.Worker.last_seen >= time_threshold)
+    if worker_id:
+        query = query.filter(database.Worker.worker_id == worker_id)
     return query
 
 
@@ -300,21 +331,6 @@ def get_tasks(
             raise
 
 
-async def get_tasks_async(
-    name: str | None = None,
-    finished: bool | None = None,
-    user_id: str | None = None,
-) -> dict[int, TaskDetails]:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            query = __get_tasks_query(name, finished, user_id)
-            results = (await session.execute(query)).all()
-            return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
-        except Exception:
-            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
-            raise
-
-
 def get_tasks_short(
     user_id: str,
     name: str | None = None,
@@ -324,23 +340,6 @@ def get_tasks_short(
         try:
             query = __get_tasks_query(name, finished, user_id, full_info=False)
             results = session.execute(query).all()
-            return {
-                task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
-            }
-        except Exception:
-            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
-            raise
-
-
-async def get_tasks_short_async(
-    user_id: str,
-    name: str | None = None,
-    finished: bool | None = None,
-) -> dict[int, TaskDetailsShort]:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            query = __get_tasks_query(name, finished, user_id, full_info=False)
-            results = (await session.execute(query)).all()
             return {
                 task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
             }
@@ -451,6 +450,16 @@ def remove_unfinished_tasks_by_name(name: str, user_id: str) -> bool:
     return False
 
 
+def get_task_files(task_id: int, directory: typing.Literal["input", "output"]) -> list[tuple[str, str]]:
+    result_prefix = str(task_id) + "_"
+    target_directory = os.path.join(options.TASKS_FILES_DIR, directory)
+    r = []
+    for filename in sorted(os.listdir(target_directory)):
+        if filename.startswith(result_prefix):
+            r.append((filename, os.path.join(target_directory, filename)))
+    return r
+
+
 def remove_task_files(task_id: int, directories: list[str]) -> None:
     for directory in directories:
         result_prefix = f"{task_id}_"
@@ -494,6 +503,22 @@ def remove_task_lock_server(task_id: int) -> None:
         LOGGER.exception("Exception occurred: %s", e)
 
 
+def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
+    with database.SESSION() as session:
+        try:
+            result = session.execute(
+                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(outputs=outputs)
+            )
+            if result.rowcount == 1:
+                session.commit()
+                return True
+        except Exception as e:
+            interrupt_processing()
+            session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails outputs: %s", task_id, e)
+    return False
+
+
 def update_task_progress(task_details: dict) -> bool:
     __update_temporary_execution_time(task_details)
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
@@ -503,20 +528,58 @@ def update_task_progress(task_details: dict) -> bool:
         task_details["progress"],
         task_details["error"],
         task_details["execution_time"],
+        database.DEFAULT_USER.user_id,
+        WorkerDetailsRequest.model_validate(get_worker_details()),
     )
 
 
-def update_task_progress_database(task_id: int, progress: float, error: str, execution_time: float) -> bool:
+def update_task_progress_database(
+    task_id: int,
+    progress: float,
+    error: str,
+    execution_time: float,
+    worker_user_id: str,
+    worker_details: WorkerDetailsRequest,
+) -> bool:
     with database.SESSION() as session:
         try:
+            worker_id, _, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
             update_values = {
                 "progress": progress,
                 "error": error,
                 "execution_time": execution_time,
                 "updated_at": datetime.now(timezone.utc),
+                "worker_id": worker_id,
             }
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
+            result = session.execute(
+                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
+            )
+            session.commit()
+            if (task_updated := result.rowcount == 1) is True:
+                session.execute(
+                    update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+                )
+                session.commit()
+            return task_updated
+        except Exception as e:
+            interrupt_processing()
+            session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
+    return False
+
+
+def task_restart_database(task_id: int) -> bool:
+    with database.SESSION() as session:
+        try:
+            update_values = {
+                "progress": 0.0,
+                "error": "",
+                "execution_time": 0.0,
+                "updated_at": datetime.now(timezone.utc),
+                "worker_id": None,
+            }
             result = session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
@@ -525,45 +588,24 @@ def update_task_progress_database(task_id: int, progress: float, error: str, exe
         except Exception as e:
             interrupt_processing()
             session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
-    return False
-
-
-async def update_task_progress_database_async(task_id: int, progress: float, error: str, execution_time: float) -> bool:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            update_values = {
-                "progress": progress,
-                "error": error,
-                "execution_time": execution_time,
-                "updated_at": datetime.now(timezone.utc),
-            }
-            if progress == 100.0:
-                update_values["finished_at"] = datetime.now(timezone.utc)
-            result = await session.execute(
-                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
-            )
-            await session.commit()
-            return result.rowcount == 1
-        except Exception as e:
-            interrupt_processing()
-            await session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
+            LOGGER.exception("Task %s: failed to restart: %s", task_id, e)
     return False
 
 
 def update_task_progress_server(task_details: dict) -> bool:
     task_id = task_details["task_id"]
+    request_data = {
+        "worker_details": get_worker_details(),
+        "task_id": task_id,
+        "progress": task_details["progress"],
+        "execution_time": task_details["execution_time"],
+        "error": task_details["error"],
+    }
     for i in range(3):
         try:
             r = httpx.put(
                 options.VIX_SERVER.rstrip("/") + "/task-worker/progress",
-                data={
-                    "task_id": task_id,
-                    "progress": task_details["progress"],
-                    "execution_time": task_details["execution_time"],
-                    "error": task_details["error"],
-                },
+                json=request_data,
                 auth=__worker_auth(),
                 timeout=float(options.WORKER_NET_TIMEOUT),
             )
@@ -615,7 +657,7 @@ def init_active_task_inputs_from_server() -> bool:
                     if httpx.codes.is_error(r.status_code):
                         raise RuntimeError(f"Task {task_id}: can not get input file, status={r.status_code}")
                     with builtins.open(
-                        os.path.join(input_directory, ACTIVE_TASK["input_files"][i]), mode="wb"
+                        os.path.join(input_directory, ACTIVE_TASK["input_files"][i]["file_name"]), mode="wb"
                     ) as input_file:
                         input_file.write(r.content)
                     break
@@ -634,20 +676,24 @@ def init_active_task_inputs_from_server() -> bool:
         return False
 
 
-def upload_results_to_server(task_id: int) -> bool:
+def upload_results_to_server(task_details: dict) -> bool:
+    task_id = task_details["task_id"]
+    output_files = get_task_files(task_id, "output")
     if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
+        for task_output in task_details["outputs"]:
+            task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
+            relevant_files = [file_info for file_info in output_files if file_info[0].startswith(task_file_prefix)]
+            if relevant_files:
+                task_output["file_size"] = os.path.getsize(relevant_files[0][1])
+        update_task_outputs(task_id, task_details["outputs"])
         return True
     files = []
-    result_prefix = str(task_id) + "_"
-    target_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     try:
-        for filename in os.listdir(target_directory):
-            if filename.startswith(result_prefix):
-                fila_path = os.path.join(target_directory, filename)
-                file_handle = builtins.open(fila_path, mode="rb")  # noqa pylint: disable=consider-using-with
-                files.append(
-                    ("files", (filename, file_handle)),
-                )
+        for output_file in output_files:
+            file_handle = builtins.open(output_file[1], mode="rb")  # noqa pylint: disable=consider-using-with
+            files.append(
+                ("files", (output_file[0], file_handle)),
+            )
         try:
             for i in range(3):
                 try:
@@ -777,7 +823,7 @@ def update_task_progress_thread(active_task: dict) -> None:
             if last_info != active_task:
                 last_info = active_task.copy()
                 if last_info["progress"] == 100.0:
-                    if upload_results_to_server(last_info["task_id"]):
+                    if upload_results_to_server(last_info):
                         update_task_progress(last_info)
                     break
                 if not update_task_progress(last_info):
@@ -793,15 +839,17 @@ def update_task_progress_thread(active_task: dict) -> None:
         remove_task_lock(last_info["task_id"])
 
 
-async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Event) -> None:
-    async def start_background_tasks_engine(prompt_executor):
-        await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
-
-    database.init_database_engine()
-    if options.VIX_MODE != "SERVER":
-        _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
-
-
 def __worker_auth() -> tuple[str, str]:
     name, password = options.WORKER_AUTH.split(":")
     return name, password
+
+
+def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
+    with database.SESSION() as session:
+        try:
+            query = __get_workers_query(user_id, last_seen_interval, worker_id)
+            results = session.execute(query).scalars().all()
+            return [WorkerDetails.model_validate(i) for i in results]
+        except Exception:
+            LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)
+            raise

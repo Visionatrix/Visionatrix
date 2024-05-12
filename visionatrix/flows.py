@@ -277,7 +277,7 @@ def prepare_flow_comfy_files_params(
             with builtins.open(result_path, mode="wb") as fp:
                 v.file.seek(0)
                 shutil.copyfileobj(v.file, fp)
-        task_details["input_files"].append(file_name)
+        task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
 
 
 def flow_prepare_output_params(
@@ -297,7 +297,7 @@ def flow_prepare_output_params(
                 f"class_type={r_node['class_type']}: only `SaveImage` nodes are supported currently as output node"
             )
         r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
-        task_details["outputs"].append({"comfy_node_id": int(param), "type": "image"})
+        task_details["outputs"].append({"comfy_node_id": int(param), "type": "image", "file_size": -1})
 
 
 def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, dict]) -> None:

@@ -16,9 +16,11 @@ from pathlib import Path
 import uvicorn
 from fastapi import (
     BackgroundTasks,
+    Body,
     FastAPI,
     Form,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     responses,
@@ -41,22 +43,19 @@ from .flows import (
     prepare_flow_comfy,
     uninstall_flow,
 )
-from .pydantic_models import TaskRunResults
+from .pydantic_models import TaskRunResults, WorkerDetails, WorkerDetailsRequest
 from .tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
     background_prompt_executor,
     create_new_task,
-    create_new_task_async,
     get_incomplete_task_without_error_database,
     get_task,
-    get_task_async,
+    get_task_files,
     get_tasks,
-    get_tasks_async,
     get_tasks_short,
-    get_tasks_short_async,
+    get_workers_details,
     put_task_in_queue,
-    put_task_in_queue_async,
     remove_active_task_lock,
     remove_task_by_id_database,
     remove_task_by_name,
@@ -64,9 +63,21 @@ from .tasks_engine import (
     remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
-    start_tasks_engine,
     task_progress_callback,
+    task_restart_database,
+    update_task_outputs,
     update_task_progress_database,
+)
+from .tasks_engine_async import (
+    create_new_task_async,
+    get_task_async,
+    get_tasks_async,
+    get_tasks_short_async,
+    get_workers_details_async,
+    put_task_in_queue_async,
+    start_tasks_engine,
+    task_restart_database_async,
+    update_task_outputs_async,
     update_task_progress_database_async,
 )
 
@@ -405,9 +416,9 @@ async def task_restart(request: Request, task_id: int, force: bool = False):
         )
 
     if options.VIX_MODE == "SERVER":
-        await update_task_progress_database_async(task_id, 0.0, "", 0.0)
+        await task_restart_database_async(task_id)
     else:
-        update_task_progress_database(task_id, 0.0, "", 0.0)
+        task_restart_database(task_id)
     remove_task_lock_database(task_id)
     return responses.JSONResponse(content={"error": ""})
 
@@ -457,11 +468,11 @@ async def task_inputs(request: Request, task_id: int, input_index: int):
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     for filename in os.listdir(input_directory):
-        if filename == r["input_files"][input_index]:
+        if filename == r["input_files"][input_index]["file_name"]:
             return responses.FileResponse(os.path.join(input_directory, filename))
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Task({r['task_id']}): input file `{r['input_files'][input_index]}` was not found.",
+        detail=f"Task({r['task_id']}): input file `{r['input_files'][input_index]['file_name']}` was not found.",
     )
 
 
@@ -479,12 +490,12 @@ async def task_results(request: Request, task_id: int, node_id: int):
     if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     result_prefix = f"{task_id}_{node_id}_"
-    output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
-    for filename in os.listdir(output_directory):
-        if filename.startswith(result_prefix):
-            base_name, extension = os.path.splitext(filename)
+    output_files = get_task_files(task_id, "output")
+    for output_file in output_files:
+        if output_file[0].startswith(result_prefix):
+            base_name, extension = os.path.splitext(output_file[0])
             content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension
-            return responses.FileResponse(os.path.join(output_directory, filename), filename=content_disposition)
+            return responses.FileResponse(output_file[1], filename=content_disposition)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
     )
@@ -513,8 +524,9 @@ async def task_queue_clear(request: Request, task_id: int):
 @APP.post("/task-worker/get")
 async def task_worker_give_task(
     request: Request,
-    tasks_names: typing.Annotated[list[str], Form()],
-    last_task_name: typing.Annotated[str, Form()] = "",
+    worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
+    tasks_names: typing.Annotated[list[str], Body()],
+    last_task_name: typing.Annotated[str, Body()] = "",
 ):
     """
     Retrieves an incomplete task for a `worker` to process. Workers provide a list of tasks names they can handle
@@ -524,17 +536,23 @@ async def task_worker_give_task(
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     return responses.JSONResponse(
-        content={"error": "", "task": get_incomplete_task_without_error_database(tasks_names, last_task_name, user_id)}
+        content={
+            "error": "",
+            "task": get_incomplete_task_without_error_database(
+                request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
+            ),
+        }
     )
 
 
 @APP.put("/task-worker/progress")
 async def task_worker_update_progress(
     request: Request,
-    task_id: typing.Annotated[int, Form()],
-    progress: typing.Annotated[float, Form()],
-    execution_time: typing.Annotated[float, Form()],
-    error: typing.Annotated[str, Form()] = "",
+    worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
+    task_id: typing.Annotated[int, Body()],
+    progress: typing.Annotated[float, Body()],
+    execution_time: typing.Annotated[float, Body()],
+    error: typing.Annotated[str, Body()] = "",
 ):
     """
     Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
@@ -550,9 +568,13 @@ async def task_worker_update_progress(
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if options.VIX_MODE == "SERVER":
-        update_success = await update_task_progress_database_async(task_id, progress, error, execution_time)
+        update_success = await update_task_progress_database_async(
+            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+        )
     else:
-        update_success = update_task_progress_database(task_id, progress, error, execution_time)
+        update_success = update_task_progress_database(
+            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+        )
     return responses.JSONResponse(content={"error": "" if update_success else "failed to update"})
 
 
@@ -572,12 +594,30 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
-    for r in files:
+    for result_file in files:
+        node_found_in_flow = False
+        for task_output in r["outputs"]:
+            task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
+            if result_file.filename.startswith(task_file_prefix):
+                task_output["file_size"] = result_file.size
+                node_found_in_flow = True
+                break
+        if not node_found_in_flow:
+            responses.JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"error": f"{result_file.filename} does not belong to task."},
+            )
         try:
-            with builtins.open(Path(output_directory).joinpath(r.filename), mode="wb") as out_file:
-                shutil.copyfileobj(r.file, out_file)
+            file_path = Path(output_directory).joinpath(result_file.filename)
+            with builtins.open(file_path, mode="wb") as out_file:
+                shutil.copyfileobj(result_file.file, out_file)
         finally:
-            r.file.close()
+            result_file.file.close()
+
+    if options.VIX_MODE == "SERVER":
+        await update_task_outputs_async(task_id, r["outputs"])
+    else:
+        update_task_outputs(task_id, r["outputs"])
     return responses.JSONResponse(content={"error": ""})
 
 
@@ -635,7 +675,32 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
 
 @APP.get("/system_stats")
 async def system_stats():
-    return responses.JSONResponse(content=comfyui.system_stats())
+    # TO-DO: remove this endpoint completely, no needed with new **/workers_info**
+    return responses.JSONResponse(content=comfyui.get_worker_details())
+
+
+@APP.get("/workers_info")
+async def workers_info(
+    request: Request,
+    last_seen_interval: int = Query(
+        0,
+        description="The time interval in seconds within which workers must have marked themselves active. "
+        "If specified, only workers who have reported activity within this interval will be returned.",
+    ),
+    worker_id: str = Query("", description="An optional worker ID to retrieve details for a specific worker."),
+) -> list[WorkerDetails]:
+    """
+    Fetches details about workers including their system and device information.
+    This endpoint allows filtering of workers based on their last active status and can also
+    retrieve information for a specific worker if a worker ID is provided.
+    Useful for monitoring and managing worker resources in distributed computing environments.
+    """
+    user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
+    if options.VIX_MODE == "SERVER":
+        r = await get_workers_details_async(user_id, last_seen_interval, worker_id)
+    else:
+        r = get_workers_details(user_id, last_seen_interval, worker_id)
+    return r
 
 
 def run_vix(*args, **kwargs) -> None:
