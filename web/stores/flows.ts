@@ -734,7 +734,12 @@ export interface TasksHistory {
 }
 
 export interface TaskInputFile {
-	[index: number]: string
+	[index: number]: TaskInputFileData
+}
+
+export interface TaskInputFileData {
+	file_name: string
+	file_size: string
 }
 
 export interface TaskHistoryInputParam {
