@@ -525,6 +525,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (progress[task_id].execution_time) {
 							runningFlow.execution_time = progress[task_id].execution_time
 						}
+						// update input_params_mapped with new values
+						runningFlow.input_params_mapped = {
+							...runningFlow.input_params_mapped,
+							...progress[task_id].input_params,
+						}
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
 							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
