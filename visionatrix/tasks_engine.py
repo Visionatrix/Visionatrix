@@ -265,8 +265,20 @@ def get_incomplete_task_without_error_database(
     if not tasks_to_ask:
         return {}
     session = database.SESSION()
-    locked_task = {}
     try:
+        worker_id, worker_device_name, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
+        result = session.execute(
+            update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+        )
+        if result.rowcount == 0:
+            session.add(
+                database.Worker(
+                    user_id=worker_user_id,
+                    worker_id=worker_id,
+                    device_name=worker_device_name,
+                    **worker_info_values,
+                )
+            )
         query = session.query(database.TaskDetails).outerjoin(
             database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
         )
@@ -282,31 +294,12 @@ def get_incomplete_task_without_error_database(
             query = query.order_by(desc(database.TaskDetails.name == last_task_name))
         task = query.first()
         if not task:
-            return {}
-        if not (locked_task := lock_task_and_return_details(session, task)):
-            return {}
-        worker_id, worker_device_name, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
-        result = session.execute(
-            update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
-        )
-        session.commit()
-        if result.rowcount == 0:
-            session.add(
-                database.Worker(
-                    user_id=worker_user_id,
-                    worker_id=worker_id,
-                    device_name=worker_device_name,
-                    **worker_info_values,
-                )
-            )
             session.commit()
-        return locked_task
+            return {}
+        return lock_task_and_return_details(session, task)
     except Exception as e:
         session.rollback()
         LOGGER.exception("Failed to retrieve task for processing: %s", e)
-        if locked_task:
-            session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == locked_task["task_id"]))
-            session.commit()
         return {}
     finally:
         session.close()
