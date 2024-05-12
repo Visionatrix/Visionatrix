@@ -468,11 +468,11 @@ async def task_inputs(request: Request, task_id: int, input_index: int):
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     for filename in os.listdir(input_directory):
-        if filename == r["input_files"][input_index]:
+        if filename == r["input_files"][input_index]["file_name"]:
             return responses.FileResponse(os.path.join(input_directory, filename))
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Task({r['task_id']}): input file `{r['input_files'][input_index]}` was not found.",
+        detail=f"Task({r['task_id']}): input file `{r['input_files'][input_index]['file_name']}` was not found.",
     )
 
 

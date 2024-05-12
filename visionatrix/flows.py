@@ -277,7 +277,7 @@ def prepare_flow_comfy_files_params(
             with builtins.open(result_path, mode="wb") as fp:
                 v.file.seek(0)
                 shutil.copyfileobj(v.file, fp)
-        task_details["input_files"].append(file_name)
+        task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
 
 
 def flow_prepare_output_params(

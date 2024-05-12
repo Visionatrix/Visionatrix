@@ -62,11 +62,11 @@ class Flow(BaseModel):
     )
 
 
-# class TaskDetailsInput(BaseModel):
-#     """Information about input file to a ComfyUI workflow."""
-#     TO-DO:
-#     file_name: str
-#     file_size: int
+class TaskDetailsInput(BaseModel):
+    """Information about input file to a ComfyUI workflow."""
+
+    file_name: str = Field(..., description="Format of name is 'task_id' + '_' + 'index'")
+    file_size: int = Field(..., description="Size of file in bytes.")
 
 
 class TaskDetailsOutput(BaseModel):
@@ -93,7 +93,7 @@ class TaskDetailsShort(BaseModel):
         ..., description="Incoming textual parameters based on which the ComfyUI workflow was generated."
     )
     outputs: list[TaskDetailsOutput] = Field(..., description="ComfyUI nodes from which results can be retrieved.")
-    input_files: list[str] = Field(
+    input_files: list[TaskDetailsInput] = Field(
         ..., description="Incoming file parameters based on which the ComfyUI workflow was generated."
     )
     locked_at: datetime | None = Field(None, description="Lock time if task is locked.")

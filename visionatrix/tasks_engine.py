@@ -655,7 +655,7 @@ def init_active_task_inputs_from_server() -> bool:
                     if httpx.codes.is_error(r.status_code):
                         raise RuntimeError(f"Task {task_id}: can not get input file, status={r.status_code}")
                     with builtins.open(
-                        os.path.join(input_directory, ACTIVE_TASK["input_files"][i]), mode="wb"
+                        os.path.join(input_directory, ACTIVE_TASK["input_files"][i]["file_name"]), mode="wb"
                     ) as input_file:
                         input_file.write(r.content)
                     break
