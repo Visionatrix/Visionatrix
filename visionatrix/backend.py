@@ -593,19 +593,27 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    # TO-DO: Security: check if "filename" belong to this task and not overrides the another one.
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     for result_file in files:
+        node_found_in_flow = False
+        for task_output in r["outputs"]:
+            task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
+            if result_file.filename.startswith(task_file_prefix):
+                task_output["file_size"] = result_file.size
+                node_found_in_flow = True
+                break
+        if not node_found_in_flow:
+            responses.JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"error": f"{result_file.filename} does not belong to task."},
+            )
         try:
             file_path = Path(output_directory).joinpath(result_file.filename)
             with builtins.open(file_path, mode="wb") as out_file:
                 shutil.copyfileobj(result_file.file, out_file)
         finally:
             result_file.file.close()
-        for task_output in r["outputs"]:
-            task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
-            if result_file.filename.startswith(task_file_prefix):
-                task_output["file_size"] = file_path.stat().st_size
+
     if options.VIX_MODE == "SERVER":
         await update_task_outputs_async(task_id, r["outputs"])
     else:
