@@ -18,7 +18,7 @@ const collapsed = ref(true)
 </script>
 
 <template>
-	<div v-if="$props.running && $props.running.input_files"
+	<div v-if="$props.running && $props.running.input_files && Object.keys($props.running.input_files)?.length > 0"
 		class="ml-2 mt-2 mb-5" :class="{ 'mb-10': Object.keys($props.running.input_files)?.length > 1 && !collapsed }">
 		<h4 class="mb-3 font-bold cursor-pointer select-none flex items-center text-sm"
 			@click="() => collapsed = !collapsed">
