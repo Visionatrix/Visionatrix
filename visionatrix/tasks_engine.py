@@ -42,6 +42,7 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.input_files,
     database.TaskDetails.outputs,
     database.TaskLock.locked_at,
+    database.TaskDetails.worker_id,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -51,7 +52,6 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.created_at,
     database.TaskDetails.updated_at,
     database.TaskDetails.finished_at,
-    database.TaskDetails.worker_id,
 ]
 
 
@@ -98,7 +98,6 @@ def __task_details_to_dict(task_details: Row) -> dict:
             "created_at": task_details.created_at,
             "updated_at": task_details.updated_at,
             "finished_at": task_details.finished_at,
-            "worker_id": task_details.worker_id,
         }
     )
     return r
@@ -114,6 +113,7 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "input_files": task_details.input_files,
         "execution_time": task_details.execution_time,
         "locked_at": task_details.locked_at,
+        "worker_id": task_details.worker_id,
     }
 
 
