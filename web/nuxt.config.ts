@@ -9,8 +9,5 @@ export default defineNuxtConfig({
 			authPassword: process.env.AUTH_PASSWORD || '',
 		}
 	},
-	app: {
-		pageTransition: { name: 'page', mode: 'out-in' },
-	},
 	ssr: false, // we use only client side rendering,
 })
