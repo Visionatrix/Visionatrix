@@ -49,6 +49,7 @@ dependencies = [
   "httpx>=0.25.2",
   "packaging",
   "passlib[bcrypt]",
+  "psutil",
   "pydantic>=2.1.1",
   "python-dotenv>=1",
   "python-multipart",
