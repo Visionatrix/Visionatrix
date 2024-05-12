@@ -64,6 +64,7 @@ const collapsed = ref(true)
 						}`
 					}}
 				</p>
+				<WorkflowQueueInputFiles :running="running" />
 				<WorkflowQueueErrorAlert v-if="running.error" :running="running" />
 				<UButton icon="i-heroicons-stop"
 					color="orange"

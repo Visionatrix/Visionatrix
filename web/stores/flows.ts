@@ -170,8 +170,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						task_id: task_id,
 						flow_name: task.name,
 						progress: task.progress,
-						input_prompt: <string>task.input_params?.prompt || '',
-						seed: <string>task.input_params?.seed || '',
+						input_files: task.input_files || [],
 						input_params_mapped: task.input_params || null,
 						error: task?.error || null,
 						outputs: task.outputs,
@@ -530,6 +529,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 							...runningFlow.input_params_mapped,
 							...progress[task_id].input_params,
 						}
+						// update input_files
+						if (progress[task_id].input_files) {
+							runningFlow.input_files = progress[task_id].input_files
+						}
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
 							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
@@ -700,6 +703,7 @@ export interface FlowRunning {
 	task_id: string
 	flow_name: string
 	progress: number
+	input_files?: TaskInputFile
 	input_params_mapped: TaskHistoryInputParam
 	outputs: FlowOutputParam[]
 	error?: string
@@ -729,6 +733,10 @@ export interface TasksHistory {
 	[task_id: string]: TaskHistoryItem
 }
 
+export interface TaskInputFile {
+	[index: number]: string
+}
+
 export interface TaskHistoryInputParam {
 	[name: string]: any
 }
@@ -736,6 +744,7 @@ export interface TaskHistoryInputParam {
 export interface TaskHistoryItem {
 	name: string
 	input_params: TaskHistoryInputParam
+	input_files: TaskInputFile
 	progress: number
 	error?: string
 	outputs: FlowOutputParam[]
