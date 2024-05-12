@@ -49,18 +49,13 @@ from .tasks_engine import (
     TaskDetailsShort,
     background_prompt_executor,
     create_new_task,
-    create_new_task_async,
     get_incomplete_task_without_error_database,
     get_task,
-    get_task_async,
+    get_task_files,
     get_tasks,
-    get_tasks_async,
     get_tasks_short,
-    get_tasks_short_async,
     get_workers_details,
-    get_workers_details_async,
     put_task_in_queue,
-    put_task_in_queue_async,
     remove_active_task_lock,
     remove_task_by_id_database,
     remove_task_by_name,
@@ -68,11 +63,21 @@ from .tasks_engine import (
     remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
-    start_tasks_engine,
     task_progress_callback,
     task_restart_database,
-    task_restart_database_async,
+    update_task_outputs,
     update_task_progress_database,
+)
+from .tasks_engine_async import (
+    create_new_task_async,
+    get_task_async,
+    get_tasks_async,
+    get_tasks_short_async,
+    get_workers_details_async,
+    put_task_in_queue_async,
+    start_tasks_engine,
+    task_restart_database_async,
+    update_task_outputs_async,
     update_task_progress_database_async,
 )
 
@@ -485,12 +490,12 @@ async def task_results(request: Request, task_id: int, node_id: int):
     if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     result_prefix = f"{task_id}_{node_id}_"
-    output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
-    for filename in os.listdir(output_directory):
-        if filename.startswith(result_prefix):
-            base_name, extension = os.path.splitext(filename)
+    output_files = get_task_files(task_id, "output")
+    for output_file in output_files:
+        if output_file[0].startswith(result_prefix):
+            base_name, extension = os.path.splitext(output_file[0])
             content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension
-            return responses.FileResponse(os.path.join(output_directory, filename), filename=content_disposition)
+            return responses.FileResponse(output_file[1], filename=content_disposition)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
     )
@@ -588,13 +593,23 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
+    # TO-DO: Security: check if "filename" belong to this task and not overrides the another one.
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
-    for r in files:
+    for result_file in files:
         try:
-            with builtins.open(Path(output_directory).joinpath(r.filename), mode="wb") as out_file:
-                shutil.copyfileobj(r.file, out_file)
+            file_path = Path(output_directory).joinpath(result_file.filename)
+            with builtins.open(file_path, mode="wb") as out_file:
+                shutil.copyfileobj(result_file.file, out_file)
         finally:
-            r.file.close()
+            result_file.file.close()
+        for task_output in r["outputs"]:
+            task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
+            if result_file.filename.startswith(task_file_prefix):
+                task_output["file_size"] = file_path.stat().st_size
+    if options.VIX_MODE == "SERVER":
+        await update_task_outputs_async(task_id, r["outputs"])
+    else:
+        update_task_outputs(task_id, r["outputs"])
     return responses.JSONResponse(content={"error": ""})
 
 

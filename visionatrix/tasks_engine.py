@@ -1,4 +1,3 @@
-import asyncio
 import builtins
 import contextlib
 import gc
@@ -151,20 +150,6 @@ def create_new_task(name: str, input_params: dict, user_info: database.UserInfo)
     return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
 
 
-async def create_new_task_async(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            new_task_queue = database.TaskQueue()
-            session.add(new_task_queue)
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
-            raise
-    remove_task_files(new_task_queue.id, ["output", "input"])
-    return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
-
-
 def put_task_in_queue(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
     with database.SESSION() as session:
@@ -173,19 +158,6 @@ def put_task_in_queue(task_details: dict) -> None:
             session.commit()
         except Exception:
             session.rollback()
-            LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
-            remove_task_files(task_details["task_id"], ["input"])
-            raise
-
-
-async def put_task_in_queue_async(task_details: dict) -> None:
-    LOGGER.debug("Put flow in queue: %s", task_details)
-    async with database.SESSION_ASYNC() as session:
-        try:
-            session.add(__task_details_from_dict(task_details))
-            await session.commit()
-        except Exception:
-            await session.rollback()
             LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
             remove_task_files(task_details["task_id"], ["input"])
             raise
@@ -205,17 +177,6 @@ def get_task(task_id: int, user_id: str | None = None) -> dict | None:
         try:
             query = __get_task_query(task_id, user_id)
             task = session.execute(query).one_or_none()
-            return __task_details_to_dict(task) if task else None
-        except Exception:
-            LOGGER.exception("Failed to retrieve task: %s", task_id)
-            raise
-
-
-async def get_task_async(task_id: int, user_id: str | None = None) -> dict | None:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            query = __get_task_query(task_id, user_id)
-            task = (await session.execute(query)).one_or_none()
             return __task_details_to_dict(task) if task else None
         except Exception:
             LOGGER.exception("Failed to retrieve task: %s", task_id)
@@ -368,21 +329,6 @@ def get_tasks(
             raise
 
 
-async def get_tasks_async(
-    name: str | None = None,
-    finished: bool | None = None,
-    user_id: str | None = None,
-) -> dict[int, TaskDetails]:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            query = __get_tasks_query(name, finished, user_id)
-            results = (await session.execute(query)).all()
-            return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
-        except Exception:
-            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
-            raise
-
-
 def get_tasks_short(
     user_id: str,
     name: str | None = None,
@@ -392,23 +338,6 @@ def get_tasks_short(
         try:
             query = __get_tasks_query(name, finished, user_id, full_info=False)
             results = session.execute(query).all()
-            return {
-                task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
-            }
-        except Exception:
-            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
-            raise
-
-
-async def get_tasks_short_async(
-    user_id: str,
-    name: str | None = None,
-    finished: bool | None = None,
-) -> dict[int, TaskDetailsShort]:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            query = __get_tasks_query(name, finished, user_id, full_info=False)
-            results = (await session.execute(query)).all()
             return {
                 task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
             }
@@ -519,6 +448,16 @@ def remove_unfinished_tasks_by_name(name: str, user_id: str) -> bool:
     return False
 
 
+def get_task_files(task_id: int, directory: typing.Literal["input", "output"]) -> list[tuple[str, str]]:
+    result_prefix = str(task_id) + "_"
+    target_directory = os.path.join(options.TASKS_FILES_DIR, directory)
+    r = []
+    for filename in sorted(os.listdir(target_directory)):
+        if filename.startswith(result_prefix):
+            r.append((filename, os.path.join(target_directory, filename)))
+    return r
+
+
 def remove_task_files(task_id: int, directories: list[str]) -> None:
     for directory in directories:
         result_prefix = f"{task_id}_"
@@ -560,6 +499,22 @@ def remove_task_lock_server(task_id: int) -> None:
             LOGGER.warning("Task %s: server return status: %s", task_id, r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
+
+
+def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
+    with database.SESSION() as session:
+        try:
+            result = session.execute(
+                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(outputs=outputs)
+            )
+            if result.rowcount == 1:
+                session.commit()
+                return True
+        except Exception as e:
+            interrupt_processing()
+            session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails outputs: %s", task_id, e)
+    return False
 
 
 def update_task_progress(task_details: dict) -> bool:
@@ -613,43 +568,6 @@ def update_task_progress_database(
     return False
 
 
-async def update_task_progress_database_async(
-    task_id: int,
-    progress: float,
-    error: str,
-    execution_time: float,
-    worker_user_id: str,
-    worker_details: WorkerDetailsRequest,
-) -> bool:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            worker_id, _, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
-            update_values = {
-                "progress": progress,
-                "error": error,
-                "execution_time": execution_time,
-                "updated_at": datetime.now(timezone.utc),
-                "worker_id": worker_id,
-            }
-            if progress == 100.0:
-                update_values["finished_at"] = datetime.now(timezone.utc)
-            result = await session.execute(
-                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
-            )
-            await session.commit()
-            if (task_updated := result.rowcount == 1) is True:
-                await session.execute(
-                    update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
-                )
-                await session.commit()
-            return task_updated
-        except Exception as e:
-            interrupt_processing()
-            await session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
-    return False
-
-
 def task_restart_database(task_id: int) -> bool:
     with database.SESSION() as session:
         try:
@@ -668,28 +586,6 @@ def task_restart_database(task_id: int) -> bool:
         except Exception as e:
             interrupt_processing()
             session.rollback()
-            LOGGER.exception("Task %s: failed to restart: %s", task_id, e)
-    return False
-
-
-async def task_restart_database_async(task_id: int) -> bool:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            update_values = {
-                "progress": 0.0,
-                "error": "",
-                "execution_time": 0.0,
-                "updated_at": datetime.now(timezone.utc),
-                "worker_id": None,
-            }
-            result = await session.execute(
-                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
-            )
-            await session.commit()
-            return result.rowcount == 1
-        except Exception as e:
-            interrupt_processing()
-            await session.rollback()
             LOGGER.exception("Task %s: failed to restart: %s", task_id, e)
     return False
 
@@ -778,20 +674,24 @@ def init_active_task_inputs_from_server() -> bool:
         return False
 
 
-def upload_results_to_server(task_id: int) -> bool:
+def upload_results_to_server(task_details: dict) -> bool:
+    task_id = task_details["task_id"]
+    output_files = get_task_files(task_id, "output")
     if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
+        for task_output in task_details["outputs"]:
+            task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
+            relevant_files = [file_info for file_info in output_files if file_info[0].startswith(task_file_prefix)]
+            if relevant_files:
+                task_output["file_size"] = os.path.getsize(relevant_files[0][1])
+        update_task_outputs(task_id, task_details["outputs"])
         return True
     files = []
-    result_prefix = str(task_id) + "_"
-    target_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     try:
-        for filename in os.listdir(target_directory):
-            if filename.startswith(result_prefix):
-                fila_path = os.path.join(target_directory, filename)
-                file_handle = builtins.open(fila_path, mode="rb")  # noqa pylint: disable=consider-using-with
-                files.append(
-                    ("files", (filename, file_handle)),
-                )
+        for output_file in output_files:
+            file_handle = builtins.open(output_file[1], mode="rb")  # noqa pylint: disable=consider-using-with
+            files.append(
+                ("files", (output_file[0], file_handle)),
+            )
         try:
             for i in range(3):
                 try:
@@ -921,7 +821,7 @@ def update_task_progress_thread(active_task: dict) -> None:
             if last_info != active_task:
                 last_info = active_task.copy()
                 if last_info["progress"] == 100.0:
-                    if upload_results_to_server(last_info["task_id"]):
+                    if upload_results_to_server(last_info):
                         update_task_progress(last_info)
                     break
                 if not update_task_progress(last_info):
@@ -937,15 +837,6 @@ def update_task_progress_thread(active_task: dict) -> None:
         remove_task_lock(last_info["task_id"])
 
 
-async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Event) -> None:
-    async def start_background_tasks_engine(prompt_executor):
-        await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
-
-    database.init_database_engine()
-    if options.VIX_MODE != "SERVER":
-        _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
-
-
 def __worker_auth() -> tuple[str, str]:
     name, password = options.WORKER_AUTH.split(":")
     return name, password
@@ -956,19 +847,6 @@ def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id:
         try:
             query = __get_workers_query(user_id, last_seen_interval, worker_id)
             results = session.execute(query).scalars().all()
-            return [WorkerDetails.model_validate(i) for i in results]
-        except Exception:
-            LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)
-            raise
-
-
-async def get_workers_details_async(
-    user_id: str | None, last_seen_interval: int, worker_id: str
-) -> list[WorkerDetails]:
-    async with database.SESSION() as session:
-        try:
-            query = __get_workers_query(user_id, last_seen_interval, worker_id)
-            results = (await session.execute(query)).scalars().all()
             return [WorkerDetails.model_validate(i) for i in results]
         except Exception:
             LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)

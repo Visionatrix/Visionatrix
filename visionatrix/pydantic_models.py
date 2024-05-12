@@ -76,7 +76,7 @@ class TaskDetailsOutput(BaseModel):
     type: str = Field(
         ..., description="Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
     )
-    # TO-DO: size field
+    file_size: int = Field(-1, description="Size of file in bytes.")
 
 
 class TaskDetailsShort(BaseModel):
