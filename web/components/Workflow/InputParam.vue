@@ -115,17 +115,42 @@ onBeforeUnmount(() => {
 					inputParamsMap[index][inputParam.name].value = input.value
 				}" />
 
-			<UInput v-if="inputParam.type === 'number'"
-				type="number"
-				:label="inputParam.display_name"
-				:required="!inputParam.optional"
-				:value="inputParamsMap[index][inputParam.name].value"
-				:max="inputParam.max || 100"
-				:min="inputParam.min || 0"
-				variant="outline" @input="(event: InputEvent) => {
-					const input = event.target as HTMLInputElement
-					inputParamsMap[index][inputParam.name].value = input.value
-				}" />
+			<template v-if="inputParam.type === 'number'">
+				<template v-if="inputParam.name === 'seed'">
+					<div class="flex items-center">
+						<UInput v-if="inputParam.type === 'number'"
+							type="number"
+							:label="inputParam.display_name"
+							:required="!inputParam.optional"
+							:value="inputParamsMap[index][inputParam.name].value"
+							:max="inputParam.max || 100"
+							:min="inputParam.min || 0"
+							variant="outline" @input="(event: InputEvent) => {
+								const input = event.target as HTMLInputElement
+								inputParamsMap[index][inputParam.name].value = input.value
+							}" />
+						<UButton icon="i-heroicons-arrow-path"
+							color="violet"
+							variant="outline"
+							size="xs"
+							class="ml-2"
+							@click="() => {
+								inputParamsMap[index][inputParam.name].value = Math.floor(Math.random() * 10000000) as number
+							}" />
+					</div>
+				</template>
+				<UInput v-else
+					type="number"
+					:label="inputParam.display_name"
+					:required="!inputParam.optional"
+					:value="inputParamsMap[index][inputParam.name].value"
+					:max="inputParam.max || 100"
+					:min="inputParam.min || 0"
+					variant="outline" @input="(event: InputEvent) => {
+						const input = event.target as HTMLInputElement
+						inputParamsMap[index][inputParam.name].value = input.value
+					}" />
+			</template>
 
 			<div v-if="inputParam.type === 'image'" class="flex flex-row flex-grow items-center justify-between">
 				<UInput ref="imageInput"

@@ -2,7 +2,6 @@
 const flowStore = useFlowsStore()
 
 const canceling = ref(false)
-const restarting = ref(false)
 const collapsed = ref(true)
 </script>
 
@@ -50,19 +49,23 @@ const collapsed = ref(true)
 				<UProgress class="mb-3" :value="running?.progress" indicator :color="!running.error ? 'green' : 'red'" />
 				<p class="text-sm mb-5 text-slate-500">
 					{{
-						Object.keys(running.input_params_mapped)
-							.filter((key) => {
-								return running.input_params_mapped[key] !== ''
-							})
-							.map((key) => {
-								return `${key}: ${running.input_params_mapped[key]}`
-							}).join(' | ')
+						[
+							'#' + running.task_id,
+							...Object.keys(running.input_params_mapped)
+								.filter((key) => {
+									return running.input_params_mapped[key] && running.input_params_mapped[key] !== ''
+								})
+								.map((key) => {
+									return `${key}: ${running.input_params_mapped[key]}`
+								})
+						].join(' | ') + `${running.execution_time 
+							? ' | execution_time: ' + running.execution_time.toFixed(2) + 's' 
+							: ''
+						}`
 					}}
 				</p>
-				<p v-if="running.error" class="text-red-500 p-3 mb-5 rounded-lg flex items-center overflow-x-auto">
-					<UIcon name="i-heroicons-exclamation-circle" class="mr-2 text-3xl" />
-					<span class="w-full">{{ running.error }}</span>
-				</p>
+				<WorkflowQueueInputFiles :running="running" />
+				<WorkflowQueueErrorAlert v-if="running.error" :running="running" />
 				<UButton icon="i-heroicons-stop"
 					color="orange"
 					variant="outline"
@@ -72,23 +75,8 @@ const collapsed = ref(true)
 						flowStore.cancelRunningFlow(running).finally(() => {
 							canceling = false
 						})
-					}"
-				>
+					}">
 					Cancel
-				</UButton>
-				<UButton v-if="running.error"
-					class="ml-2"
-					icon="i-heroicons-arrow-path"
-					variant="outline"
-					:loading="restarting"
-					@click="() => {
-						restarting = true
-						flowStore.restartFlow(running).finally(() => {
-							restarting = false
-						})
-					}"
-				>
-					Restart
 				</UButton>
 			</div>
 		</template>
