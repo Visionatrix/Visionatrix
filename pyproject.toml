@@ -75,6 +75,7 @@ optional-dependencies.docs = [
 urls.Changelog = "https://github.com/Visionatrix/Visionatrix/blob/main/CHANGELOG.md"
 urls.Documentation = "https://visionatrix.github.io/Visionatrix/"
 urls.Source = "https://github.com/Visionatrix/Visionatrix"
+
 [tool.hatch.version]
 path = "visionatrix/_version.py"
 
