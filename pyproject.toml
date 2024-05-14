@@ -16,8 +16,8 @@ keywords = [
 ]
 license = "AGPL-3.0-or-later"
 authors = [
-    { name = "Alexander Piskun", email = "bigcat88@icloud.com" },
-    { name = "Andrey Borysenko", email = "andrey18106x@gmail.com" },
+  { name = "Alexander Piskun", email = "bigcat88@icloud.com" },
+  { name = "Andrey Borysenko", email = "andrey18106x@gmail.com" },
 ]
 requires-python = ">=3.10"
 classifiers = [
@@ -59,35 +59,34 @@ dependencies = [
   "torchvision",
   "uvicorn[standard]>=0.23.2",
 ]
-[project.optional-dependencies]
-dev = [
+optional-dependencies.dev = [
   "pre-commit",
   "pylint",
   "pytest",
 ]
-docs = [
-  "autodoc_pydantic>=2.0.1",
+optional-dependencies.docs = [
+  "autodoc-pydantic>=2.0.1",
   "sphinx>=6.2",
   "sphinx-copybutton",
   "sphinx-inline-tabs",
   "sphinx-issues>=3.0.1",
   "sphinx-rtd-theme>=1",
 ]
-[project.urls]
-Changelog = "https://github.com/Visionatrix/Visionatrix/blob/main/CHANGELOG.md"
-Documentation = "https://visionatrix.github.io/Visionatrix/"
-Source = "https://github.com/Visionatrix/Visionatrix"
+urls.Changelog = "https://github.com/Visionatrix/Visionatrix/blob/main/CHANGELOG.md"
+urls.Documentation = "https://visionatrix.github.io/Visionatrix/"
+urls.Source = "https://github.com/Visionatrix/Visionatrix"
 
 [tool.hatch.version]
 path = "visionatrix/_version.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/visionatrix",
-    "/CHANGELOG.md",
-    "/README.md",
+  "/visionatrix",
+  "/CHANGELOG.md",
+  "/README.md",
 ]
-exclude = []
+exclude = [
+]
 
 [tool.black]
 line-length = 120
@@ -96,17 +95,51 @@ preview = true
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-lint.select = ["A", "B", "C", "E", "F", "G", "I", "S", "SIM", "PIE", "Q", "RET", "RUF", "UP" , "W"]
-lint.extend-ignore = ["I001", "RUF100", "S311", "S603"]
+lint.select = [
+  "A",
+  "B",
+  "C",
+  "E",
+  "F",
+  "G",
+  "I",
+  "S",
+  "SIM",
+  "PIE",
+  "Q",
+  "RET",
+  "RUF",
+  "UP",
+  "W",
+]
+lint.extend-ignore = [
+  "I001",
+  "RUF100",
+  "S311",
+  "S603",
+]
 
 [tool.ruff.lint.per-file-ignores]
-"visionatrix/__init__.py" = ["F401"]
-"visionatrix/backend.py" = ["C901"]
-"visionatrix/install_update/__init__.py" = ["F401"]
-"scripts/easy_install.py" = ["S602", "S607"]
+"visionatrix/__init__.py" = [
+  "F401",
+]
+"visionatrix/backend.py" = [
+  "C901",
+]
+"visionatrix/install_update/__init__.py" = [
+  "F401",
+]
+"scripts/easy_install.py" = [
+  "S602",
+  "S607",
+]
 
 [tool.ruff.lint.extend-per-file-ignores]
-"tests/**/*.py" = ["E402", "S", "UP"]
+"tests/**/*.py" = [
+  "E402",
+  "S",
+  "UP",
+]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 25
@@ -116,7 +149,9 @@ profile = "black"
 
 [tool.pylint]
 master.py-version = "3.10"
-master.extension-pkg-allow-list = ["pydantic"]
+master.extension-pkg-allow-list = [
+  "pydantic",
+]
 design.max-attributes = 10
 design.max-locals = 28
 design.max-branches = 20
@@ -127,25 +162,25 @@ reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
 similarities.min-similarity-lines = 10
 messages_control.disable = [
-    "missing-module-docstring",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "line-too-long",
-    "too-few-public-methods",
-    "too-many-public-methods",
-    "invalid-name",
-    "too-many-nested-blocks",
-    "global-statement",
-    "broad-exception-caught",
+  "missing-module-docstring",
+  "missing-class-docstring",
+  "missing-function-docstring",
+  "line-too-long",
+  "too-few-public-methods",
+  "too-many-public-methods",
+  "invalid-name",
+  "too-many-nested-blocks",
+  "global-statement",
+  "broad-exception-caught",
 ]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [
-    "tests",
+  "tests",
 ]
 filterwarnings = [
-    "ignore::DeprecationWarning",
+  "ignore::DeprecationWarning",
 ]
 log_cli = true
 addopts = "-rs --color=yes"
