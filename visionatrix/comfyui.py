@@ -221,12 +221,6 @@ def add_arguments(parser):
     )
     cm_group.add_argument("--disable-cuda-malloc", action="store_true", help="Disable cudaMallocAsync.")
 
-    parser.add_argument(
-        "--dont-upcast-attention",
-        action="store_true",
-        help="Disable upcasting of attention. Can boost speed but increase the chances of black images.",
-    )
-
     fp_group = parser.add_mutually_exclusive_group()
     fp_group.add_argument(
         "--force-fp32", action="store_true", help="Force fp32 (If this makes your GPU work better please report it)."
@@ -280,6 +274,18 @@ def add_arguments(parser):
     )
 
     parser.add_argument("--disable-xformers", action="store_true", help="Disable xformers.")
+
+    upcast = parser.add_mutually_exclusive_group()
+    upcast.add_argument(
+        "--force-upcast-attention",
+        action="store_true",
+        help="Force enable attention upcasting, please report if it fixes black images.",
+    )
+    upcast.add_argument(
+        "--dont-upcast-attention",
+        action="store_true",
+        help="Disable all upcasting of attention. Should be unnecessary except for debugging.",
+    )
 
     vram_group = parser.add_mutually_exclusive_group()
     vram_group.add_argument(
