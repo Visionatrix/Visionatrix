@@ -34,7 +34,7 @@ const collapsed = ref(true)
 				class="mb-5 rounded-lg cursor-pointer"
 				fit="outside"
 				loading="lazy"
-				:placeholder="img('/vix_logo.png', { f: 'png', blur: 3, q: 50 })"
+				:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 				:src="queueImageInputSrc($props.running.task_id, 0)"
 				@click="() => {
 					modalImageSrc = queueImageInputSrc($props.running.task_id, 0)
@@ -59,7 +59,7 @@ const collapsed = ref(true)
 						class="rounded-lg cursor-pointer"
 						fit="outside"
 						loading="lazy"
-						:placeholder="img('/vix_logo.png', { f: 'png', blur: 3, q: 50 })"
+						:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 						:src="queueImageInputSrc(item.task_id, item.index)"
 						@click="() => {
 							modalImageSrc = queueImageInputSrc($props.running.task_id, item.index)
