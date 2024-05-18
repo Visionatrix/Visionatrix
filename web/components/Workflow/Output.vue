@@ -173,7 +173,7 @@ const sentDoOutputParamIndex = ref(0)
 						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
 						fit="outside"
 						loading="lazy"
-						:placeholder="img('/vix_logo.png', { f: 'png', blur: 3, q: 50 })"
+						:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 						:src="outputImgSrc({
 							task_id: flowResult.task_id,
 							node_id: flowResult.output_params[0].comfy_node_id
