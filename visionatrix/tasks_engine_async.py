@@ -187,7 +187,7 @@ async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Even
 async def get_workers_details_async(
     user_id: str | None, last_seen_interval: int, worker_id: str
 ) -> list[WorkerDetails]:
-    async with database.SESSION() as session:
+    async with database.SESSION_ASYNC() as session:
         try:
             query = __get_workers_query(user_id, last_seen_interval, worker_id)
             results = (await session.execute(query)).scalars().all()
