@@ -126,8 +126,7 @@ def install_all_flows():
     ]
 
     for i in flows:
-        param_template = f"install-flow --flow flows/{i}/flow.json --flow_comfy flows/{i}/flow_comfy.json"
-        venv_run(f"python -m visionatrix {param_template}")
+        venv_run(f"python -m visionatrix install-flow --flow {i}")
 
 
 def clone_vix_repository() -> None:
