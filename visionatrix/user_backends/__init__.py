@@ -20,6 +20,6 @@ async def perform_auth(scope: Scope, http_connection: HTTPConnection) -> UserInf
             raise ValueError(f"Unknown auth backend: `{backend}`")  # Make a PR to Vix if you wish to add own backend.
 
         if result:
-            LOGGER.warning("Authenticated using `%s` backend: %s", backend, result)
+            LOGGER.debug("Authenticated using `%s` backend: %s", backend, result)
             return result
     return None

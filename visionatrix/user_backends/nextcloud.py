@@ -11,6 +11,16 @@ from ..pydantic_models import UserInfo
 NEXTCLOUD_URL = environ.get("NEXTCLOUD_URL", "http://stable29.local").strip("/")
 """Url should be in format: https://cloud.nextcloud.com"""
 
+__nextcloud_headers_set = environ.get("NEXTCLOUD_HEADERS_SET", "{}")
+NEXTCLOUD_HEADERS_SET: dict = loads(__nextcloud_headers_set)
+"""
+A dictionary of custom headers that will be added to each request to Nextcloud.
+The headers should be defined in a JSON format string in the environment variable NEXTCLOUD_HEADERS_SET.
+Example: '{"Content-Security-Policy": "frame-ancestors \\'self\\'", "Another-Header": "value"}'
+"""
+NEXTCLOUD_HEADERS_SET.update({"OCS-APIRequest": "true"})
+
+
 LOGGER = logging.getLogger("visionatrix")
 
 
@@ -25,7 +35,7 @@ async def get_user_info(_scope: Scope, http_connection: HTTPConnection) -> UserI
         cookies=http_connection.cookies,
         headers=headers,
     ) as client:
-        r = await client.get("/ocs/v1.php/cloud/user?format=json", headers={"OCS-APIRequest": "true"})
+        r = await client.get("/ocs/v1.php/cloud/user?format=json", headers=NEXTCLOUD_HEADERS_SET)
         if r.status_code != 200:
             LOGGER.error("Nextcloud return %s status code.", r.status_code)
             return None
