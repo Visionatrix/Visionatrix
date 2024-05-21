@@ -93,8 +93,8 @@ line-length = 120
 preview = true
 
 [tool.ruff]
-line-length = 120
 target-version = "py310"
+line-length = 120
 lint.select = [
   "A",
   "B",
@@ -103,12 +103,12 @@ lint.select = [
   "F",
   "G",
   "I",
-  "S",
-  "SIM",
   "PIE",
   "Q",
   "RET",
   "RUF",
+  "S",
+  "SIM",
   "UP",
   "W",
 ]
@@ -119,30 +119,25 @@ lint.extend-ignore = [
   "S603",
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"visionatrix/__init__.py" = [
-  "F401",
-]
-"visionatrix/backend.py" = [
-  "C901",
-]
-"visionatrix/install_update/__init__.py" = [
-  "F401",
-]
-"scripts/easy_install.py" = [
+lint.per-file-ignores."scripts/easy_install.py" = [
   "S602",
   "S607",
 ]
-
-[tool.ruff.lint.extend-per-file-ignores]
-"tests/**/*.py" = [
+lint.per-file-ignores."visionatrix/__init__.py" = [
+  "F401",
+]
+lint.per-file-ignores."visionatrix/backend.py" = [
+  "C901",
+]
+lint.per-file-ignores."visionatrix/install_update/__init__.py" = [
+  "F401",
+]
+lint.extend-per-file-ignores."tests/**/*.py" = [
   "E402",
   "S",
   "UP",
 ]
-
-[tool.ruff.lint.mccabe]
-max-complexity = 25
+lint.mccabe.max-complexity = 25
 
 [tool.isort]
 profile = "black"
