@@ -1,4 +1,3 @@
-import base64
 import builtins
 import copy
 import fnmatch
@@ -43,7 +42,12 @@ from .flows import (
     prepare_flow_comfy,
     uninstall_flow,
 )
-from .pydantic_models import TaskRunResults, WorkerDetails, WorkerDetailsRequest
+from .pydantic_models import (
+    TaskRunResults,
+    UserInfo,
+    WorkerDetails,
+    WorkerDetailsRequest,
+)
 from .tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
@@ -80,6 +84,7 @@ from .tasks_engine_async import (
     update_task_outputs_async,
     update_task_progress_database_async,
 )
+from .user_backends import perform_auth
 
 LOGGER = logging.getLogger("visionatrix")
 FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
@@ -113,26 +118,9 @@ class VixAuthMiddleware:
                 headers={"WWW-Authenticate": "Basic"},
             )
             try:
-                authorization: str = conn.headers.get("Authorization")
-                if not authorization:
+                if (userinfo := await perform_auth(scope, conn)) is None:
                     await bad_auth_response(scope, receive, send)
                     return
-
-                try:
-                    scheme, encoded_credentials = authorization.split()
-                    if scheme.lower() != "basic":
-                        await bad_auth_response(scope, receive, send)
-                        return
-
-                    decoded_credentials = base64.b64decode(encoded_credentials).decode("ascii")
-                    username, _, password = decoded_credentials.partition(":")
-                    if (userinfo := await database.get_user(username, password)) is None or userinfo.disabled is True:
-                        await bad_auth_response(scope, receive, send)
-                        return
-                except ValueError:
-                    await bad_auth_response(scope, receive, send)
-                    return
-
                 scope["user_info"] = userinfo
             except HTTPException as exc:
                 response = self._on_error(exc.status_code, exc.detail)
@@ -265,7 +253,7 @@ async def __task_run(
     in_files: list[UploadFile | dict],
     flow: Flow,
     flow_comfy: dict,
-    user_info: database.UserInfo,
+    user_info: UserInfo,
 ):
     if options.VIX_MODE == "SERVER":
         task_details = await create_new_task_async(name, input_params, user_info)

@@ -11,6 +11,7 @@ from .comfyui import interrupt_processing
 from .pydantic_models import (
     TaskDetails,
     TaskDetailsShort,
+    UserInfo,
     WorkerDetails,
     WorkerDetailsRequest,
 )
@@ -30,7 +31,7 @@ from .tasks_engine import (
 LOGGER = logging.getLogger("visionatrix")
 
 
-async def create_new_task_async(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
+async def create_new_task_async(name: str, input_params: dict, user_info: UserInfo) -> dict:
     async with database.SESSION_ASYNC() as session:
         try:
             new_task_queue = database.TaskQueue()

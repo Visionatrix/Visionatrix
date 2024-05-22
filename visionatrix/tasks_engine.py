@@ -24,6 +24,7 @@ from .flows import get_installed_flows_names
 from .pydantic_models import (
     TaskDetails,
     TaskDetailsShort,
+    UserInfo,
     WorkerDetails,
     WorkerDetailsRequest,
 )
@@ -55,7 +56,7 @@ TASK_DETAILS_COLUMNS = [
 ]
 
 
-def __init_new_task_details(task_id: int, name: str, input_params: dict, user_info: database.UserInfo) -> dict:
+def __init_new_task_details(task_id: int, name: str, input_params: dict, user_info: UserInfo) -> dict:
     return {
         "task_id": task_id,
         "name": name,
@@ -138,7 +139,7 @@ def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDeta
     )
 
 
-def create_new_task(name: str, input_params: dict, user_info: database.UserInfo) -> dict:
+def create_new_task(name: str, input_params: dict, user_info: UserInfo) -> dict:
     with database.SESSION() as session:
         try:
             new_task_queue = database.TaskQueue()
