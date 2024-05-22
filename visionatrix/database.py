@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime, timezone
 
 from passlib.context import CryptContext
@@ -15,18 +14,24 @@ from sqlalchemy import (
     String,
     create_engine,
     inspect,
-    select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
-from . import options
+from . import options, pydantic_models
 
 SESSION: sessionmaker
 SESSION_ASYNC: async_sessionmaker  # only for the "SERVER" mode
-PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base = declarative_base()
+
+
+DEFAULT_USER = pydantic_models.UserInfo(
+    user_id="admin",
+    full_name="John Doe",
+    email="admin@example.com",
+    is_admin=True,
+)
 
 
 class TaskQueue(Base):
@@ -90,57 +95,10 @@ class UserInfo(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, unique=True)
     full_name = Column(String, default="")
-    email = Column(String)
-    hashed_password = Column(String)
+    email = Column(String, default="")
     is_admin = Column(Boolean, default=False)
+    hashed_password = Column(String)
     disabled = Column(Boolean, default=False)
-
-
-DEFAULT_USER = UserInfo(
-    user_id="admin",
-    full_name="John Doe",
-    email="admin@example.com",
-    hashed_password=PWD_CONTEXT.hash("admin"),
-    is_admin=True,
-    disabled=False,
-)
-
-AUTH_CACHE = {}
-
-
-async def get_user(username: str, password: str) -> UserInfo | None:
-    current_time = time.time()
-    if (cache_entry := AUTH_CACHE.get(username)) and (current_time - cache_entry["time"] < 15):
-        if cache_entry["password"] == password:
-            return cache_entry["data"]
-        del AUTH_CACHE[username]
-
-    async with SESSION_ASYNC() as session:
-        results = await session.execute(select(UserInfo).filter_by(user_id=username))
-        user_info = results.scalar_one_or_none()
-        if user_info and PWD_CONTEXT.verify(password, user_info.hashed_password):
-            AUTH_CACHE[username] = {"data": user_info, "time": current_time, "password": password}
-            return user_info
-    return None
-
-
-def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:
-    session = SESSION()
-    try:
-        session.add(
-            UserInfo(
-                user_id=username,
-                full_name=full_name,
-                email=email,
-                hashed_password=PWD_CONTEXT.hash(password),
-                is_admin=is_admin,
-                disabled=disabled,
-            )
-        )
-        session.commit()
-        return True
-    finally:
-        session.close()
 
 
 def init_database_engine() -> None:
@@ -157,7 +115,14 @@ def init_database_engine() -> None:
     Base.metadata.create_all(engine)
     SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
     if is_new_database:
-        create_user(DEFAULT_USER.user_id, DEFAULT_USER.full_name, DEFAULT_USER.email, "admin", True, False)
+        create_user(
+            DEFAULT_USER.user_id,
+            DEFAULT_USER.full_name,
+            DEFAULT_USER.email,
+            "admin",
+            DEFAULT_USER.is_admin,
+            False,
+        )
     if options.VIX_MODE == "SERVER":
         async_engine = create_async_engine(
             os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args
@@ -165,3 +130,22 @@ def init_database_engine() -> None:
         SESSION_ASYNC = async_sessionmaker(
             bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
         )
+
+
+def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:
+    session = SESSION()
+    try:
+        session.add(
+            UserInfo(
+                user_id=username,
+                full_name=full_name,
+                email=email,
+                hashed_password=CryptContext(schemes=["bcrypt"], deprecated="auto").hash(password),
+                is_admin=is_admin,
+                disabled=disabled,
+            )
+        )
+        session.commit()
+        return True
+    finally:
+        session.close()

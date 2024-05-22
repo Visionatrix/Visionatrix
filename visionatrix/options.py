@@ -53,6 +53,16 @@ For example if there is no tasks, worker first time will wait ``min_interval``, 
 ``min(min_interval + max_interval / 10, max_interval)`` - this will make load on the server lower when nothing to do.
 """
 
+USER_BACKENDS = [backend.strip() for backend in environ.get("USER_BACKENDS", "nextcloud").split(";") if backend.strip()]
+"""List of user backends to enable.
+Each backend supports its own environment variables for configuration.
+
+Example:
+    USER_BACKENDS=vix_db;nextcloud;
+
+This will enable `nextcloud` user backend in addition to the default `vix_db`.
+"""
+
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
     global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR

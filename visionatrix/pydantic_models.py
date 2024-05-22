@@ -168,3 +168,12 @@ class WorkerDetails(BaseModel):
     torch_vram_free: int | None = Field(None, description="Free VRAM managed by PyTorch that is currently unused.")
     ram_total: int | None = Field(None, description="Total RAM available on the worker in bytes.")
     ram_free: int | None = Field(None, description="Free RAM available on the worker in bytes.")
+
+
+class UserInfo(BaseModel):
+    """Minimum information provided by Authentication backends about user."""
+
+    user_id: str = Field(..., description="Unique user ID.")
+    full_name: str = Field("", description="Full name of the user.")
+    email: str = Field("", description="Email name of the user.")
+    is_admin: bool = Field(False, description="Flag showing is user is admin.")
