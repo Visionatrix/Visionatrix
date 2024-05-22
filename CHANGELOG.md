@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0 - 2024-0x-xx]
+
+### Added
+
+- Ability/example how to use Nextcloud instance as a user backend. #70
+
+### Fixed
+
+- Miscellaneous fixes and enhancements.
+
 ## [0.1.0 - 2024-05-13]
 
 Breaking change: new database needs to be created(new fields was added), just delete the old one.
