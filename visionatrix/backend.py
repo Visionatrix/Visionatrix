@@ -701,11 +701,17 @@ def run_vix(*args, **kwargs) -> None:
 
     if options.VIX_MODE != "WORKER":
         try:
+            if options.VIX_MODE == "SERVER":
+                os.environ.update(**options.get_server_mode_options_as_env())
+                _app = "visionatrix:APP"
+            else:
+                _app = APP
             uvicorn.run(
-                APP,
+                _app,
                 *args,
                 host=options.VIX_HOST if options.VIX_HOST else "127.0.0.1",
                 port=int(options.VIX_PORT) if options.VIX_PORT else 8288,
+                workers=int(options.VIX_SERVER_WORKERS),
                 **kwargs,
             )
         except KeyboardInterrupt:
