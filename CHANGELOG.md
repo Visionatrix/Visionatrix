@@ -2,14 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.0 - 2024-0x-xx]
+## [0.2.0 - 2024-05-xx]
 
 ### Added
 
 - Ability/example how to use Nextcloud instance as a user backend. #70
+- `VIX_SERVER_WORKERS` env variable for `SERVER` mode to spawn multiple server instances. #72
+- `LOG_LEVEL` env variable to set Log level. #72
 
 ### Fixed
 
+- Support for `uvicorn visionatrix:APP` command. #72
 - Miscellaneous fixes and enhancements.
 
 ## [0.1.0 - 2024-05-13]

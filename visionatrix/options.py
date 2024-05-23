@@ -1,5 +1,6 @@
 """Options to change Visionatrix runtime behavior."""
 
+import logging
 import sys
 from os import environ, path
 from pathlib import Path
@@ -35,6 +36,8 @@ WORKER_AUTH = environ.get("WORKER_AUTH", "admin:admin")
 """Only for WORKER in the `Worker to Server` mode."""
 WORKER_NET_TIMEOUT = environ.get("WORKER_NET_TIMEOUT", "15.0")
 """Only for WORKER in the `Worker to Server` mode."""
+VIX_SERVER_WORKERS = environ.get("VIX_SERVER_WORKERS", "1")
+"""Only for SERVER mode. How many Server instances should be spawned(using uvicorn)."""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it is always relative to the current directory"""
@@ -74,3 +77,18 @@ def init_dirs_values(backend: str | None, flows: str | None, models: str | None,
         MODELS_DIR = str(Path(models).resolve())
     if tasks_files:
         TASKS_FILES_DIR = str(Path(tasks_files).resolve())
+
+
+def get_server_mode_options_as_env() -> dict[str, str]:
+    return {
+        "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
+        "BACKEND_DIR": BACKEND_DIR,
+        "FLOWS_DIR": FLOWS_DIR,
+        "MODELS_DIR": MODELS_DIR,
+        "TASKS_FILES_DIR": TASKS_FILES_DIR,
+        "VIX_HOST": VIX_HOST,
+        "VIX_PORT": VIX_PORT,
+        "UI_DIR": UI_DIR,
+        "VIX_MODE": VIX_MODE,
+        "VIX_SERVER_WORKERS": VIX_SERVER_WORKERS,
+    }

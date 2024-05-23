@@ -3,6 +3,7 @@ import builtins
 import importlib.resources
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -43,11 +44,12 @@ def __progress_callback(name: str, progress: float, error: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    default_log_level = os.environ.get("LOG_LEVEL", "INFO")
     parser.add_argument(
         "--loglevel",
         type=str,
         help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-        default="INFO",
+        default=default_log_level,
     )
     subparsers = parser.add_subparsers(dest="command")
     for i in [
