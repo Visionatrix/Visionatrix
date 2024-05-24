@@ -124,6 +124,7 @@ def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDeta
         f"{worker_user_id}:{worker_details.system.hostname}:[{worker_device.name}]:{worker_device.index}",
         worker_device.name,
         {
+            "worker_version": worker_details.worker_version,
             "os": worker_details.system.os,
             "version": worker_details.system.version,
             "embedded_python": worker_details.system.embedded_python,
@@ -219,6 +220,31 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
     return {}
 
 
+def __get_get_incomplete_task_without_error_query(
+    session,
+    tasks_to_ask: list[str],
+    tasks_to_give: list[str],
+    last_task_name: str,
+    user_id: str | None = None,
+):
+    query = session.query(database.TaskDetails).outerjoin(
+        database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
+    )
+    query = query.filter(
+        database.TaskDetails.error == "",
+        database.TaskDetails.progress != 100.0,
+        database.TaskLock.id.is_(None),
+        database.TaskDetails.name.in_(tasks_to_ask),
+    )
+    if tasks_to_give:
+        query = query.filter(database.TaskDetails.name.in_(tasks_to_give))
+    if user_id is not None:
+        query = query.filter(database.TaskDetails.user_id == user_id)
+    if last_task_name and last_task_name in tasks_to_ask:
+        query = query.order_by(desc(database.TaskDetails.name == last_task_name))
+    return query
+
+
 def get_incomplete_task_without_error_database(
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
@@ -234,6 +260,7 @@ def get_incomplete_task_without_error_database(
         result = session.execute(
             update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
         )
+        tasks_to_give = []
         if result.rowcount == 0:
             session.add(
                 database.Worker(
@@ -243,19 +270,12 @@ def get_incomplete_task_without_error_database(
                     **worker_info_values,
                 )
             )
-        query = session.query(database.TaskDetails).outerjoin(
-            database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
+        else:
+            query = session.query(database.Worker).filter(database.Worker.worker_id == worker_id)
+            tasks_to_give = query.first().tasks_to_give
+        query = __get_get_incomplete_task_without_error_query(
+            session, tasks_to_ask, tasks_to_give, last_task_name, user_id
         )
-        query = query.filter(
-            database.TaskDetails.error == "",
-            database.TaskDetails.progress != 100.0,
-            database.TaskLock.id.is_(None),
-            database.TaskDetails.name.in_(tasks_to_ask),
-        )
-        if user_id is not None:
-            query = query.filter(database.TaskDetails.user_id == user_id)
-        if last_task_name and last_task_name in tasks_to_ask:
-            query = query.order_by(desc(database.TaskDetails.name == last_task_name))
         task = query.first()
         if not task:
             session.commit()
@@ -269,22 +289,26 @@ def get_incomplete_task_without_error_database(
         session.close()
 
 
+def __lock_task_and_return_details(task: type[database.TaskDetails] | database.TaskDetails):
+    return {
+        "task_id": task.task_id,
+        "progress": 0.0,
+        "error": task.error,
+        "name": task.name,
+        "input_params": task.input_params,
+        "outputs": task.outputs,
+        "input_files": task.input_files,
+        "flow_comfy": task.flow_comfy,
+        "user_id": task.user_id,
+        "execution_time": 0.0,
+    }
+
+
 def lock_task_and_return_details(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
     try:
         session.add(database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow()))
         session.commit()
-        return {
-            "task_id": task.task_id,
-            "progress": 0.0,
-            "error": task.error,
-            "name": task.name,
-            "input_params": task.input_params,
-            "outputs": task.outputs,
-            "input_files": task.input_files,
-            "flow_comfy": task.flow_comfy,
-            "user_id": task.user_id,
-            "execution_time": 0.0,
-        }
+        return __lock_task_and_return_details(task)
     except IntegrityError:
         session.rollback()
         return {}
@@ -314,6 +338,13 @@ def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id:
         query = query.filter(database.Worker.last_seen >= time_threshold)
     if worker_id:
         query = query.filter(database.Worker.worker_id == worker_id)
+    return query
+
+
+def __get_worker_query(user_id: str | None, worker_id: str):
+    query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
+    if user_id is not None:
+        query = query.filter(database.Worker.user_id == user_id)
     return query
 
 
@@ -854,3 +885,29 @@ def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id:
         except Exception:
             LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)
             raise
+
+
+def get_worker_details_from_db(user_id: str | None, worker_id: str) -> WorkerDetails | None:
+    with database.SESSION() as session:
+        try:
+            query = __get_worker_query(user_id, worker_id)
+            result = session.execute(query).scalars().one_or_none()
+            return None if result is None else WorkerDetails.model_validate(result)
+        except Exception:
+            LOGGER.exception("Failed to retrieve worker: `%s`, %s", user_id, worker_id)
+            raise
+
+
+def set_worker_tasks_to_give_db(user_id: str | None, worker_id: str, tasks_to_give: list[str]) -> bool:
+    with database.SESSION() as session:
+        try:
+            query = update(database.Worker).where(database.Worker.worker_id == worker_id)
+            if user_id is not None:
+                query = query.where(database.Worker.user_id == user_id)
+            result = session.execute(query.values(tasks_to_give=tasks_to_give))
+            session.commit()
+            return result.rowcount > 0
+        except Exception as e:
+            session.rollback()
+            LOGGER.exception("Failed to update tasks for worker(`%s`, `%s`): %s", user_id, worker_id, e)
+            return False

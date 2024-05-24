@@ -67,6 +67,7 @@ from .tasks_engine import (
     remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
+    set_worker_tasks_to_give_db,
     task_progress_callback,
     task_restart_database,
     update_task_outputs,
@@ -74,11 +75,13 @@ from .tasks_engine import (
 )
 from .tasks_engine_async import (
     create_new_task_async,
+    get_incomplete_task_without_error_database_async,
     get_task_async,
     get_tasks_async,
     get_tasks_short_async,
     get_workers_details_async,
     put_task_in_queue_async,
+    set_worker_tasks_to_give_db_async,
     start_tasks_engine,
     task_restart_database_async,
     update_task_outputs_async,
@@ -214,7 +217,9 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     """
     __require_admin(request)
     if any(i for i in FLOW_INSTALL_STATUS.values() if i["progress"] < 100.0 and i["error"] == ""):
-        return responses.JSONResponse(status_code=409, content={"error": "Another flow installation is in progress."})
+        return responses.JSONResponse(
+            status_code=status.HTTP_409_CONFLICT, content={"error": "Another flow installation is in progress."}
+        )
 
     flows_comfy = []
     flows = get_available_flows(flows_comfy)
@@ -223,7 +228,9 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
             FLOW_INSTALL_STATUS[name] = {"progress": 0.0, "error": ""}
             b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
             return responses.JSONResponse(content={"error": ""})
-    return responses.JSONResponse(content={"error": f"Can't find `{name}` flow."})
+    return responses.JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, content={"error": f"Can't find `{name}` flow."}
+    )
 
 
 @APP.get("/flow-progress-install")
@@ -523,14 +530,15 @@ async def task_worker_give_task(
     it retrieves only those assigned to the user.
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
-    return responses.JSONResponse(
-        content={
-            "error": "",
-            "task": get_incomplete_task_without_error_database(
-                request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
-            ),
-        }
-    )
+    if options.VIX_MODE == "SERVER":
+        r = await get_incomplete_task_without_error_database_async(
+            request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
+        )
+    else:
+        r = get_incomplete_task_without_error_database(
+            request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
+        )
+    return responses.JSONResponse(content={"error": "", "task": r})
 
 
 @APP.put("/task-worker/progress")
@@ -689,6 +697,28 @@ async def workers_info(
     else:
         r = get_workers_details(user_id, last_seen_interval, worker_id)
     return r
+
+
+@APP.post("/worker_tasks")
+async def set_worker_tasks_to_give(
+    request: Request,
+    worker_id: typing.Annotated[str, Body()],
+    tasks_to_give: typing.Annotated[list[str], Body()],
+):
+    """
+    Sets the tasks that a worker can work on. An empty list indicates that all tasks are allowed.
+    The administrator can set `tasks_to_give` for all workers, users only for their own.
+    """
+    user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
+    if options.VIX_MODE == "SERVER":
+        r = await set_worker_tasks_to_give_db_async(user_id, worker_id, tasks_to_give)
+    else:
+        r = set_worker_tasks_to_give_db(user_id, worker_id, tasks_to_give)
+    if not r:
+        return responses.JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND, content={"error": f"Can't find `{worker_id}` worker."}
+        )
+    return responses.JSONResponse(content={"error": ""})
 
 
 def run_vix(*args, **kwargs) -> None:
