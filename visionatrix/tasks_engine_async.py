@@ -5,6 +5,7 @@ import typing
 from datetime import datetime, timezone
 
 from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError
 
 from . import database, options
 from .comfyui import interrupt_processing
@@ -16,10 +17,13 @@ from .pydantic_models import (
     WorkerDetailsRequest,
 )
 from .tasks_engine import (
+    __get_get_incomplete_task_without_error_query,
     __get_task_query,
     __get_tasks_query,
+    __get_worker_query,
     __get_workers_query,
     __init_new_task_details,
+    __lock_task_and_return_details,
     __prepare_worker_info_update,
     __task_details_from_dict,
     __task_details_short_to_dict,
@@ -117,6 +121,62 @@ async def update_task_outputs_async(task_id: int, outputs: list[dict]) -> bool:
     return False
 
 
+async def get_incomplete_task_without_error_database_async(
+    worker_user_id: str,
+    worker_details: WorkerDetailsRequest,
+    tasks_to_ask: list[str],
+    last_task_name: str,
+    user_id: str | None = None,
+) -> dict:
+    if not tasks_to_ask:
+        return {}
+    async with database.SESSION_ASYNC() as session:
+        try:
+            worker_id, worker_device_name, worker_info_values = __prepare_worker_info_update(
+                worker_user_id, worker_details
+            )
+            result = await session.execute(
+                update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+            )
+            tasks_to_give = []
+            if result.rowcount == 0:
+                session.add(
+                    database.Worker(
+                        user_id=worker_user_id,
+                        worker_id=worker_id,
+                        device_name=worker_device_name,
+                        **worker_info_values,
+                    )
+                )
+            else:
+                query = session.query(database.Worker).filter(database.Worker.worker_id == worker_id)
+                tasks_to_give = await query.first().tasks_to_give
+            query = __get_get_incomplete_task_without_error_query(
+                session, tasks_to_ask, tasks_to_give, last_task_name, user_id
+            )
+            task = await query.first()
+            if not task:
+                await session.commit()
+                return {}
+            return await lock_task_and_return_details_async(session, task)
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to retrieve task for processing: %s", e)
+            return {}
+        finally:
+            await session.close()
+
+
+async def lock_task_and_return_details_async(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
+    try:
+        session.add(database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow()))
+        await session.commit()
+        return __lock_task_and_return_details(task)
+    except IntegrityError:
+        await session.rollback()
+        return {}
+
+
 async def update_task_progress_database_async(
     task_id: int,
     progress: float,
@@ -196,3 +256,29 @@ async def get_workers_details_async(
         except Exception:
             LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)
             raise
+
+
+async def get_worker_details_from_db_async(user_id: str | None, worker_id: str) -> WorkerDetails | None:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = __get_worker_query(user_id, worker_id)
+            result = (await session.execute(query)).scalars().one_or_none()
+            return None if result is None else WorkerDetails.model_validate(result)
+        except Exception:
+            LOGGER.exception("Failed to retrieve worker: `%s`, %s", user_id, worker_id)
+            raise
+
+
+async def set_worker_tasks_to_give_db_async(user_id: str | None, worker_id: str, tasks_to_give: list[str]) -> bool:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = update(database.Worker).where(database.Worker.worker_id == worker_id)
+            if user_id is not None:
+                query = query.where(database.Worker.user_id == user_id)
+            result = session.execute(query.values(tasks_to_give=tasks_to_give))
+            await session.commit()
+            return result.rowcount > 0
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to update tasks for worker(`%s`, `%s`): %s", user_id, worker_id, e)
+            return False

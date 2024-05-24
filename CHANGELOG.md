@@ -4,11 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.0 - 2024-05-xx]
 
+Breaking change: new database needs to be created(new fields was added), just delete the old one.
+
 ### Added
 
 - Ability/example how to use Nextcloud instance as a user backend. #70
 - `VIX_SERVER_WORKERS` env variable for `SERVER` mode to spawn multiple server instances. #72
 - `LOG_LEVEL` env variable to set Log level. #72
+- `worker_version`, `tasks_to_give` fields to the `workers` table.
 
 ### Fixed
 

@@ -134,8 +134,9 @@ class WorkerDetailsDeviceRequest(BaseModel):
 
 
 class WorkerDetailsRequest(BaseModel):
-    """Consolidates system and device information relevant to a worker handling AI tasks."""
+    """Consolidates information relevant to a worker handling AI tasks."""
 
+    worker_version: str = Field(..., description="Version of the worker")
     system: WorkerDetailsSystemRequest = Field(...)
     devices: list[WorkerDetailsDeviceRequest] = Field(...)
     ram_total: int = Field(0, description="Total RAM on the worker in bytes")
@@ -152,7 +153,12 @@ class WorkerDetails(BaseModel):
         ...,
         description="Uniq identifier for the worker, constructed from user_id, hostname, device name and device index.",
     )
+    worker_version: str = Field(..., description="Version of the worker")
     last_seen: datetime = Field(..., description="The timestamp of the worker's last activity, stored in UTC.")
+    tasks_to_give: list[str] = Field(
+        ...,
+        description="Specifies tasks that the worker can execute. An empty list indicates that all tasks are allowed.",
+    )
 
     os: str | None = Field(None, description="Operating system type of the worker's machine, such as 'posix' or 'nt'.")
     version: str | None = Field(None, description="The version of Python running on the worker's machine.")

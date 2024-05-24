@@ -18,7 +18,7 @@ from socket import gethostname
 
 from psutil import virtual_memory
 
-from . import options
+from . import _version, options
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -171,6 +171,7 @@ def torch_device_info() -> dict:
 
 def get_worker_details() -> dict:
     return {
+        "worker_version": _version.__version__,
         "system": SYSTEM_DETAILS,
         "ram_total": virtual_memory().total,
         "ram_free": virtual_memory().available,

@@ -155,7 +155,7 @@ design.max-args = 8
 design.max-statements = 90
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
-similarities.min-similarity-lines = 10
+similarities.min-similarity-lines = 12
 messages_control.disable = [
   "missing-module-docstring",
   "missing-class-docstring",
