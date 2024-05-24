@@ -221,13 +221,12 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
 
 
 def __get_get_incomplete_task_without_error_query(
-    session,
     tasks_to_ask: list[str],
     tasks_to_give: list[str],
     last_task_name: str,
     user_id: str | None = None,
 ):
-    query = session.query(database.TaskDetails).outerjoin(
+    query = select(database.TaskDetails).outerjoin(
         database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
     )
     query = query.filter(
@@ -271,12 +270,10 @@ def get_incomplete_task_without_error_database(
                 )
             )
         else:
-            query = session.query(database.Worker).filter(database.Worker.worker_id == worker_id)
-            tasks_to_give = query.first().tasks_to_give
-        query = __get_get_incomplete_task_without_error_query(
-            session, tasks_to_ask, tasks_to_give, last_task_name, user_id
-        )
-        task = query.first()
+            query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
+            tasks_to_give = session.execute(query).scalar().tasks_to_give
+        query = __get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+        task = session.execute(query).scalar()
         if not task:
             session.commit()
             return {}
@@ -891,7 +888,7 @@ def get_worker_details_from_db(user_id: str | None, worker_id: str) -> WorkerDet
     with database.SESSION() as session:
         try:
             query = __get_worker_query(user_id, worker_id)
-            result = session.execute(query).scalars().one_or_none()
+            result = session.execute(query).scalar()
             return None if result is None else WorkerDetails.model_validate(result)
         except Exception:
             LOGGER.exception("Failed to retrieve worker: `%s`, %s", user_id, worker_id)

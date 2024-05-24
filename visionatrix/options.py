@@ -56,7 +56,7 @@ For example if there is no tasks, worker first time will wait ``min_interval``, 
 ``min(min_interval + max_interval / 10, max_interval)`` - this will make load on the server lower when nothing to do.
 """
 
-USER_BACKENDS = [backend.strip() for backend in environ.get("USER_BACKENDS", "").split(";") if backend.strip()]
+USER_BACKENDS = [backend.strip() for backend in environ.get("USER_BACKENDS", "vix_db").split(";") if backend.strip()]
 """List of user backends to enable.
 Each backend supports its own environment variables for configuration.
 

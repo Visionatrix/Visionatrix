@@ -179,6 +179,7 @@ class WorkerDetails(BaseModel):
 class UserInfo(BaseModel):
     """Minimum information provided by Authentication backends about user."""
 
+    model_config = ConfigDict(from_attributes=True)
     user_id: str = Field(..., description="Unique user ID.")
     full_name: str = Field("", description="Full name of the user.")
     email: str = Field("", description="Email name of the user.")
