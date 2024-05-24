@@ -4,7 +4,7 @@ import threading
 import typing
 from datetime import datetime, timezone
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -149,12 +149,10 @@ async def get_incomplete_task_without_error_database_async(
                     )
                 )
             else:
-                query = session.query(database.Worker).filter(database.Worker.worker_id == worker_id)
-                tasks_to_give = await query.first().tasks_to_give
-            query = __get_get_incomplete_task_without_error_query(
-                session, tasks_to_ask, tasks_to_give, last_task_name, user_id
-            )
-            task = await query.first()
+                query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
+                tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
+            query = __get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+            task = (await session.execute(query)).scalar()
             if not task:
                 await session.commit()
                 return {}
@@ -262,7 +260,7 @@ async def get_worker_details_from_db_async(user_id: str | None, worker_id: str) 
     async with database.SESSION_ASYNC() as session:
         try:
             query = __get_worker_query(user_id, worker_id)
-            result = (await session.execute(query)).scalars().one_or_none()
+            result = (await session.execute(query)).scalar()
             return None if result is None else WorkerDetails.model_validate(result)
         except Exception:
             LOGGER.exception("Failed to retrieve worker: `%s`, %s", user_id, worker_id)
