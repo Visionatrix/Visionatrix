@@ -6,18 +6,18 @@
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
 
-The goal of the project is to provide a user-friendly way for generating and processing images and videos.
+The goal of the project is to provide a highly scalable and convenient way to create and process images and videos.
 
 To achieve this goal, the [ComfyUI](https://github.com/comfyanonymous/ComfyUI) project was chosen, since its flow format looks very great.
 
 Visionatrix projects provides:
 
   * *Simplified Setup*:  one-click installation process.
-  * *User-Centric Design*:  interface prioritizing ease of use.
+  * *User-Centric Design*:  built-in interface focused on ease of use.
   * *Standardized Workflows*:  workflows based on ComfyUI workflow format.
   * *Seamless Integration*:  backend endpoints for task and server management.
   * *Scalability*:  automatic task scheduling across multiple instances.
-  * *User Support*:  easily configured to work with multiple users.
+  * *User Support*:  easily configured to work with multiple users and plug in different user backends.
 
 > [!NOTE]
 > The project is currently in the development stage, expect breaking changes.
@@ -97,4 +97,5 @@ Some examples of workflow results can be found in **Twitter** by tag [#Visionatr
   - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation.html)
   - [Command Line Options](https://visionatrix.github.io/Visionatrix/CommandLineOptions.html)
   - [Working modes](https://visionatrix.github.io/Visionatrix/WorkingModes.html)
+  - [Vix Workflows](https://visionatrix.github.io/Visionatrix/VixWorkflows.html)
   - [Technical information](https://visionatrix.github.io/Visionatrix/TechnicalInformation.html)
