@@ -36,11 +36,7 @@ Supported **ComfyUI** options
                         2.0 and up).
   --disable-cuda-malloc
                         Disable cudaMallocAsync.
-  --dont-upcast-attention
-                        Disable upcasting of attention. Can boost speed but
-                        increase the chances of black images.
-  --force-fp32          Force fp32 (If this makes your GPU work better please
-                        report it).
+  --force-fp32          Force fp32 (If this makes your GPU work better please report it).
   --force-fp16          Force fp16.
   --bf16-unet           Run the UNET in bf16. This should only be used for
                         testing stuff.
@@ -57,17 +53,20 @@ Supported **ComfyUI** options
   --fp16-text-enc       Store text encoder weights in fp16.
   --fp32-text-enc       Store text encoder weights in fp32.
   --disable-ipex-optimize
-                        Disables ipex.optimize when loading models with Intel
-                        GPUs.
+                        Disables ipex.optimize when loading models with Intel GPUs.
   --use-split-cross-attention
-                        Use the split cross attention optimization. Ignored
-                        when xformers is used.
+                        Use the split cross attention optimization. Ignored when xformers is used.
   --use-quad-cross-attention
-                        Use the sub-quadratic cross attention optimization .
-                        Ignored when xformers is used.
+                        Use the sub-quadratic cross attention optimization. Ignored when xformers is used.
   --use-pytorch-cross-attention
                         Use the new pytorch 2.0 cross attention function.
   --disable-xformers    Disable xformers.
+
+  --force-upcast-attention
+                        Force enable attention upcasting, please report if it fixes black images.
+  --dont-upcast-attention
+                        Disable all upcasting of attention. Should be unnecessary except for debugging.
+
   --gpu-only            Store and run everything (text encoders/CLIP models,
                         etc... on the GPU).
   --highvram            By default models will be unloaded to CPU memory after
