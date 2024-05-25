@@ -45,8 +45,12 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 ORG_URL = "https://github.com/Visionatrix/"
 FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
 # FLOWS_URL = "./flows.zip"  # zip -r flows.zip flows -x "flows/models_catalog.json"
-MODELS_CATALOG_URL = "https://visionatrix.github.io/Visionatrix/models_catalog.json"
-# MODELS_CATALOG_URL = "./flows/models_catalog.json"
+
+MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/Visionatrix/models_catalog.json")
+"""URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models.
+
+During development, you can set this to local file, such as './flows/models_catalog.json', to use local copy.
+"""
 
 MIN_PAUSE_INTERVAL = float(environ.get("MIN_PAUSE_INTERVAL", "0.1"))
 """Start ``min_interval`` time value to wait between ask for a next Task to process."""
