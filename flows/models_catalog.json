@@ -381,5 +381,17 @@
     "url": "https://huggingface.co/artificialguybr/CinematicRedmond-SDXL/resolve/main/CinematicRedmond.safetensors",
     "homepage": "https://huggingface.co/artificialguybr/CinematicRedmond-SDXL",
     "hash": "40b693cfe5831e8097290bb56ee93d7b2ecc644010b1dc78f803cbdbddb6f87e"
+  },
+  "Memoji-PixpiAI": {
+    "regexes": [
+      {
+        "input_value": "^(?=.*(?i:memoji))(?=.*(?i:1024))(?=.*(?i:000005))(?=.*(?i:safetensors)).*",
+        "input_name": "(?i)lora"
+      }
+    ],
+    "save_path": "loras/memoji_1024-000005.safetensors",
+    "url": "https://civitai.com/api/download/models/196413?type=Model&format=SafeTensor",
+    "homepage": "https://civitai.com/models/174943?modelVersionId=196413",
+    "hash": "EA8C050A6DFF41D739C36B6FFB2091762340A8660310916720B6A9DD73C248C9"
   }
 }

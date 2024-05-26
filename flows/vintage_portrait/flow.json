@@ -24,6 +24,7 @@
       "type": "text",
       "optional": false,
       "advanced": false,
+      "default": "happy man",
       "comfy_node_id": {
         "29": {
           "dest_field_name": ["inputs", "positive"]
