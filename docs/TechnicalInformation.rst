@@ -13,6 +13,7 @@ Currently installed ComfyUI nodes:
  * `ComfyUI_essentials <https://github.com/Visionatrix/ComfyUI_essentials>`_
  * `ComfyUI-Custom-Scripts <https://github.com/Visionatrix/ComfyUI-Custom-Scripts>`_
  * `rgthree-comfy <https://github.com/Visionatrix/rgthree-comfy>`_
+ * `comfyui_controlnet_aux <https://github.com/Visionatrix/comfyui_controlnet_aux>`_
 
 We are gradually expanding the list.
 The main reason many components are missing is that they are quite difficult to install and we take the position
