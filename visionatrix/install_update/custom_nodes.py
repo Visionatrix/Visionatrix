@@ -53,6 +53,8 @@ BASIC_NODE_LIST = {
     "ComfyUI_essentials": {},
     "rgthree-comfy": {},
     "ComfyUI-Custom-Scripts": {},
+    "ComfyUI_IPAdapter_plus": {},
+    "comfyui_controlnet_aux": {},
 }
 
 
