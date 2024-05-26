@@ -1,0 +1,63 @@
+{
+  "name": "memoji_portrait",
+  "display_name": "Memoji Portrait",
+  "description": "Portrait photos as a Memoji",
+  "author": "Datou",
+  "homepage": "https://openart.ai/workflows/datou/memoji/Lcprla9BQL29IFVjC93l",
+  "license": "",
+  "documentation": "https://visionatrix.github.io/Visionatrix/Flows/MemojiPortrait.html",
+  "input_params": [
+    {
+      "name": "image",
+      "display_name": "Person's face",
+      "type": "image",
+      "optional": false,
+      "comfy_node_id": {
+        "340": {
+          "dest_field_name": [
+            "inputs",
+            "image"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prompt",
+      "display_name": "Prompt",
+      "type": "text",
+      "optional": false,
+      "advanced": false,
+      "default": "girl, portrait, close up",
+      "comfy_node_id": {
+        "290": {
+          "dest_field_name": [
+            "inputs",
+            "text"
+          ]
+        }
+      }
+    },
+    {
+      "name": "pose",
+      "display_name": "Person's face pose",
+      "type": "image",
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "346": {
+          "dest_field_name": [
+            "inputs",
+            "image"
+          ],
+          "node_connect": {
+            "node_id": "336",
+            "dest_field_name": [
+              "inputs",
+              "image_kps"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

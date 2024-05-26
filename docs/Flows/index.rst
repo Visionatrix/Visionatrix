@@ -14,4 +14,5 @@ Available Flows
    PhotoStickers
    GhibliPortrait
    ComicuPortrait
+   MemojiPortrait
    SupirUpscaler

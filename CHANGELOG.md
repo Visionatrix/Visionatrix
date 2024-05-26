@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.0 - 2024-05-xx]
+## [0.2.0 - 2024-05-26]
 
 Breaking change: new database needs to be created(new fields was added), just delete the old one.
 
 ### Added
 
+- New Memoji workflow. #76
 - Ability/example how to use Nextcloud instance as a user backend. #70
 - `VIX_SERVER_WORKERS` env variable for `SERVER` mode to spawn multiple server instances. #72
 - `LOG_LEVEL` env variable to set Log level. #72
