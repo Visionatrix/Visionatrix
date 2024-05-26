@@ -122,6 +122,7 @@ def install_all_flows():
         "ghibli_portrait",
         "comicu_portrait",
         "vintage_portrait",
+        "memoji_portrait",
         "supir_upscaler",
     ]
 
