@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.0 - 2024-05-26]
+## [0.2.0 - 2024-05-27]
 
 Breaking change: new database needs to be created(new fields was added), just delete the old one.
 

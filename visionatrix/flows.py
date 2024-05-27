@@ -184,7 +184,7 @@ def prepare_flow_comfy(
                 raise RuntimeError(f"Bad comfy or visionatrix flow, node with id=`{k}` can not be found.")
             if "src_field_name" in k_v:
                 v_copy = get_node_value(node, k_v["src_field_name"])
-            elif i["type"] == "bool":
+            elif i["type"] == "bool" and "value" in k_v:
                 v_copy = k_v["value"]
             else:
                 v_copy = v
@@ -209,7 +209,8 @@ def prepare_flow_comfy(
                     v_copy = float(v_copy)
                 else:
                     raise RuntimeError(f"Bad flow, unknown `internal_type` value: {convert_type}")
-            set_node_value(node, k_v["dest_field_name"], v_copy)
+            if "dest_field_name" in k_v:
+                set_node_value(node, k_v["dest_field_name"], v_copy)
     process_seed_value(flow, in_texts_params, r)
     prepare_flow_comfy_files_params(flow, in_files_params, task_details["task_id"], task_details, r)
     return r

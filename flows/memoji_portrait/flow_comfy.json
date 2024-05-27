@@ -160,10 +160,6 @@
       "optional_vae": [
         "14",
         2
-      ],
-      "script": [
-        "358",
-        0
       ]
     },
     "class_type": "KSampler (Efficient)",
