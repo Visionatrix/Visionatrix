@@ -58,6 +58,25 @@
           }
         }
       }
+    },
+    {
+      "name": "extra_size",
+      "display_name": "Perform 1.5x scaling",
+      "type": "bool",
+      "default": false,
+      "optional": true,
+      "advanced": true,
+      "comfy_node_id": {
+        "358": {
+          "node_connect": {
+            "node_id": "357",
+            "dest_field_name": [
+              "inputs",
+              "script"
+            ]
+          }
+        }
+      }
     }
   ]
 }
