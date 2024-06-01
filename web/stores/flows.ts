@@ -642,6 +642,19 @@ export const useFlowsStore = defineStore('flowsStore', {
 				resultsPageSize: this.resultsPageSize,
 			}))
 		},
+
+		downloadFlowComfy(flow_name: string, task_id: string) {
+			this.fetchFlowComfy(task_id).then((res: any) => {
+				console.debug('downloadFlowComfy', res.flow_comfy)
+				const blob = new Blob([JSON.stringify(res.flow_comfy, null, 2)], { type: 'application/json' })
+				const url = window.URL.createObjectURL(blob)
+				const a = document.createElement('a')
+				a.href = url
+				a.download = `${flow_name}_comfy_flow_${task_id}.json`
+				a.click()
+				window.URL.revokeObjectURL(url)
+			})
+		},
 	}
 })
 

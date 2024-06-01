@@ -13,7 +13,16 @@ const installed = ref(flowsStore.flows_installed.filter((f) => f.name === props?
 	<div class="p-4 w-full md:w-6/12 lg:w-4/12">
 		<UCard as="div" class="hover:shadow-md">
 			<template #header>
-				<h2 class="text-xl font-bold">{{ flow?.display_name }}</h2>
+				<div class="flex flex-grow justify-between">
+					<h2 class="text-xl font-bold text-ellipsis" :title="flow?.display_name">{{ flow?.display_name }}</h2>
+					<UTooltip v-if="flowsStore.isFlowInstalled(flow?.name)"
+						text="Mark flow as favorite" :popper="{ placement: 'top' }" :open-delay="500">
+						<UButton :icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
+							variant="outline"
+							color="yellow"
+							@click="flowsStore.markFlowFavorite(flow)" />
+					</UTooltip>
+				</div>
 			</template>
 
 			<div class="flex flex-col items-between">
@@ -51,20 +60,11 @@ const installed = ref(flowsStore.flows_installed.filter((f) => f.name === props?
 			</div>
 
 			<template #footer>
-				<div class="flex flex-grow justify-between">
-					<UTooltip v-if="flowsStore.isFlowInstalled(flow?.name)"
-						text="Mark flow as favorite" :popper="{ placement: 'top' }" :open-delay="500">
-						<UButton :icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
-							variant="outline"
-							color="yellow"
-							@click="flowsStore.markFlowFavorite(flow)" />
-					</UTooltip>
-					<UButton :to="`/workflows/${flow?.name}`"
-						:icon="'i-heroicons-eye'"
-						class="flex justify-center dark:bg-slate-500 bg-slate-500 dark:hover:bg-slate-700 hover:bg-slate-700 dark:text-white">
-						Open
-					</UButton>
-				</div>
+				<UButton :to="`/workflows/${flow?.name}`"
+					:icon="'i-heroicons-arrow-up-right-16-solid'"
+					class="flex justify-center dark:bg-slate-500 bg-slate-500 dark:hover:bg-slate-700 hover:bg-slate-700 dark:text-white">
+					Open
+				</UButton>
 			</template>
 		</UCard>
 	</div>
