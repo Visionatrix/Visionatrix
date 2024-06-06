@@ -1,9 +1,12 @@
 import logging
 import os
 import sys
-from subprocess import run
+from pathlib import Path
+from subprocess import check_call
 
-from .. import options
+from packaging.version import Version
+
+from .. import _version, options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
 from .custom_nodes import update_base_custom_nodes
 from .install import create_missing_models_dirs
@@ -28,12 +31,25 @@ def update() -> None:
         else:
             logging.warning("`%s` flow not found in repository, skipping update of it.", i.name)
     if options.BACKEND_DIR:
+        if options.PYTHON_EMBEDED:
+            create_missing_models_dirs()
+            print("Updating the Backend for the EMBEDDED version is currently not possible, skipped.")
+            return
         logging.info("Updating backend(ComfyUI)..")
-        run("git pull".split(), check=True, cwd=options.BACKEND_DIR)
-        run(
-            [sys.executable, "-m", "pip", "install", "-r", os.path.join(options.BACKEND_DIR, "requirements.txt")],
-            check=True,
-        )
+        requirements_path = os.path.join(options.BACKEND_DIR, "requirements.txt")
+        old_requirements = Path(requirements_path).read_text(encoding="utf-8")
+        if Version(_version.__version__).is_devrelease:
+            check_call(["git", "checkout", "master"], cwd=options.BACKEND_DIR)
+            check_call("git pull".split(), cwd=options.BACKEND_DIR)
+        else:
+            check_call(["git", "fetch", "--all"], cwd=options.BACKEND_DIR)
+            clone_env = os.environ.copy()
+            clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+            check_call(["git", "checkout", f"tags/v{_version.__version__}"], env=clone_env, cwd=options.BACKEND_DIR)
+        if Path(requirements_path).read_text(encoding="utf-8") != old_requirements:
+            check_call(
+                [sys.executable, "-m", "pip", "install", "-r", os.path.join(options.BACKEND_DIR, "requirements.txt")],
+            )
         create_missing_models_dirs()
         logging.info("Updating custom nodes..")
         update_base_custom_nodes()

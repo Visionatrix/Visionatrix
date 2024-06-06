@@ -14,7 +14,9 @@ from ..pydantic_models import AIResourceModel
 
 LOGGER = logging.getLogger("visionatrix")
 BASIC_NODE_LIST = {
-    "ComfyUI-Impact-Pack": {},
+    "ComfyUI-Impact-Pack": {
+        "main_branch": "Main",
+    },
     "ComfyUI_UltimateSDUpscale": {
         "git_flags": "--recursive",
     },
@@ -76,17 +78,13 @@ def install_base_custom_node(node_name: str, node_details: dict) -> None:
     github_url = f"{options.ORG_URL}{node_name}.git"
     clone_command = "git clone "
     what_clone = f"{os.path.join(custom_nodes_dir, node_name)}"
-    clone_env = None
-    if options.PYTHON_EMBEDED:
-        clone_command += f"{github_url} {git_flags} --depth 1 {what_clone}"
-    elif Version(_version.__version__).is_devrelease:
-        clone_command += f"{github_url} {git_flags} {what_clone}"
-    else:
+    clone_command += f"{github_url} {git_flags} {what_clone}"
+    print("Executing: ", clone_command)
+    run(clone_command.split(), check=True)
+    if not Version(_version.__version__).is_devrelease:
         clone_env = os.environ.copy()
         clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
-        clone_command += f"-b v{_version.__version__} {github_url} {git_flags} {what_clone}"
-    print("Executing: ", clone_command)
-    run(clone_command.split(), check=True, env=clone_env)
+        run(["git", "checkout", f"tags/v{_version.__version__}"], env=clone_env, check=True, cwd=what_clone)
     _install_requirements(custom_nodes_dir, node_name, node_details)
     _run_install_script(custom_nodes_dir, node_name)
     if "models" in node_details:
@@ -102,7 +100,20 @@ def update_base_custom_nodes() -> None:
             install_base_custom_node(node_name, node_details)
             continue
         LOGGER.info("Updating `%s`", node_name)
-        run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+        if Version(_version.__version__).is_devrelease:
+            main_branch_name = node_details.get("main_branch", "main")
+            run(["git", "checkout", main_branch_name], check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+            run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+        else:
+            run(["git", "fetch", "--all"], check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+            clone_env = os.environ.copy()
+            clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+            run(
+                ["git", "checkout", f"tags/v{_version.__version__}"],
+                check=True,
+                env=clone_env,
+                cwd=os.path.join(custom_nodes_dir, node_name),
+            )
         _install_requirements(custom_nodes_dir, node_name, node_details)
         _run_install_script(custom_nodes_dir, node_name)
 
