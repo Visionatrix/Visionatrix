@@ -2,8 +2,11 @@ import subprocess
 import os
 import sys
 import stat
+import re
 from pathlib import Path
 from shutil import rmtree
+
+from packaging.version import Version
 
 
 INITIAL_RERUN = "--rerun" in sys.argv
@@ -103,9 +106,65 @@ def run_visionatrix():
     venv_run("python -m visionatrix run --ui")
 
 
+def get_latest_version(major_version: int | None, cwd=None) -> str | None:
+    result = subprocess.run(["git", "tag"], capture_output=True, text=True, cwd=cwd)
+    tags = result.stdout.strip().split("\n")
+    if major_version is not None:
+        tags = [tag for tag in tags if tag.startswith(f"v{major_version}.")]
+    tags.sort(key=Version)
+    return tags[-1] if tags else None
+
+
+def get_vix_version():
+    """Returns version of the project."""
+    with open("visionatrix/_version.py", encoding="utf-8") as f:
+        content = f.read()
+    match = re.search(r'__version__\s*=\s*"(.*?)"', content)
+    if not match:
+        raise ValueError("Version string not found in _version.py")
+    return match.group(1)
+
+
 def update_visionatrix():
-    print("Updating source code from repository..")
-    subprocess.check_call(["git", "pull"])
+    if PYTHON_EMBEDED:
+        print("Updating the EMBEDDED version is currently not possible.")
+        return
+
+    vix_updated = False
+    visionatrix_version = get_vix_version()
+    if Version(visionatrix_version).is_devrelease:
+        print("Updating source code from repository..")
+        subprocess.check_call(["git", "checkout", "main"])
+        result = subprocess.run(["git", "pull"], capture_output=True, text=True)
+        if "Already up to date." in result.stdout:
+            print("No new commits were pulled.")
+        else:
+            vix_updated = True
+    else:
+        print("Fetching last tags from remote")
+        subprocess.check_call(["git", "fetch", "--all"])
+
+        clone_env = os.environ.copy()
+        clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+
+        major_version = Version(visionatrix_version).major
+        latest_version_tag = get_latest_version(major_version)
+        if latest_version_tag != f"v{visionatrix_version}":
+            print(f"Updating to the latest version {latest_version_tag} in this major version {major_version}..")
+            subprocess.check_call(["git", "checkout", f"tags/{latest_version_tag}"], env=clone_env)
+            vix_updated = True
+        else:
+            latest_version_tag = get_latest_version(major_version + 1)
+            if latest_version_tag is None:
+                print(f"No newer version found then current {visionatrix_version} version.")
+            else:
+                print(f"No newer version found for this major version: {visionatrix_version}.")
+                c = input(f"Update to the next major version({latest_version_tag})? (Y/N): ")
+                if c.lower() == "y":
+                    subprocess.check_call(["git", "checkout", f"tags/{latest_version_tag}"], env=clone_env)
+                    vix_updated = True
+    if vix_updated:
+        venv_run("python -m pip install .")
     print("Running `python -m visionatrix update`")
     venv_run("python -m visionatrix update")
 
@@ -132,14 +191,19 @@ def install_all_flows():
 
 def clone_vix_repository() -> None:
     try:
-        if PYTHON_EMBEDED:
-            clone_command = ["git", "clone", "--depth", "1", "https://github.com/Visionatrix/Visionatrix.git"]
-        else:
-            clone_command = ["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"]
+        q = "R" if GH_BUILD_RELEASE else input("Are we installing the release version or the latest? (R/L) ")
+        release_channel = q.lower() == "r"
+        clone_command = ["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"]
         print("Cloning Visionatrix repository...")
         print(clone_command)
         subprocess.check_call(clone_command)
         print("Repository cloned successfully.")
+        if release_channel:
+            print("Switching to the latest release version.")
+            last_release_version = get_latest_version(None, cwd="Visionatrix")
+            clone_env = os.environ.copy()
+            clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+            subprocess.check_call(["git", "checkout", f"tags/{last_release_version}"], cwd="Visionatrix", env=clone_env)
     except subprocess.CalledProcessError as e:
         print("An error occurred while trying to clone the repository:", str(e))
         raise
