@@ -10,7 +10,7 @@ Please send a pull request to the `main` branch.  Feel free to ask questions [vi
 
 - Fork the `Visionatrix` repository
 - Create a new branch from `main`
-- Set up development environment as described in a [Setting up dev environment](https://visionatrix.github.io/Visionatrix/DevSetup.html)
+- Set up development environment as described in a [Setting up dev environment](https://visionatrix.github.io/VixFlowsDocs/DevSetup.html)
 - Create a pull request to pull the changes from your branch to this repository
 
 ### Guidelines

@@ -1,7 +1,7 @@
 # Visionatrix
 
 [![Analysis & Coverage](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml/badge.svg)](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml)
-[![Docs](https://github.com/Visionatrix/Visionatrix/actions/workflows/docs.yml/badge.svg)](https://visionatrix.github.io/Visionatrix/)
+[![Docs](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/docs.yml/badge.svg)](https://visionatrix.github.io/VixFlowsDocs/)
 
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
@@ -67,7 +67,7 @@ Currently, only versions for CUDA/CPU is build, if there will be request we can 
 
 ### Manual Installation
 
-If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/Visionatrix/Installation.html) how to do that.
+If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/VixFlowsDocs/Installation.html) how to do that.
 
 ### User Interface of **Visionatrix**
 
@@ -92,10 +92,10 @@ If you have any questions, we will try to answer them, do not hesitate to create
 
 Some examples of workflow results can be found in **Twitter** by tag [#Visionatrix](https://twitter.com/search?q=%23Visionatrix&src=typed_query)
 
-- [Documentation](https://visionatrix.github.io/Visionatrix/)
-  - [Available Flows](https://visionatrix.github.io/Visionatrix/Flows/index.html)
-  - [Manual Installation](https://visionatrix.github.io/Visionatrix/Installation.html)
-  - [Command Line Options](https://visionatrix.github.io/Visionatrix/CommandLineOptions.html)
-  - [Working modes](https://visionatrix.github.io/Visionatrix/WorkingModes.html)
-  - [Vix Workflows](https://visionatrix.github.io/Visionatrix/VixWorkflows.html)
-  - [Technical information](https://visionatrix.github.io/Visionatrix/TechnicalInformation.html)
+- [Documentation](https://visionatrix.github.io/VixFlowsDocs/)
+  - [Available Flows](https://visionatrix.github.io/VixFlowsDocs/Flows/index.html)
+  - [Manual Installation](https://visionatrix.github.io/VixFlowsDocs/Installation.html)
+  - [Command Line Options](https://visionatrix.github.io/VixFlowsDocs/CommandLineOptions.html)
+  - [Working modes](https://visionatrix.github.io/VixFlowsDocs/WorkingModes.html)
+  - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/VixWorkflows.html)
+  - [Technical information](https://visionatrix.github.io/VixFlowsDocs/TechnicalInformation.html)

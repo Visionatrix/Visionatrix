@@ -64,16 +64,8 @@ optional-dependencies.dev = [
   "pylint",
   "pytest",
 ]
-optional-dependencies.docs = [
-  "autodoc-pydantic>=2.0.1",
-  "sphinx>=6.2",
-  "sphinx-copybutton",
-  "sphinx-inline-tabs",
-  "sphinx-issues>=3.0.1",
-  "sphinx-rtd-theme>=1",
-]
 urls.Changelog = "https://github.com/Visionatrix/Visionatrix/blob/main/CHANGELOG.md"
-urls.Documentation = "https://visionatrix.github.io/Visionatrix/"
+urls.Documentation = "https://visionatrix.github.io/VixFlowsDocs/"
 urls.Source = "https://github.com/Visionatrix/Visionatrix"
 
 [tool.hatch.version]
