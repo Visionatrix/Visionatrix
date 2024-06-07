@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0 - 2024-06-xx]
+
+### Changed
+
+- Documentation and `Flows`/`Models` data was moved to a separate repo: https://github.com/Visionatrix/VixFlowsDocs
+
+### Fixed
+
+- `easy_install.py` script `update` and `install` commands now has correct algo for the **release** and **dev** versions. #79
+
 ## [0.2.0 - 2024-05-27]
 
 Breaking change: new database needs to be created(new fields was added), just delete the old one.

@@ -43,10 +43,14 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it is always relative to the current directory"""
 
 ORG_URL = "https://github.com/Visionatrix/"
-FLOWS_URL = "https://visionatrix.github.io/Visionatrix/flows.zip"
-# FLOWS_URL = "./flows.zip"  # zip -r flows.zip flows -x "flows/models_catalog.json"
+FLOWS_URL = "https://visionatrix.github.io/VixFlowsDocs/flows.zip"
 
-MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/Visionatrix/models_catalog.json")
+# For Flows development, execute command from next line to create a zip with adjusted/new flows:
+# cd ../VixFlowsDocs && zip -r ../Visionatrix/flows.zip flows -x "flows/models_catalog.json" && cd ../Visionatrix
+# And uncomment the next line to use the local version.
+# FLOWS_URL = "./flows.zip"
+
+MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog.json")
 """URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models.
 
 During development, you can set this to local file, such as './flows/models_catalog.json', to use local copy.
