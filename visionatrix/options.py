@@ -51,10 +51,9 @@ FLOWS_URL = "https://visionatrix.github.io/VixFlowsDocs/flows.zip"
 # FLOWS_URL = "./flows.zip"
 
 MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog.json")
-"""URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models.
+"""URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models."""
 
-During development, you can set this to local file, such as './flows/models_catalog.json', to use local copy.
-"""
+# MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.
 
 MIN_PAUSE_INTERVAL = float(environ.get("MIN_PAUSE_INTERVAL", "0.1"))
 """Start ``min_interval`` time value to wait between ask for a next Task to process."""
