@@ -16,6 +16,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flow_results: <FlowResult[]>[],
 		flows_available: <Flow[]>[],
 		flows_installed: <Flow[]>[],
+		flows_tags_filter: <string[]>[],
 		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
@@ -24,12 +25,31 @@ export const useFlowsStore = defineStore('flowsStore', {
 	}),
 	getters: {
 		flows(state): Flow[] {
+			if (state.flows_tags_filter.length > 0) {
+				return [
+					...state.flows_installed,
+					...state.flows_available,
+				].filter(flow => flow.tags.some(tag => state.flows_tags_filter.includes(tag)))
+			}
 			return [
 				...state.flows_installed,
 				...state.flows_available,
 			]
 		},
+		flowsTags(state): string[] {
+			const flows = [
+				...state.flows_installed,
+				...state.flows_available,
+			]
+			return Array.from(new Set(flows.flatMap(flow => flow.tags)))
+		},
 		paginatedFlows(state) {
+			if (state.flows_tags_filter.length > 0) {
+				return paginate([
+					...state.flows_installed,
+					...state.flows_available,
+				].filter(flow => flow.tags.some(tag => state.flows_tags_filter.includes(tag))), state.page, state.pageSize) as Flow[]
+			}
 			return paginate([
 				...state.flows_installed,
 				...state.flows_available,
@@ -675,6 +695,7 @@ export interface Flow {
 	models: Model[]
 	input_params: FlowInputParam[]
 	available?: boolean
+	tags: string[]
 }
 
 export interface Model {

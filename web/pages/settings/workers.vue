@@ -27,6 +27,11 @@ const links = [
 
 const tableHeadersMap = [
 	{
+		text: 'Worker status',
+		value: 'worker_status',
+		sortable: true,
+	},
+	{
 		text: 'ID',
 		value: 'id',
 	},
@@ -147,6 +152,8 @@ const rows = computed(() => {
 			if (bytesFormattableColumns.includes(key) && typeof worker[key] === 'number') {
 				worker[key] = formatBytes(worker[key])
 			}
+			// Set worker_status depending on the last_seen date difference from now to 2 minutes
+			worker.worker_status = new Date().getTime() - new Date(worker.last_seen).getTime() < 120000 ? 'Online' : 'Offline'
 			if (key === 'last_seen') {
 				worker[key] = new Date(worker[key]).toLocaleString()
 			}

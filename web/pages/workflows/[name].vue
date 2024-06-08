@@ -40,8 +40,8 @@ const copyPromptInputs = function (inputs: any[]) {
 							</h2>
 						</template>
 
-						<div v-if="!collapsedCard" class="p-0">
-							<p class="flex flex-row items-center text-sm text-slate-400 mb-2">
+						<div v-if="!collapsedCard" class="p-0 text-sm">
+							<p class="flex flex-row items-center text-slate-400 mb-2">
 								{{ flowStore.currentFlow?.description }}
 							</p>
 							<p class="flex flex-row flex-wrap items-center text-md mb-2">
@@ -55,16 +55,6 @@ const copyPromptInputs = function (inputs: any[]) {
 								</a>
 							</p>
 							<p class="flex flex-row items-center text-md mb-2">
-								<UIcon name="i-heroicons-scale" class="mr-1" />
-								<a v-if="flowStore.currentFlow?.license" class="hover:underline"
-									:href="flowStore.currentFlow?.license"
-									rel="noopener"
-									target="_blank">
-									License
-								</a>
-								<span v-else>No license</span>
-							</p>
-							<p class="flex flex-row items-center text-md mb-2">
 								<UIcon name="i-heroicons-document-text" class="mr-1" />
 								<a v-if="flowStore.currentFlow?.documentation" class="hover:underline"
 									:href="flowStore.currentFlow?.documentation"
@@ -74,8 +64,19 @@ const copyPromptInputs = function (inputs: any[]) {
 								</a>
 								<span v-else>No documentation</span>
 							</p>
+							<p class="flex flex-row items-center text-md mb-2">
+								<UIcon name="i-heroicons-tag" class="mr-1" />
+								<b>Tags:</b>&nbsp;
+								<UBadge
+									v-for="tag in flowStore.currentFlow?.tags"
+									:key="tag"
+									:label="tag"
+									color="white"
+									variant="solid"
+									class="m-1" />
+							</p>
 							<p v-if="flowStore.currentFlow?.models?.length > 0"
-								class="flex flex-row flex-wrap items-center text-md mb-2">
+								class="flex flex-row flex-wrap items-center text-md">
 								<UIcon name="i-heroicons-arrow-down-on-square-stack" class="mr-1" />
 								<b>Models ({{ flowStore.currentFlow?.models.length }}):</b>&nbsp;
 								<UBadge v-for="model in flowStore.currentFlow?.models"
@@ -90,23 +91,22 @@ const copyPromptInputs = function (inputs: any[]) {
 									</a>
 								</UBadge>
 							</p>
-							<p class="flex flex-row items-center text-md">
-								<b>Installed:</b>&nbsp;
-								<UIcon :name="flowStore.isFlowInstalled(route.params.name as string) ?
-										'i-heroicons-check-badge'
-										: 'i-heroicons-x-mark'"
-									class="mx-1" />
-								<span :class="{
-									'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
-									'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
-								}">
-									{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Yes' : 'No' }}
-								</span>
-							</p>
 						</div>
 
 						<template v-if="!collapsedCard" #footer>
 							<div class="flex justify-end">
+								<div class="flex flex-row items-center justify-center text-sm mr-2">
+									<UIcon :name="flowStore.isFlowInstalled(route.params.name as string) ?
+											'i-heroicons-check-badge'
+											: 'i-heroicons-x-mark'"
+										class="mx-1" />
+									<span :class="{
+										'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
+										'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
+									}">
+										{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Installed' : 'Not installed' }}
+									</span>
+								</div>
 								<UTooltip v-if="!flowStore.isFlowInstalled(route.params.name as string)"
 									text="Setup flow dependencies and configure it in ComfyUI"
 									:popper="{ placement: 'top' }" :open-delay="500">
