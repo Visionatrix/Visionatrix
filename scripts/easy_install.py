@@ -132,7 +132,10 @@ def update_visionatrix():
 
     vix_updated = False
     visionatrix_version = get_vix_version()
-    if Version(visionatrix_version).is_devrelease:
+    current_branch = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True
+    ).stdout.strip()
+    if Version(visionatrix_version).is_devrelease or current_branch == "main":
         print("Updating source code from repository..")
         subprocess.check_call(["git", "checkout", "main"])
         result = subprocess.run(["git", "pull"], capture_output=True, text=True)
