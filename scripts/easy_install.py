@@ -179,6 +179,7 @@ def install_all_flows():
         "photomaker_1",
         "juggernaut_lite",
         "juggernaut_xl",
+        "colorful_xl",
         "stable_cascade",
         "photo_stickers",
         "ghibli_portrait",
