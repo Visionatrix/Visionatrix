@@ -53,6 +53,7 @@ class Flow(BaseModel):
     homepage: str = Field("", description="A URL to the flow's homepage or the author's website.")
     license: str = Field("", description="The type of license under which the flow is made available.")
     documentation: str = Field("", description="A URL linking to detailed documentation for the flow.")
+    tags: list[str] = Field(default=[], description="Tags describing this flow.")
     sub_flows: list[SubFlow] = Field(
         default=[], description="A list of subflows derived from this flow, allowing customization or extension."
     )
