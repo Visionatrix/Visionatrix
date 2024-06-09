@@ -43,10 +43,11 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it is always relative to the current directory"""
 
 ORG_URL = "https://github.com/Visionatrix/"
-FLOWS_URL = "https://visionatrix.github.io/VixFlowsDocs/flows.zip"
+FLOWS_URL = environ.get("FLOWS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/flows.zip")
+"""URL or path to an archive file containing a list and definition of Visionatrix workflows."""
 
 # For Flows development, execute command from next line to create a zip with adjusted/new flows:
-# cd ../VixFlowsDocs && zip -r ../Visionatrix/flows.zip flows -x "flows/models_catalog.json" && cd ../Visionatrix
+# cd ../VixFlowsDocs && zip -r ../Visionatrix/flows.zip flows && cd ../Visionatrix
 # And uncomment the next line to use the local version.
 # FLOWS_URL = "./flows.zip"
 

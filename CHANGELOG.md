@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- New `Colorful XL` workflow.
+- New simple workflows `Colorful XL` and `Mobius XL`.
 
 ### Changed
 
