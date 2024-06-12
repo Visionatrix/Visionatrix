@@ -1,6 +1,9 @@
+import importlib.resources
 import os
 from datetime import datetime, timezone
 
+from alembic import command
+from alembic.config import Config
 from passlib.context import CryptContext
 from sqlalchemy import (
     JSON,
@@ -13,7 +16,6 @@ from sqlalchemy import (
     Integer,
     String,
     create_engine,
-    inspect,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -43,7 +45,7 @@ class TaskDetails(Base):
     __tablename__ = "tasks_details"
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
-    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    user_id = Column(String, nullable=False, index=True)
     worker_id = Column(String, ForeignKey("workers.worker_id"), nullable=True, default=None, index=True)
     progress = Column(Float, default=0.0, index=True)
     error = Column(String, default="")
@@ -53,7 +55,6 @@ class TaskDetails(Base):
     input_files = Column(JSON, default=[])
     flow_comfy = Column(JSON, default={})
     task_queue = relationship("TaskQueue")
-    user_info = relationship("UserInfo", backref="task_details")
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, nullable=True, default=None, index=True)
     finished_at = Column(DateTime, nullable=True, default=None)
@@ -71,7 +72,7 @@ class TaskLock(Base):
 class Worker(Base):
     __tablename__ = "workers"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    user_id = Column(String, nullable=False, index=True)
     worker_id = Column(String, comment="user_id:hostname:device_name:device_index", unique=True)
     worker_version = Column(String, default="")
     last_seen = Column(DateTime, default=datetime.now(timezone.utc), index=True)
@@ -103,6 +104,13 @@ class UserInfo(Base):
     disabled = Column(Boolean, default=False)
 
 
+class GlobalSettings(Base):
+    __tablename__ = "global_settings"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, unique=True)
+    value = Column(String, default="")
+
+
 def init_database_engine() -> None:
     global SESSION, SESSION_ASYNC
     connect_args = {}
@@ -112,19 +120,8 @@ def init_database_engine() -> None:
         if database_uri.startswith("sqlite:///."):
             database_uri = f"sqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[10:]))}"
     engine = create_engine(database_uri, connect_args=connect_args)
-    inspector = inspect(engine)
-    is_new_database = not bool(inspector.get_table_names())
-    Base.metadata.create_all(engine)
     SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
-    if is_new_database:
-        create_user(
-            DEFAULT_USER.user_id,
-            DEFAULT_USER.full_name,
-            DEFAULT_USER.email,
-            "admin",
-            DEFAULT_USER.is_admin,
-            False,
-        )
+    run_db_migrations(database_uri)
     if options.VIX_MODE == "SERVER":
         async_engine = create_async_engine(
             os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args
@@ -151,3 +148,10 @@ def create_user(username: str, full_name: str, email: str, password: str, is_adm
         return True
     finally:
         session.close()
+
+
+def run_db_migrations(database_url: str):
+    alembic_cfg = Config()
+    alembic_cfg.set_main_option("script_location", str(importlib.resources.files("visionatrix").joinpath("alembic")))
+    alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+    command.upgrade(alembic_cfg, "head")
