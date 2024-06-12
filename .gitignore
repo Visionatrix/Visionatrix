@@ -102,3 +102,4 @@ vix_worker_tasks_files
 scripts/visionatrix
 tasks_history.db
 /flows.zip
+/alembic.ini
