@@ -104,8 +104,8 @@ class UserInfo(Base):
     disabled = Column(Boolean, default=False)
 
 
-class Settings(Base):
-    __tablename__ = "settings"
+class GlobalSettings(Base):
+    __tablename__ = "global_settings"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, unique=True)
     value = Column(String, default="")
