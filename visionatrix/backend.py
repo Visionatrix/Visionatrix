@@ -721,6 +721,12 @@ async def set_worker_tasks_to_give(
     return responses.JSONResponse(content={"error": ""})
 
 
+@APP.get("/whoami")
+async def who_am_i(request: Request) -> UserInfo:
+    """Get information about the currently authenticated user."""
+    return request.scope["user_info"]
+
+
 def run_vix(*args, **kwargs) -> None:
     if options.VIX_MODE == "WORKER" and options.UI_DIR:
         LOGGER.error("`WORKER` mode is incompatible with UI")
