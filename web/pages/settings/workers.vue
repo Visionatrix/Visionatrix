@@ -27,85 +27,85 @@ const links = [
 
 const tableHeadersMap = [
 	{
-		text: 'Worker status',
-		value: 'worker_status',
+		id: 'worker_status',
+		label: 'Worker status',
 		sortable: true,
 	},
 	{
-		text: 'ID',
-		value: 'id',
+		id: 'id',
+		label: 'ID',
 	},
 	{
-		text: 'Worker ID',
-		value: 'worker_id',
+		id: 'worker_id',
+		label: 'Worker ID',
 	},
 	{
-		text: 'Worker version',
-		value: 'worker_version',
+		id: 'worker_version',
+		label: 'Worker version',
 		sortable: true,
 	},
 	{
-		text: 'Last seen',
-		value: 'last_seen',
+		id: 'last_seen',
+		label: 'Last seen',
 		sortable: true,
 	},
 	{
-		text: 'OS',
-		value: 'os',
+		id: 'os',
+		label: 'OS',
 		sortable: true,
 	},
 	{
-		text: 'Python Version',
-		value: 'version',
+		id: 'version',
+		label: 'Python Version',
 		sortable: true,
 	},
 	{
-		text: 'Device name',
-		value: 'device_name',
+		id: 'device_name',
+		label: 'Device name',
 	},
 	{
-		text: 'Device type',
-		value: 'device_type',
+		id: 'device_type',
+		label: 'Device type',
 		sortable: true,
 	},
 	{
-		text: 'VRAM total',
-		value: 'vram_total',
+		id: 'vram_total',
+		label: 'VRAM total',
 		sortable: true,
 	},
 	{
-		text: 'VRAM free',
-		value: 'vram_free',
+		id: 'vram_free',
+		label: 'VRAM free',
 		sortable: true,
 	},
 	{
-		text: 'Torch VRAM total',
-		value: 'torch_vram_total',
+		id: 'torch_vram_total',
+		label: 'Torch VRAM total',
 		sortable: true,
 	},
 	{
-		text: 'Torch VRAM free',
-		value: 'torch_vram_free',
+		id: 'torch_vram_free',
+		label: 'Torch VRAM free',
 		sortable: true,
 	},
 	{
-		text: 'RAM total',
-		value: 'ram_total',
+		id: 'ram_total',
+		label: 'RAM total',
 		sortable: true,
 	},
 	{
-		text: 'RAM free',
-		value: 'ram_free',
+		id: 'ram_free',
+		label: 'RAM free',
 		sortable: true,
 	},
 ]
 
 const columns = tableHeadersMap.map((header) => {
 	return {
-		key: header.value,
-		label: header.text,
+		key: header.id,
+		label: header.label,
 		sortable: header.sortable || false,
-		class: 'whitespace-nowrap',
+		class: '',
 	}
 })
 
@@ -126,22 +126,10 @@ watch(selectedColumns, (value) => {
 })
 
 function sortColumnsOrder(a: any, b: any) {
-	return tableHeadersMap.findIndex((header) => header.value === a.key) - tableHeadersMap.findIndex((header) => header.value === b.key)
+	return tableHeadersMap.findIndex((header) => header.id === a.key) - tableHeadersMap.findIndex((header) => header.id === b.key)
 }
 
 const bytesFormattableColumns = ['vram_total', 'vram_free', 'torch_vram_total', 'torch_vram_free', 'ram_total', 'ram_free']
-
-function formatBytes(bytes: number, decimals: number = 2) {
-	if (bytes === 0) return '0 Bytes'
-
-	const k = 1024
-	const dm = decimals < 0 ? 0 : decimals
-	const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-
-	const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-	return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
-}
 
 const filterQuery = ref('')
 
@@ -178,7 +166,7 @@ const rows = computed(() => {
 		<div class="flex flex-col md:flex-row">
 			<UVerticalNavigation :links="links" class="md:w-1/5" />
 			<div class="px-5 md:w-4/5">
-				<h2 class="my-3 text-xl">Workers</h2>
+				<h2 class="mb-3 text-xl">Workers</h2>
 				<div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
 					<USelectMenu
 						v-model="selectedColumns"
