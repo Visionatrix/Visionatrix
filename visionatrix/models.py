@@ -6,8 +6,10 @@ import os
 import typing
 import zipfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
+from fastapi import status
 
 from . import options
 from .pydantic_models import AIResourceModel
@@ -20,6 +22,7 @@ def install_model(
     model: AIResourceModel,
     progress_info: dict,
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
+    hf_auth_token: str = "",
 ) -> bool:
     model.hash = model.hash.lower()
     if str(model.save_path).find("{root}") != -1:
@@ -40,7 +43,7 @@ def install_model(
     os.makedirs(save_path.parent, exist_ok=True)
     for _ in range(DOWNLOAD_RETRY_COUNT):
         LOGGER.info("Downloading `%s`..", model.name)
-        if download_model(model, save_path, progress_info, progress_callback):
+        if download_model(model, save_path, progress_info, progress_callback, hf_auth_token):
             if progress_callback is not None:
                 progress_info["current"] += progress_info["progress_for_model"]
             return True
@@ -55,13 +58,17 @@ def download_model(
     save_path: Path,
     progress_info: dict,
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
+    hf_auth_token: str = "",
 ) -> bool:
     if options.VIX_MODE == "SERVER":  # Server mode does not require "true" models
         with builtins.open(save_path, "w", encoding="UTF-8") as file:
             file.write("SERVER MODE")
         return True
     try:
-        with httpx.stream("GET", model.url, follow_redirects=True) as response:
+        headers = {}
+        if model.gated and urlparse(model.url).netloc == "huggingface.co" and hf_auth_token:
+            headers["Authorization"] = f"Bearer {hf_auth_token}"
+        with httpx.stream("GET", model.url, headers=headers, follow_redirects=True) as response:
             linked_etag = ""
             for each_history in response.history:
                 linked_etag = each_history.headers.get("X-Linked-ETag", "")
@@ -73,7 +80,10 @@ def download_model(
             if linked_etag != model.hash and model.url.find("civitai.com/") == -1:
                 raise RuntimeError(f"Model hash mismatch: {linked_etag}!={model.hash}, please, report about this.")
             if not response.is_success:
-                raise RuntimeError(f"Downloading of '{model.url}' returned {response.status_code} status.")
+                exc_msg = f"Downloading of '{model.url}' returned {response.status_code} status."
+                if model.gated and response.status_code == status.HTTP_401_UNAUTHORIZED:
+                    exc_msg += " Model has gated flag. Is the AccessToken valid?"
+                raise RuntimeError(exc_msg)
             downloaded_size = 0
             total_size = int(response.headers.get("Content-Length"))
             with builtins.open(save_path, "wb") as file:

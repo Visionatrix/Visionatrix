@@ -38,6 +38,7 @@ class AIResourceModel(BaseModel):
         default=[],
         description="List of regex patterns that dynamically resolve model details based on workflow configurations.",
     )
+    gated: bool = Field(False, description="Flag showing is the model closed to public access")
 
 
 class Flow(BaseModel):

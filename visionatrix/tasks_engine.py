@@ -207,7 +207,7 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
                 "tasks_names": tasks_to_ask,
                 "last_task_name": last_task_name,
             },
-            auth=__worker_auth(),
+            auth=options.worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
         if not httpx.codes.is_error(r.status_code):
@@ -406,7 +406,7 @@ def remove_task_by_id_server(task_id: int) -> bool:
         r = httpx.delete(
             options.VIX_SERVER.rstrip("/") + "/task",
             params={"task_id": task_id},
-            auth=__worker_auth(),
+            auth=options.worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
         if not httpx.codes.is_error(r.status_code):
@@ -523,7 +523,7 @@ def remove_task_lock_server(task_id: int) -> None:
         r = httpx.delete(
             options.VIX_SERVER.rstrip("/") + "/task-worker/lock",
             params={"task_id": task_id},
-            auth=__worker_auth(),
+            auth=options.worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
         if httpx.codes.is_error(r.status_code):
@@ -635,7 +635,7 @@ def update_task_progress_server(task_details: dict) -> bool:
             r = httpx.put(
                 options.VIX_SERVER.rstrip("/") + "/task-worker/progress",
                 json=request_data,
-                auth=__worker_auth(),
+                auth=options.worker_auth(),
                 timeout=float(options.WORKER_NET_TIMEOUT),
             )
             if not httpx.codes.is_error(r.status_code):
@@ -678,7 +678,7 @@ def init_active_task_inputs_from_server() -> bool:
                     r = httpx.get(
                         options.VIX_SERVER.rstrip("/") + "/task-inputs",
                         params={"task_id": task_id, "input_index": i},
-                        auth=__worker_auth(),
+                        auth=options.worker_auth(),
                         timeout=float(options.WORKER_NET_TIMEOUT),
                     )
                     if r.status_code == httpx.codes.NOT_FOUND:
@@ -732,7 +732,7 @@ def upload_results_to_server(task_details: dict) -> bool:
                             "task_id": task_id,
                         },
                         files=files,
-                        auth=__worker_auth(),
+                        auth=options.worker_auth(),
                         timeout=float(options.WORKER_NET_TIMEOUT),
                     )
                     if r.status_code == httpx.codes.NOT_FOUND:
@@ -866,11 +866,6 @@ def update_task_progress_thread(active_task: dict) -> None:
                 time.sleep(0.1)
     finally:
         remove_task_lock(last_info["task_id"])
-
-
-def __worker_auth() -> tuple[str, str]:
-    name, password = options.WORKER_AUTH.split(":")
-    return name, password
 
 
 def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
