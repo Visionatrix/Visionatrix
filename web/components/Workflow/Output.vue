@@ -186,7 +186,7 @@ const sentDoOutputParamIndex = ref(0)
 						<div class="flex flex-col basis-full">
 							<NuxtImg class="w-full cursor-pointer mx-auto"
 								loading="lazy"
-								placeholder="/vix_logo.png"
+								:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 								:src="outputImgSrc(item)"
 								draggable="false"
 								@click="() => openImageModal(outputImgSrc(item))" />
@@ -291,7 +291,6 @@ const sentDoOutputParamIndex = ref(0)
 					class="lg:h-full"
 					fit="inside"
 					loading="lazy"
-					placeholder="/vix_logo.png"
 					:src="modalImageSrc" />
 			</div>
 		</UModal>
