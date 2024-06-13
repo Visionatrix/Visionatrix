@@ -52,19 +52,6 @@ window.addEventListener('scroll', () => {
 	showScrollToTop.value = window.scrollY > (outputContainer.value?.offsetTop + window.screen.height || 0)
 })
 
-function downloadFlowComfy(flow_name: string, task_id: string) {
-	flowStore.fetchFlowComfy(task_id).then((res: any) => {
-		console.debug('downloadFlowComfy', res.flow_comfy)
-		const blob = new Blob([JSON.stringify(res.flow_comfy, null, 2)], { type: 'application/json' })
-		const url = window.URL.createObjectURL(blob)
-		const a = document.createElement('a')
-		a.href = url
-		a.download = `${flow_name}_comfy_flow_${task_id}.json`
-		a.click()
-		window.URL.revokeObjectURL(url)
-	})
-}
-
 const currentPageNumber = computed(() => {
 	return flowStore.$state.resultsPage
 })
@@ -199,7 +186,7 @@ const sentDoOutputParamIndex = ref(0)
 						<div class="flex flex-col basis-full">
 							<NuxtImg class="w-full cursor-pointer mx-auto"
 								loading="lazy"
-								placeholder="/vix_logo.png"
+								:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 								:src="outputImgSrc(item)"
 								draggable="false"
 								@click="() => openImageModal(outputImgSrc(item))" />
@@ -273,7 +260,7 @@ const sentDoOutputParamIndex = ref(0)
 									labelClass: 'text-blue-500',
 									icon: 'i-heroicons-arrow-down-tray',
 									iconClass: 'bg-blue-500',
-									click: () => downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
+									click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
 								}]
 							]"
 							mode="click"
@@ -304,7 +291,6 @@ const sentDoOutputParamIndex = ref(0)
 					class="lg:h-full"
 					fit="inside"
 					loading="lazy"
-					placeholder="/vix_logo.png"
 					:src="modalImageSrc" />
 			</div>
 		</UModal>

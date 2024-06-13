@@ -1,16 +1,26 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
-const isDark = computed({
-	get() {
-		return colorMode.value === 'dark'
-	},
-	set() {
-		colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+
+function toggleColorMode() {
+	if (colorMode.preference === 'system') {
+		colorMode.preference = 'light'
+	} else if (colorMode.preference === 'light') {
+		colorMode.preference = 'dark'
+	} else {
+		colorMode.preference = 'system'
 	}
-})
+}
 
 const themingToggleIconClass = computed(() => {
-	return isDark.value ? 'i-heroicons-moon-solid' : 'i-heroicons-sun-solid'
+	if (colorMode.preference === 'system') {
+		return 'i-heroicons-computer-desktop-20-solid'
+	}
+	if (colorMode.preference === 'light') {
+		return 'i-heroicons-sun-solid'
+	}
+	if (colorMode.preference === 'dark') {
+		return 'i-heroicons-moon-solid'
+	}
 })
 </script>
 
@@ -32,7 +42,7 @@ const themingToggleIconClass = computed(() => {
 						variant="ghost"
 						color="white"
 						class="flex lg:px-3 py-2 text-black dark:text-white hover:bg-transparent"
-						@click="isDark = !isDark" />
+						@click="toggleColorMode" />
 				</div>
 			</div>
 		</header>
