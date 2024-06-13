@@ -727,6 +727,65 @@ async def who_am_i(request: Request) -> UserInfo:
     return request.scope["user_info"]
 
 
+@APP.get("/setting")
+async def setting_get(request: Request, key: str) -> str:
+    """
+    Returns the value as a string or an empty string if the setting is not found.
+
+    Default endpoint for retrieving settings.
+    User settings have higher priority than global settings.
+    """
+    if options.VIX_MODE == "SERVER":
+        return await database.get_setting_async(
+            request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin
+        )
+    return database.get_setting(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
+
+
+@APP.get("/global_setting")
+async def global_setting_get(request: Request, key: str) -> str:
+    """Retrieve the global setting value or an empty string if the global setting is not found."""
+    if options.VIX_MODE == "SERVER":
+        return await database.get_global_setting_async(key, request.scope["user_info"].is_admin)
+    return database.get_global_setting(key, request.scope["user_info"].is_admin)
+
+
+@APP.get("/user_setting")
+async def user_setting_get(request: Request, key: str) -> str:
+    """Retrieve the user setting value or an empty string if the user setting is not found."""
+    if options.VIX_MODE == "SERVER":
+        return await database.get_user_setting_async(request.scope["user_info"].user_id, key)
+    return database.get_user_setting(request.scope["user_info"].user_id, key)
+
+
+@APP.post("/global_setting", status_code=status.HTTP_204_NO_CONTENT)
+async def global_setting_set(request: Request, key: str, value: str, sensitive: bool) -> None:
+    """
+    Creates, updates, or deletes a global setting.
+
+    To delete a setting, specify an empty string as the value.
+    Access is restricted to administrators only.
+    """
+    __require_admin(request)
+    if options.VIX_MODE == "SERVER":
+        await database.set_global_setting_async(key, value, sensitive)
+    else:
+        database.set_global_setting(key, value, sensitive)
+
+
+@APP.post("/user_setting", status_code=status.HTTP_204_NO_CONTENT)
+async def user_setting_set(request: Request, key: str, value: str) -> None:
+    """
+    Creates, updates, or deletes a user setting.
+
+    To delete a setting, specify an empty string as the value.
+    """
+    if options.VIX_MODE == "SERVER":
+        await database.set_user_setting_async(request.scope["user_info"].user_id, key, value)
+    else:
+        database.set_user_setting(request.scope["user_info"].user_id, key, value)
+
+
 def run_vix(*args, **kwargs) -> None:
     if options.VIX_MODE == "WORKER" and options.UI_DIR:
         LOGGER.error("`WORKER` mode is incompatible with UI")
