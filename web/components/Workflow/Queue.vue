@@ -66,18 +66,41 @@ const collapsed = ref(true)
 				</p>
 				<WorkflowQueueInputFiles :running="running" />
 				<WorkflowQueueErrorAlert v-if="running.error" :running="running" />
-				<UButton icon="i-heroicons-stop"
-					color="orange"
-					variant="outline"
-					:loading="canceling"
-					@click="() => {
-						canceling = true
-						flowStore.cancelRunningFlow(running).finally(() => {
-							canceling = false
-						})
-					}">
-					Cancel
-				</UButton>
+				<div class="flex justify-between">
+					<UButton :icon="running.progress >= 0
+							&& running.progress < 100
+							? 'i-heroicons-stop'
+							: 'i-heroicons-minus-circle'"
+						:color="!running.error ? 'orange' : 'red'"
+						variant="outline"
+						:loading="canceling"
+						@click="() => {
+							canceling = true
+							flowStore.cancelRunningFlow(running).finally(() => {
+								canceling = false
+							})
+						}">
+						{{
+							running.progress >= 0
+								&& running.progress < 100
+								? 'Cancel'
+								: 'Remove'
+						}}
+					</UButton>
+					<UDropdown :items="[
+							[{
+								label: 'Comfy flow',
+								labelClass: 'text-blue-500',
+								icon: 'i-heroicons-arrow-down-tray',
+								iconClass: 'bg-blue-500',
+								click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, running.task_id),
+							}]
+						]"
+						mode="click"
+						:popper="{ placement: 'bottom-end' }">
+						<UButton color="blue" variant="outline" icon="i-heroicons-ellipsis-vertical-16-solid" />
+					</UDropdown>
+				</div>
 			</div>
 		</template>
 	</div>
