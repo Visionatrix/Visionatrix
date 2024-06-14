@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from subprocess import run
+from subprocess import CalledProcessError, run
 
 import httpx
 from packaging.version import Version
@@ -103,7 +103,19 @@ def update_base_custom_nodes() -> None:
         if Version(_version.__version__).is_devrelease:
             main_branch_name = node_details.get("main_branch", "main")
             run(["git", "checkout", main_branch_name], check=True, cwd=os.path.join(custom_nodes_dir, node_name))
-            run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+            try:
+                run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+            except CalledProcessError:
+                LOGGER.info(
+                    "Error pulling changes from remote. Resetting state of the local repository(%s) to the remote one",
+                    node_name,
+                )
+                run("git fetch origin".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+                run(
+                    f"git reset --hard origin/{main_branch_name}".split(),
+                    check=True,
+                    cwd=os.path.join(custom_nodes_dir, node_name),
+                )
         else:
             run(["git", "fetch", "--all"], check=True, cwd=os.path.join(custom_nodes_dir, node_name))
             clone_env = os.environ.copy()
