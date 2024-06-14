@@ -45,13 +45,18 @@ const flowsStore = useFlowsStore()
 				<p class="flex flex-row items-center">
 					<UIcon name="i-heroicons-tag" class="mr-1" />
 					<b>Tags:</b>&nbsp;
-					<UBadge
-						v-for="tag in flow?.tags"
-						:key="tag"
-						:label="tag"
-						color="white"
-						variant="solid"
-						class="m-1" />
+					<template v-if="flow?.tags.length > 0">
+						<UBadge
+							v-for="tag in flow?.tags"
+							:key="tag"
+							:label="tag"
+							color="white"
+							variant="solid"
+							class="m-1" />
+					</template>
+					<template v-else>
+						<UBadge label="No tags" color="white" variant="solid" class="m-1" />
+					</template>
 				</p>
 			</div>
 
