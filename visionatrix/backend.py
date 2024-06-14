@@ -234,13 +234,15 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
 
 
 @APP.get("/flow-progress-install")
-async def flow_progress_install():
+async def flow_progress_install(request: Request):
     """
     Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint
     returns a dictionary showing the installation status for each flow.
 
-    Status is not persistent and will be reset upon restart
+    Status is not persistent and will be reset upon restart.
+    Requires administrative privileges.
     """
+    __require_admin(request)
     return responses.JSONResponse(content=FLOW_INSTALL_STATUS)
 
 
