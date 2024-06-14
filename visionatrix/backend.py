@@ -761,7 +761,12 @@ async def user_setting_get(request: Request, key: str) -> str:
 
 
 @APP.post("/global_setting", status_code=status.HTTP_204_NO_CONTENT)
-async def global_setting_set(request: Request, key: str, value: str, sensitive: bool) -> None:
+async def global_setting_set(
+    request: Request,
+    key: typing.Annotated[str, Body()],
+    value: typing.Annotated[str, Body()],
+    sensitive: typing.Annotated[bool, Body()],
+) -> None:
     """
     Creates, updates, or deletes a global setting.
 
@@ -776,7 +781,9 @@ async def global_setting_set(request: Request, key: str, value: str, sensitive: 
 
 
 @APP.post("/user_setting", status_code=status.HTTP_204_NO_CONTENT)
-async def user_setting_set(request: Request, key: str, value: str) -> None:
+async def user_setting_set(
+    request: Request, key: typing.Annotated[str, Body()], value: typing.Annotated[str, Body()]
+) -> None:
     """
     Creates, updates, or deletes a user setting.
 
