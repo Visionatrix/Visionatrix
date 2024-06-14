@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Removed relation between `users` table and others, which now correctly allows to implement connection of third party user backends.
+- In some cases, when commits were reverted in the node's remote repositories, the `update` command completed with an error. #86
 
 ## [0.3.0 - 2024-06-09]
 
