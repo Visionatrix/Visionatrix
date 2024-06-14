@@ -157,12 +157,12 @@ def install_custom_flow(
                 auth=options.worker_auth(),
                 timeout=float(options.WORKER_NET_TIMEOUT),
             )
-            if httpx.codes.is_error(r.status_code):
-                LOGGER.warning(
-                    "Flow has gated model(s): [%s] and Access Token was not found.", [i.name for i in gated_models]
-                )
-            else:
+            if not httpx.codes.is_error(r.status_code):
                 hf_auth_token = r.text
+        if not hf_auth_token:
+            LOGGER.warning(
+                "Flow has gated model(s): [%s] and Access Token was not found.", [i.name for i in gated_models]
+            )
     for model in flow.models:
         if not install_model(model, progress_info, progress_callback, hf_auth_token):
             return
