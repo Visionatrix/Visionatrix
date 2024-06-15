@@ -822,8 +822,6 @@ def run_vix(*args, **kwargs) -> None:
             print("Visionatrix is shutting down.")
     else:
         _, comfy_queue = comfyui.load(task_progress_callback)
-        if not options.VIX_SERVER:
-            database.init_database_engine()  # we get tasks directly from the Database
 
         try:
             background_prompt_executor(comfy_queue, EXIT_EVENT)

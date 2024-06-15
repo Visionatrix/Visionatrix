@@ -29,8 +29,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 from . import options, pydantic_models
 
 LOGGER = logging.getLogger("visionatrix")
-SESSION: sessionmaker
-SESSION_ASYNC: async_sessionmaker  # only for the "SERVER" mode
+SESSION: sessionmaker | None = None
+SESSION_ASYNC: async_sessionmaker | None = None  # only for the "SERVER" mode
 Base = declarative_base()
 
 
@@ -129,6 +129,8 @@ class UserSettings(Base):
 
 def init_database_engine() -> None:
     global SESSION, SESSION_ASYNC
+    if SESSION is not None:
+        return
     connect_args = {}
     database_uri = options.DATABASE_URI
     if database_uri.startswith("sqlite:"):
