@@ -130,7 +130,6 @@ def update_visionatrix():
         print("Updating the EMBEDDED version is currently not possible.")
         return
 
-    vix_updated = False
     visionatrix_version = get_vix_version()
     current_branch = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True
@@ -141,8 +140,6 @@ def update_visionatrix():
         result = subprocess.run(["git", "pull"], capture_output=True, text=True)
         if "Already up to date." in result.stdout:
             print("No new commits were pulled.")
-        else:
-            vix_updated = True
     else:
         print("Fetching last tags from remote")
         subprocess.check_call(["git", "fetch", "--all"])
@@ -155,7 +152,6 @@ def update_visionatrix():
         if latest_version_tag != f"v{visionatrix_version}":
             print(f"Updating to the latest version {latest_version_tag} in this major version {major_version}..")
             subprocess.check_call(["git", "checkout", f"tags/{latest_version_tag}"], env=clone_env)
-            vix_updated = True
         else:
             latest_version_tag = get_latest_version(major_version + 1)
             if latest_version_tag is None:
@@ -165,9 +161,7 @@ def update_visionatrix():
                 c = input(f"Update to the next major version({latest_version_tag})? (Y/N): ")
                 if c.lower() == "y":
                     subprocess.check_call(["git", "checkout", f"tags/{latest_version_tag}"], env=clone_env)
-                    vix_updated = True
-    if vix_updated:
-        venv_run("python -m pip install .")
+    venv_run("python -m pip install .")
     print("Running `python -m visionatrix update`")
     venv_run("python -m visionatrix update")
 
