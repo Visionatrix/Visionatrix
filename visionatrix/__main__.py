@@ -99,8 +99,22 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
     logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
-    if args.command == "create-user":
+    if args.command == "run":
+        if args.host:
+            options.VIX_HOST = args.host
+        if args.port:
+            options.VIX_PORT = args.port
+        if args.ui is None:  # `--ui`: enable default UI
+            options.UI_DIR = str(importlib.resources.files("visionatrix").joinpath("client"))
+        elif args.ui != "":
+            options.UI_DIR = args.ui
+        if args.mode:
+            options.VIX_MODE = args.mode
+        if args.server:
+            options.VIX_SERVER = args.server
+    if options.VIX_MODE != "WORKER" or not options.VIX_SERVER:  # we get tasks directly from the Database
         database.init_database_engine()
+    if args.command == "create-user":
         database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
         sys.exit(0)
     options.init_dirs_values(
@@ -127,18 +141,6 @@ if __name__ == "__main__":
     elif args.command == "update":
         update()
     elif args.command == "run":
-        if args.host:
-            options.VIX_HOST = args.host
-        if args.port:
-            options.VIX_PORT = args.port
-        if args.ui is None:  # `--ui`: enable default UI
-            options.UI_DIR = str(importlib.resources.files("visionatrix").joinpath("client"))
-        elif args.ui != "":
-            options.UI_DIR = args.ui
-        if args.mode:
-            options.VIX_MODE = args.mode
-        if args.server:
-            options.VIX_SERVER = args.server
         run_vix()
     elif args.command == "install-flow":
         install_flow = {}

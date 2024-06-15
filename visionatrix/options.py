@@ -100,3 +100,8 @@ def get_server_mode_options_as_env() -> dict[str, str]:
         "VIX_MODE": VIX_MODE,
         "VIX_SERVER_WORKERS": VIX_SERVER_WORKERS,
     }
+
+
+def worker_auth() -> tuple[str, str]:
+    name, password = WORKER_AUTH.split(":")
+    return name, password

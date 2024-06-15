@@ -5,8 +5,19 @@ const flowStore = useFlowsStore()
 
 flowStore.setCurrentFlow(route.params.name as string)
 
-const settingUp = computed(() => flowStore.flowInstallingByName(route.params.name as string) || false)
 const installing = computed(() => flowStore.flowInstallingByName(route.params.name as string) || false)
+const installingLoading = computed(() => installing.value !== false && installing.value?.error === '')
+const setupButtonText = computed(() => {
+	if (installing.value) {
+		if ('error' in installing.value && installing.value?.error !== '') {
+			return `${installing.value.progress.toFixed(0)}% Error setting up`
+		} else {
+			return `${installing.value.progress.toFixed(0)}% Setting up`
+		}
+	} else {
+		return 'Setup flow'
+	}
+})
 
 const deleting = ref(false)
 function deleteFlow() {
@@ -22,6 +33,8 @@ const workflowPrompt = ref<any>(null)
 const copyPromptInputs = function (inputs: any[]) {
 	workflowPrompt.value?.copyPromptInputs(inputs)
 }
+
+const userStore = useUserStore()
 </script>
 
 <template>
@@ -67,13 +80,18 @@ const copyPromptInputs = function (inputs: any[]) {
 							<p class="flex flex-row items-center text-md mb-2">
 								<UIcon name="i-heroicons-tag" class="mr-1" />
 								<b>Tags:</b>&nbsp;
-								<UBadge
-									v-for="tag in flowStore.currentFlow?.tags"
-									:key="tag"
-									:label="tag"
-									color="white"
-									variant="solid"
-									class="m-1" />
+								<template v-if="flowStore.currentFlow?.tags.length > 0">
+									<UBadge
+										v-for="tag in flowStore.currentFlow?.tags"
+										:key="tag"
+										:label="tag"
+										color="white"
+										variant="solid"
+										class="m-1" />
+								</template>
+								<template v-else>
+									<UBadge label="No tags" color="white" variant="solid" class="m-1" />
+								</template>
 							</p>
 							<p v-if="flowStore.currentFlow?.models?.length > 0"
 								class="flex flex-row flex-wrap items-center text-md">
@@ -84,6 +102,14 @@ const copyPromptInputs = function (inputs: any[]) {
 									class="m-1"
 									color="white"
 									variant="solid">
+									<UTooltip
+										v-if="model.gated"
+										text="Gated model, requires auth token for download"
+										:popper="{ placement: 'top' }">
+										<UIcon
+											name="i-heroicons-key"
+											class="mr-1" />
+									</UTooltip>
 									<a class="hover:underline underline-offset-4"
 										:href="model.homepage"
 										rel="noopener" target="_blank">
@@ -94,7 +120,7 @@ const copyPromptInputs = function (inputs: any[]) {
 						</div>
 
 						<template v-if="!collapsedCard" #footer>
-							<div class="flex justify-end">
+							<div v-if="userStore.isAdmin" class="flex justify-end">
 								<div class="flex flex-row items-center justify-center text-sm mr-2">
 									<UIcon :name="flowStore.isFlowInstalled(route.params.name as string) ?
 											'i-heroicons-check-badge'
@@ -114,9 +140,9 @@ const copyPromptInputs = function (inputs: any[]) {
 										class="mx-3"
 										color="primary"
 										variant="outline"
-										:loading="settingUp"
+										:loading="installingLoading"
 										@click="() => flowStore.setupFlow(flowStore.currentFlow)">
-										{{ installing ? `${installing?.progress.toFixed(0)}% Setting up` : 'Setup flow' }}
+										{{ setupButtonText }}
 									</UButton>
 								</UTooltip>
 								<UDropdown v-if="flowStore.isFlowInstalled(route.params.name as string)" :items="[
@@ -128,6 +154,26 @@ const copyPromptInputs = function (inputs: any[]) {
 								]" mode="click" label="Actions" :popper="{ placement: 'bottom-end' }">
 									<UButton color="white" label="Actions" trailing-icon="i-heroicons-chevron-down-20-solid" />
 								</UDropdown>
+							</div>
+							<div v-else>
+								<div class="text-sm flex justify-end">
+									<div class="flex flex-row items-center justify-center text-sm mr-3">
+										<UIcon :name="flowStore.isFlowInstalled(route.params.name as string) ?
+												'i-heroicons-check-badge'
+												: 'i-heroicons-x-mark'"
+											class="mx-1" />
+										<span :class="{
+											'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
+											'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
+										}">
+											{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Installed' : 'Not installed' }}
+										</span>
+									</div>
+									<div class="text-right">
+										<p class="text-orange-500">Only admin can manage workflows.</p>
+										<span class="text-slate-500">Ask your admin to setup this workflow</span>
+									</div>
+								</div>
 							</div>
 						</template>
 					</UCard>

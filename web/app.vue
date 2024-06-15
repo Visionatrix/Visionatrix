@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+useSettingsStore().loadSettings()
 useFlowsStore().fetchFlows()
 useWorkersStore().startPolling()
 </script>
