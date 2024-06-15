@@ -125,6 +125,8 @@ if __name__ == "__main__":
                 operations_mask[0] = False
         install(operations_mask)
     elif args.command == "update":
+        if options.VIX_MODE in ("DEFAULT", "SERVER"):
+            database.init_database_engine()
         update()
     elif args.command == "run":
         if args.host:
