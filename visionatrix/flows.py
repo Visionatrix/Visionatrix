@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import UploadFile
 
-from . import options
+from . import database, options
 from .models import install_model
 from .models_map import fill_flow_models_from_comfy_flow
 from .nodes_helpers import get_node_value, set_node_value
@@ -143,8 +143,26 @@ def install_custom_flow(
     }
     if progress_callback is not None:
         progress_callback(flow.name, progress_info["current"], "")
+    hf_auth_token = ""
+    gated_models = [i for i in flow.models if i.gated]
+    if gated_models and options.VIX_MODE != "SERVER":
+        if "HF_AUTH_TOKEN" in os.environ:
+            hf_auth_token = os.environ["HF_AUTH_TOKEN"]
+        elif options.VIX_MODE == "DEFAULT":
+            hf_auth_token = database.get_global_setting("huggingface_auth_token", True)
+        else:
+            r = httpx.get(
+                options.VIX_SERVER.rstrip("/") + "/setting",
+                params={"key": "huggingface_auth_token"},
+                auth=options.worker_auth(),
+                timeout=float(options.WORKER_NET_TIMEOUT),
+            )
+            if not httpx.codes.is_error(r.status_code):
+                hf_auth_token = r.text
+        if not hf_auth_token:
+            LOGGER.warning("Flow has gated model(s): %s; AccessToken was not found.", [i.name for i in gated_models])
     for model in flow.models:
-        if not install_model(model, progress_info, progress_callback):
+        if not install_model(model, progress_info, progress_callback, hf_auth_token):
             return
     local_flow_dir = os.path.join(options.FLOWS_DIR, flow.name)
     os.mkdir(local_flow_dir)

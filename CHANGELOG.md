@@ -2,19 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.4.0 - 2024-06-16]
+## [0.4.0 - 2024-06-15]
 
 **Breaking change: new database needs to be created, just delete the old one. This is the last time.**
 
 ### Added
 
-- `alembic` to perform database migrations and not to recreate it in the future. #83
-- `/whoami` backend endpoint to get current logged user info; UI now use it to not show for user actions allowed only for admins. #00
+- **Settings** and **Workers** UI pages, support for `gated` models, `SD3` flow. #85
+- `alembic` to perform database migrations and not to recreate Database in the future. #83
 
 ### Fixed
 
 - Removed relation between `users` table and others, which now correctly allows to implement connection of third party user backends.
 - In some cases, when commits were reverted in the node's remote repositories, the `update` command completed with an error. #87
+- Other small bugfixes for UI and backend part.
 
 ## [0.3.0 - 2024-06-09]
 

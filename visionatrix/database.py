@@ -1,4 +1,5 @@
 import importlib.resources
+import logging
 import os
 from datetime import datetime, timezone
 
@@ -15,7 +16,11 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
     create_engine,
+    delete,
+    select,
+    update,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -23,8 +28,9 @@ from sqlalchemy.orm import relationship, sessionmaker
 
 from . import options, pydantic_models
 
-SESSION: sessionmaker
-SESSION_ASYNC: async_sessionmaker  # only for the "SERVER" mode
+LOGGER = logging.getLogger("visionatrix")
+SESSION: sessionmaker | None = None
+SESSION_ASYNC: async_sessionmaker | None = None  # only for the "SERVER" mode
 Base = declarative_base()
 
 
@@ -107,12 +113,24 @@ class UserInfo(Base):
 class GlobalSettings(Base):
     __tablename__ = "global_settings"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True)
-    value = Column(String, default="")
+    name = Column(String, nullable=False, unique=True)
+    value = Column(String, nullable=False)
+    sensitive = Column(Boolean, default=True)
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    value = Column(String, nullable=False)
+    __table_args__ = (UniqueConstraint("user_id", "name", name="user_id_name_uc"),)
 
 
 def init_database_engine() -> None:
     global SESSION, SESSION_ASYNC
+    if SESSION is not None:
+        return
     connect_args = {}
     database_uri = options.DATABASE_URI
     if database_uri.startswith("sqlite:"):
@@ -155,3 +173,165 @@ def run_db_migrations(database_url: str):
     alembic_cfg.set_main_option("script_location", str(importlib.resources.files("visionatrix").joinpath("alembic")))
     alembic_cfg.set_main_option("sqlalchemy.url", database_url)
     command.upgrade(alembic_cfg, "head")
+
+
+def get_setting(user_id: str, key: str, admin: bool) -> str:
+    if value := get_user_setting(user_id, key):
+        return value
+    return get_global_setting(key, admin)
+
+
+async def get_setting_async(user_id: str, key: str, admin: bool) -> str:
+    if value := await get_user_setting_async(user_id, key):
+        return value
+    return await get_global_setting_async(key, admin)
+
+
+def get_global_setting(key: str, admin: bool) -> str:
+    session = SESSION()
+    try:
+        query = select(GlobalSettings.value, GlobalSettings.sensitive).where(GlobalSettings.name == key)
+        result = session.execute(query).one_or_none()
+        if result is None:
+            return ""
+        value, sensitive = result
+        if sensitive and not admin:
+            return ""
+        return value
+    except Exception:
+        LOGGER.exception("Failed to retrieve global setting for `%s`", key)
+        raise
+    finally:
+        session.close()
+
+
+async def get_global_setting_async(key: str, admin: bool) -> str:
+    async with SESSION_ASYNC() as session:
+        try:
+            query = select(GlobalSettings.value, GlobalSettings.sensitive).where(GlobalSettings.name == key)
+            result = (await session.execute(query)).one_or_none()
+            if result is None:
+                return ""
+            value, sensitive = result
+            if sensitive and not admin:
+                return ""
+            return value
+        except Exception:
+            LOGGER.exception("Failed to retrieve global setting for `%s`", key)
+            raise
+
+
+def get_user_setting(user_id: str, key: str) -> str:
+    session = SESSION()
+    try:
+        query = select(UserSettings.value).where(UserSettings.user_id == user_id, UserSettings.name == key)
+        result = session.execute(query).scalar_one_or_none()
+        return result if result is not None else ""
+    except Exception:
+        LOGGER.error("Failed to retrieve user setting for `%s`: `%s`", user_id, key)
+        raise
+    finally:
+        session.close()
+
+
+async def get_user_setting_async(user_id: str, key: str) -> str:
+    async with SESSION_ASYNC() as session:
+        try:
+            query = select(UserSettings.value).where(UserSettings.user_id == user_id, UserSettings.name == key)
+            result = (await session.execute(query)).scalar_one_or_none()
+            return result if result is not None else ""
+        except Exception:
+            LOGGER.exception("Failed to retrieve user setting for `%s`: `%s`", user_id, key)
+            raise
+
+
+def set_global_setting(key: str, value: str, sensitive: bool) -> None:
+    session = SESSION()
+    try:
+        if value:
+            stmt = update(GlobalSettings).where(GlobalSettings.name == key).values(value=value, sensitive=sensitive)
+            result = session.execute(stmt)
+            if result.rowcount == 0:
+                session.add(GlobalSettings(name=key, value=value, sensitive=sensitive))
+            session.commit()
+        else:
+            result = session.execute(delete(GlobalSettings).where(GlobalSettings.name == key))
+            if result.rowcount:
+                session.commit()
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to set global setting for `%s`", key)
+        raise
+    finally:
+        session.close()
+
+
+async def set_global_setting_async(key: str, value: str, sensitive: bool) -> None:
+    async with SESSION_ASYNC() as session:
+        try:
+            if value:
+                stmt = update(GlobalSettings).where(GlobalSettings.name == key).values(value=value, sensitive=sensitive)
+                result = await session.execute(stmt)
+                if result.rowcount == 0:
+                    session.add(GlobalSettings(name=key, value=value, sensitive=sensitive))
+                await session.commit()
+            else:
+                result = await session.execute(delete(GlobalSettings).where(GlobalSettings.name == key))
+                if result.rowcount:
+                    await session.commit()
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to set global setting for `%s`", key)
+            raise
+
+
+def set_user_setting(user_id: str, key: str, value: str) -> None:
+    session = SESSION()
+    try:
+        if value:
+            stmt = (
+                update(UserSettings)
+                .where(UserSettings.user_id == user_id, UserSettings.name == key)
+                .values(value=value)
+            )
+            result = session.execute(stmt)
+            if result.rowcount == 0:
+                session.add(UserSettings(user_id=user_id, name=key, value=value))
+            session.commit()
+        else:
+            result = session.execute(
+                delete(UserSettings).where(UserSettings.user_id == user_id, UserSettings.name == key)
+            )
+            if result.rowcount:
+                session.commit()
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to set user setting for `%s`: `%s`", user_id, key)
+        raise
+    finally:
+        session.close()
+
+
+async def set_user_setting_async(user_id: str, key: str, value: str) -> None:
+    async with SESSION_ASYNC() as session:
+        try:
+            if value:
+                stmt = (
+                    update(UserSettings)
+                    .where(UserSettings.user_id == user_id, UserSettings.name == key)
+                    .values(value=value)
+                )
+                result = await session.execute(stmt)
+                if result.rowcount == 0:
+                    session.add(UserSettings(user_id=user_id, name=key, value=value))
+                await session.commit()
+            else:
+                result = await session.execute(
+                    delete(UserSettings).where(UserSettings.user_id == user_id, UserSettings.name == key)
+                )
+                if result.rowcount:
+                    await session.commit()
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to set user setting for `%s`: `%s`", user_id, key)
+            raise

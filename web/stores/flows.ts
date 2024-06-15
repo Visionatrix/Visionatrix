@@ -505,6 +505,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 					if (progress[flow_name].error) {
 						clearInterval(interval)
 						flowInstalling.error = progress[flow_name].error
+						const toast = useToast()
+						toast.add({
+							title: 'Failed to install flow - ' + flow_name,
+							description: progress[flow_name].error,
+							timeout: 8000,
+						})
 					}
 					if (progress[flow_name].progress === 100) {
 						clearInterval(interval)
@@ -512,7 +518,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						this.installing = this.installing.filter(flow => flow.flow_name !== flow_name)
 						this.fetchFlows()
 					}
-				}).catch ((e) => {
+				}).catch((e) => {
 					console.debug(e)
 					failedAttempts++
 				})
@@ -536,7 +542,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 							return
 						}
 						runningFlow.progress = <number>progress[task_id].progress
-						// progress[task_id].error = 'Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... '
 						if (progress[task_id].error && progress[task_id].error !== '') {
 							runningFlow.error = progress[task_id].error
 							return
@@ -705,6 +710,7 @@ export interface Model {
 	license: string
 	homepage: string
 	hash: string
+	gated: boolean
 }
 
 export interface FlowInputParam {
