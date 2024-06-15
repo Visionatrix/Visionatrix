@@ -5,8 +5,19 @@ const flowStore = useFlowsStore()
 
 flowStore.setCurrentFlow(route.params.name as string)
 
-const settingUp = computed(() => flowStore.flowInstallingByName(route.params.name as string) || false)
 const installing = computed(() => flowStore.flowInstallingByName(route.params.name as string) || false)
+const installingLoading = computed(() => installing.value !== false && installing.value?.error === '')
+const setupButtonText = computed(() => {
+	if (installing.value) {
+		if ('error' in installing.value && installing.value?.error !== '') {
+			return `${installing.value.progress.toFixed(0)}% Error setting up`
+		} else {
+			return `${installing.value.progress.toFixed(0)}% Setting up`
+		}
+	} else {
+		return 'Setup flow'
+	}
+})
 
 const deleting = ref(false)
 function deleteFlow() {
@@ -129,9 +140,9 @@ const userStore = useUserStore()
 										class="mx-3"
 										color="primary"
 										variant="outline"
-										:loading="settingUp"
+										:loading="installingLoading"
 										@click="() => flowStore.setupFlow(flowStore.currentFlow)">
-										{{ installing ? `${installing?.progress.toFixed(0)}% Setting up` : 'Setup flow' }}
+										{{ setupButtonText }}
 									</UButton>
 								</UTooltip>
 								<UDropdown v-if="flowStore.isFlowInstalled(route.params.name as string)" :items="[

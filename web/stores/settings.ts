@@ -22,7 +22,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 			gemini_token_user: {
 				key: 'gemini_token',
 				value: '',
-				sensitive: true,
+				sensitive: false,
 				admin: false,
 			},
 		} as Record<string, { key: string; value: any; sensitive: boolean; admin: boolean }> | any,

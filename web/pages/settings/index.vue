@@ -26,11 +26,11 @@ const settingsStore = useSettingsStore()
 
 function saveChanges() {
 	console.debug('Saving settings', settingsStore.settingsMap.value)
-	Promise.all(Object.keys(settingsStore.settingsMap.value).map((key) => {
+	Promise.all(Object.keys(settingsStore.settingsMap).map((key) => {
 		if (settingsStore.settingsMap[key].admin && userStore.isAdmin) {
-			return settingsStore.saveGlobalSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap.value[key].value, settingsStore.settingsMap.value[key].sensitive)
+			return settingsStore.saveGlobalSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap[key].value, settingsStore.settingsMap[key].sensitive)
 		}
-		return settingsStore.saveUserSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap.value[key].value)
+		return settingsStore.saveUserSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap[key].value)
 	})).then(() => {
 		const toast = useToast()
 		toast.add({
@@ -92,14 +92,11 @@ const userStore = useUserStore()
 							size="md"
 						/>
 					</UFormGroup>
-				</div>
-				<div class="user-settings mb-3">
-					<h3 class="mb-3">User settings</h3>
 					<UFormGroup
 						size="md"
 						class="py-3"
 						label="Proxy"
-						description="Proxy configuration string">
+						description="Proxy configuration string (to access Gemini)">
 						<UInput
 							v-model="settingsStore.settingsMap['proxy'].value"
 							placeholder="Proxy"
@@ -109,6 +106,9 @@ const userStore = useUserStore()
 							size="md"
 						/>
 					</UFormGroup>
+				</div>
+				<div class="user-settings mb-3">
+					<h3 class="mb-3">User settings</h3>
 					<UFormGroup
 						size="md"
 						class="py-3"

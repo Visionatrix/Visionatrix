@@ -509,6 +509,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						toast.add({
 							title: 'Failed to install flow - ' + flow_name,
 							description: progress[flow_name].error,
+							timeout: 0,
 						})
 					}
 					if (progress[flow_name].progress === 100) {
@@ -541,7 +542,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 							return
 						}
 						runningFlow.progress = <number>progress[task_id].progress
-						// progress[task_id].error = 'Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... Test error message... '
 						if (progress[task_id].error && progress[task_id].error !== '') {
 							runningFlow.error = progress[task_id].error
 							return
