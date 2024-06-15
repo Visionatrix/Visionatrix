@@ -18,7 +18,7 @@ const flowStore = useFlowsStore()
 			</NuxtLink>
 		</template>
 		<template v-else>
-			<UIcon name="i-heroicons-x-mark" class="mx-1" />
+			<UIcon name="i-heroicons-exclamation-circle" class="mx-1" />
 			Error setting up flow
 			<NuxtLink :to="`/workflows/${installingFlow.flow_name}`">
 				<UBadge class="mx-1"
