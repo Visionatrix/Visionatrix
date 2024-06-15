@@ -1,1 +1,0 @@
-import{bn as s,v as i,bo as t}from"./CJXd1g-b.js";const n=s(r=>{if(r.path.startsWith("/settings")){const e=i();if(!e.$state.user)e.fetchUserInfo().finally(()=>e.isAdmin?t(r.path):t("/"));else if(!e.isAdmin)return t("/")}});export{n as default};

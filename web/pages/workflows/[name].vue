@@ -103,10 +103,10 @@ const userStore = useUserStore()
 									color="white"
 									variant="solid">
 									<UTooltip
-										text="Gated model requires auth token for download"
+										v-if="model.gated"
+										text="Gated model, requires auth token for download"
 										:popper="{ placement: 'top' }">
 										<UIcon
-											v-if="!model.gated"
 											name="i-heroicons-key"
 											class="mr-1" />
 									</UTooltip>

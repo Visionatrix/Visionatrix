@@ -6,9 +6,9 @@ const flowStore = useFlowsStore()
 	<div v-for="installingFlow in flowStore.installing"
 		:key="installingFlow.flow_name"
 		class="mb-3 last:mb-0 border-b p-3 flex items-center">
-		<template v-if="installingFlow.error === ''">
-			<UIcon name="i-heroicons-arrow-down-tray-solid" class="mx-1" />
-			{{ installingFlow.progress.toFixed(0) }}% Setting up flow
+		<template v-if="'error' in installingFlow && installingFlow?.error !== ''">
+			<UIcon name="i-heroicons-exclamation-circle" class="mx-1" />
+			Error setting up flow
 			<NuxtLink :to="`/workflows/${installingFlow.flow_name}`">
 				<UBadge class="mx-1"
 					color="white"
@@ -18,8 +18,8 @@ const flowStore = useFlowsStore()
 			</NuxtLink>
 		</template>
 		<template v-else>
-			<UIcon name="i-heroicons-exclamation-circle" class="mx-1" />
-			Error setting up flow
+			<UIcon name="i-heroicons-arrow-down-tray-solid" class="mx-1" />
+			{{ installingFlow.progress.toFixed(0) }}% Setting up flow
 			<NuxtLink :to="`/workflows/${installingFlow.flow_name}`">
 				<UBadge class="mx-1"
 					color="white"
