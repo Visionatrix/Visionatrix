@@ -15,8 +15,9 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import UploadFile
+from packaging.version import Version
 
-from . import database, options
+from . import _version, database, options
 from .models import install_model
 from .models_map import fill_flow_models_from_comfy_flow
 from .nodes_helpers import get_node_value, set_node_value
@@ -42,8 +43,15 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
         return CACHE_AVAILABLE_FLOWS["flows"]
 
     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
-    if urlparse(options.FLOWS_URL).scheme in ("http", "https", "ftp", "ftps"):
-        r = httpx.get(options.FLOWS_URL, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
+    flows_storage_url = options.FLOWS_URL
+    if flows_storage_url.endswith("/"):
+        vix_version = Version(_version.__version__)
+        if vix_version.is_devrelease:
+            flows_storage_url += "flows.zip"
+        else:
+            flows_storage_url += f"flows-{vix_version.major}.{vix_version.minor}.zip"
+    if urlparse(flows_storage_url).scheme in ("http", "https", "ftp", "ftps"):
+        r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
         if r.status_code == 304:
             flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
             return CACHE_AVAILABLE_FLOWS["flows"]
@@ -54,7 +62,7 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
         flows_content = r.content
         flows_content_etag = r.headers.get("etag", "")
     else:
-        with builtins.open(options.FLOWS_URL, mode="rb") as flows_archive:
+        with builtins.open(flows_storage_url, mode="rb") as flows_archive:
             flows_content = flows_archive.read()
         flows_content_etag = ""
     r_flows = []
