@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0 - 2024-06-xx]
+
+### Added
+
+- Implemented version control of `workflows`, now adding new workflows should not break old versions of Vix. #88
+
 ## [0.4.0 - 2024-06-15]
 
 **Breaking change: new database needs to be created, just delete the old one. This is the last time.**
