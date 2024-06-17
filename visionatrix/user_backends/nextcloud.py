@@ -10,6 +10,7 @@ from ..pydantic_models import UserInfo
 
 NEXTCLOUD_URL = environ.get("NEXTCLOUD_URL", "http://stable29.local").removesuffix("/index.php").removesuffix("/")
 """Url should be in format: https://cloud.nextcloud.com"""
+NEXTCLOUD_URL = "http://nextcloud.local/index.php".removesuffix("/index.php").removesuffix("/")
 
 __nextcloud_headers_set = environ.get("NEXTCLOUD_HEADERS_SET", "{}")
 NEXTCLOUD_HEADERS_SET: dict = loads(__nextcloud_headers_set)
@@ -26,7 +27,7 @@ LOGGER = logging.getLogger("visionatrix")
 
 async def get_user_info(_scope: Scope, http_connection: HTTPConnection) -> UserInfo | None:
     headers = []
-    headers_to_remove = ["host"]
+    headers_to_remove = ["host", "content-length"]
     for header in http_connection.headers:
         if header not in headers_to_remove:
             headers.append((header, http_connection.headers[header]))
