@@ -50,6 +50,7 @@ def update() -> None:
             check_call(
                 [sys.executable, "-m", "pip", "install", "-r", os.path.join(options.BACKEND_DIR, "requirements.txt")],
             )
+        os.makedirs(os.path.join(options.BACKEND_DIR, "user"), exist_ok=True)  # for multiprocessing installations
         create_missing_models_dirs()
         logging.info("Updating custom nodes..")
         update_base_custom_nodes()
