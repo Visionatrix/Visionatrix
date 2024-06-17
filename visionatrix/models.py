@@ -60,7 +60,7 @@ def download_model(
     progress_callback: typing.Callable[[str, float, str], None] | None = None,
     hf_auth_token: str = "",
 ) -> bool:
-    if options.VIX_MODE == "SERVER":  # Server mode does not require "true" models
+    if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
         with builtins.open(save_path, "w", encoding="UTF-8") as file:
             file.write("SERVER MODE")
         return True
@@ -119,7 +119,7 @@ def download_model(
 
 
 def check_hash(etag: str, model_path: str | Path) -> bool:
-    if options.VIX_MODE == "SERVER":  # Server mode does not require "true" models
+    if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
         return True
     with builtins.open(model_path, "rb") as file:
         sha256_hash = hashlib.sha256()
