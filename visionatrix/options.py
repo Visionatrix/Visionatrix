@@ -26,7 +26,7 @@ UI_DIR = environ.get("UI_DIR", "")
 VIX_MODE = environ.get("VIX_MODE", "DEFAULT")
 """
 * DEFAULT - storage and delivery of tasks(Server) + tasks processing(Worker), authentication is disabled.
-* SERVER - only storage and managing of tasks, authentication is enabled, requires PgSQL or MariaDB.
+* SERVER - only storage and managing of tasks, authentication is enabled, requires PgSQL database.
 * WORKER - only processing tasks for the Server(client consuming mode, no backend)
 """
 
@@ -38,6 +38,10 @@ WORKER_NET_TIMEOUT = environ.get("WORKER_NET_TIMEOUT", "15.0")
 """Only for WORKER in the `Worker to Server` mode."""
 VIX_SERVER_WORKERS = environ.get("VIX_SERVER_WORKERS", "1")
 """Only for SERVER mode. How many Server instances should be spawned(using uvicorn)."""
+VIX_SERVER_FULL_MODELS = environ.get("VIX_SERVER_FULL_MODELS", "0")
+"""Flag that determines whether full rather than dummy models should be stored in SERVER mode.
+
+In the case of installation on one server machine or when you have mapped MODELS folder between different machines."""
 
 DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 """for SQLite: if path is relative than it is always relative to the current directory"""
