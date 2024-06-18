@@ -6,8 +6,6 @@ import re
 from pathlib import Path
 from shutil import rmtree
 
-from packaging.version import Version
-
 
 INITIAL_RERUN = "--rerun" in sys.argv
 PARENT_DIR = Path(__file__).parent
@@ -111,7 +109,7 @@ def get_latest_version(major_version: int | None, cwd=None) -> str | None:
     tags = result.stdout.strip().split("\n")
     if major_version is not None:
         tags = [tag for tag in tags if tag.startswith(f"v{major_version}.")]
-    tags.sort(key=Version)
+    tags.sort(key=parse_version_tag)
     return tags[-1] if tags else None
 
 
@@ -134,7 +132,7 @@ def update_visionatrix():
     current_branch = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True
     ).stdout.strip()
-    if Version(visionatrix_version).is_devrelease or current_branch == "main":
+    if current_branch == "main":
         print("Updating source code from repository..")
         subprocess.check_call(["git", "checkout", "main"])
         result = subprocess.run(["git", "pull"], capture_output=True, text=True)
@@ -147,7 +145,7 @@ def update_visionatrix():
         clone_env = os.environ.copy()
         clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
 
-        major_version = Version(visionatrix_version).major
+        major_version = get_major_version(visionatrix_version)
         latest_version_tag = get_latest_version(major_version)
         if latest_version_tag != f"v{visionatrix_version}":
             print(f"Updating to the latest version {latest_version_tag} in this major version {major_version}..")
@@ -267,6 +265,34 @@ def remove_readonly(func, path, _):
     """Clear the readonly bit and reattempt the removal."""
     os.chmod(path, stat.S_IWRITE)
     func(path)
+
+
+def parse_version(version_str: str) -> (int, int, int):
+    """
+    Parses a version string and returns a tuple of integers (major, minor, patch).
+    Handles both release and development version patterns.
+    """
+    match = re.match(r"(\d+)\.(\d+)\.(\d+)", version_str)
+    if not match:
+        raise ValueError(f"Invalid version string: {version_str}")
+    return tuple(map(int, match.groups()))
+
+
+def parse_version_tag(tag: str) -> (int, int, int):
+    """
+    Parses a version tag and returns a tuple of integers (major, minor, patch).
+    Handles both release and development version patterns.
+    """
+    match = re.match(r"v(\d+)\.(\d+)\.(\d+)", tag)
+    if not match:
+        raise ValueError(f"Invalid version tag: {tag}")
+    return tuple(map(int, match.groups()))
+
+
+def get_major_version(version_str: str) -> int:
+    """Extracts and returns the major version number from a version string."""
+    major, _, _ = parse_version(version_str)
+    return major
 
 
 if __name__ == "__main__":
