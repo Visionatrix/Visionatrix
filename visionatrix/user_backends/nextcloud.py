@@ -8,9 +8,8 @@ from starlette.types import Scope
 
 from ..pydantic_models import UserInfo
 
-NEXTCLOUD_URL = environ.get("NEXTCLOUD_URL", "http://stable29.local").removesuffix("/index.php").removesuffix("/")
+NEXTCLOUD_URL = environ.get("NEXTCLOUD_URL", "http://nextcloud.local").removesuffix("/index.php").removesuffix("/")
 """Url should be in format: https://cloud.nextcloud.com"""
-NEXTCLOUD_URL = "http://nextcloud.local/index.php".removesuffix("/index.php").removesuffix("/")
 
 __nextcloud_headers_set = environ.get("NEXTCLOUD_HEADERS_SET", "{}")
 NEXTCLOUD_HEADERS_SET: dict = loads(__nextcloud_headers_set)

@@ -23,10 +23,5 @@ build-client:
 build-client-nextcloud:
 	@echo "Building client for Nextcloud..."
 	@rm -rf visionatrix/client
-	@cd web && NUXT_APP_BUILD_ASSETS_DIR="/index.php/apps/app_api/proxy/vix/iframe/_nuxt/" \
-		NUXT_APP_BASE_URL=/index.php/apps/app_api/proxy/vix/iframe/ npm run build && \
+	@cd web && NUXT_APP_BASE_URL=/index.php/apps/app_api/proxy/vix/ npm run build && \
 		cp -r .output/public ../visionatrix/client
-	@cd web && \
-		NUXT_APP_BUILD_ASSETS_DIR="/index.php/apps/app_api/proxy/vix/iframe/_nuxt/" && \
-		mkdir -p ../visionatrix/client/_nuxt && \
-		cp -r .output/public$${NUXT_APP_BUILD_ASSETS_DIR}* ../visionatrix/client/_nuxt/
