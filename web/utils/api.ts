@@ -5,10 +5,10 @@ export function buildBackendApiUrl() {
 		prefix = config.app.baseURL
 	}
 	return config.app.backendApiUrl !== ''
-		? config.app.backendApiUrl
+		? config.app.backendApiUrl + '/api'
 		: location.port 
-			? `${location.protocol}//${location.hostname}:${location.port}`
-			: `${location.protocol}//${location.hostname}` + (prefix ? prefix : '')
+			? `${location.protocol}//${location.hostname}:${location.port}/api`
+			: `${location.protocol}//${location.hostname}` + (prefix ? prefix : '') + '/api'
 }
 
 export function buildAuthorization() {
