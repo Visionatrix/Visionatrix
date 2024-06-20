@@ -1,15 +1,8 @@
 // edit attention like in ComfyUI for Textarea inputs
 // ref: https://github.com/comfyanonymous/ComfyUI/blob/master/web/extensions/core/editAttention.js
 
-const editAttentionDelta = {
-	attrs: {
-		min: 0.01,
-		max: 0.5,
-		step: 0.01,
-	},
-	defaultValue: 0.05,
-	value: '0.05',
-}
+// TODO: extract into settings
+const editAttentionDelta = '0.05'
 
 function incrementWeight(weight: string, delta: number) {
 	const floatWeight = parseFloat(weight)
@@ -63,7 +56,7 @@ function addWeightToParentheses(text: string) {
 
 export function editAttention(event: any) {
 	const inputField = event.composedPath()[0]
-	const delta = parseFloat(editAttentionDelta.value)
+	const delta = parseFloat(editAttentionDelta)
 
 	if (inputField.tagName !== 'TEXTAREA') return
 	if (!(event.key === 'ArrowUp' || event.key === 'ArrowDown')) return
