@@ -14,6 +14,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import (
+    APIRouter,
     BackgroundTasks,
     Body,
     FastAPI,
@@ -150,6 +151,8 @@ async def lifespan(app: FastAPI):
 
 
 APP = FastAPI(lifespan=lifespan)
+API_ROUTER = APIRouter(prefix="/api")
+
 APP.add_middleware(VixAuthMiddleware)
 if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     APP.add_middleware(
@@ -161,7 +164,7 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     )
 
 
-@APP.get("/flows-installed")
+@API_ROUTER.get("/flows-installed")
 async def flows_installed() -> list[Flow]:
     """
     Return the list of installed flows. Each flow can potentially be converted into a task. The response
@@ -171,7 +174,7 @@ async def flows_installed() -> list[Flow]:
     return get_installed_flows()
 
 
-@APP.get("/flows-available")
+@API_ROUTER.get("/flows-available")
 async def flows_available() -> list[Flow]:
     """
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
@@ -180,7 +183,7 @@ async def flows_available() -> list[Flow]:
     return get_not_installed_flows()
 
 
-@APP.get("/flows-sub-flows")
+@API_ROUTER.get("/flows-sub-flows")
 async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]:
     """
     Retrieves a list of flows designed to post-process the results from other flows, filtering by the type
@@ -204,7 +207,7 @@ async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]
     return r
 
 
-@APP.put("/flow")
+@API_ROUTER.put("/flow")
 def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     """
     Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges
@@ -233,7 +236,7 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     )
 
 
-@APP.get("/flow-progress-install")
+@API_ROUTER.get("/flow-progress-install")
 async def flow_progress_install(request: Request):
     """
     Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint
@@ -246,7 +249,7 @@ async def flow_progress_install(request: Request):
     return responses.JSONResponse(content=FLOW_INSTALL_STATUS)
 
 
-@APP.delete("/flow")
+@API_ROUTER.delete("/flow")
 async def flow_delete(request: Request, name: str):
     """
     Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.
@@ -290,7 +293,7 @@ async def __task_run(
     return task_details
 
 
-@APP.post("/task")
+@API_ROUTER.post("/task")
 async def task_run(
     request: Request,
     name: str = Form(description="Name of the flow from which the task should be created"),
@@ -346,7 +349,7 @@ async def task_run(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
-@APP.get("/tasks-progress")
+@API_ROUTER.get("/tasks-progress")
 async def tasks_progress(request: Request, name: str | None = None) -> dict[int, TaskDetails]:
     """
     Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.
@@ -358,7 +361,7 @@ async def tasks_progress(request: Request, name: str | None = None) -> dict[int,
     return r
 
 
-@APP.get("/tasks-progress-short")
+@API_ROUTER.get("/tasks-progress-short")
 async def tasks_progress_short(request: Request, name: str | None = None) -> dict[int, TaskDetailsShort]:
     """
     Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.
@@ -370,7 +373,7 @@ async def tasks_progress_short(request: Request, name: str | None = None) -> dic
     return r
 
 
-@APP.get("/task-progress")
+@API_ROUTER.get("/task-progress")
 async def task_progress(request: Request, task_id: int) -> TaskDetails:
     """
     Retrieves the full task details of a specified task by task ID.
@@ -388,7 +391,7 @@ async def task_progress(request: Request, task_id: int) -> TaskDetails:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
-@APP.post("/task-restart")
+@API_ROUTER.post("/task-restart")
 async def task_restart(request: Request, task_id: int, force: bool = False):
     """
     Restarts a task specified by `task_id` if it has encountered an error or is not yet completed.
@@ -420,7 +423,7 @@ async def task_restart(request: Request, task_id: int, force: bool = False):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.delete("/task")
+@API_ROUTER.delete("/task")
 async def task_remove(request: Request, task_id: int):
     """
     Removes a finished or errored task from the system using the task ID.
@@ -438,7 +441,7 @@ async def task_remove(request: Request, task_id: int):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.delete("/tasks")
+@API_ROUTER.delete("/tasks")
 async def tasks_remove(request: Request, name: str):
     """
     Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.
@@ -447,7 +450,7 @@ async def tasks_remove(request: Request, name: str):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.get("/task-inputs")
+@API_ROUTER.get("/task-inputs")
 async def task_inputs(request: Request, task_id: int, input_index: int):
     """
     Retrieves a specific input file for a task, identified by `task_id` and `input_index`. This endpoint
@@ -473,7 +476,7 @@ async def task_inputs(request: Request, task_id: int, input_index: int):
     )
 
 
-@APP.get("/task-results")
+@API_ROUTER.get("/task-results")
 async def task_results(request: Request, task_id: int, node_id: int):
     """
     Retrieves the result file associated with a specific task and node ID. This function searches for
@@ -498,7 +501,7 @@ async def task_results(request: Request, task_id: int, node_id: int):
     )
 
 
-@APP.delete("/tasks-queue")
+@API_ROUTER.delete("/tasks-queue")
 async def tasks_queue_clear(request: Request, name: str):
     """
     Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.
@@ -507,7 +510,7 @@ async def tasks_queue_clear(request: Request, name: str):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.delete("/task-queue")
+@API_ROUTER.delete("/task-queue")
 async def task_queue_clear(request: Request, task_id: int):
     """
     Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.
@@ -518,7 +521,7 @@ async def task_queue_clear(request: Request, task_id: int):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.post("/task-worker/get")
+@API_ROUTER.post("/task-worker/get")
 async def task_worker_give_task(
     request: Request,
     worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
@@ -543,7 +546,7 @@ async def task_worker_give_task(
     return responses.JSONResponse(content={"error": "", "task": r})
 
 
-@APP.put("/task-worker/progress")
+@API_ROUTER.put("/task-worker/progress")
 async def task_worker_update_progress(
     request: Request,
     worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
@@ -576,7 +579,7 @@ async def task_worker_update_progress(
     return responses.JSONResponse(content={"error": "" if update_success else "failed to update"})
 
 
-@APP.put("/task-worker/results")
+@API_ROUTER.put("/task-worker/results")
 async def task_worker_put_results(request: Request, task_id: int, files: list[UploadFile]):
     """
     Saves the result files for a specific task on the server. This endpoint checks if the task exists
@@ -619,7 +622,7 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.delete("/task-worker/lock")
+@API_ROUTER.delete("/task-worker/lock")
 async def task_worker_remove_lock(request: Request, task_id: int):
     """
     Unlocks a task specified by the `task_id`. This endpoint checks if the task exists
@@ -638,7 +641,7 @@ async def task_worker_remove_lock(request: Request, task_id: int):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.post("/engine-interrupt")
+@API_ROUTER.post("/engine-interrupt")
 async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
     """
     Interrupts the currently executing task. This is primarily an internal function and should be used
@@ -655,7 +658,7 @@ async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.post("/shutdown")
+@API_ROUTER.post("/shutdown")
 async def shutdown(request: Request, b_tasks: BackgroundTasks):
     """
     Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process
@@ -671,13 +674,13 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.get("/system_stats")
+@API_ROUTER.get("/system_stats")
 async def system_stats():
     # TO-DO: remove this endpoint completely, no needed with new **/workers_info**
     return responses.JSONResponse(content=comfyui.get_worker_details())
 
 
-@APP.get("/workers_info")
+@API_ROUTER.get("/workers_info")
 async def workers_info(
     request: Request,
     last_seen_interval: int = Query(
@@ -701,7 +704,7 @@ async def workers_info(
     return r
 
 
-@APP.post("/worker_tasks")
+@API_ROUTER.post("/worker_tasks")
 async def set_worker_tasks_to_give(
     request: Request,
     worker_id: typing.Annotated[str, Body()],
@@ -723,13 +726,13 @@ async def set_worker_tasks_to_give(
     return responses.JSONResponse(content={"error": ""})
 
 
-@APP.get("/whoami")
+@API_ROUTER.get("/whoami")
 async def who_am_i(request: Request) -> UserInfo:
     """Get information about the currently authenticated user."""
     return request.scope["user_info"]
 
 
-@APP.get("/setting")
+@API_ROUTER.get("/setting")
 async def setting_get(request: Request, key: str) -> str:
     """
     Returns the value as a string or an empty string if the setting is not found.
@@ -744,7 +747,7 @@ async def setting_get(request: Request, key: str) -> str:
     return database.get_setting(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
 
 
-@APP.get("/global_setting")
+@API_ROUTER.get("/global_setting")
 async def global_setting_get(request: Request, key: str) -> str:
     """Retrieve the global setting value or an empty string if the global setting is not found."""
     if options.VIX_MODE == "SERVER":
@@ -752,7 +755,7 @@ async def global_setting_get(request: Request, key: str) -> str:
     return database.get_global_setting(key, request.scope["user_info"].is_admin)
 
 
-@APP.get("/user_setting")
+@API_ROUTER.get("/user_setting")
 async def user_setting_get(request: Request, key: str) -> str:
     """Retrieve the user setting value or an empty string if the user setting is not found."""
     if options.VIX_MODE == "SERVER":
@@ -760,7 +763,7 @@ async def user_setting_get(request: Request, key: str) -> str:
     return database.get_user_setting(request.scope["user_info"].user_id, key)
 
 
-@APP.post("/global_setting", status_code=status.HTTP_204_NO_CONTENT)
+@API_ROUTER.post("/global_setting", status_code=status.HTTP_204_NO_CONTENT)
 async def global_setting_set(
     request: Request,
     key: typing.Annotated[str, Body()],
@@ -780,7 +783,7 @@ async def global_setting_set(
         database.set_global_setting(key, value, sensitive)
 
 
-@APP.post("/user_setting", status_code=status.HTTP_204_NO_CONTENT)
+@API_ROUTER.post("/user_setting", status_code=status.HTTP_204_NO_CONTENT)
 async def user_setting_set(
     request: Request, key: typing.Annotated[str, Body()], value: typing.Annotated[str, Body()]
 ) -> None:
@@ -793,6 +796,9 @@ async def user_setting_set(
         await database.set_user_setting_async(request.scope["user_info"].user_id, key, value)
     else:
         database.set_user_setting(request.scope["user_info"].user_id, key, value)
+
+
+APP.include_router(API_ROUTER)
 
 
 def run_vix(*args, **kwargs) -> None:
