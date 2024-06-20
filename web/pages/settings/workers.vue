@@ -11,6 +11,10 @@ useHead({
 
 const workersStore = useWorkersStore()
 
+onMounted(() => {
+	workersStore.startPolling()
+})
+
 const links = [
 	{
 		label: 'Settings',
@@ -48,6 +52,11 @@ const tableHeadersMap = [
 		id: 'last_seen',
 		label: 'Last seen',
 		sortable: true,
+	},
+	{
+		id: 'tasks_to_give',
+		label: 'Tasks to give',
+		sortable: false,
 	},
 	{
 		id: 'os',
@@ -129,35 +138,69 @@ function sortColumnsOrder(a: any, b: any) {
 	return tableHeadersMap.findIndex((header) => header.id === a.key) - tableHeadersMap.findIndex((header) => header.id === b.key)
 }
 
-const bytesFormattableColumns = ['vram_total', 'vram_free', 'torch_vram_total', 'torch_vram_free', 'ram_total', 'ram_free']
+const flowsStore = useFlowsStore()
+const flowsAvailableOptions = computed(() => flowsStore.flows.map((flow) => {
+	return {
+		label: flow.display_name,
+		value: flow.name,
+	}
+}))
+const tasksToGive = ref<any[]>([])
+onBeforeMount(() => {
+	if (flowsStore.flows.length === 0) {
+		flowsStore.fetchFlows().then(() => {
+			tasksToGive.value = [...flowsAvailableOptions.value]
+		})
+		return
+	}
+	tasksToGive.value = [...flowsAvailableOptions.value]
+})
+const settingTasksToGive = ref(false)
+
+function updateSelectedTasksToGive() {
+	settingTasksToGive.value = true
+	Promise.all(selectedRows.value.map((row: any) => {
+		return workersStore.setTasksToGive(row.worker_id, tasksToGive.value.map((task: any) => task.value))
+	})).then(() => {
+		const toast = useToast()
+		toast.add({
+			title: 'Tasks to give updated',
+			description: 'Tasks to give updated successfully',
+		})
+		selectedRows.value = []
+	}).catch(() => {
+		const toast = useToast()
+		toast.add({
+			title: 'Failed to update tasks to give',
+			description: 'Try again',
+		})
+	}).finally(() => {
+		settingTasksToGive.value = false
+		workersStore.loadWorkers()
+	})
+}
 
 const filterQuery = ref('')
-
-const rows = computed(() => {
-	const rowsData = workersStore.$state.workers.map((worker: object|any) => {
-		// Format bytes columns to human readable format
-		Object.keys(worker).forEach((key) => {
-			if (bytesFormattableColumns.includes(key) && typeof worker[key] === 'number') {
-				worker[key] = formatBytes(worker[key])
-			}
-			// Set worker_status depending on the last_seen date difference from now to 2 minutes
-			worker.worker_status = new Date().getTime() - new Date(worker.last_seen).getTime() < 120000 ? 'Online' : 'Offline'
-			if (key === 'last_seen') {
-				worker[key] = new Date(worker[key]).toLocaleString()
-			}
+const rows = computed(() => workersStore.$state.workers)
+const rowsFiltered = computed(() => {
+	return rows.value.filter((row) => {
+		return Object.values(row).some((value) => {
+			return String(value).toLowerCase().includes(filterQuery.value.toLowerCase())
 		})
-		return worker
 	})
+})
 
-	if (filterQuery.value) {
-		return rowsData.filter((row) => {
-			return Object.values(row).some((value) => {
-				return String(value).toLowerCase().includes(filterQuery.value.toLowerCase())
-			})
-		})
+function getWorkerStatus(row: WorkerInfo) {
+	return new Date().getTime() - new Date(row.last_seen).getTime() <= 120000 ? 'Online' : 'Offline'
+}
+
+const selectedRows: any = ref([])
+watch(rows, (newRows) => {
+	// restore selected rows after data is updated
+	if (selectedRows.value.length > 0) {
+		const selectedRowsIds = selectedRows.value.map((row: WorkerInfo) => row.id)
+		selectedRows.value = newRows.filter((row) => selectedRowsIds.includes(row.id))
 	}
-
-	return rowsData
 })
 </script>
 
@@ -167,17 +210,96 @@ const rows = computed(() => {
 			<UVerticalNavigation :links="links" class="md:w-1/5" />
 			<div class="px-5 md:w-4/5">
 				<h2 class="mb-3 text-xl">Workers</h2>
-				<div class="flex px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
-					<USelectMenu
-						v-model="selectedColumns"
-						class="mr-3"
-						:options="columns"
-						multiple />
-					<UInput v-model="filterQuery" placeholder="Filter workers..." />
+				<div class="flex flex-col lg:flex-row px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
+					<div class="flex">
+						<USelectMenu
+							v-model="selectedColumns"
+							class="mr-3"
+							:options="columns"
+							multiple />
+						<UInput v-model="filterQuery" placeholder="Filter workers..." />
+					</div>
+					<div v-if="selectedRows.length >= 1" class="flex flex-col md:flex-row items-center">
+						<USelectMenu
+							v-model="tasksToGive"
+							class="mr-3 my-3 lg:mx-3 lg:my-0 w-full max-w-64"
+							:options="flowsAvailableOptions"
+							multiple>
+							<template #label>
+								<span>Tasks to give</span>
+							</template>
+						</USelectMenu>
+						<UTooltip
+							text="Flows available for worker to get tasks">
+							<UButton
+								icon="i-heroicons-check-16-solid"
+								variant="outline"
+								color="cyan"
+								size="sm"
+								:loading="settingTasksToGive"
+								@click="updateSelectedTasksToGive">
+								Update tasks to give
+							</UButton>
+						</UTooltip>
+					</div>
 				</div>
-				<UTable :columns="selectedColumns" :rows="rows" :loading="workersStore.$state.loading">
-					<template #caption>
-						<caption>Workers</caption>
+				<UTable
+					v-model="selectedRows"
+					:columns="selectedColumns"
+					:rows="filterQuery === '' ? rows : rowsFiltered"
+					:loading="workersStore.$state.loading">
+					<template #worker_status-data="{ row }">
+						<UBadge
+							variant="solid"
+							:color="getWorkerStatus(row) === 'Online' ? 'green' : 'red'">
+							{{ getWorkerStatus(row) }}
+						</UBadge>
+					</template>
+					<template #tasks_to_give-data="{ row }">
+						<template v-if="row.tasks_to_give.length === 0">
+							<span>All</span>
+						</template>
+						<template v-else>
+							<UPopover :popper="{ placement: 'bottom' }">
+								<UButton
+									icon="i-heroicons-list-bullet-16-solid"
+									variant="outline"
+									color="gray"
+									size="sm">
+									<span>{{ row.tasks_to_give.length }} selected</span>
+								</UButton>
+								<template #panel>
+									<div class="p-4 flex flex-wrap max-w-64">
+										<UBadge v-for="task in row.tasks_to_give" :key="task" class="mr-2 mb-2" variant="solid" color="cyan">
+											<ULink class="hover:underline" :to="`/workflows/${task}`">
+												{{ task }}
+											</ULink>
+										</UBadge>
+									</div>
+								</template>
+							</UPopover>
+						</template>
+					</template>
+					<template #last_seen-data="{ row }">
+						{{ new Date(row.last_seen).toLocaleString() }}
+					</template>
+					<template #vram_total-data="{ row }">
+						{{ formatBytes(row.vram_total) }}
+					</template>
+					<template #vram_free-data="{ row }">
+						{{ formatBytes(row.vram_free) }}
+					</template>
+					<template #torch_vram_total-data="{ row }">
+						{{ formatBytes(row.torch_vram_total) }}
+					</template>
+					<template #torch_vram_free-data="{ row }">
+						{{ formatBytes(row.torch_vram_free) }}
+					</template>
+					<template #ram_total-data="{ row }">
+						{{ formatBytes(row.ram_total) }}
+					</template>
+					<template #ram_free-data="{ row }">
+						{{ formatBytes(row.ram_free) }}
 					</template>
 				</UTable>
 			</div>
