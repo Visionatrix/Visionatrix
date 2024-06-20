@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Implemented version control of `workflows`, now adding new workflows should not break old versions of Vix. #88
+- Added prompt attention editing on `CTRL + ArrowUp/ArrowDown` like in ComfyUI. #90
 
 ## [0.4.0 - 2024-06-15]
 
