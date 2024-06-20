@@ -5,34 +5,52 @@ export const useWorkersStore = defineStore('workersStore', {
 	}),
 
 	actions: {
-		async fetchWorkersInfo() {
+		async loadWorkers() {
 			const { $apiFetch } = useNuxtApp()
-			this.loading = true
 			return await $apiFetch('/workers_info')
 				.then((res: any) => {
 					this.workers = <WorkerInfo[]>res
-					console.debug(`workers (${this.workers.length}): `, this.workers)
-				}).finally(() => {
-					this.loading = false
 				})
+		},
+
+		async fetchWorkersInfo() {
+			this.loading = true
+			return this.loadWorkers().finally(() => {
+				this.loading = false
+			})
 		},
 
 		startPolling() {
 			this.fetchWorkersInfo()
 			setInterval(() => {
-				this.fetchWorkersInfo()
+				this.loadWorkers()
 			}, 3000)
 		},
-	},
 
+		async setTasksToGive(worker_id: string, tasks_to_give: any[]) {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch('/worker_tasks', {
+				method: 'POST',
+				body: JSON.stringify({ worker_id, tasks_to_give }),
+			}).then((res: any) => {
+				if (res?.error !== '') {
+					console.error(`Error setting tasks to give for ${worker_id}: `, res.error)
+				}
+			}).catch((res: any) => {
+				console.error(`Error setting tasks to give for ${worker_id}: `, res.error)
+			})
+		},
+	},
 })
 
 export interface WorkerInfo {
+	worker_status?: string
 	device_name: string
 	device_type: string
 	embedded_version: string
 	id: number
 	last_seen: string
+	tasks_to_give: string[]
 	os: string
 	ram_free: number
 	ram_total: number

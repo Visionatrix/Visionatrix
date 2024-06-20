@@ -35,12 +35,10 @@ export const useSettingsStore = defineStore('settingsStore', {
 				return Promise.all(Object.keys(this.settingsMap).map((key) => {
 					if (this.settingsMap[key].admin && userStore.isAdmin) {
 						return this.getGlobalSetting(this.settingsMap[key].key).then((value) => {
-							console.debug('Setting', key, 'to', value)
 							this.settingsMap[key].value = value
 						})
 					}
 					return this.getUserSetting(this.settingsMap[key].key).then((value) => {
-						console.debug('Setting', key, 'to', value)
 						this.settingsMap[key].value = value
 					})
 				}))

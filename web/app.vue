@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 useSettingsStore().loadSettings()
 useFlowsStore().fetchFlows()
-useWorkersStore().startPolling()
+useWorkersStore().loadWorkers()
 </script>
 
 <template>
