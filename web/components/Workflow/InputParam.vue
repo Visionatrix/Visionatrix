@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { editAttention } from '~/utils/editAttention'
+
 const props = defineProps({
 	inputParam: {
 		type: Object,
@@ -93,6 +95,31 @@ const formGroupHelp = computed(() => {
 onBeforeUnmount(() => {
 	URL.revokeObjectURL(imagePreviewUrl.value)
 })
+
+const textareaInput = ref(null)
+
+function editAttentionListener(event: any) {
+	const updatedText = editAttention(event)
+	if (updatedText) {
+		props.inputParamsMap[props.index][props.inputParam.name].value = updatedText
+	}
+}
+
+// add event listener for textarea keydown for editAttention feature
+onMounted(() => {
+	if (props.inputParam.type === 'text' && textareaInput.value) {
+		// @ts-ignore
+		textareaInput.value.$refs.textarea.addEventListener('keydown', editAttentionListener)
+	}
+})
+
+onBeforeUnmount(() => {
+	if (props.inputParam.type === 'text' && textareaInput.value) {
+		// @ts-ignore
+		textareaInput.value.$refs.textarea.removeEventListener('keydown', editAttentionListener)
+	}
+})
+
 </script>
 
 <template>
@@ -104,6 +131,7 @@ onBeforeUnmount(() => {
 		</template>
 		<template #default>
 			<UTextarea v-if="inputParam.type === 'text'"
+				ref="textareaInput"
 				size="md"
 				:placeholder="inputParam.display_name"
 				:required="!inputParam.optional"
