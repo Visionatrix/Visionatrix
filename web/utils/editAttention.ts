@@ -133,4 +133,5 @@ export function editAttention(event: any) {
 	})
 
 	inputField.setRangeText(updatedText, start, end, 'select')
+	return inputField.value
 }

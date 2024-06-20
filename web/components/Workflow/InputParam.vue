@@ -98,18 +98,25 @@ onBeforeUnmount(() => {
 
 const textareaInput = ref(null)
 
+function editAttentionListener(event: any) {
+	const updatedText = editAttention(event)
+	if (updatedText) {
+		props.inputParamsMap[props.index][props.inputParam.name].value = updatedText
+	}
+}
+
 // add event listener for textarea keydown for editAttention feature
 onMounted(() => {
 	if (props.inputParam.type === 'text' && textareaInput.value) {
 		// @ts-ignore
-		textareaInput.value.$refs.textarea.addEventListener('keydown', editAttention)
+		textareaInput.value.$refs.textarea.addEventListener('keydown', editAttentionListener)
 	}
 })
 
 onBeforeUnmount(() => {
 	if (props.inputParam.type === 'text' && textareaInput.value) {
 		// @ts-ignore
-		textareaInput.value.$refs.textarea.removeEventListener('keydown', editAttention)
+		textareaInput.value.$refs.textarea.removeEventListener('keydown', editAttentionListener)
 	}
 })
 
