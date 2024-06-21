@@ -8,7 +8,12 @@ import sys
 from pathlib import Path
 
 from . import comfyui, database, install, options, run_vix, update
-from .flows import get_available_flows, install_custom_flow
+from .flows import (
+    fill_flow_metadata,
+    fill_flow_subflows,
+    get_available_flows,
+    install_custom_flow,
+)
 from .pydantic_models import Flow
 
 
@@ -146,9 +151,12 @@ if __name__ == "__main__":
         install_flow = {}
         if args.directory:
             with builtins.open(Path(args.directory).joinpath("flow.json"), "rb") as fp:
-                install_flow = Flow.model_validate(json.loads(fp.read()))
+                install_vix_flow = json.loads(fp.read())
             with builtins.open(Path(args.directory).joinpath("flow_comfy.json"), "rb") as fp:
                 install_flow_comfy = json.loads(fp.read())
+            fill_flow_metadata(install_vix_flow, install_flow_comfy)
+            fill_flow_subflows(install_vix_flow, install_flow_comfy)
+            install_flow = Flow.model_validate(install_vix_flow)
         else:
             flows_comfy = []
             flows = get_available_flows(flows_comfy)

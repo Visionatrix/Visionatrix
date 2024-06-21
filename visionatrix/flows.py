@@ -75,8 +75,11 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
             flow_comfy_path = f"{directory}flow_comfy.json"
             if flow_path in files_list and flow_comfy_path in files_list:
                 with zip_file.open(flow_path) as flow_file, zip_file.open(flow_comfy_path) as flow_comfy_file:
-                    _flow = Flow.model_validate(json.loads(flow_file.read()))
+                    _vix_flow = json.loads(flow_file.read())
                     _flow_comfy = json.loads(flow_comfy_file.read())
+                    fill_flow_metadata(_vix_flow, _flow_comfy)
+                    fill_flow_subflows(_vix_flow, _flow_comfy)
+                    _flow = Flow.model_validate(_vix_flow)
                     fill_flow_models_from_comfy_flow(_flow, _flow_comfy)
                     r_flows.append(_flow)
                     r_flows_comfy.append(_flow_comfy)
@@ -112,8 +115,11 @@ def get_installed_flows(flows_comfy: list | None = None) -> list[Flow]:
         flow_fp = flow.joinpath("flow.json")
         flow_comfy_fp = flow.joinpath("flow_comfy.json")
         if flow_fp.exists() is True and flow_comfy_fp.exists() is True:
-            _flow = Flow.model_validate(json.loads(flow_fp.read_bytes()))
+            _vix_flow = json.loads(flow_fp.read_bytes())
             _flow_comfy = json.loads(flow_comfy_fp.read_bytes())
+            fill_flow_metadata(_vix_flow, _flow_comfy)
+            fill_flow_subflows(_vix_flow, _flow_comfy)
+            _flow = Flow.model_validate(_vix_flow)
             fill_flow_models_from_comfy_flow(_flow, _flow_comfy)
             r.append(_flow)
             r_comfy.append(_flow_comfy)
@@ -345,3 +351,18 @@ def perform_node_connections(flow_comfy: dict[str, dict], node_id: str, node_det
         return
     target_connect = node_details["node_connect"]
     set_node_value(flow_comfy[target_connect["node_id"]], target_connect["dest_field_name"], [node_id, 0])
+
+
+def fill_flow_metadata(flow: dict[str, str | list | dict], flow_comfy: dict[str, dict]) -> None:
+    for node_details in flow_comfy.values():
+        if node_details.get("_meta", {}).get("title", "") == "WF_META":
+            flow.update(json.loads(node_details["inputs"]["text"]))
+            return
+    raise ValueError("ComfyUI flow should contain Workflow metadata")
+
+
+def fill_flow_subflows(flow: dict[str, str | list | dict], flow_comfy: dict[str, dict]) -> None:
+    for node_details in flow_comfy.values():
+        if node_details.get("_meta", {}).get("title", "") == "WF_SUBFLOWS":
+            flow.update(json.loads(node_details["inputs"]["text"]))
+            return
