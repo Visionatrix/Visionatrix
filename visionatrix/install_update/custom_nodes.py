@@ -58,6 +58,7 @@ BASIC_NODE_LIST = {
     "ComfyUI_IPAdapter_plus": {},
     "comfyui_controlnet_aux": {},
     "ComfyUI-AutomaticCFG": {},
+    "comfyui-art-venture": {},
 }
 
 
