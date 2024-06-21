@@ -55,7 +55,7 @@ jobs:
 
   install_windows_github:
     name: GitHub Windows:2019
-    runs-on: windows-2019
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
