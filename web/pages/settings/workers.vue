@@ -15,6 +15,10 @@ onMounted(() => {
 	workersStore.startPolling()
 })
 
+onBeforeUnmount(() => {
+	workersStore.stopPolling()
+})
+
 const links = [
 	{
 		label: 'Settings',
