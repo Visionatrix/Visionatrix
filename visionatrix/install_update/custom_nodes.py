@@ -59,6 +59,7 @@ BASIC_NODE_LIST = {
     "comfyui_controlnet_aux": {},
     "ComfyUI-AutomaticCFG": {},
     "comfyui-art-venture": {},
+    "was-node-suite-comfyui": {},
 }
 
 
