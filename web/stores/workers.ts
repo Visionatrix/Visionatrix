@@ -2,6 +2,7 @@ export const useWorkersStore = defineStore('workersStore', {
 	state: () => ({
 		loading: false,
 		workers: <WorkerInfo[]>[],
+		interval: null as any,
 	}),
 
 	actions: {
@@ -22,9 +23,13 @@ export const useWorkersStore = defineStore('workersStore', {
 
 		startPolling() {
 			this.fetchWorkersInfo()
-			setInterval(() => {
+			this.interval = setInterval(() => {
 				this.loadWorkers()
 			}, 3000)
+		},
+
+		stopPolling() {
+			clearInterval(this.interval)
 		},
 
 		async setTasksToGive(worker_id: string, tasks_to_give: any[]) {
