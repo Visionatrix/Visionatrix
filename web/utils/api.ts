@@ -1,14 +1,18 @@
-export function buildBackendApiUrl() {
+export function buildBackendUrl() {
 	const config = useRuntimeConfig()
 	let prefix = null
 	if (config.app.baseURL !== '/') {
 		prefix = config.app.baseURL
 	}
 	return config.app.backendApiUrl !== ''
-		? config.app.backendApiUrl + '/api'
+		? config.app.backendApiUrl
 		: location.port 
-			? `${location.protocol}//${location.hostname}:${location.port}/api`
-			: `${location.protocol}//${location.hostname}` + (prefix ? prefix : '') + '/api'
+			? `${location.protocol}//${location.hostname}:${location.port}`
+			: `${location.protocol}//${location.hostname}` + (prefix ? prefix : '')
+}
+
+export function buildBackendApiUrl() {
+	return buildBackendUrl() + '/api'
 }
 
 export function buildAuthorization() {

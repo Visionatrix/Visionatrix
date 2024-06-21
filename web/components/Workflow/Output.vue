@@ -160,7 +160,7 @@ const sentDoOutputParamIndex = ref(0)
 						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
 						fit="outside"
 						loading="lazy"
-						:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
+						:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 						:src="outputImgSrc({
 							task_id: flowResult.task_id,
 							node_id: flowResult.output_params[0].comfy_node_id
@@ -186,7 +186,7 @@ const sentDoOutputParamIndex = ref(0)
 						<div class="flex flex-col basis-full">
 							<NuxtImg class="w-full cursor-pointer mx-auto"
 								loading="lazy"
-								:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
+								:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 								:src="outputImgSrc(item)"
 								draggable="false"
 								@click="() => openImageModal(outputImgSrc(item))" />
