@@ -2,13 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.5.0 - 2024-06-xx]
+## [0.5.0 - 2024-06-21]
 
 ### Added
 
 - Implemented version control of `workflows`, now adding new workflows should not break old versions of Vix. #88
 - Added prompt attention editing on `CTRL + ArrowUp/ArrowDown` like in ComfyUI. #90
-- Implemented worker tasks_to_give settings. #93
+- Implemented ability to change of the worker option `tasks_to_give` in the Settings. #93
 
 ### Changed
 
