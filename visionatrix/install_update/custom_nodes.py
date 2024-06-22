@@ -60,6 +60,7 @@ BASIC_NODE_LIST = {
     "ComfyUI-AutomaticCFG": {},
     "comfyui-art-venture": {},
     "was-node-suite-comfyui": {},
+    "ComfyUI-Visionatrix": {},
 }
 
 
