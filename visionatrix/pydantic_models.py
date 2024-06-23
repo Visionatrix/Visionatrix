@@ -62,6 +62,7 @@ class Flow(BaseModel):
     input_params: list[dict] = Field(
         ..., description="Initial set of parameters required to launch the flow, potentially modifiable by subflows."
     )
+    version: str = Field("", description="Internal version of the flow in major.minor format.")
 
 
 class TaskDetailsInput(BaseModel):

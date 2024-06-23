@@ -306,7 +306,7 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
 
 def process_checkboxes(flow_comfy: dict[str, dict]) -> None:
     for node_details in flow_comfy.values():
-        if node_details["class_type"] == "VixUiCheckbox":
+        if node_details["class_type"] == "VixUiCheckboxLogic":
             if node_details["inputs"]["state"]:
                 node_details["inputs"].pop("input_off_state")
             else:
@@ -348,6 +348,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             optional = node_details["inputs"]["optional"]
             advanced = node_details["inputs"]["advanced"]
             order = node_details["inputs"]["order"]
+            custom_id = node_details["inputs"]["custom_id"]
         elif node_details["_meta"]["title"].startswith("input;"):
             input_info = str(node_details["_meta"]["title"]).split(";")
             input_info = [i.strip() for i in input_info]
@@ -359,11 +360,15 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             for attribute in other_attributes:
                 if attribute.startswith("order="):
                     order = int(attribute[6:])
+            custom_id = ""
+            for attribute in other_attributes:
+                if attribute.startswith("custom_id="):
+                    custom_id = int(attribute[10:])
         else:
             continue
         input_type, input_path = get_node_type_and_path(node_details)
         input_param_data = {
-            "name": f"in_param_{node_id}",
+            "name": custom_id if custom_id else f"in_param_{node_id}",
             "display_name": display_name,
             "type": input_type,
             "optional": optional,
@@ -372,7 +377,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             "order": order,
             "comfy_node_id": {node_id: input_path},
         }
-        if node_details["class_type"] == "VixUiRangeFloat":
+        if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]
         elif node_details["class_type"] == "VixUiList":
@@ -392,10 +397,12 @@ def get_node_type_and_path(node_details: dict) -> (str, list):
         return "list", ["inputs", "aspect_ratio"]
     if node_details["class_type"] == "LoadImage":
         return "image", ["inputs", "image"]
-    if node_details["class_type"] == "VixUiCheckbox":
+    if node_details["class_type"] in ("VixUiCheckbox", "VixUiCheckboxLogic"):
         return "bool", ["inputs", "state"]
     if node_details["class_type"] == "VixUiRangeFloat":
         return "range", ["inputs", "value"]
+    if node_details["class_type"] == "VixUiRangeScaleFloat":
+        return "range_scale", ["inputs", "value"]
     if node_details["class_type"] == "VixUiPrompt":
         return "text", ["inputs", "text"]
     if node_details["class_type"] == "VixUiList":
