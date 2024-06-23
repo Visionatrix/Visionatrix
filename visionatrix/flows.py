@@ -196,7 +196,7 @@ def prepare_flow_comfy(
             set_node_value(node, input_path, v)
     process_seed_value(flow, in_texts_params, r)
     prepare_flow_comfy_files_params(flow, in_files_params, task_details["task_id"], task_details, r)
-    process_checkboxes(r)
+    process_logic_nodes(r)
     return r
 
 
@@ -262,13 +262,17 @@ def prepare_flow_comfy_files_params(
         task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
     for node_to_disconnect in files_params[len(in_files_params) :]:
         for node_id_to_disconnect in node_to_disconnect["comfy_node_id"]:
-            for node_details in r.values():
-                nodes_to_pop = []
-                for input_id, input_details in node_details.get("inputs", {}).items():
-                    if isinstance(input_details, list) and input_details[0] == node_id_to_disconnect:
-                        nodes_to_pop.append(input_id)
-                for i in nodes_to_pop:
-                    node_details["inputs"].pop(i)
+            disconnect_node(node_id_to_disconnect, r)
+
+
+def disconnect_node(node_id: str, flow_comfy: dict[str, dict]) -> None:
+    for node_details in flow_comfy.values():
+        nodes_to_pop = []
+        for input_id, input_details in node_details.get("inputs", {}).items():
+            if isinstance(input_details, list) and input_details[0] == node_id:
+                nodes_to_pop.append(input_id)
+        for i in nodes_to_pop:
+            node_details["inputs"].pop(i)
 
 
 def flow_prepare_output_params(
@@ -304,13 +308,23 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
     in_texts_params["seed"] = random_seed
 
 
-def process_checkboxes(flow_comfy: dict[str, dict]) -> None:
+def process_logic_nodes(flow_comfy: dict[str, dict]) -> None:
     for node_details in flow_comfy.values():
         if node_details["class_type"] == "VixUiCheckboxLogic":
             if node_details["inputs"]["state"]:
                 node_details["inputs"].pop("input_off_state")
             else:
                 node_details["inputs"].pop("input_on_state")
+        elif node_details["class_type"] == "VixUiListLogic":
+            possible_values: list = json.loads(node_details["inputs"]["possible_values"])
+            enabled_input_index = possible_values.index(node_details["inputs"]["default_value"])
+            inputs_keys = ["input_first", "input_second", "input_third", "input_fourth", "input_fifth", "input_sixth"]
+            inputs_to_remove = []
+            for i, v in enumerate(inputs_keys):
+                if v in node_details["inputs"] and i != enabled_input_index:
+                    inputs_to_remove.append(v)
+            for k in inputs_to_remove:
+                node_details["inputs"].pop(k)
 
 
 def get_vix_flow(flow_comfy: dict[str, dict]) -> Flow:
@@ -363,7 +377,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             custom_id = ""
             for attribute in other_attributes:
                 if attribute.startswith("custom_id="):
-                    custom_id = int(attribute[10:])
+                    custom_id = attribute[10:]
         else:
             continue
         input_type, input_path = get_node_type_and_path(node_details)
@@ -380,7 +394,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
         if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]
-        elif node_details["class_type"] == "VixUiList":
+        elif node_details["class_type"] in ("VixUiList", "VixUiListLogic"):
             r = json.loads(node_details["inputs"]["possible_values"])
             if isinstance(r, list):
                 input_param_data["options"] = {i: i for i in r}
@@ -405,7 +419,7 @@ def get_node_type_and_path(node_details: dict) -> (str, list):
         return "range_scale", ["inputs", "value"]
     if node_details["class_type"] == "VixUiPrompt":
         return "text", ["inputs", "text"]
-    if node_details["class_type"] == "VixUiList":
+    if node_details["class_type"] in ("VixUiList", "VixUiListLogic"):
         return "list", ["inputs", "default_value"]
     raise ValueError(f"Node with class_type={node_details['class_type']} is not currently supported as input")
 
