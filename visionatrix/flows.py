@@ -312,9 +312,9 @@ def process_logic_nodes(flow_comfy: dict[str, dict]) -> None:
     for node_details in flow_comfy.values():
         if node_details["class_type"] == "VixUiCheckboxLogic":
             if node_details["inputs"]["state"]:
-                node_details["inputs"].pop("input_off_state")
+                node_details["inputs"].pop("input_off_state", None)
             else:
-                node_details["inputs"].pop("input_on_state")
+                node_details["inputs"].pop("input_on_state", None)
         elif node_details["class_type"] == "VixUiListLogic":
             possible_values: list = json.loads(node_details["inputs"]["possible_values"])
             enabled_input_index = possible_values.index(node_details["inputs"]["default_value"])
