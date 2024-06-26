@@ -17,7 +17,7 @@ import httpx
 from fastapi import UploadFile
 from packaging.version import Version
 
-from . import _version, database, options
+from . import _version, comfyui_class_info, database, options
 from .models import install_model
 from .models_map import get_flow_models
 from .nodes_helpers import get_node_value, set_node_value
@@ -380,7 +380,13 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
                     custom_id = attribute[10:]
         else:
             continue
-        input_type, input_path = get_node_type_and_path(node_details)
+        try:
+            input_type, input_path = comfyui_class_info.CLASS_INFO[node_details["class_type"]]
+        except KeyError as exc:
+            raise ValueError(
+                f"Node with class_type={node_details['class_type']} is not currently supported as input"
+            ) from exc
+
         input_param_data = {
             "name": custom_id if custom_id else f"in_param_{node_id}",
             "display_name": display_name,
@@ -404,24 +410,6 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             correct_aspect_ratio_default_options(input_param_data)
         input_params.append(input_param_data)
     return sorted(input_params, key=lambda x: x["order"])
-
-
-def get_node_type_and_path(node_details: dict) -> (str, list):
-    if node_details["class_type"] == "SDXLAspectRatioSelector":
-        return "list", ["inputs", "aspect_ratio"]
-    if node_details["class_type"] == "LoadImage":
-        return "image", ["inputs", "image"]
-    if node_details["class_type"] in ("VixUiCheckbox", "VixUiCheckboxLogic"):
-        return "bool", ["inputs", "state"]
-    if node_details["class_type"] == "VixUiRangeFloat":
-        return "range", ["inputs", "value"]
-    if node_details["class_type"] == "VixUiRangeScaleFloat":
-        return "range_scale", ["inputs", "value"]
-    if node_details["class_type"] == "VixUiPrompt":
-        return "text", ["inputs", "text"]
-    if node_details["class_type"] in ("VixUiList", "VixUiListLogic"):
-        return "list", ["inputs", "default_value"]
-    raise ValueError(f"Node with class_type={node_details['class_type']} is not currently supported as input")
 
 
 def correct_aspect_ratio_default_options(input_param_data: dict) -> None:
