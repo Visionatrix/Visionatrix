@@ -341,6 +341,8 @@ def get_flow_metadata(flow_comfy: dict[str, dict]) -> dict[str, str | list | dic
             r = node_details["inputs"].copy()
             r["tags"] = json.loads(node_details["inputs"]["tags"] if node_details["inputs"]["tags"] else [])
             return r
+        if node_details.get("_meta", {}).get("title", "") == "WF_META":  # Text Multiline (Code Compatible)
+            return json.loads(node_details["inputs"]["text"])
     raise ValueError("ComfyUI flow should contain Workflow metadata")
 
 
