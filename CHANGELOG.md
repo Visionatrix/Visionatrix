@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0 - 202406-29]
+
+### Added
+
+- The set of nodes `was-node-suite-comfyui` and `comfyui-art-venture` have been added to the default set.
+
+### Changed
+
+- Full rework of Workflow concept: now Visionatrix workflows does not require additional files and is the same as ComfyUI workflows. #96
+
 ## [0.5.0 - 2024-06-21]
 
 ### Added
