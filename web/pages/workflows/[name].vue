@@ -78,6 +78,11 @@ const userStore = useUserStore()
 								<span v-else>No documentation</span>
 							</p>
 							<p class="flex flex-row items-center text-md mb-2">
+								<UIcon name="i-heroicons-clock" class="mr-1" />
+								<b>Version:</b>&nbsp;
+								<span>{{ flowStore.currentFlow?.version }}</span>
+							</p>
+							<p class="flex flex-row items-center text-md mb-2">
 								<UIcon name="i-heroicons-tag" class="mr-1" />
 								<b>Tags:</b>&nbsp;
 								<template v-if="flowStore.currentFlow?.tags.length > 0">

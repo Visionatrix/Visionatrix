@@ -54,7 +54,7 @@ More information: https://visionatrix.github.io/VixFlowsDocs/TechnicalInformatio
 """
 
 # For Flows development, execute command from next line to create a zip with adjusted/new flows:
-# cd ../VixFlowsDocs && zip -r ../Visionatrix/flows.zip flows && cd ../Visionatrix
+# rm -f ./flows.zip && cd ../VixFlowsDocs && zip -r ../Visionatrix/flows.zip flows && cd ../Visionatrix
 # And uncomment the next line to use the local version.
 # FLOWS_URL = "./flows.zip"
 
