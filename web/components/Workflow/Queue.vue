@@ -53,10 +53,10 @@ const collapsed = ref(true)
 							'#' + running.task_id,
 							...Object.keys(running.input_params_mapped)
 								.filter((key) => {
-									return running.input_params_mapped[key] && running.input_params_mapped[key] !== ''
+									return running.input_params_mapped[key].value && running.input_params_mapped[key].value !== ''
 								})
 								.map((key) => {
-									return `${key}: ${running.input_params_mapped[key]}`
+									return `${running.input_params_mapped[key].display_name}: ${running.input_params_mapped[key].value}`
 								})
 						].join(' | ') + `${running.execution_time 
 							? ' | execution_time: ' + running.execution_time.toFixed(2) + 's' 

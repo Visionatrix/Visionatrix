@@ -19,13 +19,19 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: true,
 				admin: true,
 			},
+			ollama_url: {
+				key: 'ollama_url',
+				value: '',
+				sensitive: true,
+				admin: true,
+			},
 			gemini_token_user: {
 				key: 'gemini_token',
 				value: '',
 				sensitive: false,
 				admin: false,
 			},
-		} as Record<string, { key: string; value: any; sensitive: boolean; admin: boolean }> | any,
+		} as VixSettingsMap,
 	}),
 
 	actions: {
@@ -83,3 +89,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 		},
 	},
 })
+
+export interface VixSettingsMap {
+	[key: string]: VixSetting
+}
+
+export interface VixSetting {
+	key: string
+	value: any
+	sensitive: boolean
+	admin: boolean
+}

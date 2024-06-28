@@ -4,7 +4,15 @@ const flowStore  = useFlowsStore()
 // load input_params_map object from local storage by flow name
 let prev_input_params_map: TaskHistoryInputParam|any = localStorage.getItem(`input_params_map_${flowStore.currentFlow?.name}`)
 if (prev_input_params_map) {
-	prev_input_params_map = JSON.parse(prev_input_params_map)
+	const prev_input_params_map_parsed = JSON.parse(prev_input_params_map)
+	if ('flow_version' in prev_input_params_map_parsed 
+		&& prev_input_params_map_parsed.flow_version.split('.')[0] === flowStore.currentFlow?.version.split('.')[0]) {
+		prev_input_params_map = prev_input_params_map_parsed
+	} else {
+		prev_input_params_map = null
+		// remove old version of input_params_map from local storage
+		localStorage.removeItem(`input_params_map_${flowStore.currentFlow?.name}`)
+	}
 }
 
 const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_param => {
@@ -95,7 +103,7 @@ function copyPromptInputs(input_params_map: TaskHistoryInputParam) {
 	Object.keys(input_params_map).forEach((input_param_name: any) => {
 		const inputParamIndex = inputParamsMap.value.findIndex((inputParam: any) => Object.keys(inputParam)[0] === input_param_name)
 		if (inputParamIndex !== -1) {
-			inputParamsMap.value[inputParamIndex][input_param_name].value = input_params_map[input_param_name]
+			inputParamsMap.value[inputParamIndex][input_param_name].value = input_params_map[input_param_name].value
 		}
 	})
 	const target = document.getElementById('prompt')
@@ -118,7 +126,10 @@ inputParamsMap.value.forEach((inputParam: any) => {
 				const input_param_name = Object.keys(inputParam)[0]
 				input_params_map[input_param_name] = inputParam[input_param_name].value
 			})
-			localStorage.setItem(`input_params_map_${flowStore.currentFlow?.name}`, JSON.stringify(input_params_map))
+			localStorage.setItem(`input_params_map_${flowStore.currentFlow?.name}`, JSON.stringify({
+				...input_params_map,
+				flow_version: flowStore.currentFlow?.version
+			}))
 		})
 	}
 })
@@ -144,7 +155,7 @@ const collapsed = ref(false)
 			<WorkflowInputParams :input-params-map.sync="inputParamsMap"
 				:additional-input-params-map.sync="additionalInputParamsMap"
 				:advanced="false" />
-			<WorkflowInputParams v-if="flowStore.currentFlow.input_params.some((input_param: any) => input_param.advanced)"
+			<WorkflowInputParams
 				:input-params-map.sync="inputParamsMap"
 				:additional-input-params-map.sync="additionalInputParamsMap"
 				:advanced="true" />

@@ -185,22 +185,37 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 			Object.keys(res).forEach((task_id) => {
 				const task = <TaskHistoryItem>res[task_id]
+				const input_params_mapped_updated: any = {}
+				Object.keys(task.input_params).forEach((key) => {
+					if (key === 'seed') {
+						input_params_mapped_updated[key] = {
+							value: task.input_params[key],
+							display_name: 'Seed',
+						}
+					} else {
+						input_params_mapped_updated[key] = {
+							value: task.input_params[key],
+							display_name: this.current_flow.input_params.find(param => param.name === key)?.display_name,
+						}
+					}
+				})
 				if (task.progress < 100) {
 					runningFlows.push(<FlowRunning>{
 						task_id: task_id,
 						flow_name: task.name,
 						progress: task.progress,
 						input_files: task.input_files || [],
-						input_params_mapped: task.input_params || null,
+						input_params_mapped: input_params_mapped_updated || null,
 						error: task?.error || null,
 						outputs: task.outputs,
+						execution_time: task.execution_time || null,
 					})
 				} else if (task.progress === 100) {
 					finishedFlows.push(<FlowResult>{
 						task_id: task_id,
 						flow_name: task.name,
 						output_params: task.outputs,
-						input_params_mapped: task.input_params || null,
+						input_params_mapped: input_params_mapped_updated || null,
 						execution_time: task.execution_time || 0,
 					})
 				}
@@ -297,6 +312,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 			console.debug('form_data:', formData)
 
 			const { $apiFetch } = useNuxtApp()
+			const input_params_mapped_updated: any = {}
+			Object.keys(input_params_mapped).forEach((key) => {
+				input_params_mapped_updated[key] = {
+					value: input_params_mapped[key],
+					display_name: flow.input_params.find(param => param.name === key)?.display_name,
+				}
+			})
 			return await $apiFetch('/task', {
 				method: 'POST',
 				headers: {
@@ -311,12 +333,16 @@ export const useFlowsStore = defineStore('flowsStore', {
 						flow_name: flow.name,
 						progress: 0,
 						input_params_mapped: {
-							...input_params_mapped,
-							seed: Number(input_params_mapped['seed']) + index,
+							...input_params_mapped_updated,
+							seed: {
+								value: Number(input_params_mapped['seed']) + index,
+								display_name: 'Seed',
+							},
 						},
 						outputs: [], // outputs are dynamic and populated later by polling task progress
 					})
 				})
+				console.debug('running:', this.running)
 				this.startFlowProgressPolling(flow.name)
 			}).catch((e) => {
 				console.debug(e)
@@ -550,10 +576,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 							runningFlow.execution_time = progress[task_id].execution_time
 						}
 						// update input_params_mapped with new values
-						runningFlow.input_params_mapped = {
-							...runningFlow.input_params_mapped,
-							...progress[task_id].input_params,
-						}
+						Object.keys(progress[task_id].input_params).forEach((key) => {
+							runningFlow.input_params_mapped[key].value = progress[task_id].input_params[key]
+						})
 						// update input_files
 						if (progress[task_id].input_files) {
 							runningFlow.input_files = progress[task_id].input_files
@@ -701,6 +726,7 @@ export interface Flow {
 	input_params: FlowInputParam[]
 	available?: boolean
 	tags: string[]
+	version: string
 }
 
 export interface Model {
