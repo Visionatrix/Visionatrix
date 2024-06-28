@@ -1,7 +1,7 @@
 {
   "name": "visionatrix",
   "version": "1.0.0",
-  "description": "MediaAI for everyone",
+  "description": "AI Media processing using ComfyUI",
   "private": true,
   "scripts": {
     "build": "nuxt build --prerender",
