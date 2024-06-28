@@ -195,7 +195,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 					} else {
 						input_params_mapped_updated[key] = {
 							value: task.input_params[key],
-							display_name: this.current_flow.input_params.find(param => param.name === key)?.display_name,
+							display_name: this.flows_installed.find(flow => flow.name === task.name)?.input_params.find(param => param.name === key)?.display_name,
 						}
 					}
 				})

@@ -1,7 +1,7 @@
 {
   "name": "visionatrix",
   "version": "1.0.0",
-  "description": "MediaAI for everyone",
+  "description": "AI Media processing using ComfyUI",
   "private": true,
   "scripts": {
     "build": "nuxt build --prerender",
@@ -14,24 +14,24 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@nuxt/ui": "^2.15.2",
+    "@nuxt/ui": "^2.17.0",
     "pinia": "^2.1.7",
-    "vue": "^3.4.26",
-    "vue-router": "^4.3.2"
+    "vue": "^3.4.31",
+    "vue-router": "^4.4.0"
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^0.3.1",
-    "@nuxt/image": "^1.6.0",
-    "@nuxt/test-utils": "^3.12.1",
+    "@nuxt/image": "^1.7.0",
+    "@nuxt/test-utils": "^3.13.1",
     "@pinia/nuxt": "^0.5.1",
-    "@types/node": "^20.12.8",
-    "@vue/test-utils": "^2.4.5",
+    "@types/node": "^20.14.9",
+    "@vue/test-utils": "^2.4.6",
     "eslint": "^8.57.0",
     "happy-dom": "^13.8.2",
-    "nuxt": "^3.11.2",
-    "playwright-core": "^1.43.1",
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.3",
+    "nuxt": "^3.12.2",
+    "playwright-core": "^1.45.0",
+    "typescript": "^5.5.2",
+    "vitest": "^1.6.0",
     "vue-tsc": "^1.8.27"
   }
 }
