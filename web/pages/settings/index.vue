@@ -53,7 +53,7 @@ const userStore = useUserStore()
 	<AppContainer class="lg:h-dvh">
 		<div class="flex flex-col md:flex-row">
 			<UVerticalNavigation :links="links" class="md:w-1/5" />
-			<div class="px-5 md:w-4/5">
+			<div class="px-5 pb-5 md:w-4/5">
 				<h2 class="mb-3 text-xl">Settings</h2>
 				<div v-if="userStore.isAdmin" class="admin-settings mb-3">
 					<h3 class="mb-3">Admin settings</h3>
@@ -101,8 +101,20 @@ const userStore = useUserStore()
 							v-model="settingsStore.settingsMap['proxy'].value"
 							placeholder="Proxy"
 							class="w-full"
-							type="password"
-							icon="i-heroicons-shield-check"
+							type="text"
+							size="md"
+						/>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Ollama URL"
+						description="URL to server where Ollama is running, required for flows using node with it">
+						<UInput
+							v-model="settingsStore.settingsMap['ollama_url'].value"
+							placeholder="Ollama URL"
+							class="w-full"
+							type="text"
 							size="md"
 						/>
 					</UFormGroup>

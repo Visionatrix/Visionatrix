@@ -211,10 +211,10 @@ const sentDoOutputParamIndex = ref(0)
 								'#' + flowResult.task_id,
 								...Object.keys(flowResult.input_params_mapped)
 									.filter((key) => {
-										return flowResult.input_params_mapped[key] !== ''
+										return flowResult.input_params_mapped[key].value && flowResult.input_params_mapped[key].value !== ''
 									})
 									.map((key) => {
-										return `${key}: ${flowResult.input_params_mapped[key]}`
+										return `${flowResult.input_params_mapped[key].display_name}: ${flowResult.input_params_mapped[key].value}`
 									}),
 							].join(' | ') + `${flowResult.execution_time 
 								? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's' 

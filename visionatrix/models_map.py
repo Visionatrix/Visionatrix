@@ -8,7 +8,7 @@ import httpx
 
 from . import options
 from .nodes_helpers import get_node_value, set_node_value
-from .pydantic_models import AIResourceModel, Flow
+from .pydantic_models import AIResourceModel
 
 LOGGER = logging.getLogger("visionatrix")
 MODEL_LOAD_CLASSES = {
@@ -33,9 +33,7 @@ MODEL_LOAD_CLASSES = {
 MODELS_CATALOG: dict[str, dict] = {}
 
 
-def fill_flow_models_from_comfy_flow(flow: Flow, flow_comfy: dict[str, dict]) -> None:
-    if flow.models:
-        return
+def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
     models_catalog = get_models_catalog()
     models_info: list[AIResourceModel] = []
     for node_details in flow_comfy.values():
@@ -54,7 +52,7 @@ def fill_flow_models_from_comfy_flow(flow: Flow, flow_comfy: dict[str, dict]) ->
                     break
             if not_found:
                 LOGGER.error("Can not map model for:\n%s", node_details)
-    flow.models = models_info
+    return models_info
 
 
 def match_replace_model(

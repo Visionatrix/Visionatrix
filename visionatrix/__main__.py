@@ -8,8 +8,7 @@ import sys
 from pathlib import Path
 
 from . import comfyui, database, install, options, run_vix, update
-from .flows import get_available_flows, install_custom_flow
-from .pydantic_models import Flow
+from .flows import get_available_flows, get_vix_flow, install_custom_flow
 
 
 def get_log_level(log_level_str):
@@ -56,7 +55,7 @@ if __name__ == "__main__":
         ("install", "Performs cleanup & initialization"),
         ("update", "Performs update to the latest version"),
         ("run", "Starts the ComfyUI and Visionatrix backends"),
-        ("install-flow", "Install flow by name or from the folder"),
+        ("install-flow", "Install flow by name or from file"),
         ("create-user", "Create new user"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
@@ -71,12 +70,8 @@ if __name__ == "__main__":
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
-            install_flow_group.add_argument("--flow", type=str, help="Name of the flow")
-            install_flow_group.add_argument(
-                "--directory",
-                type=str,
-                help="Path to directory with `flow.json` and `flow_comfy.json`",
-            )
+            install_flow_group.add_argument("--name", type=str, help="Name of the flow")
+            install_flow_group.add_argument("--file", type=str, help="Path to `comfyui_flow.json` file")
 
         subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
@@ -144,11 +139,10 @@ if __name__ == "__main__":
         run_vix()
     elif args.command == "install-flow":
         install_flow = {}
-        if args.directory:
-            with builtins.open(Path(args.directory).joinpath("flow.json"), "rb") as fp:
-                install_flow = Flow.model_validate(json.loads(fp.read()))
-            with builtins.open(Path(args.directory).joinpath("flow_comfy.json"), "rb") as fp:
+        if args.file:
+            with builtins.open(Path(args.file), "rb") as fp:
                 install_flow_comfy = json.loads(fp.read())
+            install_flow = get_vix_flow(install_flow_comfy)
         else:
             flows_comfy = []
             flows = get_available_flows(flows_comfy)

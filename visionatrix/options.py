@@ -54,14 +54,14 @@ More information: https://visionatrix.github.io/VixFlowsDocs/TechnicalInformatio
 """
 
 # For Flows development, execute command from next line to create a zip with adjusted/new flows:
-# cd ../VixFlowsDocs && zip -r ../Visionatrix/flows.zip flows && cd ../Visionatrix
+# rm -f ./flows.zip && cd ../VixFlowsDocs && zip -r ../Visionatrix/flows.zip flows && cd ../Visionatrix
 # And uncomment the next line to use the local version.
-# FLOWS_URL = "./flows.zip"
+FLOWS_URL = "./flows.zip"
 
 MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog.json")
 """URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models."""
 
-# MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.
+MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.
 
 MIN_PAUSE_INTERVAL = float(environ.get("MIN_PAUSE_INTERVAL", "0.1"))
 """Start ``min_interval`` time value to wait between ask for a next Task to process."""
