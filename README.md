@@ -73,8 +73,8 @@ If you want to perform manual installation, take a look at [documentation](https
 
 By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
-![UI](/screenshots/screenshot_1.png)
-![UI](/screenshots/screenshot_2.png)
+![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1.png)
+![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_2.png)
 
 ## Update process (Linux/macOS)
 
