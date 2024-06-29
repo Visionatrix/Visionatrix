@@ -59,6 +59,7 @@ dependencies = [
   "torch",
   "torchvision",
   "uvicorn[standard]>=0.23.2",
+  "wheel",
 ]
 optional-dependencies.dev = [
   "pre-commit",
