@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column("progress", sa.Float(), nullable=False),
         sa.Column("error", sa.String(), nullable=True),
         sa.Column("started_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.Column("finished_at", sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),

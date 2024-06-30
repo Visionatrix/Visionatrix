@@ -35,12 +35,12 @@ from . import comfyui, database, options
 from .db_queries import (
     add_flow_progress_install,
     delete_flows_progress_install,
+    flows_installation_in_progress,
     get_flows_progress_install,
     get_global_setting,
     get_setting,
     get_user_setting,
     get_workers_details,
-    flows_installation_in_progress,
     set_global_setting,
     set_user_setting,
     set_worker_tasks_to_give,
@@ -240,8 +240,7 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     is found. It ensures that no two installations can run concurrently.
     """
     __require_admin(request)
-    not_finished_flows = flows_installation_in_progress()
-    if not_finished_flows and name not in not_finished_flows:
+    if flows_installation_in_progress():
         return responses.JSONResponse(
             status_code=status.HTTP_409_CONFLICT, content={"error": "Another flow installation is in progress."}
         )

@@ -176,7 +176,7 @@ def get_flows_progress_install() -> list[FlowProgressInstall]:
 def delete_flows_progress_install(name: str) -> bool:
     session = database.SESSION()
     try:
-        stmt = delete(database.FlowsInstallStatus).where(database.FlowsInstallStatus.flow_name == name)
+        stmt = delete(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
         result = session.execute(stmt)
         session.commit()
         return result.rowcount > 0
@@ -191,7 +191,7 @@ def delete_flows_progress_install(name: str) -> bool:
 def add_flow_progress_install(name: str) -> None:
     session = database.SESSION()
     try:
-        new_flow = database.FlowsInstallStatus(flow_name=name)
+        new_flow = database.FlowsInstallStatus(name=name)
         session.add(new_flow)
         session.commit()
     except Exception:
@@ -207,7 +207,7 @@ def update_flow_progress_install(name: str, progress: float, error: str) -> bool
     try:
         stmt = (
             update(database.FlowsInstallStatus)
-            .where(database.FlowsInstallStatus.flow_name == name)
+            .where(database.FlowsInstallStatus.name == name)
             .values(
                 progress=progress,
                 error=error,
@@ -229,9 +229,11 @@ def update_flow_progress_install(name: str, progress: float, error: str) -> bool
 def flows_installation_in_progress() -> list[str]:
     session = database.SESSION()
     try:
-        query = select(database.FlowsInstallStatus.flow_name).where(database.FlowsInstallStatus.finished_at.is_(None))
-        results = session.execute(query).scalars().all()
-        return results
+        time_threshold = datetime.now(timezone.utc) - timedelta(minutes=3)
+        query = select(database.FlowsInstallStatus.name).where(
+            database.FlowsInstallStatus.finished_at.is_(None), database.FlowsInstallStatus.updated_at >= time_threshold
+        )
+        return session.execute(query).scalars().all()
     except Exception:
         session.rollback()
         LOGGER.exception("Failed to check if any flow installation is in progress")
