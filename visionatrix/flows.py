@@ -17,7 +17,7 @@ import httpx
 from fastapi import UploadFile
 from packaging.version import Version
 
-from . import _version, comfyui_class_info, database, options
+from . import _version, comfyui_class_info, db_queries, options
 from .models import install_model
 from .models_map import get_flow_models
 from .nodes_helpers import get_node_value, set_node_value
@@ -144,7 +144,7 @@ def install_custom_flow(
         if "HF_AUTH_TOKEN" in os.environ:
             hf_auth_token = os.environ["HF_AUTH_TOKEN"]
         elif options.VIX_MODE == "DEFAULT":
-            hf_auth_token = database.get_global_setting("huggingface_auth_token", True)
+            hf_auth_token = db_queries.get_global_setting("huggingface_auth_token", True)
         else:
             r = httpx.get(
                 options.VIX_SERVER.rstrip("/") + "/setting",

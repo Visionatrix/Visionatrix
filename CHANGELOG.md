@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.0 - 202406-29]
+## [0.7.0 - 2024-07-xx]
+
+### Changed
+
+- The installation status of flows has been moved from the dictionary to the database(to full support instances with multiple Web workers).
+
+## [0.6.0 - 2024-06-29]
 
 **Note: Update `can be` broken from the previous versions, as `git` repository was [cleaned up](https://github.com/Visionatrix/Visionatrix/issues/100)**
 

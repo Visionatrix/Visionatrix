@@ -32,6 +32,31 @@ from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui, database, options
+from .db_queries import (
+    add_flow_progress_install,
+    delete_flows_progress_install,
+    get_flows_progress_install,
+    get_global_setting,
+    get_setting,
+    get_user_setting,
+    get_workers_details,
+    flows_installation_in_progress,
+    set_global_setting,
+    set_user_setting,
+    set_worker_tasks_to_give,
+    update_flow_progress_install,
+)
+from .db_queries_async import (
+    delete_flows_progress_install_async,
+    get_flows_progress_install_async,
+    get_global_setting_async,
+    get_setting_async,
+    get_user_setting_async,
+    get_workers_details_async,
+    set_global_setting_async,
+    set_user_setting_async,
+    set_worker_tasks_to_give_async,
+)
 from .flows import (
     Flow,
     flow_prepare_output_params,
@@ -44,6 +69,7 @@ from .flows import (
     uninstall_flow,
 )
 from .pydantic_models import (
+    FlowProgressInstall,
     TaskRunResults,
     UserInfo,
     WorkerDetails,
@@ -59,7 +85,6 @@ from .tasks_engine import (
     get_task_files,
     get_tasks,
     get_tasks_short,
-    get_workers_details,
     put_task_in_queue,
     remove_active_task_lock,
     remove_task_by_id_database,
@@ -68,7 +93,6 @@ from .tasks_engine import (
     remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
-    set_worker_tasks_to_give_db,
     task_progress_callback,
     task_restart_database,
     update_task_outputs,
@@ -80,9 +104,7 @@ from .tasks_engine_async import (
     get_task_async,
     get_tasks_async,
     get_tasks_short_async,
-    get_workers_details_async,
     put_task_in_queue_async,
-    set_worker_tasks_to_give_db_async,
     start_tasks_engine,
     task_restart_database_async,
     update_task_outputs_async,
@@ -91,7 +113,6 @@ from .tasks_engine_async import (
 from .user_backends import perform_auth
 
 LOGGER = logging.getLogger("visionatrix")
-FLOW_INSTALL_STATUS = {}  # {flow_name: {progress: float, error: ""}}
 EXIT_EVENT = threading.Event()
 VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]]
 
@@ -219,7 +240,8 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     is found. It ensures that no two installations can run concurrently.
     """
     __require_admin(request)
-    if any(i for i in FLOW_INSTALL_STATUS.values() if i["progress"] < 100.0 and i["error"] == ""):
+    not_finished_flows = flows_installation_in_progress()
+    if not_finished_flows and name not in not_finished_flows:
         return responses.JSONResponse(
             status_code=status.HTTP_409_CONFLICT, content={"error": "Another flow installation is in progress."}
         )
@@ -228,7 +250,8 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     flows = get_available_flows(flows_comfy)
     for i, flow in enumerate(flows):
         if flow.name == name:
-            FLOW_INSTALL_STATUS[name] = {"progress": 0.0, "error": ""}
+            delete_flows_progress_install(name)
+            add_flow_progress_install(name)
             b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
             return responses.JSONResponse(content={"error": ""})
     return responses.JSONResponse(
@@ -237,16 +260,36 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
 
 
 @API_ROUTER.get("/flow-progress-install")
-async def flow_progress_install(request: Request):
+async def flow_progress_install_get(request: Request) -> list[FlowProgressInstall]:
     """
     Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint
     returns a dictionary showing the installation status for each flow.
 
-    Status is not persistent and will be reset upon restart.
     Requires administrative privileges.
     """
     __require_admin(request)
-    return responses.JSONResponse(content=FLOW_INSTALL_STATUS)
+    if options.VIX_MODE == "SERVER":
+        r = await get_flows_progress_install_async()
+    else:
+        r = get_flows_progress_install()
+    return r
+
+
+@API_ROUTER.delete("/flow-progress-install")
+async def flow_progress_install_delete(request: Request, name: str):
+    """
+    Deletes the installation progress entry for a specified flow.
+
+    Requires administrative privileges.
+    """
+    __require_admin(request)
+    if options.VIX_MODE == "SERVER":
+        r = await delete_flows_progress_install_async(name)
+    else:
+        r = delete_flows_progress_install(name)
+    if r:
+        return responses.JSONResponse(content={"error": ""})
+    return responses.JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": f"Can't find `{name}`."})
 
 
 @API_ROUTER.delete("/flow")
@@ -705,7 +748,7 @@ async def workers_info(
 
 
 @API_ROUTER.post("/worker_tasks")
-async def set_worker_tasks_to_give(
+async def worker_tasks_to_give_set(
     request: Request,
     worker_id: typing.Annotated[str, Body()],
     tasks_to_give: typing.Annotated[list[str], Body()],
@@ -716,9 +759,9 @@ async def set_worker_tasks_to_give(
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     if options.VIX_MODE == "SERVER":
-        r = await set_worker_tasks_to_give_db_async(user_id, worker_id, tasks_to_give)
+        r = await set_worker_tasks_to_give_async(user_id, worker_id, tasks_to_give)
     else:
-        r = set_worker_tasks_to_give_db(user_id, worker_id, tasks_to_give)
+        r = set_worker_tasks_to_give(user_id, worker_id, tasks_to_give)
     if not r:
         return responses.JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND, content={"error": f"Can't find `{worker_id}` worker."}
@@ -741,26 +784,24 @@ async def setting_get(request: Request, key: str) -> str:
     User settings have higher priority than global settings.
     """
     if options.VIX_MODE == "SERVER":
-        return await database.get_setting_async(
-            request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin
-        )
-    return database.get_setting(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
+        return await get_setting_async(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
+    return get_setting(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
 
 
 @API_ROUTER.get("/global_setting")
 async def global_setting_get(request: Request, key: str) -> str:
     """Retrieve the global setting value or an empty string if the global setting is not found."""
     if options.VIX_MODE == "SERVER":
-        return await database.get_global_setting_async(key, request.scope["user_info"].is_admin)
-    return database.get_global_setting(key, request.scope["user_info"].is_admin)
+        return await get_global_setting_async(key, request.scope["user_info"].is_admin)
+    return get_global_setting(key, request.scope["user_info"].is_admin)
 
 
 @API_ROUTER.get("/user_setting")
 async def user_setting_get(request: Request, key: str) -> str:
     """Retrieve the user setting value or an empty string if the user setting is not found."""
     if options.VIX_MODE == "SERVER":
-        return await database.get_user_setting_async(request.scope["user_info"].user_id, key)
-    return database.get_user_setting(request.scope["user_info"].user_id, key)
+        return await get_user_setting_async(request.scope["user_info"].user_id, key)
+    return get_user_setting(request.scope["user_info"].user_id, key)
 
 
 @API_ROUTER.post("/global_setting", status_code=status.HTTP_204_NO_CONTENT)
@@ -778,9 +819,9 @@ async def global_setting_set(
     """
     __require_admin(request)
     if options.VIX_MODE == "SERVER":
-        await database.set_global_setting_async(key, value, sensitive)
+        await set_global_setting_async(key, value, sensitive)
     else:
-        database.set_global_setting(key, value, sensitive)
+        set_global_setting(key, value, sensitive)
 
 
 @API_ROUTER.post("/user_setting", status_code=status.HTTP_204_NO_CONTENT)
@@ -793,9 +834,9 @@ async def user_setting_set(
     To delete a setting, specify an empty string as the value.
     """
     if options.VIX_MODE == "SERVER":
-        await database.set_user_setting_async(request.scope["user_info"].user_id, key, value)
+        await set_user_setting_async(request.scope["user_info"].user_id, key, value)
     else:
-        database.set_user_setting(request.scope["user_info"].user_id, key, value)
+        set_user_setting(request.scope["user_info"].user_id, key, value)
 
 
 APP.include_router(API_ROUTER)
@@ -837,7 +878,8 @@ def run_vix(*args, **kwargs) -> None:
 
 
 def __progress_install_callback(name: str, progress: float, error: str) -> None:
-    FLOW_INSTALL_STATUS[name] = {"progress": progress, "error": error}
+    if not update_flow_progress_install(name, progress, error):
+        raise RuntimeError(f"Installation of the `{name}` was cancelled.")
 
 
 def __require_admin(request: Request) -> None:
