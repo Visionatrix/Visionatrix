@@ -253,6 +253,18 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
+		async cancelFlowSetup(flow: Flow) {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/flow-progress-install?name=${flow.name}`, {
+				method: 'DELETE',
+			}).then(() => {
+				this.installing = this.installing.filter(f => f.flow_name !== flow.name)
+				if (this.installing.length === 0 && this.running.length === 0) {
+					this.showNotificationChip = false
+				}
+			})
+		},
+
 		async getFlowsInstallProgress() {
 			const { $apiFetch } = useNuxtApp()
 			return await $apiFetch('/flow-progress-install', {
@@ -493,13 +505,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async restorePollingProcesses() {
 			// Restore installing flow polling
 			await this.getFlowsInstallProgress().then((progress: any) => {
-				Object.keys(progress).forEach(flow_name => {
-					if (progress[flow_name].progress < 100) {
+				progress.forEach((installing_progress: FlowInstallingProgress) => {
+					if (installing_progress.progress < 100) {
 						this.installing.push({
-							flow_name: flow_name,
-							progress: <number> progress[flow_name].progress
+							flow_name: installing_progress.name,
+							progress: installing_progress.progress
 						})
-						this.startFlowInstallingPolling(flow_name)
+						this.startFlowInstallingPolling(installing_progress.name)
 					}
 				})
 			})
@@ -522,23 +534,24 @@ export const useFlowsStore = defineStore('flowsStore', {
 					}
 
 					const flowInstalling = this.flowInstallingByName(flow_name)
-					if (!flowInstalling || !(flow_name in progress)) {
+					const newProgress = progress.find((p: any) => p.name === flow_name)
+					if (!flowInstalling || !newProgress) {
 						clearInterval(interval)
 						failedAttempts++
 						return
 					}
-					flowInstalling.progress = <number> progress[flow_name].progress
-					if (progress[flow_name].error) {
+					flowInstalling.progress = <number> newProgress.progress
+					if (newProgress.error) {
 						clearInterval(interval)
-						flowInstalling.error = progress[flow_name].error
+						flowInstalling.error = newProgress.error
 						const toast = useToast()
 						toast.add({
 							title: 'Failed to install flow - ' + flow_name,
-							description: progress[flow_name].error,
+							description: newProgress.error,
 							timeout: 8000,
 						})
 					}
-					if (progress[flow_name].progress === 100) {
+					if (newProgress.progress === 100) {
 						clearInterval(interval)
 						// Remove finished flow from installing list
 						this.installing = this.installing.filter(flow => flow.flow_name !== flow_name)
@@ -763,6 +776,15 @@ export interface FlowInstalling {
 	flow_name: string
 	progress: number
 	error?: string
+}
+
+export interface FlowInstallingProgress {
+	name: string
+	progress: number
+	error: string
+	started_at: string
+	updated_at: string
+	finished_at: string
 }
 
 export interface FlowRunning {

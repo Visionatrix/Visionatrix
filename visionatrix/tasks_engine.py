@@ -7,7 +7,7 @@ import os
 import threading
 import time
 import typing
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import Row, and_, delete, desc, select, update
@@ -25,7 +25,6 @@ from .pydantic_models import (
     TaskDetails,
     TaskDetailsShort,
     UserInfo,
-    WorkerDetails,
     WorkerDetailsRequest,
 )
 
@@ -323,25 +322,6 @@ def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | No
             query = query.filter(database.TaskDetails.progress == 100.0)
         else:
             query = query.filter(database.TaskDetails.progress < 100.0)
-    return query
-
-
-def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id: str):
-    query = select(database.Worker)
-    if user_id is not None:
-        query = query.filter(database.Worker.user_id == user_id)
-    if last_seen_interval > 0:
-        time_threshold = datetime.now(timezone.utc) - timedelta(seconds=last_seen_interval)
-        query = query.filter(database.Worker.last_seen >= time_threshold)
-    if worker_id:
-        query = query.filter(database.Worker.worker_id == worker_id)
-    return query
-
-
-def __get_worker_query(user_id: str | None, worker_id: str):
-    query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
-    if user_id is not None:
-        query = query.filter(database.Worker.user_id == user_id)
     return query
 
 
@@ -866,40 +846,3 @@ def update_task_progress_thread(active_task: dict) -> None:
                 time.sleep(0.1)
     finally:
         remove_task_lock(last_info["task_id"])
-
-
-def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
-    with database.SESSION() as session:
-        try:
-            query = __get_workers_query(user_id, last_seen_interval, worker_id)
-            results = session.execute(query).scalars().all()
-            return [WorkerDetails.model_validate(i) for i in results]
-        except Exception:
-            LOGGER.exception("Failed to retrieve workers: `%s`, %s, %s", user_id, last_seen_interval, worker_id)
-            raise
-
-
-def get_worker_details_from_db(user_id: str | None, worker_id: str) -> WorkerDetails | None:
-    with database.SESSION() as session:
-        try:
-            query = __get_worker_query(user_id, worker_id)
-            result = session.execute(query).scalar()
-            return None if result is None else WorkerDetails.model_validate(result)
-        except Exception:
-            LOGGER.exception("Failed to retrieve worker: `%s`, %s", user_id, worker_id)
-            raise
-
-
-def set_worker_tasks_to_give_db(user_id: str | None, worker_id: str, tasks_to_give: list[str]) -> bool:
-    with database.SESSION() as session:
-        try:
-            query = update(database.Worker).where(database.Worker.worker_id == worker_id)
-            if user_id is not None:
-                query = query.where(database.Worker.user_id == user_id)
-            result = session.execute(query.values(tasks_to_give=tasks_to_give))
-            session.commit()
-            return result.rowcount > 0
-        except Exception as e:
-            session.rollback()
-            LOGGER.exception("Failed to update tasks for worker(`%s`, `%s`): %s", user_id, worker_id, e)
-            return False

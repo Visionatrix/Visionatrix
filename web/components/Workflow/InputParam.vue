@@ -32,14 +32,19 @@ const imagePreviewModalOpen = ref(false)
 const targetImageDimensions = ref({width: 0, height: 0})
 
 function loadTargetImageDimensions() {
-	const sourceInputParamName = props.inputParamsMap[props.index][props.inputParam.name].source_input_name
-	const sourceImageParam: any = props.inputParamsMap.find((inputParam: any) => {
-		const key = Object.keys(inputParam)[0]
-		if (key === sourceInputParamName) {
-			return inputParam[key]
-		}
-	})
-	getImageDimensions(sourceImageParam[sourceInputParamName].value)
+	try {
+		const sourceInputParamName = props.inputParamsMap[props.index][props.inputParam.name].source_input_name
+		const sourceImageParam: any = props.inputParamsMap.find((inputParam: any) => {
+			const key = Object.keys(inputParam)[0]
+			if (key === sourceInputParamName) {
+				return inputParam[key]
+			}
+		})
+		getImageDimensions(sourceImageParam[sourceInputParamName].value)
+	} catch (err) {
+		targetImageDimensions.value.width = 0
+		targetImageDimensions.value.height = 0
+	}
 }
 
 onMounted(() => {

@@ -65,6 +65,19 @@ class Flow(BaseModel):
     version: str = Field("", description="Internal version of the flow in major.minor format.")
 
 
+class FlowProgressInstall(BaseModel):
+    """Represents the progress status of a flow installation process."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str = Field(..., description="The name of the flow being installed.")
+    progress: float = Field(..., description="The current progress of the installation, ranging from 0 to 100.")
+    error: str = Field("", description="Details of any error encountered during the installation process.")
+    started_at: datetime = Field(..., description="Timestamp when the installation process started.")
+    updated_at: datetime | None = Field(None, description="Timestamp of the last update to the installation progress.")
+    finished_at: datetime | None = Field(None, description="Timestamp when the installation process completed.")
+
+
 class TaskDetailsInput(BaseModel):
     """Information about input file to a ComfyUI workflow."""
 
