@@ -64,6 +64,7 @@ from .flows import (
     get_installed_flow,
     get_installed_flows,
     get_not_installed_flows,
+    get_vix_flow,
     install_custom_flow,
     prepare_flow_comfy,
     uninstall_flow,
@@ -256,6 +257,27 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     return responses.JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND, content={"error": f"Can't find `{name}` flow."}
     )
+
+
+@API_ROUTER.post("/flow")
+def flow_install_from_file(request: Request, b_tasks: BackgroundTasks, flow_file: UploadFile):
+    """
+    Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges
+    to perform the installation. If another flow installation is already in progress, it prevents a parallel flow
+    installation to avoid conflicts, returning a 409 Conflict HTTP status.
+    """
+    __require_admin(request)
+    if flows_installation_in_progress():
+        return responses.JSONResponse(
+            status_code=status.HTTP_409_CONFLICT, content={"error": "Another flow installation is in progress."}
+        )
+
+    flow_comfy = json.loads(flow_file.file.read())
+    flow = get_vix_flow(flow_comfy)
+    delete_flows_progress_install(flow.name)
+    add_flow_progress_install(flow.name)
+    b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
+    return responses.JSONResponse(content={"error": ""})
 
 
 @API_ROUTER.get("/flow-progress-install")

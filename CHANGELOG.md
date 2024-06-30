@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.7.0 - 2024-07-xx]
 
+### Added
+
+- `POST` method for `/flow` endpoint to install flow with uploading workflow file(it is the same as `install-flow` command line option) #102
+
 ### Changed
 
-- The installation status of flows has been moved from the dictionary to the database(to full support instances with multiple Web workers).
+- The installation status of flows has been moved from the dictionary to the database(to full support instances with multiple Web workers). #101
 
 ## [0.6.0 - 2024-06-29]
 
