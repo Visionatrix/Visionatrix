@@ -75,7 +75,14 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 			step: input_param.step || 1,
 		}
 		if (input_param.type === 'range_scale') {
-			param.source_input_name = input_param.source_input_name
+			param.source_input_name = input_param.source_input_name || null
+			if (param.source_input_name === null || param.source_input_name === '') {
+				// search for the first required input_param type 'image' to use as source_input_name
+				const inputParamImage = flowStore.currentFlow?.input_params.find((input_param: any) => input_param.type === 'image' && !input_param.optional)
+				if (inputParamImage) {
+					param.source_input_name = inputParamImage.name
+				}
+			}
 		}
 		return ({
 			[input_param.name]: param

@@ -5,8 +5,9 @@ const flowStore = useFlowsStore()
 
 flowStore.setCurrentFlow(route.params.name as string)
 
-const installing = computed(() => flowStore.flowInstallingByName(route.params.name as string) || false)
-const installingLoading = computed(() => installing.value !== false && installing.value?.error === '')
+const installing = computed(() => flowStore.flowInstallingByName(route.params.name as string))
+const installingLoading = computed(() => installing.value && installing.value?.progress < 100 || false)
+const cancellingInstall = ref(false)
 const setupButtonText = computed(() => {
 	if (installing.value) {
 		if ('error' in installing.value && installing.value?.error !== '') {
@@ -148,6 +149,24 @@ const userStore = useUserStore()
 										:loading="installingLoading"
 										@click="() => flowStore.setupFlow(flowStore.currentFlow)">
 										{{ setupButtonText }}
+									</UButton>
+								</UTooltip>
+								<UTooltip
+									v-if="!flowStore.isFlowInstalled(route.params.name as string) && installingLoading"
+									text="Cancel flow installation"
+									:popper="{ placement: 'top' }" :open-delay="500">
+									<UButton
+										icon="i-heroicons-stop"
+										variant="outline"
+										color="orange"
+										:loading="cancellingInstall"
+										@click="() => {
+											cancellingInstall = true
+											flowStore.cancelFlowSetup(flowStore.currentFlow).then(() => {
+												cancellingInstall = false
+											})
+										}">
+										Cancel
 									</UButton>
 								</UTooltip>
 								<UDropdown v-if="flowStore.isFlowInstalled(route.params.name as string)" :items="[
