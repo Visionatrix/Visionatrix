@@ -275,6 +275,26 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
+		async uploadFlow(flow: File) {
+			const { $apiFetch } = useNuxtApp()
+			const formData = new FormData()
+			formData.append('flow_file', flow)
+			return await $apiFetch('/flow', {
+				method: 'POST',
+				body: formData,
+			}).then(() => {
+				this.fetchFlows()
+			}).catch((e) => {
+				console.debug(e)
+				const toast = useToast()
+				toast.add({
+					title: 'Failed to upload flow',
+					description: e.message,
+					timeout: 5000,
+				})
+			})
+		},
+
 		async deleteFlow(flow: Flow) {
 			const { $apiFetch } = useNuxtApp()
 			const response = await $apiFetch(`/flow?name=${flow.name}`, {
