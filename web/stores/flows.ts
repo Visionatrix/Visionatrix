@@ -275,6 +275,21 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
+		async uploadFlow(flow: File) {
+			const { $apiFetch } = useNuxtApp()
+			const formData = new FormData()
+			formData.append('flow_file', flow)
+			return await $apiFetch('/flow', {
+				method: 'POST',
+				body: formData,
+			}).then((res: any) => {
+				if (res.error === '') {
+					this.fetchFlows()
+				}
+				return res
+			})
+		},
+
 		async deleteFlow(flow: Flow) {
 			const { $apiFetch } = useNuxtApp()
 			const response = await $apiFetch(`/flow?name=${flow.name}`, {

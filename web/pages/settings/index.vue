@@ -22,6 +22,7 @@ const links = [
 	},
 ]
 
+const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 
 function saveChanges() {
@@ -46,7 +47,49 @@ function saveChanges() {
 	})
 }
 
-const userStore = useUserStore()
+const flowsStore = useFlowsStore()
+const flowFileInput = ref(null)
+const uploadingFlow = ref(false)
+
+function uploadFlow() {
+	const file = flowFileInput.value.$refs.input.files[0] || null
+	if (!file) {
+		const toast = useToast()
+		toast.add({
+			title: 'No file selected',
+			description: 'Please select a file to upload',
+		})
+		return
+	}
+
+	uploadingFlow.value = true
+	flowsStore.uploadFlow(file).then((res: any) => {
+		console.debug('uploadFlow', res)
+		const toast = useToast()
+		if ('error' in res && res?.error !== '') {
+			toast.add({
+				title: 'Error uploading flow',
+				description: res.error,
+			})
+			return
+		} else {
+			toast.add({
+				title: 'Flow uploaded',
+				description: 'Flow uploaded successfully',
+			})
+		}
+		flowFileInput.value.$refs.input.value = ''
+	}).catch((e) => {
+		console.debug('uploadFlow error', e)
+		const toast = useToast()
+		toast.add({
+			title: 'Error uploading flow',
+			description: e.message,
+		})
+	}).finally(() => {
+		uploadingFlow.value = false
+	})
+}
 </script>
 
 <template>
@@ -118,6 +161,28 @@ const userStore = useUserStore()
 							size="md"
 						/>
 					</UFormGroup>
+				</div>
+				<div v-if="userStore.isAdmin" class="upload-flow mb-5 py-4 rounded-md">
+					<h3 class="mb-3 text-xl font-bold">Upload Flow</h3>
+					<p class="text-gray-400 text-sm mb-3">
+						Upload a Visionatrix workflow file (.json) to add it to the available flows.
+						On successful upload of the valid workflow file, the installation will start automatically.
+					</p>
+					<div class="flex items-center space-x-3">
+						<UInput
+							ref="flowFileInput"
+							type="file"
+							accept=".json"
+							class="w-auto"
+							@change="handleFileUpload" />
+						<UButton
+							icon="i-heroicons-arrow-up-tray-16-solid"
+							variant="outline"
+							:loading="uploadingFlow"
+							@click="uploadFlow">
+							Upload Flow
+						</UButton>
+					</div>
 				</div>
 				<div class="user-settings mb-3">
 					<h3 class="mb-3">User settings</h3>
