@@ -70,8 +70,9 @@ class FlowProgressInstall(BaseModel):
     """Represents the progress status of a flow installation process."""
 
     model_config = ConfigDict(from_attributes=True)
-
     name: str = Field(..., description="The name of the flow being installed.")
+    flow: Flow | None = Field(None, description="Parsed information about Flow in Visionatrix format.")
+    flow_comfy: dict = Field(..., description="The ComfyUI workflow which are installed.")
     progress: float = Field(..., description="The current progress of the installation, ranging from 0 to 100.")
     error: str = Field("", description="Details of any error encountered during the installation process.")
     started_at: datetime = Field(..., description="Timestamp when the installation process started.")

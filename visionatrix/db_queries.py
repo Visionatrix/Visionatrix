@@ -188,10 +188,10 @@ def delete_flows_progress_install(name: str) -> bool:
         session.close()
 
 
-def add_flow_progress_install(name: str) -> None:
+def add_flow_progress_install(name: str, flow_comfy: dict) -> None:
     session = database.SESSION()
     try:
-        new_flow = database.FlowsInstallStatus(name=name)
+        new_flow = database.FlowsInstallStatus(name=name, flow_comfy=flow_comfy)
         session.add(new_flow)
         session.commit()
     except Exception:

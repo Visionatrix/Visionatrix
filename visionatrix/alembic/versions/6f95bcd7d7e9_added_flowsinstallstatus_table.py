@@ -24,6 +24,7 @@ def upgrade() -> None:
         "flows_install_status",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("name", sa.String(), nullable=False),
+        sa.Column('flow_comfy', sa.JSON(), nullable=False),
         sa.Column("progress", sa.Float(), nullable=False),
         sa.Column("error", sa.String(), nullable=True),
         sa.Column("started_at", sa.DateTime(), nullable=False),

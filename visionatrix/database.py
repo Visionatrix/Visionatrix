@@ -56,7 +56,7 @@ class TaskDetails(Base):
     input_params = Column(JSON, default={})
     outputs = Column(JSON, default=[])
     input_files = Column(JSON, default=[])
-    flow_comfy = Column(JSON, default={})
+    flow_comfy = Column(JSON, default={}, nullable=False)
     task_queue = relationship("TaskQueue")
     created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, nullable=True, default=None, index=True)
@@ -128,6 +128,7 @@ class FlowsInstallStatus(Base):
     __tablename__ = "flows_install_status"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False, unique=True)
+    flow_comfy = Column(JSON, default={}, nullable=False)
     progress = Column(Float, default=0.0, nullable=False)
     error = Column(String, default="")
     started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
