@@ -24,7 +24,7 @@ const flowStore = useFlowsStore()
 				<UBadge class="mx-1"
 					color="white"
 					variant="solid">
-					{{ flowStore.flowByName(installingFlow.flow_name)?.display_name }}
+					{{ flowStore.flowByName(installingFlow.flow_name)?.display_name || installingFlow?.flow?.display_name || installingFlow.flow_name }}
 				</UBadge>
 			</NuxtLink>
 		</template>

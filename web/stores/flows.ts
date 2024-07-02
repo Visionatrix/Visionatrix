@@ -90,7 +90,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return (name: string) => state.flows_favorite.includes(name)
 		},
 		isFlowInstalled(state) {
-			return (name: string) => state.flows_installed.filter(flow => flow.name === name).length > 0
+			return (name: string) => state.flows_installed.filter(flow => flow.name === name).length > 0 && state.installing.filter(flow => flow.flow_name === name).length === 0
 		},
 	},
 	actions: {
@@ -513,6 +513,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 						},
 					],
 				})
+			} else {
+				const installingFlow = this.installing.find(flow => flow.flow_name === name)
+				if (installingFlow) {
+					this.current_flow = <Flow>installingFlow?.flow
+				}
 			}
 			this.loading.current_flow = false
 		},
@@ -755,6 +760,7 @@ export interface Flow {
 	available?: boolean
 	tags: string[]
 	version: string
+	private?: boolean
 }
 
 export interface Model {
@@ -791,6 +797,7 @@ export interface FlowInstalling {
 	flow_name: string
 	progress: number
 	error?: string
+	flow?: Flow
 }
 
 export interface FlowInstallingProgress {
