@@ -251,7 +251,7 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     for i, flow in enumerate(flows):
         if flow.name == name:
             delete_flows_progress_install(name)
-            add_flow_progress_install(name)
+            add_flow_progress_install(name, flows_comfy[i])
             b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
             return responses.JSONResponse(content={"error": ""})
     return responses.JSONResponse(
@@ -275,7 +275,7 @@ def flow_install_from_file(request: Request, b_tasks: BackgroundTasks, flow_file
     flow_comfy = json.loads(flow_file.file.read())
     flow = get_vix_flow(flow_comfy)
     delete_flows_progress_install(flow.name)
-    add_flow_progress_install(flow.name)
+    add_flow_progress_install(flow.name, flow_comfy)
     b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
     return responses.JSONResponse(content={"error": ""})
 
@@ -293,6 +293,8 @@ async def flow_progress_install_get(request: Request) -> list[FlowProgressInstal
         r = await get_flows_progress_install_async()
     else:
         r = get_flows_progress_install()
+    for i in r:
+        i.flow = get_vix_flow(i.flow_comfy)
     return r
 
 
@@ -736,12 +738,6 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
     __require_admin(request)
     b_tasks.add_task(__shutdown_vix)
     return responses.JSONResponse(content={"error": ""})
-
-
-@API_ROUTER.get("/system_stats")
-async def system_stats():
-    # TO-DO: remove this endpoint completely, no needed with new **/workers_info**
-    return responses.JSONResponse(content=comfyui.get_worker_details())
 
 
 @API_ROUTER.get("/workers_info")

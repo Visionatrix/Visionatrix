@@ -91,7 +91,7 @@ def upgrade() -> None:
         sa.Column("input_params", sa.JSON(), nullable=True),
         sa.Column("outputs", sa.JSON(), nullable=True),
         sa.Column("input_files", sa.JSON(), nullable=True),
-        sa.Column("flow_comfy", sa.JSON(), nullable=True),
+        sa.Column("flow_comfy", sa.JSON(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.Column("finished_at", sa.DateTime(), nullable=True),
