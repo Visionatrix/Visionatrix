@@ -282,16 +282,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch('/flow', {
 				method: 'POST',
 				body: formData,
-			}).then(() => {
-				this.fetchFlows()
-			}).catch((e) => {
-				console.debug(e)
-				const toast = useToast()
-				toast.add({
-					title: 'Failed to upload flow',
-					description: e.message,
-					timeout: 5000,
-				})
+			}).then((res: any) => {
+				if (res.error === '') {
+					this.fetchFlows()
+				}
+				return res
 			})
 		},
 

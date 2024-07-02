@@ -64,19 +64,28 @@ function uploadFlow() {
 
 	uploadingFlow.value = true
 	flowsStore.uploadFlow(file).then((res: any) => {
+		console.debug('uploadFlow', res)
 		const toast = useToast()
-		if (res && 'error' in res && res?.error !== '') {
+		if ('error' in res && res?.error !== '') {
 			toast.add({
 				title: 'Error uploading flow',
 				description: res.error,
 			})
 			return
+		} else {
+			toast.add({
+				title: 'Flow uploaded',
+				description: 'Flow uploaded successfully',
+			})
 		}
-		toast.add({
-			title: 'Flow uploaded',
-			description: 'Flow uploaded successfully',
-		})
 		flowFileInput.value.$refs.input.value = ''
+	}).catch((e) => {
+		console.debug('uploadFlow error', e)
+		const toast = useToast()
+		toast.add({
+			title: 'Error uploading flow',
+			description: e.message,
+		})
 	}).finally(() => {
 		uploadingFlow.value = false
 	})
