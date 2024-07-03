@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.7.0 - 2024-07-xx]
+## [0.7.0 - 2024-07-05]
 
 ### Added
 
+- New `Mad Scientist` workflow. Author: **Datou**.
+- Added `comfyui-ollama` and `ComfyUI-AutoCropFaces` nodes. #105
+- Added support for auto downloading models for `IP-Adapter` presets(`IPAdapterUnifiedLoader` node). #105
 - `POST` method for `/flow` endpoint to install flow with uploading workflow file(it is the same as `install-flow` command line option) #102
 
 ### Changed

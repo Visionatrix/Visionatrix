@@ -61,6 +61,8 @@ BASIC_NODE_LIST = {
     "comfyui-art-venture": {},
     "was-node-suite-comfyui": {},
     "ComfyUI-Visionatrix": {},
+    "comfyui-ollama": {},
+    "ComfyUI-AutoCropFaces": {},
 }
 
 

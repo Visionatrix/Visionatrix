@@ -758,10 +758,10 @@ export interface Flow {
 	documentation: string
 	models: Model[]
 	input_params: FlowInputParam[]
-	available?: boolean
 	tags: string[]
 	version: string
-	private?: boolean
+	private: boolean
+	requires: string[]
 }
 
 export interface Model {

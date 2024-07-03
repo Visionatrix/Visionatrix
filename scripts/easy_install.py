@@ -203,11 +203,10 @@ def clone_vix_repository() -> None:
     except subprocess.CalledProcessError as e:
         print("An error occurred while trying to clone the repository:", str(e))
         raise
+    except FileNotFoundError:
+        print("git command could not be found. Please ensure Git is installed and added to your PATH.")
     except Exception as e:
-        if e.__class__ == FileNotFoundError:
-            print("git command could not be found. Please ensure Git is installed and added to your PATH.")
-        else:
-            print("An unexpected error occurred:", str(e))
+        print("An unexpected error occurred:", str(e))
         raise
 
 
