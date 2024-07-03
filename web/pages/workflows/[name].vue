@@ -124,7 +124,7 @@ const userStore = useUserStore()
 								</template>
 							</p>
 							<p v-if="flowStore.currentFlow?.models?.length > 0"
-								class="flex flex-row flex-wrap items-center text-md">
+								class="flex flex-row flex-wrap items-center text-md mb-2">
 								<UIcon name="i-heroicons-arrow-down-on-square-stack" class="mr-1" />
 								<b>Models ({{ flowStore.currentFlow?.models.length }}):</b>&nbsp;
 								<UBadge v-for="model in flowStore.currentFlow?.models"
@@ -145,6 +145,17 @@ const userStore = useUserStore()
 										rel="noopener" target="_blank">
 										{{ model.name }}
 									</a>
+								</UBadge>
+							</p>
+							<p v-if="flowStore.currentFlow?.requires?.length > 0"
+								class="flex flex-row flex-wrap items-center text-md">
+								<b>Requires:</b>&nbsp;
+								<UBadge v-for="requirement in flowStore.currentFlow?.requires"
+									:key="requirement"
+									class="m-1"
+									color="yellow"
+									variant="outline">
+									{{ requirement }}
 								</UBadge>
 							</p>
 						</div>
