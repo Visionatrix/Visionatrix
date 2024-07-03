@@ -21,11 +21,28 @@ const setupButtonText = computed(() => {
 })
 
 const deleting = ref(false)
-function deleteFlow() {
+const showConfirmDelete = ref(false)
+
+function _deleteFlow(flow: Flow, isFlowPrivate = false) {
 	deleting.value = true
-	flowStore.deleteFlow(flowStore.currentFlow).then(() => {
+	flowStore.deleteFlow(flow).then(() => {
+		if (isFlowPrivate) {
+			const router = useRouter()
+			router.push('/')
+		}
+	}).finally(() => {
 		deleting.value = false
+		showConfirmDelete.value = false
 	})
+}
+
+function deleteFlow() {
+	const isFlowPrivate = flowStore.currentFlow?.private || false
+	if (isFlowPrivate) {
+		showConfirmDelete.value = true
+		return
+	}
+	_deleteFlow(flowStore.currentFlow, isFlowPrivate)
 }
 
 const collapsedCard = ref(false)
@@ -48,6 +65,13 @@ const userStore = useUserStore()
 							<h2 class="text-xl font-bold cursor-pointer select-none flex items-center" @click="() => {
 								collapsedCard = !collapsedCard
 							}">
+								<UTooltip
+									v-if="flowStore.currentFlow?.private || false"
+									text="This flow is local, manually added">
+									<UIcon
+										name="i-heroicons-lock-closed"
+										class="mr-2" />
+								</UTooltip>
 								<UIcon :name="collapsedCard ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 									class="mr-2" />
 								{{ flowStore.currentFlow?.display_name }}
@@ -217,5 +241,41 @@ const userStore = useUserStore()
 			<UProgress class="mb-3" />
 			<USkeleton class="w-full h-80" />
 		</template>
+		<UModal
+			v-model="showConfirmDelete"
+			prevent-close>
+			<UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+				<template #header>
+					<div class="flex items-center justify-between">
+						<h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+							Confirm workflow deletion
+						</h3>
+						<UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="showConfirmDelete = false" />
+					</div>
+				</template>
+
+				<p class="pb-2">
+					Are you sure you want to delete the <b>private</b> workflow <b>{{ flowStore.currentFlow?.display_name }}</b>?
+				</p>
+
+				<div class="flex justify-end items-center">
+					<UButton
+						icon="i-heroicons-x-mark-16-solid"
+						variant="outline"
+						color="green"
+						class="mr-2"
+						@click="showConfirmDelete = false">
+						Cancel
+					</UButton>
+					<UButton
+						icon="i-heroicons-trash"
+						variant="outline"
+						color="red"
+						@click="_deleteFlow(flowStore.currentFlow, flowStore.currentFlow?.private || false)">
+						Delete
+					</UButton>
+				</div>
+			</UCard>
+		</UModal>
 	</AppContainer>
 </template>

@@ -23,22 +23,25 @@ from .models_map import get_flow_models
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import Flow
 
+SECONDS_TO_CACHE_INSTALLED_FLOWS = 10
+SECONDS_TO_CACHE_AVALAIBLE_FLOWS = 60
+
 LOGGER = logging.getLogger("visionatrix")
 CACHE_AVAILABLE_FLOWS = {
-    "update_time": time.time() - 11,
+    "update_time": time.time() - (SECONDS_TO_CACHE_AVALAIBLE_FLOWS + 1),
     "etag": "",
     "flows": [],
     "flows_comfy": [],
 }
 CACHE_INSTALLED_FLOWS = {
-    "update_time": time.time() - 11,
+    "update_time": time.time() - (SECONDS_TO_CACHE_INSTALLED_FLOWS + 1),
     "flows": [],
     "flows_comfy": [],
 }
 
 
 def get_available_flows(flows_comfy: list) -> list[Flow]:
-    if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + 10:
+    if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + SECONDS_TO_CACHE_AVALAIBLE_FLOWS:
         flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
         return CACHE_AVAILABLE_FLOWS["flows"]
 
@@ -92,18 +95,22 @@ def get_not_installed_flows(flows_comfy: list | None = None) -> list[Flow]:
 
 
 def get_installed_flows(flows_comfy: list | None = None) -> list[Flow]:
-    if time.time() < CACHE_INSTALLED_FLOWS["update_time"] + 10:
+    if time.time() < CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS:
         if flows_comfy is not None:
             flows_comfy.extend(CACHE_INSTALLED_FLOWS["flows_comfy"])
         return CACHE_INSTALLED_FLOWS["flows"]
 
+    public_flows_names = [i.name for i in get_available_flows([])]
     CACHE_INSTALLED_FLOWS["update_time"] = time.time()
     flows = [entry for entry in Path(options.FLOWS_DIR).iterdir() if entry.is_file() and entry.name.endswith(".json")]
     r = []
     r_comfy = []
     for flow in flows:
         _flow_comfy = json.loads(flow.read_bytes())
-        r.append(get_vix_flow(_flow_comfy))
+        _flow_vix = get_vix_flow(_flow_comfy)
+        if _flow_vix.name not in public_flows_names:
+            _flow_vix.private = True
+        r.append(_flow_vix)
         r_comfy.append(_flow_comfy)
     CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
     if flows_comfy is not None:

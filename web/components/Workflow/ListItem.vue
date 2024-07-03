@@ -13,7 +13,16 @@ const flowsStore = useFlowsStore()
 		<UCard as="div" class="hover:shadow-md">
 			<template #header>
 				<div class="flex flex-grow justify-between">
-					<h2 class="text-xl font-bold text-ellipsis" :title="flow?.display_name">{{ flow?.display_name }}</h2>
+					<h2 class="text-xl font-bold text-ellipsis flex items-center" :title="flow?.display_name">
+						<UTooltip
+							v-if="flow?.private || false"
+							text="This flow is local, manually added">
+							<UIcon
+								name="i-heroicons-lock-closed"
+								class="mr-2" />
+						</UTooltip>
+						{{ flow?.display_name }}
+					</h2>
 					<UTooltip v-if="flowsStore.isFlowInstalled(flow?.name)"
 						text="Mark flow as favorite" :popper="{ placement: 'top' }" :open-delay="500">
 						<UButton :icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
