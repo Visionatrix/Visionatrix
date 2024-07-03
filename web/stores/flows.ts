@@ -529,7 +529,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					if (installing_progress.progress < 100) {
 						this.installing.push({
 							flow_name: installing_progress.name,
-							progress: installing_progress.progress
+							progress: installing_progress.progress,
+							flow: installing_progress?.flow || null,
 						})
 						this.startFlowInstallingPolling(installing_progress.name)
 					}
@@ -802,6 +803,8 @@ export interface FlowInstalling {
 
 export interface FlowInstallingProgress {
 	name: string
+	flow: Flow,
+	flow_comfy: any
 	progress: number
 	error: string
 	started_at: string
