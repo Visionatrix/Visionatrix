@@ -20,7 +20,8 @@ from .comfyui import (
     interrupt_processing,
     soft_empty_cache,
 )
-from .flows import get_installed_flows_names
+from .db_queries import get_global_setting
+from .flows import get_installed_flows_names, get_ollama_nodes
 from .pydantic_models import (
     TaskDetails,
     TaskDetailsShort,
@@ -188,13 +189,37 @@ def get_task(task_id: int, user_id: str | None = None) -> dict | None:
 
 def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: str) -> dict:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        return get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
-    return get_incomplete_task_without_error_database(
-        database.DEFAULT_USER.user_id,
-        WorkerDetailsRequest.model_validate(get_worker_details()),
-        tasks_to_ask,
-        last_task_name,
-    )
+        task_to_exec = get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
+    else:
+        task_to_exec = get_incomplete_task_without_error_database(
+            database.DEFAULT_USER.user_id,
+            WorkerDetailsRequest.model_validate(get_worker_details()),
+            tasks_to_ask,
+            last_task_name,
+        )
+    if not task_to_exec:
+        return {}
+    ollama_nodes = get_ollama_nodes(task_to_exec["flow_comfy"])
+    if ollama_nodes:
+        ollama_url = os.environ.get("OLLAMA_URL", "")
+        if not ollama_url:
+            if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
+                r = httpx.get(
+                    options.VIX_SERVER.rstrip("/") + "/setting",
+                    params={"key": "ollama_url"},
+                    auth=options.worker_auth(),
+                    timeout=float(options.WORKER_NET_TIMEOUT),
+                )
+                if httpx.codes.is_error(r.status_code):
+                    LOGGER.error("Can not fetch Ollama URL from the server: %s", r.status_code)
+                else:
+                    ollama_url = r.text
+            else:
+                ollama_url = get_global_setting("ollama_url", True)
+        if ollama_url:
+            for node in ollama_nodes:
+                task_to_exec["flow_comfy"][node]["inputs"]["url"] = ollama_url
+    return task_to_exec
 
 
 def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:

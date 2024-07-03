@@ -292,6 +292,8 @@ def flow_prepare_output_params(
             "WD14Tagger|pysssss",
             "StringFunction|pysssss",
             "Evaluate Integers",
+            "ShowText|pysssss",
+            "PreviewImage",
         ):
             continue
         if r_node["class_type"] != "SaveImage":
@@ -346,7 +348,9 @@ def get_flow_metadata(flow_comfy: dict[str, dict]) -> dict[str, str | list | dic
     for node_details in flow_comfy.values():
         if node_details["class_type"] == "VixUiWorkflowMetadata":
             r = node_details["inputs"].copy()
-            r["tags"] = json.loads(node_details["inputs"]["tags"] if node_details["inputs"]["tags"] else [])
+            for i in ("tags", "requires"):
+                if value := node_details["inputs"].get(i):
+                    r[i] = json.loads(value)
             return r
         if node_details.get("_meta", {}).get("title", "") == "WF_META":  # Text Multiline (Code Compatible)
             return json.loads(node_details["inputs"]["text"])
@@ -441,3 +445,11 @@ def correct_aspect_ratio_default_options(input_param_data: dict) -> None:
     }
     input_param_data["options"] = _options
     input_param_data["default"] = [i for i in _options if i.find(input_param_data["default"]) != -1][0]  # noqa
+
+
+def get_ollama_nodes(flow_comfy: dict) -> list[str]:
+    r = []
+    for node_id, node_details in flow_comfy.items():
+        if str(node_details["class_type"]) in ("OllamaVision", "OllamaGenerate", "OllamaGenerateAdvance"):
+            r.append(node_id)
+    return r
