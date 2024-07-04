@@ -90,7 +90,8 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
-    nodes.init_custom_nodes()
+    nodes.init_builtin_extra_nodes()
+    nodes.init_external_custom_nodes()
     main.cuda_malloc_warning()
 
     main.hijack_progress(comfy_server)
@@ -252,6 +253,10 @@ def add_arguments(parser):
     )
     fpte_group.add_argument("--fp16-text-enc", action="store_true", help="Store text encoder weights in fp16.")
     fpte_group.add_argument("--fp32-text-enc", action="store_true", help="Store text encoder weights in fp32.")
+
+    parser.add_argument(
+        "--force-channels-last", action="store_true", help="Force channels last format when inferencing the models."
+    )
 
     parser.add_argument(
         "--disable-ipex-optimize",
