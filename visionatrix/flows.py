@@ -413,7 +413,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
         if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]
-            if node_details["class_type"] == "VixUiRangeScaleFloat":
+            if node_details["class_type"] == "VixUiRangeScaleFloat" and "source_input_name" in node_details["inputs"]:
                 input_param_data["source_input_name"] = node_details["inputs"]["source_input_name"]
         elif node_details["class_type"] in ("VixUiList", "VixUiListLogic"):
             r = json.loads(node_details["inputs"]["possible_values"])
