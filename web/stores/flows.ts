@@ -283,10 +283,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 				method: 'POST',
 				body: formData,
 			}).then((res: any) => {
-				if (res.details === '') {
+				if (res && res.details === '') {
 					this.fetchFlows()
+					return res
 				}
-				return res
 			})
 		},
 
@@ -297,8 +297,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-			}).then((res) => {
-				console.debug(res)
+			}).then(() => {
 				this.fetchFlows()
 			})
 			return response
@@ -397,7 +396,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return $apiFetch(`/task-restart?task_id=${running.task_id}`, {
 				method: 'POST',
 			}).then((res: any) => {
-				if (res.details !== '') {
+				if (res && res.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to restart flow',
@@ -421,7 +420,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch(`/tasks?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
-				if (res?.details !== '') {
+				if (res && res?.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to delete flow results',
@@ -439,7 +438,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch(`/tasks-queue?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
-				if (res.details !== '') {
+				if (res && res.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: `Failed to cancel ${flow_name} running flows`,
@@ -464,7 +463,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 					'Content-Type': 'application/json',
 				},
 			}).then((res: any) => {
-				if (res.details !== '') {
+				if (res && res.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to cancel running flow',
@@ -652,7 +651,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 					'Content-Type': 'application/json',
 				},
 			}).then((res: any) => {
-				if (res.details !== '') {
+				if (res && res?.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to delete flow history item',
