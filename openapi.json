@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "visionatrix-client",
+    "title": "visionatrix",
     "version": "0.8.0.dev0"
   },
   "paths": {
@@ -293,6 +293,196 @@
         }
       }
     },
+    "/api/setting": {
+      "get": {
+        "summary": "Setting Get",
+        "description": "Returns the value as a string or an empty string if the setting is not found.\n\nDefault endpoint for retrieving settings.\nUser settings have higher priority than global settings.",
+        "operationId": "setting_get_api_setting_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The key of the setting to retrieve",
+              "title": "Key"
+            },
+            "description": "The key of the setting to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved setting",
+            "content": {
+              "text/plain": {
+                "example": "value_of_setting"
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/global_setting": {
+      "get": {
+        "summary": "Global Setting Get",
+        "description": "Retrieve the global setting value or an empty string if the global setting is not found.",
+        "operationId": "global_setting_get_api_global_setting_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The key of the global setting to retrieve",
+              "title": "Key"
+            },
+            "description": "The key of the global setting to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved global setting",
+            "content": {
+              "text/plain": {
+                "example": "value_of_global_setting"
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Global Setting Set",
+        "description": "Creates, updates, or deletes a global setting.\n\nTo delete a setting, specify an empty string as the value.\nAccess is restricted to administrators only.",
+        "operationId": "global_setting_set_api_global_setting_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_global_setting_set_api_global_setting_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Global setting updated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_setting": {
+      "get": {
+        "summary": "User Setting Get",
+        "description": "Retrieve the user setting value or an empty string if the user setting is not found.",
+        "operationId": "user_setting_get_api_user_setting_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The key of the user setting to retrieve",
+              "title": "Key"
+            },
+            "description": "The key of the user setting to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved user setting",
+            "content": {
+              "text/plain": {
+                "example": "value_of_user_setting"
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "User Setting Set",
+        "description": "Creates, updates, or deletes a user setting.\n\nTo delete a setting, specify an empty string as the value.",
+        "operationId": "user_setting_set_api_user_setting_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_user_setting_set_api_user_setting_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "User setting updated successfully"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/task": {
       "post": {
         "summary": "Task Run",
@@ -342,16 +532,23 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "ID of the task to remove",
               "title": "Task Id"
-            }
+            },
+            "description": "ID of the task to remove"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Successfully removed the specified task"
+          },
+          "404": {
+            "description": "Task not found",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
               }
             }
           },
@@ -379,16 +576,11 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "type": "string",
+              "description": "Optional name to filter tasks by their name",
               "title": "Name"
-            }
+            },
+            "description": "Optional name to filter tasks by their name"
           }
         ],
         "responses": {
@@ -430,16 +622,11 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "type": "string",
+              "description": "Optional name to filter tasks by their name",
               "title": "Name"
-            }
+            },
+            "description": "Optional name to filter tasks by their name"
           }
         ],
         "responses": {
@@ -482,8 +669,10 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "ID of the task",
               "title": "Task Id"
-            }
+            },
+            "description": "ID of the task"
           }
         ],
         "responses": {
@@ -522,8 +711,10 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "ID of the task to restart",
               "title": "Task Id"
-            }
+            },
+            "description": "ID of the task to restart"
           },
           {
             "name": "force",
@@ -531,17 +722,45 @@
             "required": false,
             "schema": {
               "type": "boolean",
+              "description": "Force restart even if the task has no error",
               "default": false,
               "title": "Force"
-            }
+            },
+            "description": "Force restart even if the task has no error"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Successfully restarted the specified task"
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/json": {
-                "schema": {}
+                "examples": {
+                  "Task already finished": {
+                    "summary": "Task already finished",
+                    "value": {
+                      "detail": "Task `{task_id}` already finished."
+                    }
+                  },
+                  "No error set": {
+                    "summary": "No error set",
+                    "value": {
+                      "detail": "Task `{task_id}` has no error set."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
               }
             }
           },
@@ -570,18 +789,15 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Name of the tasks to remove",
               "title": "Name"
-            }
+            },
+            "description": "Name of the tasks to remove"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+          "204": {
+            "description": "Successfully removed all finished or errored tasks with the specified name"
           },
           "422": {
             "description": "Validation Error",
@@ -608,8 +824,10 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "ID of the task",
               "title": "Task Id"
-            }
+            },
+            "description": "ID of the task"
           },
           {
             "name": "input_index",
@@ -617,16 +835,29 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "Index of the input file",
               "title": "Input Index"
-            }
+            },
+            "description": "Index of the input file"
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Successfully retrieved the input file",
             "content": {
               "application/json": {
                 "schema": {}
+              },
+              "application/octet-stream": {}
+            }
+          },
+          "404": {
+            "description": "Task or input file not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task(task_id): input file `file_name` was not found."
+                }
               }
             }
           },
@@ -655,8 +886,10 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "ID of the task",
               "title": "Task Id"
-            }
+            },
+            "description": "ID of the task"
           },
           {
             "name": "node_id",
@@ -664,16 +897,29 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "ID of the node",
               "title": "Node Id"
-            }
+            },
+            "description": "ID of the node"
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Successfully retrieved the result file",
             "content": {
               "application/json": {
                 "schema": {}
+              },
+              "application/octet-stream": {}
+            }
+          },
+          "404": {
+            "description": "Task or result file not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Missing result for task=task_id and node=node_id."
+                }
               }
             }
           },
@@ -702,18 +948,15 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Name of the task to clear unfinished tasks from the queue",
               "title": "Name"
-            }
+            },
+            "description": "Name of the task to clear unfinished tasks from the queue"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+          "204": {
+            "description": "Successfully cleared unfinished tasks from the queue"
           },
           "422": {
             "description": "Validation Error",
@@ -740,16 +983,23 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "ID of the unfinished task to remove from the queue",
               "title": "Task Id"
-            }
+            },
+            "description": "ID of the unfinished task to remove from the queue"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Successfully removed the unfinished task from the queue"
+          },
+          "404": {
+            "description": "Task not found",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
               }
             }
           },
@@ -783,12 +1033,10 @@
         },
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "description": "Successfully retrieved the task for the worker"
+          },
+          "204": {
+            "description": "No incomplete tasks available for the worker"
           },
           "422": {
             "description": "Validation Error",
@@ -819,11 +1067,26 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Task progress updated successfully"
+          },
+          "400": {
+            "description": "Failed to update task progress",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Failed to update task progress."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found or not authorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
               }
             }
           },
@@ -852,14 +1115,16 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "The ID of the task to save results for",
               "title": "Task Id"
-            }
+            },
+            "description": "The ID of the task to save results for"
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "multipart/form-data": {
+            "application/x-www-form-urlencoded": {
               "schema": {
                 "$ref": "#/components/schemas/Body_task_worker_put_results_api_task_worker_results_put"
               }
@@ -867,11 +1132,26 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Successfully saved task results"
+          },
+          "404": {
+            "description": "Task not found",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "result_file.filename does not belong to task."
+                }
               }
             }
           },
@@ -900,16 +1180,23 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "description": "The ID of the task to remove the lock from",
               "title": "Task Id"
-            }
+            },
+            "description": "The ID of the task to remove the lock from"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Successfully removed task lock"
+          },
+          "404": {
+            "description": "Task not found",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
               }
             }
           },
@@ -920,40 +1207,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/engine-interrupt": {
-      "post": {
-        "summary": "Engine Interrupt",
-        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
-        "operationId": "engine_interrupt_api_engine_interrupt_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/shutdown": {
-      "post": {
-        "summary": "Shutdown",
-        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
-        "operationId": "shutdown_api_shutdown_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           }
@@ -1035,11 +1288,16 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Worker tasks set successfully"
+          },
+          "404": {
+            "description": "Worker not found",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Can't find `worker_id` worker."
+                }
               }
             }
           },
@@ -1049,6 +1307,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine-interrupt": {
+      "post": {
+        "summary": "Engine Interrupt",
+        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
+        "operationId": "engine_interrupt_api_engine_interrupt_post",
+        "responses": {
+          "204": {
+            "description": "Engine interrupt initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shutdown": {
+      "post": {
+        "summary": "Shutdown",
+        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
+        "operationId": "shutdown_api_shutdown_post",
+        "responses": {
+          "204": {
+            "description": "Server shutdown initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
                 }
               }
             }
@@ -1059,7 +1361,7 @@
     "/api/whoami": {
       "get": {
         "summary": "Who Am I",
-        "description": "Get information about the currently authenticated user.",
+        "description": "Returns information about the currently authenticated user.",
         "operationId": "who_am_i_api_whoami_get",
         "responses": {
           "200": {
@@ -1068,189 +1370,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/setting": {
-      "get": {
-        "summary": "Setting Get",
-        "description": "Returns the value as a string or an empty string if the setting is not found.\n\nDefault endpoint for retrieving settings.\nUser settings have higher priority than global settings.",
-        "operationId": "setting_get_api_setting_get",
-        "parameters": [
-          {
-            "name": "key",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string",
-                  "title": "Response Setting Get Api Setting Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/global_setting": {
-      "get": {
-        "summary": "Global Setting Get",
-        "description": "Retrieve the global setting value or an empty string if the global setting is not found.",
-        "operationId": "global_setting_get_api_global_setting_get",
-        "parameters": [
-          {
-            "name": "key",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string",
-                  "title": "Response Global Setting Get Api Global Setting Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Global Setting Set",
-        "description": "Creates, updates, or deletes a global setting.\n\nTo delete a setting, specify an empty string as the value.\nAccess is restricted to administrators only.",
-        "operationId": "global_setting_set_api_global_setting_post",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_global_setting_set_api_global_setting_post"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/user_setting": {
-      "get": {
-        "summary": "User Setting Get",
-        "description": "Retrieve the user setting value or an empty string if the user setting is not found.",
-        "operationId": "user_setting_get_api_user_setting_get",
-        "parameters": [
-          {
-            "name": "key",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string",
-                  "title": "Response User Setting Get Api User Setting Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "User Setting Set",
-        "description": "Creates, updates, or deletes a user setting.\n\nTo delete a setting, specify an empty string as the value.",
-        "operationId": "user_setting_set_api_user_setting_post",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_user_setting_set_api_user_setting_post"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1320,7 +1439,8 @@
           "flow_file": {
             "type": "string",
             "format": "binary",
-            "title": "Flow File"
+            "title": "Flow File",
+            "description": "The ComfyUI workflow file to be uploaded and installed"
           }
         },
         "type": "object",
@@ -1333,15 +1453,18 @@
         "properties": {
           "key": {
             "type": "string",
-            "title": "Key"
+            "title": "Key",
+            "description": "The key of the setting to update"
           },
           "value": {
             "type": "string",
-            "title": "Value"
+            "title": "Value",
+            "description": "The value of the setting to update, or an empty string to delete the setting"
           },
           "sensitive": {
             "type": "boolean",
-            "title": "Sensitive"
+            "title": "Sensitive",
+            "description": "Flag that determines whether the value can be available to users or not"
           }
         },
         "type": "object",
@@ -1403,11 +1526,13 @@
               "type": "string"
             },
             "type": "array",
-            "title": "Tasks Names"
+            "title": "Tasks Names",
+            "description": "List of task names the worker can handle"
           },
           "last_task_name": {
             "type": "string",
             "title": "Last Task Name",
+            "description": "Optional name of the last task the worker was working on",
             "default": ""
           }
         },
@@ -1426,7 +1551,8 @@
               "format": "binary"
             },
             "type": "array",
-            "title": "Files"
+            "title": "Files",
+            "description": "List of result files to save"
           }
         },
         "type": "object",
@@ -1442,19 +1568,23 @@
           },
           "task_id": {
             "type": "integer",
-            "title": "Task Id"
+            "title": "Task Id",
+            "description": "ID of the task to update progress for"
           },
           "progress": {
             "type": "number",
-            "title": "Progress"
+            "title": "Progress",
+            "description": "Progress percentage of the task"
           },
           "execution_time": {
             "type": "number",
-            "title": "Execution Time"
+            "title": "Execution Time",
+            "description": "Execution time of the task in seconds"
           },
           "error": {
             "type": "string",
             "title": "Error",
+            "description": "Error message if any",
             "default": ""
           }
         },
@@ -1471,11 +1601,13 @@
         "properties": {
           "key": {
             "type": "string",
-            "title": "Key"
+            "title": "Key",
+            "description": "The key of the setting to update"
           },
           "value": {
             "type": "string",
-            "title": "Value"
+            "title": "Value",
+            "description": "The value of the setting to update, or an empty string to delete the setting"
           }
         },
         "type": "object",
@@ -1489,14 +1621,16 @@
         "properties": {
           "worker_id": {
             "type": "string",
-            "title": "Worker Id"
+            "title": "Worker Id",
+            "description": "ID of the worker"
           },
           "tasks_to_give": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Tasks To Give"
+            "title": "Tasks To Give",
+            "description": "List of tasks the worker can handle"
           }
         },
         "type": "object",
@@ -2339,7 +2473,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-06T13:21:53.003929Z"
+            "default": "2024-07-06T19:51:11.524872Z"
           }
         },
         "type": "object",

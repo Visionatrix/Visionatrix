@@ -12,7 +12,7 @@ from visionatrix import _version  # noqa
 
 
 openapi_schema = APP.openapi()
-openapi_schema["info"]["title"] = "visionatrix-client"
+openapi_schema["info"]["title"] = "visionatrix"
 openapi_schema["info"]["version"] = _version.__version__
 
 with open("openapi.json", "w") as f:
