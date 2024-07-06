@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "visionatrix-client",
+    "title": "visionatrix",
     "version": "0.8.0.dev0"
   },
   "paths": {
@@ -2473,7 +2473,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-06T17:53:23.483611Z"
+            "default": "2024-07-06T19:51:11.524872Z"
           }
         },
         "type": "object",
