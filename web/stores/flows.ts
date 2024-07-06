@@ -283,7 +283,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				method: 'POST',
 				body: formData,
 			}).then((res: any) => {
-				if (res.error === '') {
+				if (res.details === '') {
 					this.fetchFlows()
 				}
 				return res
@@ -397,11 +397,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return $apiFetch(`/task-restart?task_id=${running.task_id}`, {
 				method: 'POST',
 			}).then((res: any) => {
-				if (res.error !== '') {
+				if (res.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to restart flow',
-						description: res.error,
+						description: res.details,
 						timeout: 5000,
 					})
 					return
@@ -421,11 +421,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch(`/tasks?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
-				if (res?.error !== '') {
+				if (res?.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to delete flow results',
-						description: res.error,
+						description: res.details,
 						timeout: 5000,
 					})
 					return
@@ -439,11 +439,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch(`/tasks-queue?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
-				if (res.error !== '') {
+				if (res.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: `Failed to cancel ${flow_name} running flows`,
-						description: res.error,
+						description: res.details,
 						timeout: 5000,
 					})
 					return
@@ -464,11 +464,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 					'Content-Type': 'application/json',
 				},
 			}).then((res: any) => {
-				if (res.error !== '') {
+				if (res.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to cancel running flow',
-						description: res.error,
+						description: res.details,
 						timeout: 5000,
 					})
 					return
@@ -652,11 +652,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 					'Content-Type': 'application/json',
 				},
 			}).then((res: any) => {
-				if (res.error !== '') {
+				if (res.details !== '') {
 					const toast = useToast()
 					toast.add({
 						title: 'Failed to delete flow history item',
-						description: res.error,
+						description: res.details,
 						timeout: 5000,
 					})
 					return

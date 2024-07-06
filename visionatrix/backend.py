@@ -32,6 +32,7 @@ from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui, database, options
+from .backend_misc import _require_admin
 from .db_queries import (
     add_flow_progress_install,
     delete_flows_progress_install,
@@ -229,8 +230,27 @@ async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]
     return r
 
 
-@API_ROUTER.put("/flow")
-def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
+@API_ROUTER.put(
+    "/flow",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successful start of installation"},
+        404: {
+            "description": "Flow not found",
+            "content": {"application/json": {"example": {"detail": "Can't find `flow_name` flow."}}},
+        },
+        409: {
+            "description": "Another flow installation is in progress",
+            "content": {"application/json": {"example": {"detail": "Another flow installation is in progress."}}},
+        },
+    },
+)
+def flow_install(
+    request: Request,
+    b_tasks: BackgroundTasks,
+    name: str = Query(..., description="Name of the flow you wish to install"),
+):
     """
     Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges
     to perform the installation. If another flow installation is already in progress, it prevents a new
@@ -240,11 +260,9 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
     checks the availability of the flow in the list of available flows and starts the installation if the flow
     is found. It ensures that no two installations can run concurrently.
     """
-    __require_admin(request)
+    _require_admin(request)
     if flows_installation_in_progress():
-        return responses.JSONResponse(
-            status_code=status.HTTP_409_CONFLICT, content={"error": "Another flow installation is in progress."}
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Another flow installation is in progress.")
 
     flows_comfy = []
     flows = get_available_flows(flows_comfy)
@@ -253,31 +271,44 @@ def flow_install(request: Request, b_tasks: BackgroundTasks, name: str):
             delete_flows_progress_install(name)
             add_flow_progress_install(name, flows_comfy[i])
             b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
-            return responses.JSONResponse(content={"error": ""})
-    return responses.JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND, content={"error": f"Can't find `{name}` flow."}
-    )
+            return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` flow.")
 
 
-@API_ROUTER.post("/flow")
-def flow_install_from_file(request: Request, b_tasks: BackgroundTasks, flow_file: UploadFile):
+@API_ROUTER.post(
+    "/flow",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successful start of installation"},
+        409: {
+            "description": "Another flow installation is in progress",
+            "content": {"application/json": {"example": {"detail": "Another flow installation is in progress."}}},
+        },
+    },
+)
+def flow_install_from_file(
+    request: Request,
+    b_tasks: BackgroundTasks,
+    flow_file: UploadFile,
+):
     """
     Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges
     to perform the installation. If another flow installation is already in progress, it prevents a parallel flow
     installation to avoid conflicts, returning a 409 Conflict HTTP status.
+
+    This endpoint schedules a background task for the installation process using the uploaded flow file.
     """
-    __require_admin(request)
+    _require_admin(request)
     if flows_installation_in_progress():
-        return responses.JSONResponse(
-            status_code=status.HTTP_409_CONFLICT, content={"error": "Another flow installation is in progress."}
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Another flow installation is in progress.")
 
     flow_comfy = json.loads(flow_file.file.read())
     flow = get_vix_flow(flow_comfy)
     delete_flows_progress_install(flow.name)
     add_flow_progress_install(flow.name, flow_comfy)
     b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
-    return responses.JSONResponse(content={"error": ""})
+    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @API_ROUTER.get("/flow-progress-install")
@@ -288,7 +319,7 @@ async def flow_progress_install_get(request: Request) -> list[FlowProgressInstal
 
     Requires administrative privileges.
     """
-    __require_admin(request)
+    _require_admin(request)
     if options.VIX_MODE == "SERVER":
         r = await get_flows_progress_install_async()
     else:
@@ -298,31 +329,50 @@ async def flow_progress_install_get(request: Request) -> list[FlowProgressInstal
     return r
 
 
-@API_ROUTER.delete("/flow-progress-install")
-async def flow_progress_install_delete(request: Request, name: str):
+@API_ROUTER.delete(
+    "/flow-progress-install",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Flow progress installation entry deleted successfully"},
+        404: {
+            "description": "Flow progress installation entry not found",
+            "content": {"application/json": {"example": {"detail": "Can't find `flow_name`."}}},
+        },
+    },
+)
+async def flow_progress_install_delete(
+    request: Request, name: str = Query(..., description="Name of the flow progress you wish to delete")
+):
     """
     Deletes the installation progress entry for a specified flow.
 
     Requires administrative privileges.
     """
-    __require_admin(request)
+    _require_admin(request)
     if options.VIX_MODE == "SERVER":
         r = await delete_flows_progress_install_async(name)
     else:
         r = delete_flows_progress_install(name)
     if r:
-        return responses.JSONResponse(content={"error": ""})
-    return responses.JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": f"Can't find `{name}`."})
+        return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}`.")
 
 
-@API_ROUTER.delete("/flow")
-async def flow_delete(request: Request, name: str):
+@API_ROUTER.delete(
+    "/flow",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={204: {"description": "Flow deleted successfully"}},
+)
+async def flow_delete(request: Request, name: str = Query(..., description="Name of the flow you wish to delete")):
     """
     Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.
+    This endpoint will succeed even if the flow does not exist.
     """
-    __require_admin(request)
+    _require_admin(request)
     uninstall_flow(name)
-    return responses.JSONResponse(content={"error": ""})
+    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 async def __task_run(
@@ -718,7 +768,7 @@ async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
     def __interrupt_task():
         comfyui.interrupt_processing()
 
-    __require_admin(request)
+    _require_admin(request)
     if options.VIX_MODE != "SERVER":
         b_tasks.add_task(__interrupt_task)
     return responses.JSONResponse(content={"error": ""})
@@ -735,7 +785,7 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
         time.sleep(1.0)
         os.kill(os.getpid(), signal.SIGINT)
 
-    __require_admin(request)
+    _require_admin(request)
     b_tasks.add_task(__shutdown_vix)
     return responses.JSONResponse(content={"error": ""})
 
@@ -834,7 +884,7 @@ async def global_setting_set(
     To delete a setting, specify an empty string as the value.
     Access is restricted to administrators only.
     """
-    __require_admin(request)
+    _require_admin(request)
     if options.VIX_MODE == "SERVER":
         await set_global_setting_async(key, value, sensitive)
     else:
@@ -897,8 +947,3 @@ def run_vix(*args, **kwargs) -> None:
 def __progress_install_callback(name: str, progress: float, error: str) -> None:
     if not update_flow_progress_install(name, progress, error):
         raise RuntimeError(f"Installation of the `{name}` was cancelled.")
-
-
-def __require_admin(request: Request) -> None:
-    if not request.scope["user_info"].is_admin:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin privilege required") from None
