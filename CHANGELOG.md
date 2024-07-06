@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- OpenAPI documentation
+- [OpenAPI documentation](https://visionatrix.github.io/VixFlowsDocs/swagger.html) #106
 
 ## [0.7.0 - 2024-07-05]
 
