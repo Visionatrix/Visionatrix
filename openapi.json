@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix-client",
-    "version": "0.7.0"
+    "version": "0.8.0.dev0"
   },
   "paths": {
     "/api/flows-installed": {
@@ -111,16 +111,33 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Name of the flow you wish to install",
               "title": "Name"
-            }
+            },
+            "description": "Name of the flow you wish to install"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Successful start of installation"
+          },
+          "404": {
+            "description": "Flow not found",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Can't find `flow_name` flow."
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another flow installation is in progress",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Another flow installation is in progress."
+                }
               }
             }
           },
@@ -138,7 +155,7 @@
       },
       "post": {
         "summary": "Flow Install From File",
-        "description": "Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a parallel flow\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.",
+        "description": "Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a parallel flow\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the uploaded flow file.",
         "operationId": "flow_install_from_file_api_flow_post",
         "requestBody": {
           "required": true,
@@ -151,11 +168,16 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Successful start of installation"
+          },
+          "409": {
+            "description": "Another flow installation is in progress",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Another flow installation is in progress."
+                }
               }
             }
           },
@@ -173,7 +195,7 @@
       },
       "delete": {
         "summary": "Flow Delete",
-        "description": "Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.",
+        "description": "Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.\nThis endpoint will succeed even if the flow does not exist.",
         "operationId": "flow_delete_api_flow_delete",
         "parameters": [
           {
@@ -182,18 +204,15 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Name of the flow you wish to delete",
               "title": "Name"
-            }
+            },
+            "description": "Name of the flow you wish to delete"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+          "204": {
+            "description": "Flow deleted successfully"
           },
           "422": {
             "description": "Validation Error",
@@ -241,16 +260,23 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Name of the flow progress you wish to delete",
               "title": "Name"
-            }
+            },
+            "description": "Name of the flow progress you wish to delete"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "204": {
+            "description": "Flow progress installation entry deleted successfully"
+          },
+          "404": {
+            "description": "Flow progress installation entry not found",
             "content": {
               "application/json": {
-                "schema": {}
+                "example": {
+                  "detail": "Can't find `flow_name`."
+                }
               }
             }
           },
@@ -2313,7 +2339,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-06T10:55:00.299016Z"
+            "default": "2024-07-06T13:21:53.003929Z"
           }
         },
         "type": "object",
