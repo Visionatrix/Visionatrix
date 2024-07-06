@@ -115,7 +115,6 @@ async def global_setting_set(
         await set_global_setting_async(key, value, sensitive)
     else:
         set_global_setting(key, value, sensitive)
-    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @ROUTER.post(
@@ -140,4 +139,3 @@ async def user_setting_set(
         await set_user_setting_async(request.scope["user_info"].user_id, key, value)
     else:
         set_user_setting(request.scope["user_info"].user_id, key, value)
-    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)

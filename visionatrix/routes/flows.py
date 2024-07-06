@@ -6,6 +6,7 @@ import typing
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    File,
     HTTPException,
     Query,
     Request,
@@ -145,7 +146,7 @@ def flow_install(
 def flow_install_from_file(
     request: Request,
     b_tasks: BackgroundTasks,
-    flow_file: UploadFile,
+    flow_file: UploadFile = File(..., description="The ComfyUI workflow file to be uploaded and installed"),
 ):
     """
     Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges
@@ -163,7 +164,6 @@ def flow_install_from_file(
     delete_flows_progress_install(flow.name)
     add_flow_progress_install(flow.name, flow_comfy)
     b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
-    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @ROUTER.get("/flow-progress-install")
@@ -209,9 +209,8 @@ async def flow_progress_install_delete(
         r = await delete_flows_progress_install_async(name)
     else:
         r = delete_flows_progress_install(name)
-    if r:
-        return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}`.")
+    if not r:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}`.")
 
 
 @ROUTER.delete(
@@ -227,7 +226,6 @@ async def flow_delete(request: Request, name: str = Query(..., description="Name
     """
     require_admin(request)
     uninstall_flow(name)
-    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def __progress_install_callback(name: str, progress: float, error: str) -> None:

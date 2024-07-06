@@ -15,6 +15,8 @@ ROUTER = APIRouter(prefix="/api")
 
 @ROUTER.post(
     "/engine-interrupt",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
         204: {"description": "Engine interrupt initiated successfully"},
         401: {
@@ -36,11 +38,12 @@ async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
     require_admin(request)
     if options.VIX_MODE != "SERVER":
         b_tasks.add_task(__interrupt_task)
-    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @ROUTER.post(
     "/shutdown",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
         204: {"description": "Server shutdown initiated successfully"},
         401: {
@@ -61,7 +64,6 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
 
     require_admin(request)
     b_tasks.add_task(__shutdown_vix)
-    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @ROUTER.get("/whoami")

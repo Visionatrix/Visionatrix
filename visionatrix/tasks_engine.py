@@ -234,8 +234,10 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
             auth=options.worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
         )
+        if r.status_code == httpx.codes.NO_CONTENT:
+            return {}
         if not httpx.codes.is_error(r.status_code):
-            return json.loads(r.text)["task"]
+            return json.loads(r.text)
         LOGGER.error("Server return status: %s", r.status_code)
     except Exception as e:
         LOGGER.exception("Connect exception occurred")

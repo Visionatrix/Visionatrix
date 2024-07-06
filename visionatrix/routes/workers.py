@@ -63,4 +63,3 @@ async def worker_tasks_to_give_set(
         r = set_worker_tasks_to_give(user_id, worker_id, tasks_to_give)
     if not r:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{worker_id}` worker.")
-    return responses.Response(status_code=status.HTTP_204_NO_CONTENT)

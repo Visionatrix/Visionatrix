@@ -11,6 +11,7 @@ from fastapi import (
     Body,
     Form,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     responses,
@@ -153,7 +154,10 @@ async def task_run(
 
 
 @ROUTER.get("/tasks-progress")
-async def tasks_progress(request: Request, name: str | None = None) -> dict[int, TaskDetails]:
+async def tasks_progress(
+    request: Request,
+    name: str = Query(None, description="Optional name to filter tasks by their name"),
+) -> dict[int, TaskDetails]:
     """
     Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.
     """
@@ -165,7 +169,10 @@ async def tasks_progress(request: Request, name: str | None = None) -> dict[int,
 
 
 @ROUTER.get("/tasks-progress-short")
-async def tasks_progress_short(request: Request, name: str | None = None) -> dict[int, TaskDetailsShort]:
+async def tasks_progress_short(
+    request: Request,
+    name: str = Query(None, description="Optional name to filter tasks by their name"),
+) -> dict[int, TaskDetailsShort]:
     """
     Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.
     """
@@ -177,7 +184,7 @@ async def tasks_progress_short(request: Request, name: str | None = None) -> dic
 
 
 @ROUTER.get("/task-progress")
-async def task_progress(request: Request, task_id: int) -> TaskDetails:
+async def task_progress(request: Request, task_id: int = Query(..., description="ID of the task")) -> TaskDetails:
     """
     Retrieves the full task details of a specified task by task ID.
     Access is restricted to the task owner or an administrator.
@@ -194,8 +201,40 @@ async def task_progress(request: Request, task_id: int) -> TaskDetails:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
-@ROUTER.post("/task-restart")
-async def task_restart(request: Request, task_id: int, force: bool = False):
+@ROUTER.post(
+    "/task-restart",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully restarted the specified task"},
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "Task already finished": {
+                            "summary": "Task already finished",
+                            "value": {"detail": "Task `{task_id}` already finished."},
+                        },
+                        "No error set": {
+                            "summary": "No error set",
+                            "value": {"detail": "Task `{task_id}` has no error set."},
+                        },
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Task not found",
+            "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
+        },
+    },
+)
+async def task_restart(
+    request: Request,
+    task_id: int = Query(..., description="ID of the task to restart"),
+    force: bool = Query(False, description="Force restart even if the task has no error"),
+):
     """
     Restarts a task specified by `task_id` if it has encountered an error or is not yet completed.
     Only tasks that have errors can be restarted unless `force` is set to `True`,
@@ -208,26 +247,32 @@ async def task_restart(request: Request, task_id: int, force: bool = False):
     else:
         r = get_task(task_id, request.scope["user_info"].user_id)
     if r is None:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["progress"] == 100.0:
-        return responses.JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": f"Task `{task_id}` already finished."}
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` already finished.")
     if not r["error"] and not force:
-        return responses.JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": f"Task `{task_id}` has no error set."}
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` has no error set.")
 
     if options.VIX_MODE == "SERVER":
         await task_restart_database_async(task_id)
     else:
         task_restart_database(task_id)
     remove_task_lock_database(task_id)
-    return responses.JSONResponse(content={"error": ""})
 
 
-@ROUTER.delete("/task")
-async def task_remove(request: Request, task_id: int):
+@ROUTER.delete(
+    "/task",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully removed the specified task"},
+        404: {
+            "description": "Task not found",
+            "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
+        },
+    },
+)
+async def task_remove(request: Request, task_id: int = Query(..., description="ID of the task to remove")):
     """
     Removes a finished or errored task from the system using the task ID.
     Access is limited to the task owner or administrators.
@@ -241,20 +286,43 @@ async def task_remove(request: Request, task_id: int):
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     remove_task_by_id_database(task_id)
-    return responses.JSONResponse(content={"error": ""})
 
 
-@ROUTER.delete("/tasks")
-async def tasks_remove(request: Request, name: str):
+@ROUTER.delete(
+    "/tasks",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully removed all finished or errored tasks with the specified name"},
+    },
+)
+async def tasks_remove(request: Request, name: str = Query(..., description="Name of the tasks to remove")):
     """
     Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.
     """
     remove_task_by_name(name, request.scope["user_info"].user_id)
-    return responses.JSONResponse(content={"error": ""})
 
 
-@ROUTER.get("/task-inputs")
-async def task_inputs(request: Request, task_id: int, input_index: int):
+@ROUTER.get(
+    "/task-inputs",
+    responses={
+        200: {
+            "description": "Successfully retrieved the input file",
+            "content": {"application/octet-stream": {}},
+        },
+        404: {
+            "description": "Task or input file not found",
+            "content": {
+                "application/json": {"example": {"detail": "Task(task_id): input file `file_name` was not found."}}
+            },
+        },
+    },
+)
+async def task_inputs(
+    request: Request,
+    task_id: int = Query(..., description="ID of the task"),
+    input_index: int = Query(..., description="Index of the input file"),
+):
     """
     Retrieves a specific input file for a task, identified by `task_id` and `input_index`. This endpoint
     allows access to input files regardless of whether the task is in queue or has finished. The input index
@@ -266,9 +334,9 @@ async def task_inputs(request: Request, task_id: int, input_index: int):
     else:
         r = get_task(task_id)
     if r is None:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     for filename in os.listdir(input_directory):
         if filename == r["input_files"][input_index]["file_name"]:
@@ -279,8 +347,26 @@ async def task_inputs(request: Request, task_id: int, input_index: int):
     )
 
 
-@ROUTER.get("/task-results")
-async def task_results(request: Request, task_id: int, node_id: int):
+@ROUTER.get(
+    "/task-results",
+    responses={
+        200: {
+            "description": "Successfully retrieved the result file",
+            "content": {"application/octet-stream": {}},
+        },
+        404: {
+            "description": "Task or result file not found",
+            "content": {
+                "application/json": {"example": {"detail": "Missing result for task=task_id and node=node_id."}}
+            },
+        },
+    },
+)
+async def task_results(
+    request: Request,
+    task_id: int = Query(..., description="ID of the task"),
+    node_id: int = Query(..., description="ID of the node"),
+):
     """
     Retrieves the result file associated with a specific task and node ID. This function searches for
     output files in the designated output directory that match the task and node identifiers.
@@ -291,7 +377,7 @@ async def task_results(request: Request, task_id: int, node_id: int):
     else:
         r = get_task(task_id, request.scope["user_info"].user_id)
     if r is None:
-        raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     result_prefix = f"{task_id}_{node_id}_"
     output_files = get_task_files(task_id, "output")
     for output_file in output_files:
@@ -304,32 +390,63 @@ async def task_results(request: Request, task_id: int, node_id: int):
     )
 
 
-@ROUTER.delete("/tasks-queue")
-async def tasks_queue_clear(request: Request, name: str):
+@ROUTER.delete(
+    "/tasks-queue",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully cleared unfinished tasks from the queue"},
+    },
+)
+async def tasks_queue_clear(
+    request: Request, name: str = Query(..., description="Name of the task to clear unfinished tasks from the queue")
+):
     """
     Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.
     """
     remove_unfinished_tasks_by_name(name, request.scope["user_info"].user_id)
-    return responses.JSONResponse(content={"error": ""})
 
 
-@ROUTER.delete("/task-queue")
-async def task_queue_clear(request: Request, task_id: int):
+@ROUTER.delete(
+    "/task-queue",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully removed the unfinished task from the queue"},
+        404: {
+            "description": "Task not found",
+            "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
+        },
+    },
+)
+async def task_queue_clear(
+    request: Request, task_id: int = Query(..., description="ID of the unfinished task to remove from the queue")
+):
     """
     Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.
     """
     if get_task(task_id, request.scope["user_info"].user_id) is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     remove_unfinished_task_by_id(task_id)
-    return responses.JSONResponse(content={"error": ""})
 
 
-@ROUTER.post("/task-worker/get")
+@ROUTER.post(
+    "/task-worker/get",
+    response_class=responses.Response,
+    responses={
+        200: {
+            "description": "Successfully retrieved the task for the worker",
+        },
+        204: {
+            "description": "No incomplete tasks available for the worker",
+        },
+    },
+)
 async def task_worker_give_task(
     request: Request,
-    worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
-    tasks_names: typing.Annotated[list[str], Body()],
-    last_task_name: typing.Annotated[str, Body()] = "",
+    worker_details: WorkerDetailsRequest = Body(...),
+    tasks_names: list[str] = Body(..., description="List of task names the worker can handle"),
+    last_task_name: str = Body("", description="Optional name of the last task the worker was working on"),
 ):
     """
     Retrieves an incomplete task for a `worker` to process. Workers provide a list of tasks names they can handle
@@ -339,24 +456,43 @@ async def task_worker_give_task(
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     if options.VIX_MODE == "SERVER":
-        r = await get_incomplete_task_without_error_database_async(
+        task = await get_incomplete_task_without_error_database_async(
             request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
         )
     else:
-        r = get_incomplete_task_without_error_database(
+        task = get_incomplete_task_without_error_database(
             request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
         )
-    return responses.JSONResponse(content={"error": "", "task": r})
+    if not task:
+        return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
+    return task
 
 
-@ROUTER.put("/task-worker/progress")
+@ROUTER.put(
+    "/task-worker/progress",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {
+            "description": "Task progress updated successfully",
+        },
+        400: {
+            "description": "Failed to update task progress",
+            "content": {"application/json": {"example": {"detail": "Failed to update task progress."}}},
+        },
+        404: {
+            "description": "Task not found or not authorized",
+            "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
+        },
+    },
+)
 async def task_worker_update_progress(
     request: Request,
-    worker_details: typing.Annotated[WorkerDetailsRequest, Body()],
-    task_id: typing.Annotated[int, Body()],
-    progress: typing.Annotated[float, Body()],
-    execution_time: typing.Annotated[float, Body()],
-    error: typing.Annotated[str, Body()] = "",
+    worker_details: WorkerDetailsRequest = Body(...),
+    task_id: int = Body(..., description="ID of the task to update progress for"),
+    progress: float = Body(..., description="Progress percentage of the task"),
+    execution_time: float = Body(..., description="Execution time of the task in seconds"),
+    error: str = Body("", description="Error message if any"),
 ):
     """
     Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
@@ -379,11 +515,31 @@ async def task_worker_update_progress(
         update_success = update_task_progress_database(
             task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
         )
-    return responses.JSONResponse(content={"error": "" if update_success else "failed to update"})
+    if not update_success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task progress.")
 
 
-@ROUTER.put("/task-worker/results")
-async def task_worker_put_results(request: Request, task_id: int, files: list[UploadFile]):
+@ROUTER.put(
+    "/task-worker/results",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully saved task results"},
+        404: {
+            "description": "Task not found",
+            "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
+        },
+        400: {
+            "description": "Bad request",
+            "content": {"application/json": {"example": {"detail": "result_file.filename does not belong to task."}}},
+        },
+    },
+)
+async def task_worker_put_results(
+    request: Request,
+    task_id: int = Query(..., description="The ID of the task to save results for"),
+    files: list[UploadFile] = Form(..., description="List of result files to save"),  # noqa
+):
     """
     Saves the result files for a specific task on the server. This endpoint checks if the task exists
     and if the `worker` making the request has the authorization to upload results.
@@ -407,9 +563,9 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
                 node_found_in_flow = True
                 break
         if not node_found_in_flow:
-            responses.JSONResponse(
+            raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"error": f"{result_file.filename} does not belong to task."},
+                detail=f"{result_file.filename} does not belong to task.",
             )
         try:
             file_path = Path(output_directory).joinpath(result_file.filename)
@@ -422,11 +578,23 @@ async def task_worker_put_results(request: Request, task_id: int, files: list[Up
         await update_task_outputs_async(task_id, r["outputs"])
     else:
         update_task_outputs(task_id, r["outputs"])
-    return responses.JSONResponse(content={"error": ""})
 
 
-@ROUTER.delete("/task-worker/lock")
-async def task_worker_remove_lock(request: Request, task_id: int):
+@ROUTER.delete(
+    "/task-worker/lock",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully removed task lock"},
+        404: {
+            "description": "Task not found",
+            "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
+        },
+    },
+)
+async def task_worker_remove_lock(
+    request: Request, task_id: int = Query(..., description="The ID of the task to remove the lock from")
+):
     """
     Unlocks a task specified by the `task_id`. This endpoint checks if the task exists
     and if the `worker` making the request has the authorization to unlock it.
@@ -441,4 +609,3 @@ async def task_worker_remove_lock(request: Request, task_id: int):
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     remove_task_lock_database(task_id)
-    return responses.JSONResponse(content={"error": ""})
