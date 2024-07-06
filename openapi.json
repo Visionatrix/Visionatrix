@@ -1,0 +1,2363 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "visionatrix-client",
+    "version": "0.7.0"
+  },
+  "paths": {
+    "/api/flows-installed": {
+      "get": {
+        "summary": "Flows Installed",
+        "description": "Return the list of installed flows. Each flow can potentially be converted into a task. The response\nincludes details such as the name, display name, description, author, homepage URL, and other relevant\ninformation about each flow.",
+        "operationId": "flows_installed_api_flows_installed_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Flow"
+                  },
+                  "type": "array",
+                  "title": "Response Flows Installed Api Flows Installed Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flows-available": {
+      "get": {
+        "summary": "Flows Available",
+        "description": "Return the list of flows that can be installed. This endpoint provides detailed information about each flow,\nsimilar to the installed flows, which includes metadata and configuration parameters.",
+        "operationId": "flows_available_api_flows_available_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Flow"
+                  },
+                  "type": "array",
+                  "title": "Response Flows Available Api Flows Available Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flows-sub-flows": {
+      "get": {
+        "summary": "Flows From",
+        "description": "Retrieves a list of flows designed to post-process the results from other flows, filtering by the type\nof input they handle, either 'image' or 'video'. This endpoint is particularly useful for chaining workflows\nwhere the output of one flow becomes the input to another. It modifies the main flow's structure by adopting\nsub-flow's display name and selectively merging input parameters from the sub-flows into the main flow's parameters\nbased on matching names.",
+        "operationId": "flows_from_api_flows_sub_flows_get",
+        "parameters": [
+          {
+            "name": "input_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "image",
+                "video"
+              ],
+              "type": "string",
+              "title": "Input Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Flow"
+                  },
+                  "title": "Response Flows From Api Flows Sub Flows Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flow": {
+      "put": {
+        "summary": "Flow Install",
+        "description": "Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a new\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the specified flow name. It\nchecks the availability of the flow in the list of available flows and starts the installation if the flow\nis found. It ensures that no two installations can run concurrently.",
+        "operationId": "flow_install_api_flow_put",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Flow Install From File",
+        "description": "Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a parallel flow\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.",
+        "operationId": "flow_install_from_file_api_flow_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_flow_install_from_file_api_flow_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Flow Delete",
+        "description": "Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.",
+        "operationId": "flow_delete_api_flow_delete",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flow-progress-install": {
+      "get": {
+        "summary": "Flow Progress Install Get",
+        "description": "Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint\nreturns a dictionary showing the installation status for each flow.\n\nRequires administrative privileges.",
+        "operationId": "flow_progress_install_get_api_flow_progress_install_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FlowProgressInstall"
+                  },
+                  "title": "Response Flow Progress Install Get Api Flow Progress Install Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Flow Progress Install Delete",
+        "description": "Deletes the installation progress entry for a specified flow.\n\nRequires administrative privileges.",
+        "operationId": "flow_progress_install_delete_api_flow_progress_install_delete",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task": {
+      "post": {
+        "summary": "Task Run",
+        "description": "Endpoint to initiate the creation and execution of tasks within the Vix workflow environment,\nhandling both file inputs and task-related parameters.",
+        "operationId": "task_run_api_task_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_task_run_api_task_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunResults"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Task Remove",
+        "description": "Removes a finished or errored task from the system using the task ID.\nAccess is limited to the task owner or administrators.",
+        "operationId": "task_remove_api_task_delete",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks-progress": {
+      "get": {
+        "summary": "Tasks Progress",
+        "description": "Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.",
+        "operationId": "tasks_progress_api_tasks_progress_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/TaskDetails"
+                  },
+                  "title": "Response Tasks Progress Api Tasks Progress Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks-progress-short": {
+      "get": {
+        "summary": "Tasks Progress Short",
+        "description": "Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.",
+        "operationId": "tasks_progress_short_api_tasks_progress_short_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/TaskDetailsShort"
+                  },
+                  "title": "Response Tasks Progress Short Api Tasks Progress Short Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-progress": {
+      "get": {
+        "summary": "Task Progress",
+        "description": "Retrieves the full task details of a specified task by task ID.\nAccess is restricted to the task owner or an administrator.",
+        "operationId": "task_progress_api_task_progress_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-restart": {
+      "post": {
+        "summary": "Task Restart",
+        "description": "Restarts a task specified by `task_id` if it has encountered an error or is not yet completed.\nOnly tasks that have errors can be restarted unless `force` is set to `True`,\nwhich allows restarting any non-completed tasks.\nThis endpoint checks the task's current status and resets its progress, allowing it to be re-executed.\nAccess to this action is restricted to the task's owner or an administrator.",
+        "operationId": "task_restart_api_task_restart_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Force"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "delete": {
+        "summary": "Tasks Remove",
+        "description": "Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.",
+        "operationId": "tasks_remove_api_tasks_delete",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-inputs": {
+      "get": {
+        "summary": "Task Inputs",
+        "description": "Retrieves a specific input file for a task, identified by `task_id` and `input_index`. This endpoint\nallows access to input files regardless of whether the task is in queue or has finished. The input index\nis used to select among multiple input files if more than one was provided for the task.\nAdministrators can access inputs of any task, while regular users can only access inputs of their own tasks.",
+        "operationId": "task_inputs_api_task_inputs_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "input_index",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Input Index"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-results": {
+      "get": {
+        "summary": "Task Results",
+        "description": "Retrieves the result file associated with a specific task and node ID. This function searches for\noutput files in the designated output directory that match the task and node identifiers.\nIf the specific result file is not found, or if the task does not exist, 404 HTTP error is returned.",
+        "operationId": "task_results_api_task_results_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "node_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Node Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks-queue": {
+      "delete": {
+        "summary": "Tasks Queue Clear",
+        "description": "Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.",
+        "operationId": "tasks_queue_clear_api_tasks_queue_delete",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-queue": {
+      "delete": {
+        "summary": "Task Queue Clear",
+        "description": "Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.",
+        "operationId": "task_queue_clear_api_task_queue_delete",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-worker/get": {
+      "post": {
+        "summary": "Task Worker Give Task",
+        "description": "Retrieves an incomplete task for a `worker` to process. Workers provide a list of tasks names they can handle\nand optionally the name of the last task they were working on to prioritize similar types of tasks. If a\nworker is associated with an admin account, it can retrieve tasks regardless of user assignment; otherwise,\nit retrieves only those assigned to the user.",
+        "operationId": "task_worker_give_task_api_task_worker_get_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_task_worker_give_task_api_task_worker_get_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-worker/progress": {
+      "put": {
+        "summary": "Task Worker Update Progress",
+        "description": "Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists\nand if the requester is authorized to update its progress. If the task is not found or unauthorized,\na 404 HTTP error is raised, and `worker` should stop and consider the task canceled.",
+        "operationId": "task_worker_update_progress_api_task_worker_progress_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_task_worker_update_progress_api_task_worker_progress_put"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-worker/results": {
+      "put": {
+        "summary": "Task Worker Put Results",
+        "description": "Saves the result files for a specific task on the server. This endpoint checks if the task exists\nand if the `worker` making the request has the authorization to upload results.\nIf the task is not found or unauthorized, a 404 HTTP error is raised.",
+        "operationId": "task_worker_put_results_api_task_worker_results_put",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_task_worker_put_results_api_task_worker_results_put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-worker/lock": {
+      "delete": {
+        "summary": "Task Worker Remove Lock",
+        "description": "Unlocks a task specified by the `task_id`. This endpoint checks if the task exists\nand if the `worker` making the request has the authorization to unlock it.\nIf the task is not found or unauthorized, a 404 HTTP error is raised.",
+        "operationId": "task_worker_remove_lock_api_task_worker_lock_delete",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine-interrupt": {
+      "post": {
+        "summary": "Engine Interrupt",
+        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
+        "operationId": "engine_interrupt_api_engine_interrupt_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shutdown": {
+      "post": {
+        "summary": "Shutdown",
+        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
+        "operationId": "shutdown_api_shutdown_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers_info": {
+      "get": {
+        "summary": "Workers Info",
+        "description": "Fetches details about workers including their system and device information.\nThis endpoint allows filtering of workers based on their last active status and can also\nretrieve information for a specific worker if a worker ID is provided.\nUseful for monitoring and managing worker resources in distributed computing environments.",
+        "operationId": "workers_info_api_workers_info_get",
+        "parameters": [
+          {
+            "name": "last_seen_interval",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "The time interval in seconds within which workers must have marked themselves active. If specified, only workers who have reported activity within this interval will be returned.",
+              "default": 0,
+              "title": "Last Seen Interval"
+            },
+            "description": "The time interval in seconds within which workers must have marked themselves active. If specified, only workers who have reported activity within this interval will be returned."
+          },
+          {
+            "name": "worker_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "An optional worker ID to retrieve details for a specific worker.",
+              "default": "",
+              "title": "Worker Id"
+            },
+            "description": "An optional worker ID to retrieve details for a specific worker."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkerDetails"
+                  },
+                  "title": "Response Workers Info Api Workers Info Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/worker_tasks": {
+      "post": {
+        "summary": "Worker Tasks To Give Set",
+        "description": "Sets the tasks that a worker can work on. An empty list indicates that all tasks are allowed.\nThe administrator can set `tasks_to_give` for all workers, users only for their own.",
+        "operationId": "worker_tasks_to_give_set_api_worker_tasks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_worker_tasks_to_give_set_api_worker_tasks_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/whoami": {
+      "get": {
+        "summary": "Who Am I",
+        "description": "Get information about the currently authenticated user.",
+        "operationId": "who_am_i_api_whoami_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/setting": {
+      "get": {
+        "summary": "Setting Get",
+        "description": "Returns the value as a string or an empty string if the setting is not found.\n\nDefault endpoint for retrieving settings.\nUser settings have higher priority than global settings.",
+        "operationId": "setting_get_api_setting_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "title": "Response Setting Get Api Setting Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/global_setting": {
+      "get": {
+        "summary": "Global Setting Get",
+        "description": "Retrieve the global setting value or an empty string if the global setting is not found.",
+        "operationId": "global_setting_get_api_global_setting_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "title": "Response Global Setting Get Api Global Setting Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Global Setting Set",
+        "description": "Creates, updates, or deletes a global setting.\n\nTo delete a setting, specify an empty string as the value.\nAccess is restricted to administrators only.",
+        "operationId": "global_setting_set_api_global_setting_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_global_setting_set_api_global_setting_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_setting": {
+      "get": {
+        "summary": "User Setting Get",
+        "description": "Retrieve the user setting value or an empty string if the user setting is not found.",
+        "operationId": "user_setting_get_api_user_setting_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "title": "Response User Setting Get Api User Setting Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "User Setting Set",
+        "description": "Creates, updates, or deletes a user setting.\n\nTo delete a setting, specify an empty string as the value.",
+        "operationId": "user_setting_set_api_user_setting_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_user_setting_set_api_user_setting_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AIResourceModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Unique name of the model."
+          },
+          "save_path": {
+            "type": "string",
+            "title": "Save Path",
+            "description": "Subpath where the model is stored within the local system."
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "URL from which the model can be downloaded."
+          },
+          "homepage": {
+            "type": "string",
+            "title": "Homepage",
+            "description": "Webpage with detailed information about the model.",
+            "default": ""
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash",
+            "description": "SHA256 hash of the model file for integrity verification."
+          },
+          "regexes": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Regexes",
+            "description": "List of regex patterns that dynamically resolve model details based on workflow configurations.",
+            "default": []
+          },
+          "gated": {
+            "type": "boolean",
+            "title": "Gated",
+            "description": "Flag showing is the model closed to public access",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "save_path",
+          "url",
+          "hash"
+        ],
+        "title": "AIResourceModel",
+        "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
+      },
+      "Body_flow_install_from_file_api_flow_post": {
+        "properties": {
+          "flow_file": {
+            "type": "string",
+            "format": "binary",
+            "title": "Flow File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow_file"
+        ],
+        "title": "Body_flow_install_from_file_api_flow_post"
+      },
+      "Body_global_setting_set_api_global_setting_post": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "sensitive": {
+            "type": "boolean",
+            "title": "Sensitive"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "sensitive"
+        ],
+        "title": "Body_global_setting_set_api_global_setting_post"
+      },
+      "Body_task_run_api_task_post": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the flow from which the task should be created"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of tasks to be created",
+            "default": 1
+          },
+          "input_params": {
+            "type": "string",
+            "title": "Input Params",
+            "description": "List of input parameters as an encoded json string"
+          },
+          "files": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "binary"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Files",
+            "description": "List of input files for flow"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "Body_task_run_api_task_post"
+      },
+      "Body_task_worker_give_task_api_task_worker_get_post": {
+        "properties": {
+          "worker_details": {
+            "$ref": "#/components/schemas/WorkerDetailsRequest"
+          },
+          "tasks_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tasks Names"
+          },
+          "last_task_name": {
+            "type": "string",
+            "title": "Last Task Name",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_details",
+          "tasks_names"
+        ],
+        "title": "Body_task_worker_give_task_api_task_worker_get_post"
+      },
+      "Body_task_worker_put_results_api_task_worker_results_put": {
+        "properties": {
+          "files": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "Body_task_worker_put_results_api_task_worker_results_put"
+      },
+      "Body_task_worker_update_progress_api_task_worker_progress_put": {
+        "properties": {
+          "worker_details": {
+            "$ref": "#/components/schemas/WorkerDetailsRequest"
+          },
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id"
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress"
+          },
+          "execution_time": {
+            "type": "number",
+            "title": "Execution Time"
+          },
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_details",
+          "task_id",
+          "progress",
+          "execution_time"
+        ],
+        "title": "Body_task_worker_update_progress_api_task_worker_progress_put"
+      },
+      "Body_user_setting_set_api_user_setting_post": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "title": "Body_user_setting_set_api_user_setting_post"
+      },
+      "Body_worker_tasks_to_give_set_api_worker_tasks_post": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "tasks_to_give": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tasks To Give"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "tasks_to_give"
+        ],
+        "title": "Body_worker_tasks_to_give_set_api_worker_tasks_post"
+      },
+      "Flow": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The unique identifier of the flow."
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "The user-friendly name of the flow."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "A brief explanation of the flow's purpose and functionality.",
+            "default": ""
+          },
+          "author": {
+            "type": "string",
+            "title": "Author",
+            "description": "The creator or maintainer of the flow."
+          },
+          "homepage": {
+            "type": "string",
+            "title": "Homepage",
+            "description": "A URL to the flow's homepage or the author's website.",
+            "default": ""
+          },
+          "license": {
+            "type": "string",
+            "title": "License",
+            "description": "The type of license under which the flow is made available.",
+            "default": ""
+          },
+          "documentation": {
+            "type": "string",
+            "title": "Documentation",
+            "description": "A URL linking to detailed documentation for the flow.",
+            "default": ""
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Tags describing this flow.",
+            "default": []
+          },
+          "sub_flows": {
+            "items": {
+              "$ref": "#/components/schemas/SubFlow"
+            },
+            "type": "array",
+            "title": "Sub Flows",
+            "description": "A list of subflows derived from this flow, allowing customization or extension.",
+            "default": []
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AIResourceModel"
+            },
+            "type": "array",
+            "title": "Models",
+            "description": "A list of models used by the ComfyUI workflow.",
+            "default": []
+          },
+          "input_params": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Input Params",
+            "description": "Initial set of parameters required to launch the flow, potentially modifiable by subflows."
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Internal version of the flow in major.minor format.",
+            "default": ""
+          },
+          "requires": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requires",
+            "description": "Required external workflow dependencies.",
+            "default": []
+          },
+          "private": {
+            "type": "boolean",
+            "title": "Private",
+            "description": "Whether the workflow is missing from the `FLOWS_CATALOG_URL`",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "display_name",
+          "author",
+          "input_params"
+        ],
+        "title": "Flow",
+        "description": "Flows serve as add-ons to ComfyUI workflows, determining the parameters to be displayed and populated.\nThey also allow for the modification of ComfyUI workflow behavior based on incoming parameters."
+      },
+      "FlowProgressInstall": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the flow being installed."
+          },
+          "flow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Flow"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parsed information about Flow in Visionatrix format."
+          },
+          "flow_comfy": {
+            "type": "object",
+            "title": "Flow Comfy",
+            "description": "The ComfyUI workflow which are installed."
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress",
+            "description": "The current progress of the installation, ranging from 0 to 100."
+          },
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "description": "Details of any error encountered during the installation process.",
+            "default": ""
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At",
+            "description": "Timestamp when the installation process started."
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "Timestamp of the last update to the installation progress."
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At",
+            "description": "Timestamp when the installation process completed."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "flow_comfy",
+          "progress",
+          "started_at"
+        ],
+        "title": "FlowProgressInstall",
+        "description": "Represents the progress status of a flow installation process."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "SubFlow": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "The new display name when this subflow's parameters are used."
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "The type of object this subflow is applicable to, e.g., 'image' or 'video'."
+          },
+          "input_params": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Input Params",
+            "description": "List of input parameters specific to this subflow, replacing the original flow's parameters.",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "type"
+        ],
+        "title": "SubFlow",
+        "description": "A SubFlow modifies or extends a Flow by overwriting certain parameters like display_name and input_params."
+      },
+      "TaskDetails": {
+        "properties": {
+          "progress": {
+            "type": "number",
+            "title": "Progress",
+            "description": "Progress from 0 to 100, task results are only available once progress reaches 100."
+          },
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "description": "If this field is not empty, it indicates an error that occurred during task execution."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The unique identifier of the flow."
+          },
+          "input_params": {
+            "type": "object",
+            "title": "Input Params",
+            "description": "Incoming textual parameters based on which the ComfyUI workflow was generated."
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsOutput"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "ComfyUI nodes from which results can be retrieved."
+          },
+          "input_files": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsInput"
+            },
+            "type": "array",
+            "title": "Input Files",
+            "description": "Incoming file parameters based on which the ComfyUI workflow was generated."
+          },
+          "locked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked At",
+            "description": "Lock time if task is locked."
+          },
+          "worker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Id",
+            "description": "Unique identifier of the worker working on the task."
+          },
+          "execution_time": {
+            "type": "number",
+            "title": "Execution Time",
+            "description": "Execution time of the ComfyUI workflow in seconds."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Task creation time."
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "Last task update time."
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At",
+            "description": "Finish time of the task."
+          },
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id",
+            "description": "Unique identifier of the task."
+          },
+          "flow_comfy": {
+            "type": "object",
+            "title": "Flow Comfy",
+            "description": "The final generated ComfyUI workflow."
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "User ID to whom the task belongs."
+          }
+        },
+        "type": "object",
+        "required": [
+          "progress",
+          "error",
+          "name",
+          "input_params",
+          "outputs",
+          "input_files",
+          "execution_time",
+          "created_at",
+          "task_id",
+          "flow_comfy",
+          "user_id"
+        ],
+        "title": "TaskDetails",
+        "description": "Detailed information about the Task."
+      },
+      "TaskDetailsInput": {
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Format of name is 'task_id' + '_' + 'index'"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "Size of file in bytes."
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_name",
+          "file_size"
+        ],
+        "title": "TaskDetailsInput",
+        "description": "Information about input file to a ComfyUI workflow."
+      },
+      "TaskDetailsOutput": {
+        "properties": {
+          "comfy_node_id": {
+            "type": "integer",
+            "title": "Comfy Node Id",
+            "description": "ID of the ComfyUI node containing the result."
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "Size of file in bytes.",
+            "default": -1
+          }
+        },
+        "type": "object",
+        "required": [
+          "comfy_node_id",
+          "type"
+        ],
+        "title": "TaskDetailsOutput",
+        "description": "Contains information for retrieving the results of a ComfyUI workflow."
+      },
+      "TaskDetailsShort": {
+        "properties": {
+          "progress": {
+            "type": "number",
+            "title": "Progress",
+            "description": "Progress from 0 to 100, task results are only available once progress reaches 100."
+          },
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "description": "If this field is not empty, it indicates an error that occurred during task execution."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The unique identifier of the flow."
+          },
+          "input_params": {
+            "type": "object",
+            "title": "Input Params",
+            "description": "Incoming textual parameters based on which the ComfyUI workflow was generated."
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsOutput"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "ComfyUI nodes from which results can be retrieved."
+          },
+          "input_files": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsInput"
+            },
+            "type": "array",
+            "title": "Input Files",
+            "description": "Incoming file parameters based on which the ComfyUI workflow was generated."
+          },
+          "locked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked At",
+            "description": "Lock time if task is locked."
+          },
+          "worker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Id",
+            "description": "Unique identifier of the worker working on the task."
+          },
+          "execution_time": {
+            "type": "number",
+            "title": "Execution Time",
+            "description": "Execution time of the ComfyUI workflow in seconds."
+          }
+        },
+        "type": "object",
+        "required": [
+          "progress",
+          "error",
+          "name",
+          "input_params",
+          "outputs",
+          "input_files",
+          "execution_time"
+        ],
+        "title": "TaskDetailsShort",
+        "description": "Brief information about the Task."
+      },
+      "TaskRunResults": {
+        "properties": {
+          "tasks_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Tasks Ids",
+            "description": "List of IDs representing the tasks that were created."
+          }
+        },
+        "type": "object",
+        "required": [
+          "tasks_ids"
+        ],
+        "title": "TaskRunResults"
+      },
+      "UserInfo": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "Unique user ID."
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name",
+            "description": "Full name of the user.",
+            "default": ""
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Email name of the user.",
+            "default": ""
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin",
+            "description": "Flag showing is user is admin.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "UserInfo",
+        "description": "Minimum information provided by Authentication backends about user."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WorkerDetails": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "The primary key for the worker record, automatically incremented."
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "The foreign key from the 'users' table, non-nullable."
+          },
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id",
+            "description": "Uniq identifier for the worker, constructed from user_id, hostname, device name and device index."
+          },
+          "worker_version": {
+            "type": "string",
+            "title": "Worker Version",
+            "description": "Version of the worker"
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen",
+            "description": "The timestamp of the worker's last activity, stored in UTC."
+          },
+          "tasks_to_give": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tasks To Give",
+            "description": "Specifies tasks that the worker can execute. An empty list indicates that all tasks are allowed."
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os",
+            "description": "Operating system type of the worker's machine, such as 'posix' or 'nt'."
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "The version of Python running on the worker's machine."
+          },
+          "embedded_python": {
+            "type": "boolean",
+            "title": "Embedded Python",
+            "description": "Indicates whether the Python environment is embedded (portable).",
+            "default": false
+          },
+          "device_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Name",
+            "description": "Name of the computing device."
+          },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Type",
+            "description": "Type of the computing device, such as 'cuda' or 'cpu'."
+          },
+          "vram_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram Total",
+            "description": "Total VRAM available on the device in bytes."
+          },
+          "vram_free": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram Free",
+            "description": "Free VRAM available on the device in bytes."
+          },
+          "torch_vram_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Torch Vram Total",
+            "description": "Total VRAM managed by PyTorch in bytes."
+          },
+          "torch_vram_free": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Torch Vram Free",
+            "description": "Free VRAM managed by PyTorch that is currently unused."
+          },
+          "ram_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Total",
+            "description": "Total RAM available on the worker in bytes."
+          },
+          "ram_free": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Free",
+            "description": "Free RAM available on the worker in bytes."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "worker_id",
+          "worker_version",
+          "last_seen",
+          "tasks_to_give"
+        ],
+        "title": "WorkerDetails"
+      },
+      "WorkerDetailsDeviceRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Full computing device name"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Type of the device such as 'cuda' or 'cpu'",
+            "default": ""
+          },
+          "index": {
+            "type": "integer",
+            "title": "Index",
+            "description": "Computing device index",
+            "default": 0
+          },
+          "vram_total": {
+            "type": "integer",
+            "title": "Vram Total",
+            "description": "Total VRAM available on the device in bytes",
+            "default": 0
+          },
+          "vram_free": {
+            "type": "integer",
+            "title": "Vram Free",
+            "description": "Free VRAM available on the device in bytes",
+            "default": 0
+          },
+          "torch_vram_total": {
+            "type": "integer",
+            "title": "Torch Vram Total",
+            "description": "Total VRAM managed by PyTorch in bytes",
+            "default": 0
+          },
+          "torch_vram_free": {
+            "type": "integer",
+            "title": "Torch Vram Free",
+            "description": "Free VRAM managed by PyTorch in bytes",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "WorkerDetailsDeviceRequest",
+        "description": "Provides detailed information about the computing device and memory status."
+      },
+      "WorkerDetailsRequest": {
+        "properties": {
+          "worker_version": {
+            "type": "string",
+            "title": "Worker Version",
+            "description": "Version of the worker"
+          },
+          "system": {
+            "$ref": "#/components/schemas/WorkerDetailsSystemRequest"
+          },
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerDetailsDeviceRequest"
+            },
+            "type": "array",
+            "title": "Devices"
+          },
+          "ram_total": {
+            "type": "integer",
+            "title": "Ram Total",
+            "description": "Total RAM on the worker in bytes",
+            "default": 0
+          },
+          "ram_free": {
+            "type": "integer",
+            "title": "Ram Free",
+            "description": "Free RAM on the worker in bytes",
+            "default": 0
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen",
+            "description": "Last seen time",
+            "default": "2024-07-06T10:55:00.299016Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_version",
+          "system",
+          "devices"
+        ],
+        "title": "WorkerDetailsRequest",
+        "description": "Consolidates information relevant to a worker handling AI tasks."
+      },
+      "WorkerDetailsSystemRequest": {
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "title": "Hostname",
+            "description": "Hostname of the worker machine"
+          },
+          "os": {
+            "type": "string",
+            "title": "Os",
+            "description": "Operating system type, e.g., 'posix', 'nt'"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Python version information"
+          },
+          "embedded_python": {
+            "type": "boolean",
+            "title": "Embedded Python",
+            "description": "Flag indicating if Python is embedded (portable) or not"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hostname",
+          "os",
+          "version",
+          "embedded_python"
+        ],
+        "title": "WorkerDetailsSystemRequest",
+        "description": "Provides OS and Python environment details of the worker."
+      }
+    }
+  }
+}
