@@ -10,8 +10,14 @@ docs html:
 help:
 	@echo "Welcome to Visionatrix development. Please use \`make <target>\` where <target> is one of"
 	@echo "  docs               make HTML docs"
+	@echo "  openapi       		build openapi.json"
 	@echo "  build-client       build frontend client"
 	@echo " "
+
+.PHONY: openapi
+openapi:
+	@echo "Building OpenAPI.json.."
+	@python3 scripts/generate_openapi.py
 
 .PHONY: build-client
 build-client:
