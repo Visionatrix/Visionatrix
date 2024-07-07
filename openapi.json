@@ -887,7 +887,7 @@
         }
       }
     },
-    "/api/tasks/tasks": {
+    "/api/tasks/": {
       "delete": {
         "tags": [
           "tasks"
@@ -1225,7 +1225,12 @@
         },
         "responses": {
           "200": {
-            "description": "Successfully retrieved the task for the worker"
+            "description": "Successfully retrieved the task for the worker",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
           },
           "204": {
             "description": "No incomplete tasks available for the worker"
@@ -2566,7 +2571,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-07T13:16:05.095695Z"
+            "default": "2024-07-07T17:12:24.756938Z"
           }
         },
         "type": "object",

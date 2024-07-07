@@ -417,7 +417,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async deleteFlowResults(flow_name: string) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/tasks/tasks?name=${flow_name}`, {
+			return await $apiFetch(`/tasks/?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
 				if (res && res?.details !== '') {

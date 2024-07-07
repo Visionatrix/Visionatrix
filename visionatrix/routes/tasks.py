@@ -289,7 +289,7 @@ async def delete_task(request: Request, task_id: int = Query(..., description="I
 
 
 @ROUTER.delete(
-    "/tasks",
+    "/",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -430,7 +430,6 @@ async def remove_task_from_queue(request: Request, task_id: int):
 
 @ROUTER.post(
     "/next",
-    response_class=responses.Response,
     responses={
         200: {
             "description": "Successfully retrieved the task for the worker",
