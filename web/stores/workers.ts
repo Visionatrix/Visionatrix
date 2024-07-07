@@ -8,7 +8,7 @@ export const useWorkersStore = defineStore('workersStore', {
 	actions: {
 		async loadWorkers() {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch('/workers_info')
+			return await $apiFetch('/workers/info')
 				.then((res: any) => {
 					this.workers = <WorkerInfo[]>res
 				})
@@ -34,7 +34,7 @@ export const useWorkersStore = defineStore('workersStore', {
 
 		async setTasksToGive(worker_id: string, tasks_to_give: any[]) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch('/worker_tasks', {
+			return await $apiFetch('/workers/tasks', {
 				method: 'POST',
 				body: JSON.stringify({ worker_id, tasks_to_give }),
 			}).then((res: any) => {

@@ -8,7 +8,7 @@ defineProps({
 
 const img = useImage()
 const queueImageInputSrc = function (task_id: string, index: number) {
-	return `${buildBackendApiUrl()}/task-inputs?task_id=${task_id}&input_index=${index}`
+	return `${buildBackendApiUrl()}/tasks/inputs?task_id=${task_id}&input_index=${index}`
 }
 
 const isModalOpen = ref(false)

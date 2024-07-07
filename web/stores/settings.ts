@@ -53,14 +53,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 
 		getGlobalSetting(key: string) {
 			const { $apiFetch } = useNuxtApp()
-			return $apiFetch(`/global_setting?key=${key}`, {
+			return $apiFetch(`/settings/global?key=${key}`, {
 				method: 'GET',
 			})
 		},
 
 		saveGlobalSetting(key: string, value: any, sensitive: boolean) {
 			const { $apiFetch } = useNuxtApp()
-			return $apiFetch('/global_setting', {
+			return $apiFetch('/settings/global', {
 				method: 'POST',
 				body: JSON.stringify({
 					key,
@@ -72,14 +72,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 
 		getUserSetting(key: string) {
 			const { $apiFetch } = useNuxtApp()
-			return $apiFetch(`/user_setting?key=${key}`, {
+			return $apiFetch(`/settings/user?key=${key}`, {
 				method: 'GET',
 			})
 		},
 
 		saveUserSetting(key: string, value: any) {
 			const { $apiFetch } = useNuxtApp()
-			return $apiFetch('/user_setting', {
+			return $apiFetch('/settings/user', {
 				method: 'POST',
 				body: JSON.stringify({
 					key,

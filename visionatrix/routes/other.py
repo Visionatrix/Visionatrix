@@ -10,11 +10,11 @@ from ..pydantic_models import UserInfo
 from .helpers import require_admin
 
 LOGGER = logging.getLogger("visionatrix")
-ROUTER = APIRouter(prefix="/api")
+ROUTER = APIRouter(prefix="/other", tags=["other"])
 
 
 @ROUTER.post(
-    "/engine-interrupt",
+    "/interrupt-engine",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -25,7 +25,7 @@ ROUTER = APIRouter(prefix="/api")
         },
     },
 )
-async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
+async def interrupt_engine(request: Request, b_tasks: BackgroundTasks):
     """
     Interrupts the currently executing task. This is primarily an internal function and should be used
     cautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`
@@ -41,7 +41,7 @@ async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
 
 
 @ROUTER.post(
-    "/shutdown",
+    "/shutdown-server",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -52,7 +52,7 @@ async def engine_interrupt(request: Request, b_tasks: BackgroundTasks):
         },
     },
 )
-async def shutdown(request: Request, b_tasks: BackgroundTasks):
+async def shutdown_server(request: Request, b_tasks: BackgroundTasks):
     """
     Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process
     after a short delay, ensuring any final operations can complete. Access is restricted to administrators only.
@@ -67,6 +67,6 @@ async def shutdown(request: Request, b_tasks: BackgroundTasks):
 
 
 @ROUTER.get("/whoami")
-async def who_am_i(request: Request) -> UserInfo:
+async def whoami(request: Request) -> UserInfo:
     """Returns information about the currently authenticated user."""
     return request.scope["user_info"]

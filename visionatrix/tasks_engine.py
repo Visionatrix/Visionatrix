@@ -205,7 +205,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
         if not ollama_url:
             if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
                 r = httpx.get(
-                    options.VIX_SERVER.rstrip("/") + "/setting",
+                    options.VIX_SERVER.rstrip("/") + "/api/settings/get",
                     params={"key": "ollama_url"},
                     auth=options.worker_auth(),
                     timeout=float(options.WORKER_NET_TIMEOUT),
@@ -225,7 +225,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
 def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
     try:
         r = httpx.post(
-            options.VIX_SERVER.rstrip("/") + "/task-worker/get",
+            options.VIX_SERVER.rstrip("/") + "/api/tasks/next",
             json={
                 "worker_details": get_worker_details(),
                 "tasks_names": tasks_to_ask,
@@ -411,7 +411,7 @@ def remove_task_by_id_database(task_id: int) -> bool:
 def remove_task_by_id_server(task_id: int) -> bool:
     try:
         r = httpx.delete(
-            options.VIX_SERVER.rstrip("/") + "/task",
+            options.VIX_SERVER.rstrip("/") + "/api/tasks/task",
             params={"task_id": task_id},
             auth=options.worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
@@ -528,7 +528,7 @@ def remove_task_lock_database(task_id: int) -> None:
 def remove_task_lock_server(task_id: int) -> None:
     try:
         r = httpx.delete(
-            options.VIX_SERVER.rstrip("/") + "/task-worker/lock",
+            options.VIX_SERVER.rstrip("/") + "/api/tasks/lock",
             params={"task_id": task_id},
             auth=options.worker_auth(),
             timeout=float(options.WORKER_NET_TIMEOUT),
@@ -640,7 +640,7 @@ def update_task_progress_server(task_details: dict) -> bool:
     for i in range(3):
         try:
             r = httpx.put(
-                options.VIX_SERVER.rstrip("/") + "/task-worker/progress",
+                options.VIX_SERVER.rstrip("/") + "/api/tasks/progress",
                 json=request_data,
                 auth=options.worker_auth(),
                 timeout=float(options.WORKER_NET_TIMEOUT),
@@ -683,7 +683,7 @@ def init_active_task_inputs_from_server() -> bool:
             for k in range(3):
                 try:
                     r = httpx.get(
-                        options.VIX_SERVER.rstrip("/") + "/task-inputs",
+                        options.VIX_SERVER.rstrip("/") + "/api/tasks/inputs",
                         params={"task_id": task_id, "input_index": i},
                         auth=options.worker_auth(),
                         timeout=float(options.WORKER_NET_TIMEOUT),
@@ -734,7 +734,7 @@ def upload_results_to_server(task_details: dict) -> bool:
             for i in range(3):
                 try:
                     r = httpx.put(
-                        options.VIX_SERVER.rstrip("/") + "/task-worker/results",
+                        options.VIX_SERVER.rstrip("/") + "/api/tasks/results",
                         params={
                             "task_id": task_id,
                         },

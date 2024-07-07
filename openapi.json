@@ -2,14 +2,17 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "0.8.0.dev0"
+    "version": "0.7.1"
   },
   "paths": {
-    "/api/flows-installed": {
+    "/api/flows/installed": {
       "get": {
-        "summary": "Flows Installed",
+        "tags": [
+          "flows"
+        ],
+        "summary": "Get Installed",
         "description": "Return the list of installed flows. Each flow can potentially be converted into a task. The response\nincludes details such as the name, display name, description, author, homepage URL, and other relevant\ninformation about each flow.",
-        "operationId": "flows_installed_api_flows_installed_get",
+        "operationId": "get_installed",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -20,7 +23,7 @@
                     "$ref": "#/components/schemas/Flow"
                   },
                   "type": "array",
-                  "title": "Response Flows Installed Api Flows Installed Get"
+                  "title": "Response Get Installed"
                 }
               }
             }
@@ -28,11 +31,14 @@
         }
       }
     },
-    "/api/flows-available": {
+    "/api/flows/not-installed": {
       "get": {
-        "summary": "Flows Available",
+        "tags": [
+          "flows"
+        ],
+        "summary": "Get Not Installed",
         "description": "Return the list of flows that can be installed. This endpoint provides detailed information about each flow,\nsimilar to the installed flows, which includes metadata and configuration parameters.",
-        "operationId": "flows_available_api_flows_available_get",
+        "operationId": "get_not_installed",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -43,7 +49,7 @@
                     "$ref": "#/components/schemas/Flow"
                   },
                   "type": "array",
-                  "title": "Response Flows Available Api Flows Available Get"
+                  "title": "Response Get Not Installed"
                 }
               }
             }
@@ -51,11 +57,14 @@
         }
       }
     },
-    "/api/flows-sub-flows": {
+    "/api/flows/subflows": {
       "get": {
-        "summary": "Flows From",
+        "tags": [
+          "flows"
+        ],
+        "summary": "Get Subflows",
         "description": "Retrieves a list of flows designed to post-process the results from other flows, filtering by the type\nof input they handle, either 'image' or 'video'. This endpoint is particularly useful for chaining workflows\nwhere the output of one flow becomes the input to another. It modifies the main flow's structure by adopting\nsub-flow's display name and selectively merging input parameters from the sub-flows into the main flow's parameters\nbased on matching names.",
-        "operationId": "flows_from_api_flows_sub_flows_get",
+        "operationId": "get_subflows",
         "parameters": [
           {
             "name": "input_type",
@@ -81,7 +90,7 @@
                   "items": {
                     "$ref": "#/components/schemas/Flow"
                   },
-                  "title": "Response Flows From Api Flows Sub Flows Get"
+                  "title": "Response Get Subflows"
                 }
               }
             }
@@ -99,11 +108,14 @@
         }
       }
     },
-    "/api/flow": {
-      "put": {
-        "summary": "Flow Install",
+    "/api/flows/flow": {
+      "post": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Install",
         "description": "Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a new\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the specified flow name. It\nchecks the availability of the flow in the list of available flows and starts the installation if the flow\nis found. It ensures that no two installations can run concurrently.",
-        "operationId": "flow_install_api_flow_put",
+        "operationId": "install",
         "parameters": [
           {
             "name": "name",
@@ -153,16 +165,19 @@
           }
         }
       },
-      "post": {
-        "summary": "Flow Install From File",
+      "put": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Install From File",
         "description": "Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a parallel flow\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the uploaded flow file.",
-        "operationId": "flow_install_from_file_api_flow_post",
+        "operationId": "install_from_file",
         "requestBody": {
           "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_flow_install_from_file_api_flow_post"
+                "$ref": "#/components/schemas/Body_install_from_file"
               }
             }
           }
@@ -194,9 +209,12 @@
         }
       },
       "delete": {
-        "summary": "Flow Delete",
+        "tags": [
+          "flows"
+        ],
+        "summary": "Delete",
         "description": "Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.\nThis endpoint will succeed even if the flow does not exist.",
-        "operationId": "flow_delete_api_flow_delete",
+        "operationId": "delete",
         "parameters": [
           {
             "name": "name",
@@ -227,11 +245,14 @@
         }
       }
     },
-    "/api/flow-progress-install": {
+    "/api/flows/install-progress": {
       "get": {
-        "summary": "Flow Progress Install Get",
+        "tags": [
+          "flows"
+        ],
+        "summary": "Get Install Progress",
         "description": "Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint\nreturns a dictionary showing the installation status for each flow.\n\nRequires administrative privileges.",
-        "operationId": "flow_progress_install_get_api_flow_progress_install_get",
+        "operationId": "get_install_progress",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -242,7 +263,7 @@
                   "items": {
                     "$ref": "#/components/schemas/FlowProgressInstall"
                   },
-                  "title": "Response Flow Progress Install Get Api Flow Progress Install Get"
+                  "title": "Response Get Install Progress"
                 }
               }
             }
@@ -250,9 +271,12 @@
         }
       },
       "delete": {
-        "summary": "Flow Progress Install Delete",
+        "tags": [
+          "flows"
+        ],
+        "summary": "Delete Install Progress",
         "description": "Deletes the installation progress entry for a specified flow.\n\nRequires administrative privileges.",
-        "operationId": "flow_progress_install_delete_api_flow_progress_install_delete",
+        "operationId": "delete_install_progress",
         "parameters": [
           {
             "name": "name",
@@ -293,11 +317,14 @@
         }
       }
     },
-    "/api/setting": {
+    "/api/settings/get": {
       "get": {
-        "summary": "Setting Get",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get",
         "description": "Returns the value as a string or an empty string if the setting is not found.\n\nDefault endpoint for retrieving settings.\nUser settings have higher priority than global settings.",
-        "operationId": "setting_get_api_setting_get",
+        "operationId": "get",
         "parameters": [
           {
             "name": "key",
@@ -333,11 +360,14 @@
         }
       }
     },
-    "/api/global_setting": {
+    "/api/settings/global": {
       "get": {
-        "summary": "Global Setting Get",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Global",
         "description": "Retrieve the global setting value or an empty string if the global setting is not found.",
-        "operationId": "global_setting_get_api_global_setting_get",
+        "operationId": "get_global",
         "parameters": [
           {
             "name": "key",
@@ -373,15 +403,18 @@
         }
       },
       "post": {
-        "summary": "Global Setting Set",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Set Global",
         "description": "Creates, updates, or deletes a global setting.\n\nTo delete a setting, specify an empty string as the value.\nAccess is restricted to administrators only.",
-        "operationId": "global_setting_set_api_global_setting_post",
+        "operationId": "set_global",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_global_setting_set_api_global_setting_post"
+                "$ref": "#/components/schemas/Body_set_global"
               }
             }
           }
@@ -413,11 +446,14 @@
         }
       }
     },
-    "/api/user_setting": {
+    "/api/settings/user": {
       "get": {
-        "summary": "User Setting Get",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get User",
         "description": "Retrieve the user setting value or an empty string if the user setting is not found.",
-        "operationId": "user_setting_get_api_user_setting_get",
+        "operationId": "get_user",
         "parameters": [
           {
             "name": "key",
@@ -453,15 +489,18 @@
         }
       },
       "post": {
-        "summary": "User Setting Set",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Set User",
         "description": "Creates, updates, or deletes a user setting.\n\nTo delete a setting, specify an empty string as the value.",
-        "operationId": "user_setting_set_api_user_setting_post",
+        "operationId": "set_user",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_user_setting_set_api_user_setting_post"
+                "$ref": "#/components/schemas/Body_set_user"
               }
             }
           }
@@ -483,20 +522,23 @@
         }
       }
     },
-    "/api/task": {
+    "/api/tasks/create": {
       "post": {
-        "summary": "Task Run",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Create Task",
         "description": "Endpoint to initiate the creation and execution of tasks within the Vix workflow environment,\nhandling both file inputs and task-related parameters.",
-        "operationId": "task_run_api_task_post",
+        "operationId": "create_task",
         "requestBody": {
-          "required": true,
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/Body_task_run_api_task_post"
+                "$ref": "#/components/schemas/Body_create_task"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -520,56 +562,16 @@
             }
           }
         }
-      },
-      "delete": {
-        "summary": "Task Remove",
-        "description": "Removes a finished or errored task from the system using the task ID.\nAccess is limited to the task owner or administrators.",
-        "operationId": "task_remove_api_task_delete",
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "description": "ID of the task to remove",
-              "title": "Task Id"
-            },
-            "description": "ID of the task to remove"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successfully removed the specified task"
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Task `{task_id}` was not found."
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
       }
     },
-    "/api/tasks-progress": {
+    "/api/tasks/progress": {
       "get": {
-        "summary": "Tasks Progress",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Tasks Progress",
         "description": "Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.",
-        "operationId": "tasks_progress_api_tasks_progress_get",
+        "operationId": "get_tasks_progress",
         "parameters": [
           {
             "name": "name",
@@ -593,7 +595,60 @@
                   "additionalProperties": {
                     "$ref": "#/components/schemas/TaskDetails"
                   },
-                  "title": "Response Tasks Progress Api Tasks Progress Get"
+                  "title": "Response Get Tasks Progress"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Update Task Progress",
+        "description": "Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists\nand if the requester is authorized to update its progress. If the task is not found or unauthorized,\na 404 HTTP error is raised, and `worker` should stop and consider the task canceled.",
+        "operationId": "update_task_progress",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_update_task_progress"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Task progress updated successfully"
+          },
+          "400": {
+            "description": "Failed to update task progress",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Failed to update task progress."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found or not authorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
                 }
               }
             }
@@ -611,11 +666,14 @@
         }
       }
     },
-    "/api/tasks-progress-short": {
+    "/api/tasks/progress-summary": {
       "get": {
-        "summary": "Tasks Progress Short",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Tasks Progress Summary",
         "description": "Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.",
-        "operationId": "tasks_progress_short_api_tasks_progress_short_get",
+        "operationId": "get_tasks_progress_summary",
         "parameters": [
           {
             "name": "name",
@@ -639,7 +697,7 @@
                   "additionalProperties": {
                     "$ref": "#/components/schemas/TaskDetailsShort"
                   },
-                  "title": "Response Tasks Progress Short Api Tasks Progress Short Get"
+                  "title": "Response Get Tasks Progress Summary"
                 }
               }
             }
@@ -657,22 +715,23 @@
         }
       }
     },
-    "/api/task-progress": {
+    "/api/tasks/progress/{task_id}": {
       "get": {
-        "summary": "Task Progress",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Task Progress",
         "description": "Retrieves the full task details of a specified task by task ID.\nAccess is restricted to the task owner or an administrator.",
-        "operationId": "task_progress_api_task_progress_get",
+        "operationId": "get_task_progress",
         "parameters": [
           {
             "name": "task_id",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "integer",
-              "description": "ID of the task",
               "title": "Task Id"
-            },
-            "description": "ID of the task"
+            }
           }
         ],
         "responses": {
@@ -699,11 +758,14 @@
         }
       }
     },
-    "/api/task-restart": {
+    "/api/tasks/restart": {
       "post": {
-        "summary": "Task Restart",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Restart Task",
         "description": "Restarts a task specified by `task_id` if it has encountered an error or is not yet completed.\nOnly tasks that have errors can be restarted unless `force` is set to `True`,\nwhich allows restarting any non-completed tasks.\nThis endpoint checks the task's current status and resets its progress, allowing it to be re-executed.\nAccess to this action is restricted to the task's owner or an administrator.",
-        "operationId": "task_restart_api_task_restart_post",
+        "operationId": "restart_task",
         "parameters": [
           {
             "name": "task_id",
@@ -777,27 +839,40 @@
         }
       }
     },
-    "/api/tasks": {
+    "/api/tasks/task": {
       "delete": {
-        "summary": "Tasks Remove",
-        "description": "Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.",
-        "operationId": "tasks_remove_api_tasks_delete",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Delete Task",
+        "description": "Removes a task from the system by the task ID.\nAccess is limited to the task owner or administrators.",
+        "operationId": "delete_task",
         "parameters": [
           {
-            "name": "name",
+            "name": "task_id",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "description": "Name of the tasks to remove",
-              "title": "Name"
+              "type": "integer",
+              "description": "ID of the task to remove",
+              "title": "Task Id"
             },
-            "description": "Name of the tasks to remove"
+            "description": "ID of the task to remove"
           }
         ],
         "responses": {
           "204": {
-            "description": "Successfully removed all finished or errored tasks with the specified name"
+            "description": "Successfully removed the specified task"
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -812,11 +887,52 @@
         }
       }
     },
-    "/api/task-inputs": {
+    "/api/tasks/clear": {
+      "delete": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Clear Tasks",
+        "description": "Removes all finished tasks associated with a specific task name, scoped to the requesting user.",
+        "operationId": "clear_tasks",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the task whose results need to be deleted",
+              "title": "Name"
+            },
+            "description": "Name of the task whose results need to be deleted"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successfully removed results of all finished tasks with the specified name"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/inputs": {
       "get": {
-        "summary": "Task Inputs",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Task Inputs",
         "description": "Retrieves a specific input file for a task, identified by `task_id` and `input_index`. This endpoint\nallows access to input files regardless of whether the task is in queue or has finished. The input index\nis used to select among multiple input files if more than one was provided for the task.\nAdministrators can access inputs of any task, while regular users can only access inputs of their own tasks.",
-        "operationId": "task_inputs_api_task_inputs_get",
+        "operationId": "get_task_inputs",
         "parameters": [
           {
             "name": "task_id",
@@ -874,11 +990,14 @@
         }
       }
     },
-    "/api/task-results": {
+    "/api/tasks/results": {
       "get": {
-        "summary": "Task Results",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Task Results",
         "description": "Retrieves the result file associated with a specific task and node ID. This function searches for\noutput files in the designated output directory that match the task and node identifiers.\nIf the specific result file is not found, or if the task does not exist, 404 HTTP error is returned.",
-        "operationId": "task_results_api_task_results_get",
+        "operationId": "get_task_results",
         "parameters": [
           {
             "name": "task_id",
@@ -934,180 +1053,14 @@
             }
           }
         }
-      }
-    },
-    "/api/tasks-queue": {
-      "delete": {
-        "summary": "Tasks Queue Clear",
-        "description": "Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.",
-        "operationId": "tasks_queue_clear_api_tasks_queue_delete",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Name of the task to clear unfinished tasks from the queue",
-              "title": "Name"
-            },
-            "description": "Name of the task to clear unfinished tasks from the queue"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successfully cleared unfinished tasks from the queue"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/task-queue": {
-      "delete": {
-        "summary": "Task Queue Clear",
-        "description": "Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.",
-        "operationId": "task_queue_clear_api_task_queue_delete",
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "description": "ID of the unfinished task to remove from the queue",
-              "title": "Task Id"
-            },
-            "description": "ID of the unfinished task to remove from the queue"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successfully removed the unfinished task from the queue"
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Task `{task_id}` was not found."
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/task-worker/get": {
-      "post": {
-        "summary": "Task Worker Give Task",
-        "description": "Retrieves an incomplete task for a `worker` to process. Workers provide a list of tasks names they can handle\nand optionally the name of the last task they were working on to prioritize similar types of tasks. If a\nworker is associated with an admin account, it can retrieve tasks regardless of user assignment; otherwise,\nit retrieves only those assigned to the user.",
-        "operationId": "task_worker_give_task_api_task_worker_get_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_task_worker_give_task_api_task_worker_get_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the task for the worker"
-          },
-          "204": {
-            "description": "No incomplete tasks available for the worker"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/task-worker/progress": {
+      },
       "put": {
-        "summary": "Task Worker Update Progress",
-        "description": "Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists\nand if the requester is authorized to update its progress. If the task is not found or unauthorized,\na 404 HTTP error is raised, and `worker` should stop and consider the task canceled.",
-        "operationId": "task_worker_update_progress_api_task_worker_progress_put",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_task_worker_update_progress_api_task_worker_progress_put"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "Task progress updated successfully"
-          },
-          "400": {
-            "description": "Failed to update task progress",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Failed to update task progress."
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found or not authorized",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Task `{task_id}` was not found."
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/task-worker/results": {
-      "put": {
-        "summary": "Task Worker Put Results",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Set Task Results",
         "description": "Saves the result files for a specific task on the server. This endpoint checks if the task exists\nand if the `worker` making the request has the authorization to upload results.\nIf the task is not found or unauthorized, a 404 HTTP error is raised.",
-        "operationId": "task_worker_put_results_api_task_worker_results_put",
+        "operationId": "set_task_results",
         "parameters": [
           {
             "name": "task_id",
@@ -1126,7 +1079,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/Body_task_worker_put_results_api_task_worker_results_put"
+                "$ref": "#/components/schemas/Body_set_task_results"
               }
             }
           }
@@ -1168,11 +1121,141 @@
         }
       }
     },
-    "/api/task-worker/lock": {
+    "/api/tasks/queue": {
       "delete": {
-        "summary": "Task Worker Remove Lock",
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Remove Tasks From Queue",
+        "description": "Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.",
+        "operationId": "remove_tasks_from_queue",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the task to clear unfinished tasks from the queue",
+              "title": "Name"
+            },
+            "description": "Name of the task to clear unfinished tasks from the queue"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successfully cleared unfinished tasks from the queue"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/queue/{task_id}": {
+      "delete": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Remove Task From Queue",
+        "description": "Removes a specific unfinished task from the queue using the task ID.",
+        "operationId": "remove_task_from_queue",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successfully removed the unfinished task from the queue"
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/next": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Next Task",
+        "description": "Retrieves an incomplete task for a `worker` to process. Workers provide a list of tasks names they can handle\nand optionally the name of the last task they were working on to prioritize similar types of tasks. If a\nworker is associated with an admin account, it can retrieve tasks regardless of user assignment; otherwise,\nit retrieves only those assigned to the user.",
+        "operationId": "get_next_task",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_get_next_task"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the task for the worker",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "204": {
+            "description": "No incomplete tasks available for the worker"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/lock": {
+      "delete": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Remove Task Lock",
         "description": "Unlocks a task specified by the `task_id`. This endpoint checks if the task exists\nand if the `worker` making the request has the authorization to unlock it.\nIf the task is not found or unauthorized, a 404 HTTP error is raised.",
-        "operationId": "task_worker_remove_lock_api_task_worker_lock_delete",
+        "operationId": "remove_task_lock",
         "parameters": [
           {
             "name": "task_id",
@@ -1213,11 +1296,14 @@
         }
       }
     },
-    "/api/workers_info": {
+    "/api/workers/info": {
       "get": {
-        "summary": "Workers Info",
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Info",
         "description": "Fetches details about workers including their system and device information.\nThis endpoint allows filtering of workers based on their last active status and can also\nretrieve information for a specific worker if a worker ID is provided.\nUseful for monitoring and managing worker resources in distributed computing environments.",
-        "operationId": "workers_info_api_workers_info_get",
+        "operationId": "get_info",
         "parameters": [
           {
             "name": "last_seen_interval",
@@ -1254,7 +1340,7 @@
                   "items": {
                     "$ref": "#/components/schemas/WorkerDetails"
                   },
-                  "title": "Response Workers Info Api Workers Info Get"
+                  "title": "Response Get Info"
                 }
               }
             }
@@ -1272,16 +1358,19 @@
         }
       }
     },
-    "/api/worker_tasks": {
+    "/api/workers/tasks": {
       "post": {
-        "summary": "Worker Tasks To Give Set",
+        "tags": [
+          "workers"
+        ],
+        "summary": "Set Tasks To Process",
         "description": "Sets the tasks that a worker can work on. An empty list indicates that all tasks are allowed.\nThe administrator can set `tasks_to_give` for all workers, users only for their own.",
-        "operationId": "worker_tasks_to_give_set_api_worker_tasks_post",
+        "operationId": "set_tasks_to_process",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_worker_tasks_to_give_set_api_worker_tasks_post"
+                "$ref": "#/components/schemas/Body_set_tasks_to_process"
               }
             }
           },
@@ -1314,11 +1403,14 @@
         }
       }
     },
-    "/api/engine-interrupt": {
+    "/api/other/interrupt-engine": {
       "post": {
-        "summary": "Engine Interrupt",
+        "tags": [
+          "other"
+        ],
+        "summary": "Interrupt Engine",
         "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
-        "operationId": "engine_interrupt_api_engine_interrupt_post",
+        "operationId": "interrupt_engine",
         "responses": {
           "204": {
             "description": "Engine interrupt initiated successfully"
@@ -1336,11 +1428,14 @@
         }
       }
     },
-    "/api/shutdown": {
+    "/api/other/shutdown-server": {
       "post": {
-        "summary": "Shutdown",
+        "tags": [
+          "other"
+        ],
+        "summary": "Shutdown Server",
         "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
-        "operationId": "shutdown_api_shutdown_post",
+        "operationId": "shutdown_server",
         "responses": {
           "204": {
             "description": "Server shutdown initiated successfully"
@@ -1358,11 +1453,14 @@
         }
       }
     },
-    "/api/whoami": {
+    "/api/other/whoami": {
       "get": {
-        "summary": "Who Am I",
+        "tags": [
+          "other"
+        ],
+        "summary": "Whoami",
         "description": "Returns information about the currently authenticated user.",
-        "operationId": "who_am_i_api_whoami_get",
+        "operationId": "whoami",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1434,48 +1532,7 @@
         "title": "AIResourceModel",
         "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
       },
-      "Body_flow_install_from_file_api_flow_post": {
-        "properties": {
-          "flow_file": {
-            "type": "string",
-            "format": "binary",
-            "title": "Flow File",
-            "description": "The ComfyUI workflow file to be uploaded and installed"
-          }
-        },
-        "type": "object",
-        "required": [
-          "flow_file"
-        ],
-        "title": "Body_flow_install_from_file_api_flow_post"
-      },
-      "Body_global_setting_set_api_global_setting_post": {
-        "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "The key of the setting to update"
-          },
-          "value": {
-            "type": "string",
-            "title": "Value",
-            "description": "The value of the setting to update, or an empty string to delete the setting"
-          },
-          "sensitive": {
-            "type": "boolean",
-            "title": "Sensitive",
-            "description": "Flag that determines whether the value can be available to users or not"
-          }
-        },
-        "type": "object",
-        "required": [
-          "key",
-          "value",
-          "sensitive"
-        ],
-        "title": "Body_global_setting_set_api_global_setting_post"
-      },
-      "Body_task_run_api_task_post": {
+      "Body_create_task": {
         "properties": {
           "name": {
             "type": "string",
@@ -1514,9 +1571,9 @@
         "required": [
           "name"
         ],
-        "title": "Body_task_run_api_task_post"
+        "title": "Body_create_task"
       },
-      "Body_task_worker_give_task_api_task_worker_get_post": {
+      "Body_get_next_task": {
         "properties": {
           "worker_details": {
             "$ref": "#/components/schemas/WorkerDetailsRequest"
@@ -1541,9 +1598,50 @@
           "worker_details",
           "tasks_names"
         ],
-        "title": "Body_task_worker_give_task_api_task_worker_get_post"
+        "title": "Body_get_next_task"
       },
-      "Body_task_worker_put_results_api_task_worker_results_put": {
+      "Body_install_from_file": {
+        "properties": {
+          "flow_file": {
+            "type": "string",
+            "format": "binary",
+            "title": "Flow File",
+            "description": "The ComfyUI workflow file to be uploaded and installed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow_file"
+        ],
+        "title": "Body_install_from_file"
+      },
+      "Body_set_global": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The key of the setting to update"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "The value of the setting to update, or an empty string to delete the setting"
+          },
+          "sensitive": {
+            "type": "boolean",
+            "title": "Sensitive",
+            "description": "Flag that determines whether the value can be available to users or not"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "sensitive"
+        ],
+        "title": "Body_set_global"
+      },
+      "Body_set_task_results": {
         "properties": {
           "files": {
             "items": {
@@ -1559,9 +1657,52 @@
         "required": [
           "files"
         ],
-        "title": "Body_task_worker_put_results_api_task_worker_results_put"
+        "title": "Body_set_task_results"
       },
-      "Body_task_worker_update_progress_api_task_worker_progress_put": {
+      "Body_set_tasks_to_process": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id",
+            "description": "ID of the worker"
+          },
+          "tasks_to_give": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tasks To Give",
+            "description": "List of tasks the worker can handle"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "tasks_to_give"
+        ],
+        "title": "Body_set_tasks_to_process"
+      },
+      "Body_set_user": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The key of the setting to update"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "The value of the setting to update, or an empty string to delete the setting"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "title": "Body_set_user"
+      },
+      "Body_update_task_progress": {
         "properties": {
           "worker_details": {
             "$ref": "#/components/schemas/WorkerDetailsRequest"
@@ -1595,50 +1736,7 @@
           "progress",
           "execution_time"
         ],
-        "title": "Body_task_worker_update_progress_api_task_worker_progress_put"
-      },
-      "Body_user_setting_set_api_user_setting_post": {
-        "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "The key of the setting to update"
-          },
-          "value": {
-            "type": "string",
-            "title": "Value",
-            "description": "The value of the setting to update, or an empty string to delete the setting"
-          }
-        },
-        "type": "object",
-        "required": [
-          "key",
-          "value"
-        ],
-        "title": "Body_user_setting_set_api_user_setting_post"
-      },
-      "Body_worker_tasks_to_give_set_api_worker_tasks_post": {
-        "properties": {
-          "worker_id": {
-            "type": "string",
-            "title": "Worker Id",
-            "description": "ID of the worker"
-          },
-          "tasks_to_give": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tasks To Give",
-            "description": "List of tasks the worker can handle"
-          }
-        },
-        "type": "object",
-        "required": [
-          "worker_id",
-          "tasks_to_give"
-        ],
-        "title": "Body_worker_tasks_to_give_set_api_worker_tasks_post"
+        "title": "Body_update_task_progress"
       },
       "Flow": {
         "properties": {
@@ -2473,7 +2571,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-06T19:51:11.524872Z"
+            "default": "2024-07-07T18:00:39.266777Z"
           }
         },
         "type": "object",

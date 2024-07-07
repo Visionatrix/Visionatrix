@@ -20,11 +20,11 @@ from ..db_queries_async import (
 from .helpers import require_admin
 
 LOGGER = logging.getLogger("visionatrix")
-ROUTER = APIRouter(prefix="/api")
+ROUTER = APIRouter(prefix="/settings", tags=["settings"])
 
 
 @ROUTER.get(
-    "/setting",
+    "/get",
     response_class=responses.Response,
     status_code=status.HTTP_200_OK,
     responses={
@@ -34,7 +34,7 @@ ROUTER = APIRouter(prefix="/api")
         }
     },
 )
-async def setting_get(request: Request, key: str = Query(..., description="The key of the setting to retrieve")) -> str:
+async def get(request: Request, key: str = Query(..., description="The key of the setting to retrieve")) -> str:
     """
     Returns the value as a string or an empty string if the setting is not found.
 
@@ -47,7 +47,7 @@ async def setting_get(request: Request, key: str = Query(..., description="The k
 
 
 @ROUTER.get(
-    "/global_setting",
+    "/global",
     response_class=responses.Response,
     status_code=status.HTTP_200_OK,
     responses={
@@ -57,7 +57,7 @@ async def setting_get(request: Request, key: str = Query(..., description="The k
         }
     },
 )
-async def global_setting_get(
+async def get_global(
     request: Request, key: str = Query(..., description="The key of the global setting to retrieve")
 ) -> str:
     """Retrieve the global setting value or an empty string if the global setting is not found."""
@@ -67,7 +67,7 @@ async def global_setting_get(
 
 
 @ROUTER.get(
-    "/user_setting",
+    "/user",
     response_class=responses.Response,
     status_code=status.HTTP_200_OK,
     responses={
@@ -77,7 +77,7 @@ async def global_setting_get(
         }
     },
 )
-async def user_setting_get(
+async def get_user(
     request: Request, key: str = Query(..., description="The key of the user setting to retrieve")
 ) -> str:
     """Retrieve the user setting value or an empty string if the user setting is not found."""
@@ -87,7 +87,7 @@ async def user_setting_get(
 
 
 @ROUTER.post(
-    "/global_setting",
+    "/global",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -98,7 +98,7 @@ async def user_setting_get(
         },
     },
 )
-async def global_setting_set(
+async def set_global(
     request: Request,
     key: str = Body(..., description="The key of the setting to update"),
     value: str = Body(..., description="The value of the setting to update, or an empty string to delete the setting"),
@@ -118,14 +118,14 @@ async def global_setting_set(
 
 
 @ROUTER.post(
-    "/user_setting",
+    "/user",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         204: {"description": "User setting updated successfully"},
     },
 )
-async def user_setting_set(
+async def set_user(
     request: Request,
     key: str = Body(..., description="The key of the setting to update"),
     value: str = Body(..., description="The value of the setting to update, or an empty string to delete the setting"),

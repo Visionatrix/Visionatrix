@@ -59,7 +59,7 @@ from ..tasks_engine_async import (
 )
 
 LOGGER = logging.getLogger("visionatrix")
-ROUTER = APIRouter(prefix="/api")
+ROUTER = APIRouter(prefix="/tasks", tags=["tasks"])
 VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]] | None = None
 
 
@@ -97,8 +97,8 @@ async def __task_run(
     return task_details
 
 
-@ROUTER.post("/task")
-async def task_run(
+@ROUTER.post("/create")
+async def create_task(
     request: Request,
     name: str = Form(description="Name of the flow from which the task should be created"),
     count: int = Form(1, description="Number of tasks to be created"),
@@ -153,8 +153,8 @@ async def task_run(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
-@ROUTER.get("/tasks-progress")
-async def tasks_progress(
+@ROUTER.get("/progress")
+async def get_tasks_progress(
     request: Request,
     name: str = Query(None, description="Optional name to filter tasks by their name"),
 ) -> dict[int, TaskDetails]:
@@ -168,8 +168,8 @@ async def tasks_progress(
     return r
 
 
-@ROUTER.get("/tasks-progress-short")
-async def tasks_progress_short(
+@ROUTER.get("/progress-summary")
+async def get_tasks_progress_summary(
     request: Request,
     name: str = Query(None, description="Optional name to filter tasks by their name"),
 ) -> dict[int, TaskDetailsShort]:
@@ -183,8 +183,8 @@ async def tasks_progress_short(
     return r
 
 
-@ROUTER.get("/task-progress")
-async def task_progress(request: Request, task_id: int = Query(..., description="ID of the task")) -> TaskDetails:
+@ROUTER.get("/progress/{task_id}")
+async def get_task_progress(request: Request, task_id: int) -> TaskDetails:
     """
     Retrieves the full task details of a specified task by task ID.
     Access is restricted to the task owner or an administrator.
@@ -202,7 +202,7 @@ async def task_progress(request: Request, task_id: int = Query(..., description=
 
 
 @ROUTER.post(
-    "/task-restart",
+    "/restart",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -230,7 +230,7 @@ async def task_progress(request: Request, task_id: int = Query(..., description=
         },
     },
 )
-async def task_restart(
+async def restart_task(
     request: Request,
     task_id: int = Query(..., description="ID of the task to restart"),
     force: bool = Query(False, description="Force restart even if the task has no error"),
@@ -272,9 +272,9 @@ async def task_restart(
         },
     },
 )
-async def task_remove(request: Request, task_id: int = Query(..., description="ID of the task to remove")):
+async def delete_task(request: Request, task_id: int = Query(..., description="ID of the task to remove")):
     """
-    Removes a finished or errored task from the system using the task ID.
+    Removes a task from the system by the task ID.
     Access is limited to the task owner or administrators.
     """
     if options.VIX_MODE == "SERVER":
@@ -289,22 +289,24 @@ async def task_remove(request: Request, task_id: int = Query(..., description="I
 
 
 @ROUTER.delete(
-    "/tasks",
+    "/clear",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Successfully removed all finished or errored tasks with the specified name"},
+        204: {"description": "Successfully removed results of all finished tasks with the specified name"},
     },
 )
-async def tasks_remove(request: Request, name: str = Query(..., description="Name of the tasks to remove")):
+async def clear_tasks(
+    request: Request, name: str = Query(..., description="Name of the task whose results need to be deleted")
+):
     """
-    Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.
+    Removes all finished tasks associated with a specific task name, scoped to the requesting user.
     """
     remove_task_by_name(name, request.scope["user_info"].user_id)
 
 
 @ROUTER.get(
-    "/task-inputs",
+    "/inputs",
     responses={
         200: {
             "description": "Successfully retrieved the input file",
@@ -318,7 +320,7 @@ async def tasks_remove(request: Request, name: str = Query(..., description="Nam
         },
     },
 )
-async def task_inputs(
+async def get_task_inputs(
     request: Request,
     task_id: int = Query(..., description="ID of the task"),
     input_index: int = Query(..., description="Index of the input file"),
@@ -348,7 +350,7 @@ async def task_inputs(
 
 
 @ROUTER.get(
-    "/task-results",
+    "/results",
     responses={
         200: {
             "description": "Successfully retrieved the result file",
@@ -362,7 +364,7 @@ async def task_inputs(
         },
     },
 )
-async def task_results(
+async def get_task_results(
     request: Request,
     task_id: int = Query(..., description="ID of the task"),
     node_id: int = Query(..., description="ID of the node"),
@@ -391,14 +393,14 @@ async def task_results(
 
 
 @ROUTER.delete(
-    "/tasks-queue",
+    "/queue",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         204: {"description": "Successfully cleared unfinished tasks from the queue"},
     },
 )
-async def tasks_queue_clear(
+async def remove_tasks_from_queue(
     request: Request, name: str = Query(..., description="Name of the task to clear unfinished tasks from the queue")
 ):
     """
@@ -408,7 +410,7 @@ async def tasks_queue_clear(
 
 
 @ROUTER.delete(
-    "/task-queue",
+    "/queue/{task_id}",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -419,11 +421,9 @@ async def tasks_queue_clear(
         },
     },
 )
-async def task_queue_clear(
-    request: Request, task_id: int = Query(..., description="ID of the unfinished task to remove from the queue")
-):
+async def remove_task_from_queue(request: Request, task_id: int):
     """
-    Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.
+    Removes a specific unfinished task from the queue using the task ID.
     """
     if get_task(task_id, request.scope["user_info"].user_id) is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
@@ -431,8 +431,7 @@ async def task_queue_clear(
 
 
 @ROUTER.post(
-    "/task-worker/get",
-    response_class=responses.Response,
+    "/next",
     responses={
         200: {
             "description": "Successfully retrieved the task for the worker",
@@ -442,7 +441,7 @@ async def task_queue_clear(
         },
     },
 )
-async def task_worker_give_task(
+async def get_next_task(
     request: Request,
     worker_details: WorkerDetailsRequest = Body(...),
     tasks_names: list[str] = Body(..., description="List of task names the worker can handle"),
@@ -469,7 +468,7 @@ async def task_worker_give_task(
 
 
 @ROUTER.put(
-    "/task-worker/progress",
+    "/progress",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -486,7 +485,7 @@ async def task_worker_give_task(
         },
     },
 )
-async def task_worker_update_progress(
+async def update_task_progress(
     request: Request,
     worker_details: WorkerDetailsRequest = Body(...),
     task_id: int = Body(..., description="ID of the task to update progress for"),
@@ -520,7 +519,7 @@ async def task_worker_update_progress(
 
 
 @ROUTER.put(
-    "/task-worker/results",
+    "/results",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -535,7 +534,7 @@ async def task_worker_update_progress(
         },
     },
 )
-async def task_worker_put_results(
+async def set_task_results(
     request: Request,
     task_id: int = Query(..., description="The ID of the task to save results for"),
     files: list[UploadFile] = Form(..., description="List of result files to save"),  # noqa
@@ -581,7 +580,7 @@ async def task_worker_put_results(
 
 
 @ROUTER.delete(
-    "/task-worker/lock",
+    "/lock",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -592,7 +591,7 @@ async def task_worker_put_results(
         },
     },
 )
-async def task_worker_remove_lock(
+async def remove_task_lock(
     request: Request, task_id: int = Query(..., description="The ID of the task to remove the lock from")
 ):
     """

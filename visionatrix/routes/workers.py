@@ -8,11 +8,11 @@ from ..db_queries_async import get_workers_details_async, set_worker_tasks_to_gi
 from ..pydantic_models import WorkerDetails
 
 LOGGER = logging.getLogger("visionatrix")
-ROUTER = APIRouter(prefix="/api")
+ROUTER = APIRouter(prefix="/workers", tags=["workers"])
 
 
-@ROUTER.get("/workers_info")
-async def workers_info(
+@ROUTER.get("/info")
+async def get_info(
     request: Request,
     last_seen_interval: int = Query(
         0,
@@ -36,7 +36,7 @@ async def workers_info(
 
 
 @ROUTER.post(
-    "/worker_tasks",
+    "/tasks",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -47,7 +47,7 @@ async def workers_info(
         },
     },
 )
-async def worker_tasks_to_give_set(
+async def set_tasks_to_process(
     request: Request,
     worker_id: str = Body(..., description="ID of the worker"),
     tasks_to_give: list[str] = Body(..., description="List of tasks the worker can handle"),
