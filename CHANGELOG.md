@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - [OpenAPI documentation](https://visionatrix.github.io/VixFlowsDocs/swagger.html) #106 #107
 
+### Changed
+
+- Most **Backend endpoints** were renamed to be better understandable. #108
+
 ## [0.7.0 - 2024-07-05]
 
 ### Added

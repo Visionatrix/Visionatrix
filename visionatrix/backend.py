@@ -5,8 +5,9 @@ import threading
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, responses, status
+from fastapi import APIRouter, FastAPI, HTTPException, responses, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -78,12 +79,22 @@ async def lifespan(app: FastAPI):
     comfyui.interrupt_processing()
 
 
-APP = FastAPI(lifespan=lifespan)
-APP.include_router(flows.ROUTER)
-APP.include_router(settings.ROUTER)
-APP.include_router(tasks.ROUTER)
-APP.include_router(workers.ROUTER)
-APP.include_router(other.ROUTER)
+def custom_generate_unique_id(route: APIRoute):
+    try:
+        return f"{route.name}"
+    except Exception:
+        print(f"[ERROR]: {route.name} caused an exception", flush=True)
+        raise
+
+
+APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
+API_ROUTER = APIRouter(prefix="/api")
+API_ROUTER.include_router(flows.ROUTER)
+API_ROUTER.include_router(settings.ROUTER)
+API_ROUTER.include_router(tasks.ROUTER)
+API_ROUTER.include_router(workers.ROUTER)
+API_ROUTER.include_router(other.ROUTER)
+APP.include_router(API_ROUTER)
 APP.add_middleware(VixAuthMiddleware)
 if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     APP.add_middleware(

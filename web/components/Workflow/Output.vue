@@ -6,7 +6,7 @@ const results = computed(() => flowStore.flowResultsByName(flowStore.currentFlow
 const resultsPerPage = computed(() => flowStore.$state.resultsPageSize)
 
 const outputImgSrc = function (result: any) {
-	return `${buildBackendApiUrl()}/task-results?task_id=${result.task_id}&node_id=${result.node_id}`
+	return `${buildBackendApiUrl()}/tasks/results?task_id=${result.task_id}&node_id=${result.node_id}`
 }
 
 // watch for total results length and update the page to the last one
@@ -171,7 +171,7 @@ const sentDoOutputParamIndex = ref(0)
 						}))" />
 					<UCarousel v-else
 						v-slot="{ item }"
-						class="mb-3 rounded-lg overflow-hidden" 
+						class="mb-3 rounded-lg overflow-hidden"
 						:items="flowResult.output_params.map((result_output_param, index) => {
 							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id, index }
 						})"
@@ -216,8 +216,8 @@ const sentDoOutputParamIndex = ref(0)
 									.map((key) => {
 										return `${flowResult.input_params_mapped[key].display_name}: ${flowResult.input_params_mapped[key].value}`
 									}),
-							].join(' | ') + `${flowResult.execution_time 
-								? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's' 
+							].join(' | ') + `${flowResult.execution_time
+								? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's'
 								: ''
 							}`
 						}}

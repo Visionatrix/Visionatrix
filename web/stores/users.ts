@@ -14,7 +14,7 @@ export const useUserStore = defineStore('userStore', {
 		async fetchUserInfo() {
 			const { $apiFetch } = useNuxtApp()
 			this.loading = true
-			return await $apiFetch('/whoami')
+			return await $apiFetch('/other/whoami')
 				.then((res: any) => {
 					this.user = <UserInfo>res
 				}).finally(() => {

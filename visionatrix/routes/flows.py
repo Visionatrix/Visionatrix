@@ -40,11 +40,11 @@ from ..pydantic_models import FlowProgressInstall
 from .helpers import require_admin
 
 LOGGER = logging.getLogger("visionatrix")
-ROUTER = APIRouter(prefix="/api")
+ROUTER = APIRouter(prefix="/flows", tags=["flows"])
 
 
-@ROUTER.get("/flows-installed")
-async def flows_installed() -> list[Flow]:
+@ROUTER.get("/installed")
+async def get_installed() -> list[Flow]:
     """
     Return the list of installed flows. Each flow can potentially be converted into a task. The response
     includes details such as the name, display name, description, author, homepage URL, and other relevant
@@ -53,8 +53,8 @@ async def flows_installed() -> list[Flow]:
     return get_installed_flows()
 
 
-@ROUTER.get("/flows-available")
-async def flows_available() -> list[Flow]:
+@ROUTER.get("/not-installed")
+async def get_not_installed() -> list[Flow]:
     """
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
     similar to the installed flows, which includes metadata and configuration parameters.
@@ -62,8 +62,8 @@ async def flows_available() -> list[Flow]:
     return get_not_installed_flows()
 
 
-@ROUTER.get("/flows-sub-flows")
-async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]:
+@ROUTER.get("/subflows")
+async def get_subflows(input_type: typing.Literal["image", "video"]) -> list[Flow]:
     """
     Retrieves a list of flows designed to post-process the results from other flows, filtering by the type
     of input they handle, either 'image' or 'video'. This endpoint is particularly useful for chaining workflows
@@ -86,7 +86,7 @@ async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]
     return r
 
 
-@ROUTER.put(
+@ROUTER.post(
     "/flow",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
@@ -102,7 +102,7 @@ async def flows_from(input_type: typing.Literal["image", "video"]) -> list[Flow]
         },
     },
 )
-def flow_install(
+def install(
     request: Request,
     b_tasks: BackgroundTasks,
     name: str = Query(..., description="Name of the flow you wish to install"),
@@ -131,7 +131,7 @@ def flow_install(
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` flow.")
 
 
-@ROUTER.post(
+@ROUTER.put(
     "/flow",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
@@ -143,7 +143,7 @@ def flow_install(
         },
     },
 )
-def flow_install_from_file(
+def install_from_file(
     request: Request,
     b_tasks: BackgroundTasks,
     flow_file: UploadFile = File(..., description="The ComfyUI workflow file to be uploaded and installed"),
@@ -166,8 +166,8 @@ def flow_install_from_file(
     b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
 
 
-@ROUTER.get("/flow-progress-install")
-async def flow_progress_install_get(request: Request) -> list[FlowProgressInstall]:
+@ROUTER.get("/install-progress")
+async def get_install_progress(request: Request) -> list[FlowProgressInstall]:
     """
     Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint
     returns a dictionary showing the installation status for each flow.
@@ -185,7 +185,7 @@ async def flow_progress_install_get(request: Request) -> list[FlowProgressInstal
 
 
 @ROUTER.delete(
-    "/flow-progress-install",
+    "/install-progress",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
@@ -196,7 +196,7 @@ async def flow_progress_install_get(request: Request) -> list[FlowProgressInstal
         },
     },
 )
-async def flow_progress_install_delete(
+async def delete_install_progress(
     request: Request, name: str = Query(..., description="Name of the flow progress you wish to delete")
 ):
     """
@@ -219,7 +219,7 @@ async def flow_progress_install_delete(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={204: {"description": "Flow deleted successfully"}},
 )
-async def flow_delete(request: Request, name: str = Query(..., description="Name of the flow you wish to delete")):
+async def delete(request: Request, name: str = Query(..., description="Name of the flow you wish to delete")):
     """
     Endpoint to delete an installed flow by its name. Requires administrative privileges to execute.
     This endpoint will succeed even if the flow does not exist.

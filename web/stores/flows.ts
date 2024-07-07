@@ -72,7 +72,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 					return paginate(state.flow_results.filter(flow => flow.flow_name === name && flow.input_params_mapped['prompt'].includes(state.flow_results_filter)).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
 				}
 				return paginate(state.flow_results.filter(flow => flow.flow_name === name).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
-			}	
+			}
 		},
 		flowInstallingByName(state) {
 			return (name: string) => state.installing.find(flow => flow.flow_name === name) ?? null
@@ -120,11 +120,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async fetchFlowsAvailable() {
 			const { $apiFetch } = useNuxtApp()
 			this.loading.flows_available = true
-			const flows = await $apiFetch('/flows-available', {
+			const flows = await $apiFetch('/flows/not-installed', {
 				method: 'GET',
 				timeout: 15000,
 			}).then((res) => {
-				console.debug('available_flows: ', res)
+				console.debug('not_installed: ', res)
 				this.loading.flows_available = false
 				this.flows_available = <Flow[]>res
 				this.flows_available.sort(this.sortByFlowNameCallback)
@@ -145,7 +145,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const { $apiFetch } = useNuxtApp()
 			console.debug('fetching installed flows')
 			this.loading.flows_installed = true
-			const flows = await $apiFetch('/flows-installed', {
+			const flows = await $apiFetch('/flows/installed', {
 				method: 'GET',
 				timeout: 15000,
 			}).then((res) => {
@@ -169,7 +169,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async fetchFlowResults(): Promise<TasksHistory> {
 			const { $apiFetch } = useNuxtApp()
 			this.loading.tasks_history = true
-			return await $apiFetch('/tasks-progress', {
+			return await $apiFetch('/tasks/progress', {
 				method: 'GET',
 			}).then((res) => {
 				this.loading.tasks_history = false
@@ -230,8 +230,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async setupFlow(flow: Flow) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/flow?name=${flow.name}`, {
-				method: 'PUT',
+			return await $apiFetch(`/flows/flow?name=${flow.name}`, {
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -255,7 +255,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async cancelFlowSetup(flow: Flow) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/flow-progress-install?name=${flow.name}`, {
+			return await $apiFetch(`/flows/install-progress?name=${flow.name}`, {
 				method: 'DELETE',
 			}).then(() => {
 				this.installing = this.installing.filter(f => f.flow_name !== flow.name)
@@ -267,7 +267,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async getFlowsInstallProgress() {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch('/flow-progress-install', {
+			return await $apiFetch('/flows/install-progress', {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -279,8 +279,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const { $apiFetch } = useNuxtApp()
 			const formData = new FormData()
 			formData.append('flow_file', flow)
-			return await $apiFetch('/flow', {
-				method: 'POST',
+			return await $apiFetch('/flows/flow', {
+				method: 'PUT',
 				body: formData,
 			}).then((res: any) => {
 				if (res && res.details === '') {
@@ -292,7 +292,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async deleteFlow(flow: Flow) {
 			const { $apiFetch } = useNuxtApp()
-			const response = await $apiFetch(`/flow?name=${flow.name}`, {
+			const response = await $apiFetch(`/flows/flow?name=${flow.name}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -323,7 +323,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
-				return param[paramName].type === 'image' 
+				return param[paramName].type === 'image'
 					&& (param[paramName].value instanceof File || typeof param[paramName].value === 'string')
 			})
 			console.debug('file_input_params:', file_input_params)
@@ -345,7 +345,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 					display_name: flow.input_params.find(param => param.name === key)?.display_name,
 				}
 			})
-			return await $apiFetch('/task', {
+			return await $apiFetch('/tasks/create', {
 				method: 'POST',
 				headers: {
 					'Access-Control-Allow-Origin': '*',
@@ -386,14 +386,14 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return
 			}
 			const { $apiFetch } = useNuxtApp()
-			return $apiFetch(`/flows-sub-flows?input_type=${input_type}`).then((res) => {
+			return $apiFetch(`/flows/subflows?input_type=${input_type}`).then((res) => {
 				this.sub_flows = <Flow[]>res
 			})
 		},
 
 		async restartFlow(running: FlowRunning) {
 			const { $apiFetch } = useNuxtApp()
-			return $apiFetch(`/task-restart?task_id=${running.task_id}`, {
+			return $apiFetch(`/tasks/restart?task_id=${running.task_id}`, {
 				method: 'POST',
 			}).then((res: any) => {
 				if (res && res.details !== '') {
@@ -417,7 +417,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async deleteFlowResults(flow_name: string) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/tasks?name=${flow_name}`, {
+			return await $apiFetch(`/tasks/tasks?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
 				if (res && res?.details !== '') {
@@ -435,7 +435,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async cancelRunningFlows(flow_name: string) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/tasks-queue?name=${flow_name}`, {
+			return await $apiFetch(`/tasks/queue?name=${flow_name}`, {
 				method: 'DELETE',
 			}).then((res: any) => {
 				if (res && res.details !== '') {
@@ -457,7 +457,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async cancelRunningFlow(running: FlowRunning) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/task-queue?task_id=${running.task_id}`, {
+			return await $apiFetch(`/tasks/queue/${running.task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -481,7 +481,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async getFlowsProgress(flow_name?: string): Promise<TasksHistory> {
 			const { $apiFetch } = useNuxtApp()
-			const url = flow_name ? `/tasks-progress-short?name=${flow_name}` : '/tasks-progress'
+			const url = flow_name ? `/tasks/progress-summary?name=${flow_name}` : '/tasks/progress'
 			return await $apiFetch(url, {
 				method: 'GET',
 				headers: {
@@ -492,7 +492,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async fetchFlowComfy(task_id: string) {
 			const { $apiFetch } = useNuxtApp()
-			return await $apiFetch(`/task-progress?task_id=${task_id}`, {
+			return await $apiFetch(`/tasks/progress/${task_id}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -645,7 +645,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		deleteFlowHistory(task_id: string) {
 			const { $apiFetch } = useNuxtApp()
-			$apiFetch(`/task?task_id=${task_id}`, {
+			$apiFetch(`/tasks/task?task_id=${task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
