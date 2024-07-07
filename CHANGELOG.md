@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.8.0 - 2024-07-xx]
+## [0.7.1 - 2024-07-07]
 
 ### Added
 
@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Most **Backend endpoints** were renamed to be better understandable. #108
+
+### Fixed
+
+- Version `0.7.0` was broken in `SERVER` + `WORKER` mode, due to a bug with invalid urls.
 
 ## [0.7.0 - 2024-07-05]
 

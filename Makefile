@@ -17,7 +17,7 @@ help:
 .PHONY: openapi
 openapi:
 	@echo "Building OpenAPI.json.."
-	@python3 scripts/generate_openapi.py
+	@python3 pip install . && scripts/generate_openapi.py
 
 .PHONY: build-client
 build-client:
@@ -28,6 +28,6 @@ build-client:
 .PHONY: build-client-nextcloud
 build-client-nextcloud:
 	@echo "Building client for Nextcloud..."
-	@rm -rf visionatrix/client
+	@rm -rf visionatrix/client && web/.output/public/
 	@cd web && NUXT_APP_BASE_URL=/index.php/apps/app_api/proxy/vix/ npm run build && \
 		cp -r .output/public ../visionatrix/client

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "0.8.0.dev0"
+    "version": "0.7.1"
   },
   "paths": {
     "/api/flows/installed": {
@@ -845,7 +845,7 @@
           "tasks"
         ],
         "summary": "Delete Task",
-        "description": "Removes a finished or errored task from the system using the task ID.\nAccess is limited to the task owner or administrators.",
+        "description": "Removes a task from the system by the task ID.\nAccess is limited to the task owner or administrators.",
         "operationId": "delete_task",
         "parameters": [
           {
@@ -887,14 +887,14 @@
         }
       }
     },
-    "/api/tasks/": {
+    "/api/tasks/clear": {
       "delete": {
         "tags": [
           "tasks"
         ],
-        "summary": "Delete Tasks",
-        "description": "Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.",
-        "operationId": "delete_tasks",
+        "summary": "Clear Tasks",
+        "description": "Removes all finished tasks associated with a specific task name, scoped to the requesting user.",
+        "operationId": "clear_tasks",
         "parameters": [
           {
             "name": "name",
@@ -902,15 +902,15 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Name of the tasks to remove",
+              "description": "Name of the task whose results need to be deleted",
               "title": "Name"
             },
-            "description": "Name of the tasks to remove"
+            "description": "Name of the task whose results need to be deleted"
           }
         ],
         "responses": {
           "204": {
-            "description": "Successfully removed all finished or errored tasks with the specified name"
+            "description": "Successfully removed results of all finished tasks with the specified name"
           },
           "422": {
             "description": "Validation Error",
@@ -1165,7 +1165,7 @@
           "tasks"
         ],
         "summary": "Remove Task From Queue",
-        "description": "Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.",
+        "description": "Removes a specific unfinished task from the queue using the task ID.",
         "operationId": "remove_task_from_queue",
         "parameters": [
           {
@@ -2571,7 +2571,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-07T17:12:24.756938Z"
+            "default": "2024-07-07T18:00:39.266777Z"
           }
         },
         "type": "object",

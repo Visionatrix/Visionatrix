@@ -274,7 +274,7 @@ async def restart_task(
 )
 async def delete_task(request: Request, task_id: int = Query(..., description="ID of the task to remove")):
     """
-    Removes a finished or errored task from the system using the task ID.
+    Removes a task from the system by the task ID.
     Access is limited to the task owner or administrators.
     """
     if options.VIX_MODE == "SERVER":
@@ -289,16 +289,18 @@ async def delete_task(request: Request, task_id: int = Query(..., description="I
 
 
 @ROUTER.delete(
-    "/",
+    "/clear",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Successfully removed all finished or errored tasks with the specified name"},
+        204: {"description": "Successfully removed results of all finished tasks with the specified name"},
     },
 )
-async def delete_tasks(request: Request, name: str = Query(..., description="Name of the tasks to remove")):
+async def clear_tasks(
+    request: Request, name: str = Query(..., description="Name of the task whose results need to be deleted")
+):
     """
-    Removes all finished or errored tasks associated with a specific task name, scoped to the requesting user.
+    Removes all finished tasks associated with a specific task name, scoped to the requesting user.
     """
     remove_task_by_name(name, request.scope["user_info"].user_id)
 
@@ -421,7 +423,7 @@ async def remove_tasks_from_queue(
 )
 async def remove_task_from_queue(request: Request, task_id: int):
     """
-    Removes a specific unfinished task from the queue using the task ID, scoped to the requesting user.
+    Removes a specific unfinished task from the queue using the task ID.
     """
     if get_task(task_id, request.scope["user_info"].user_id) is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
