@@ -85,7 +85,7 @@ def skip_first_part_of_path(save_path: str):
 def get_models_catalog() -> dict[str, dict]:
     if not MODELS_CATALOG:
         if urlparse(options.MODELS_CATALOG_URL).scheme in ("http", "https", "ftp", "ftps"):
-            MODELS_CATALOG.update(json.loads(httpx.get(options.MODELS_CATALOG_URL).text))
+            MODELS_CATALOG.update(json.loads(httpx.get(options.MODELS_CATALOG_URL, timeout=5.0).text))
         else:
             with builtins.open(options.MODELS_CATALOG_URL, encoding="UTF-8") as models_catalog_file:
                 MODELS_CATALOG.update(json.loads(models_catalog_file.read()))
