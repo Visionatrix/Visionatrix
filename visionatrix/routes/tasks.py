@@ -488,7 +488,7 @@ async def get_next_task(
 async def __webhook_task_progress(
     url: str, headers: dict | None, task_id: int, progress: float, execution_time: float, error: str
 ) -> None:
-    async with httpx.AsyncClient(base_url=url) as client:
+    async with httpx.AsyncClient(base_url=url, timeout=3.0) as client:
         await client.post(
             url="task-progress",
             json={

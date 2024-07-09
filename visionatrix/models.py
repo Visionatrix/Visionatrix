@@ -68,7 +68,7 @@ def download_model(
         headers = {}
         if model.gated and urlparse(model.url).netloc == "huggingface.co" and hf_auth_token:
             headers["Authorization"] = f"Bearer {hf_auth_token}"
-        with httpx.stream("GET", model.url, headers=headers, follow_redirects=True) as response:
+        with httpx.stream("GET", model.url, headers=headers, follow_redirects=True, timeout=10.0) as response:
             if httpx.codes.is_error(response.status_code):
                 if response.status_code == status.HTTP_401_UNAUTHORIZED and model.gated:
                     raise RuntimeError(f"Denied access for gated model at {model.url} with token={hf_auth_token}")

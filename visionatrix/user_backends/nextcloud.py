@@ -34,6 +34,7 @@ async def get_user_info(_scope: Scope, http_connection: HTTPConnection) -> UserI
         base_url=NEXTCLOUD_URL,
         cookies=http_connection.cookies,
         headers=headers,
+        timeout=5.0,
     ) as client:
         r = await client.get("/ocs/v1.php/cloud/user?format=json", headers=NEXTCLOUD_HEADERS_SET)
         if r.status_code != 200:

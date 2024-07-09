@@ -54,7 +54,7 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
         else:
             flows_storage_url += f"flows-{vix_version.major}.{vix_version.minor}.zip"
     if urlparse(flows_storage_url).scheme in ("http", "https", "ftp", "ftps"):
-        r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]})
+        r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
         if r.status_code == 304:
             flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
             return CACHE_AVAILABLE_FLOWS["flows"]

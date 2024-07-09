@@ -157,7 +157,10 @@ def install_wheel(url: str, file_name: str):
     LOGGER.info("Installing `%s`", url)
     temp_dir = tempfile.gettempdir()
     temp_file_path = os.path.join(temp_dir, file_name)
-    with open(temp_file_path, "wb") as temp_file, httpx.stream("GET", url, follow_redirects=True) as response:
+    with (
+        open(temp_file_path, "wb") as temp_file,
+        httpx.stream("GET", url, follow_redirects=True, timeout=10.0) as response,
+    ):
         response.raise_for_status()
         for chunk in response.iter_bytes():
             temp_file.write(chunk)
