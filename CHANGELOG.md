@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0 - 2024-07-1x]
+
+### Added
+
+- Initial support for webhooks for easier integration into services.
+
 ## [0.7.1 - 2024-07-07]
 
 ### Added

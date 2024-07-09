@@ -62,6 +62,8 @@ class TaskDetails(Base):
     updated_at = Column(DateTime, nullable=True, default=None, index=True)
     finished_at = Column(DateTime, nullable=True, default=None)
     execution_time = Column(Float, default=0.0)
+    webhook_url = Column(String, nullable=True)
+    webhook_headers = Column(JSON, nullable=True)
 
 
 class TaskLock(Base):

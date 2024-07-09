@@ -53,6 +53,8 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.created_at,
     database.TaskDetails.updated_at,
     database.TaskDetails.finished_at,
+    database.TaskDetails.webhook_url,
+    database.TaskDetails.webhook_headers,
 ]
 
 
@@ -86,6 +88,8 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         updated_at=task_details.get("updated_at"),
         finished_at=task_details.get("finished_at"),
         execution_time=task_details["execution_time"],
+        webhook_url=task_details.get("webhook_url"),
+        webhook_headers=task_details.get("webhook_headers"),
     )
 
 
@@ -99,6 +103,8 @@ def __task_details_to_dict(task_details: Row) -> dict:
             "created_at": task_details.created_at,
             "updated_at": task_details.updated_at,
             "finished_at": task_details.finished_at,
+            "webhook_url": task_details.webhook_url,
+            "webhook_headers": task_details.webhook_headers,
         }
     )
     return r

@@ -6,8 +6,10 @@ import shutil
 import typing
 from pathlib import Path
 
+import httpx
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Body,
     Form,
     HTTPException,
@@ -70,6 +72,8 @@ async def __task_run(
     flow: Flow,
     flow_comfy: dict,
     user_info: UserInfo,
+    webhook_url: str | None,
+    webhook_headers: dict | None,
 ):
     if options.VIX_MODE == "SERVER":
         task_details = await create_new_task_async(name, input_params, user_info)
@@ -89,6 +93,8 @@ async def __task_run(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Bad Flow: `{flow_validation[1]}`"
         ) from None
     task_details["flow_comfy"] = flow_comfy
+    task_details["webhook_url"] = webhook_url
+    task_details["webhook_headers"] = webhook_headers
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
@@ -103,6 +109,8 @@ async def create_task(
     name: str = Form(description="Name of the flow from which the task should be created"),
     count: int = Form(1, description="Number of tasks to be created"),
     input_params: str = Form(None, description="List of input parameters as an encoded json string"),
+    webhook_url: str | None = Form(None, description="URL to call when task state changes"),
+    webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
     files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """
@@ -142,8 +150,18 @@ async def create_task(
     if not flow:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
     tasks_ids = []
+    webhook_headers_dict = json.loads(webhook_headers) if webhook_headers else None
     for _ in range(count):
-        task_details = await __task_run(name, input_params_dict, in_files, flow, flow_comfy, request.scope["user_info"])
+        task_details = await __task_run(
+            name,
+            input_params_dict,
+            in_files,
+            flow,
+            flow_comfy,
+            request.scope["user_info"],
+            webhook_url,
+            webhook_headers_dict,
+        )
         tasks_ids.append(task_details["task_id"])
         if "seed" in input_params_dict:
             input_params_dict["seed"] = input_params_dict["seed"] + 1
@@ -467,6 +485,22 @@ async def get_next_task(
     return task
 
 
+async def __webhook_task_progress(
+    url: str, headers: dict | None, task_id: int, progress: float, execution_time: float, error: str
+) -> None:
+    async with httpx.AsyncClient(base_url=url) as client:
+        await client.post(
+            url="task-progress",
+            json={
+                "task_id": task_id,
+                "progress": progress,
+                "execution_time": execution_time,
+                "error": error,
+            },
+            headers=headers,
+        )
+
+
 @ROUTER.put(
     "/progress",
     response_class=responses.Response,
@@ -486,6 +520,7 @@ async def get_next_task(
     },
 )
 async def update_task_progress(
+    b_tasks: BackgroundTasks,
     request: Request,
     worker_details: WorkerDetailsRequest = Body(...),
     task_id: int = Body(..., description="ID of the task to update progress for"),
@@ -516,6 +551,10 @@ async def update_task_progress(
         )
     if not update_success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task progress.")
+    if r["webhook_url"]:
+        b_tasks.add_task(
+            __webhook_task_progress, r["webhook_url"], r["webhook_headers"], task_id, progress, execution_time, error
+        )
 
 
 @ROUTER.put(
