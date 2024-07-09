@@ -129,6 +129,8 @@ class TaskDetails(TaskDetailsShort):
     task_id: int = Field(..., description="Unique identifier of the task.")
     flow_comfy: dict = Field(..., description="The final generated ComfyUI workflow.")
     user_id: str = Field(..., description="User ID to whom the task belongs.")
+    webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
+    webhook_headers: dict | None = Field(None, description="Headers to send to webhook.")
 
 
 class WorkerDetailsSystemRequest(BaseModel):

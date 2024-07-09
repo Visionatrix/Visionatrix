@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "0.7.1"
+    "version": "0.8.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -1550,6 +1550,30 @@
             "title": "Input Params",
             "description": "List of input parameters as an encoded json string"
           },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url",
+            "description": "URL to call when task state changes"
+          },
+          "webhook_headers": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Headers",
+            "description": "Headers for webhook url as an encoded json string"
+          },
           "files": {
             "items": {
               "anyOf": [
@@ -2080,6 +2104,30 @@
             "type": "string",
             "title": "User Id",
             "description": "User ID to whom the task belongs."
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url",
+            "description": "The URL that will be called when the task state changes."
+          },
+          "webhook_headers": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Headers",
+            "description": "Headers to send to webhook."
           }
         },
         "type": "object",
@@ -2571,7 +2619,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-07T18:00:39.266777Z"
+            "default": "2024-07-09T16:57:52.662537Z"
           }
         },
         "type": "object",
