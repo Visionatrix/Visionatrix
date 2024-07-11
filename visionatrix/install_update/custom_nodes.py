@@ -63,6 +63,15 @@ BASIC_NODE_LIST = {
     "ComfyUI-Visionatrix": {},
     "comfyui-ollama": {},
     "ComfyUI-AutoCropFaces": {},
+    "PuLID_ComfyUI": {
+        "requirements": {
+            "facexlib": {},
+            "insightface": {},
+            "onnxruntime": {},
+            "ftfy": {},
+            "timm": {},
+        },
+    },
 }
 
 

@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Initial support for webhooks for easier integration into services.
+- `PuLID_ComfyUI` node to the dafault nodes list.
 
 ## [0.7.1 - 2024-07-07]
 
