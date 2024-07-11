@@ -72,6 +72,8 @@ BASIC_NODE_LIST = {
             "timm": {},
         },
     },
+    "ComfyUI_FizzNodes": {},
+    "style_aligned_comfy": {},
 }
 
 
