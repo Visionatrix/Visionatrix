@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.8.0 - 2024-07-1x]
+## [0.8.0 - 2024-07-15]
+
+To use `PuLID_ComfyUI` you need manually add to `extra_model_paths.yaml` file the `pulid: /!YOUR_PATH!/Visionatrix/vix_models/pulid` line OR to run `easy_install.py` and run "reinstall backend".
 
 ### Added
 
+- New `Photo Stickers2` workflow! Author: **Datou**.
 - Initial support for webhooks for easier integration into services.
 - `PuLID_ComfyUI`, `ComfyUI_FizzNodes` and `style_aligned_comfy` nodes to the default nodes list.
 

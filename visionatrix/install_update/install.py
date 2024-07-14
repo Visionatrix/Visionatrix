@@ -33,6 +33,7 @@ vix_models:
   upscale_models: vix_models_root/upscale_models
   vae: vix_models_root/vae
   vae_approx: vix_models_root/vae_approx
+  pulid: vix_models_root/pulid
 """
 
 
