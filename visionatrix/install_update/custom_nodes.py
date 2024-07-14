@@ -73,7 +73,9 @@ BASIC_NODE_LIST = {
         },
     },
     "ComfyUI_FizzNodes": {},
-    "style_aligned_comfy": {},
+    "style_aligned_comfy": {
+        "main_branch": "master",
+    },
 }
 
 
