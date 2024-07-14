@@ -30,6 +30,13 @@ MODEL_LOAD_CLASSES = {
     "VAELoader": {"1": ["inputs", "vae_name"]},
     "UpscaleModelLoader": {"1": ["inputs", "model_name"]},
     "SUPIR_model_loader_v2": {"1": ["inputs", "supir_model"]},
+    "PulidModelLoader": {"1": ["inputs", "pulid_file"]},
+    "Lora Loader Stack (rgthree)": {
+        "1": ["inputs", "lora_01"],
+        "2": ["inputs", "lora_02"],
+        "3": ["inputs", "lora_03"],
+        "4": ["inputs", "lora_04"],
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
