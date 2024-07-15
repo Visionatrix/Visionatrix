@@ -2,6 +2,9 @@ name: Windows embedded release
 
 on:
   workflow_dispatch:
+  pull_request:
+  push:
+    branches: [ main ]
 
 concurrency:
   group: windows-rel-${{ github.head_ref || github.run_id }}
@@ -51,11 +54,13 @@ jobs:
           COMPUTE_DEVICE: "NVIDIA"
 
       - name: Archive Vix
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           "C:\Program Files\7-Zip\7z.exe" a -t7z -m0=lzma -mx=8 -mfb=64 -md=32m -ms=on -mf=BCJ2 -v2100000000b vix_portable_cuda.7z vix_portable
 
       - name: Upload to Artifacts
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
           name: vix_portable_cuda.7z
@@ -66,6 +71,7 @@ jobs:
     needs: [windows_2019_cuda]
     name: Publish release
     runs-on: ubuntu-22.04
+    if: ${{ github.event_name == 'workflow_dispatch' }}
 
     steps:
       - uses: actions/checkout@v4
