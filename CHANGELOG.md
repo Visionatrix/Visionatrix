@@ -12,6 +12,10 @@ To use `PuLID_ComfyUI` you need manually add to `extra_model_paths.yaml` file th
 - Initial support for webhooks for easier integration into services.
 - `PuLID_ComfyUI`, `ComfyUI_FizzNodes` and `style_aligned_comfy` nodes to the default nodes list.
 
+### Changed
+
+- `ColorfulXL` model/flow was updated to use the last version(**7.0**) of model.
+
 ## [0.7.1 - 2024-07-07]
 
 ### Added
