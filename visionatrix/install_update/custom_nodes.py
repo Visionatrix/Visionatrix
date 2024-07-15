@@ -64,6 +64,9 @@ BASIC_NODE_LIST = {
     "comfyui-ollama": {},
     "ComfyUI-AutoCropFaces": {},
     "PuLID_ComfyUI": {
+        "before_install": {
+            "python": "-m pip install --use-pep517 facexlib",
+        },
         "requirements": {
             "facexlib": {},
             "insightface": {},
@@ -103,6 +106,7 @@ def install_base_custom_node(node_name: str, node_details: dict) -> None:
         clone_env = os.environ.copy()
         clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
         run(["git", "checkout", f"tags/v{_version.__version__}"], env=clone_env, check=True, cwd=what_clone)
+    _before_install(node_name, node_details)
     _install_requirements(custom_nodes_dir, node_name, node_details)
     _run_install_script(custom_nodes_dir, node_name)
     if "models" in node_details:
@@ -146,6 +150,15 @@ def update_base_custom_nodes() -> None:
             )
         _install_requirements(custom_nodes_dir, node_name, node_details)
         _run_install_script(custom_nodes_dir, node_name)
+
+
+def _before_install(node_name: str, node_details: dict) -> None:
+    if "before_install" in node_details:
+        for action_key, action_value in node_details["before_install"].items():
+            if action_key == "python":
+                run([sys.executable, *action_value.split()], check=True)
+            else:
+                raise ValueError(f"Unknown action({action_key}) for {node_name} node")
 
 
 def _install_requirements(custom_nodes_dir: str | Path, node_name: str, node_details: dict) -> None:
