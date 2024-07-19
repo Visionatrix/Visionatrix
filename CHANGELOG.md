@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0 - 2024-07-2x]
+
+### Added
+
+- `OLLAMA_VISION_MODEL` setting/env var to override vision model that used in workflows.
+
 ## [0.8.0 - 2024-07-15]
 
 To use `PuLID_ComfyUI` you need manually add to `extra_model_paths.yaml` file the `pulid: /!YOUR_PATH!/Visionatrix/vix_models/pulid` line OR to run `easy_install.py` and run "reinstall backend".
