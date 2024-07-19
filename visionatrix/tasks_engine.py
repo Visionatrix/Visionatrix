@@ -205,27 +205,40 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
         )
     if not task_to_exec:
         return {}
+
     ollama_nodes = get_ollama_nodes(task_to_exec["flow_comfy"])
     if ollama_nodes:
-        ollama_url = os.environ.get("OLLAMA_URL", "")
-        if not ollama_url:
-            if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-                r = httpx.get(
-                    options.VIX_SERVER.rstrip("/") + "/api/settings/get",
-                    params={"key": "ollama_url"},
-                    auth=options.worker_auth(),
-                    timeout=float(options.WORKER_NET_TIMEOUT),
-                )
-                if httpx.codes.is_error(r.status_code):
-                    LOGGER.error("Can not fetch Ollama URL from the server: %s", r.status_code)
-                else:
-                    ollama_url = r.text
-            else:
-                ollama_url = get_global_setting("ollama_url", True)
-        if ollama_url:
-            for node in ollama_nodes:
+        ollama_vision_model = ""
+        if [i for i in ollama_nodes if task_to_exec["flow_comfy"][i]["class_type"] == "OllamaVision"]:
+            ollama_vision_model = get_worker_value("OLLAMA_VISION_MODEL")
+        ollama_url = get_worker_value("OLLAMA_URL")
+
+        for node in ollama_nodes:
+            if ollama_url:
                 task_to_exec["flow_comfy"][node]["inputs"]["url"] = ollama_url
+            if ollama_vision_model and task_to_exec["flow_comfy"][node]["class_type"] == "OllamaVision":
+                task_to_exec["flow_comfy"][node]["inputs"]["model"] = ollama_vision_model
     return task_to_exec
+
+
+def get_worker_value(key_name: str) -> str:
+    key_value = os.environ.get(key_name.upper(), "")
+    if key_value:
+        return key_value
+    if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
+        r = httpx.get(
+            options.VIX_SERVER.rstrip("/") + "/api/settings/get",
+            params={"key": key_name.lower()},
+            auth=options.worker_auth(),
+            timeout=float(options.WORKER_NET_TIMEOUT),
+        )
+        if httpx.codes.is_error(r.status_code):
+            LOGGER.error("Can not fetch `%s` from the server: %s", key_name, r.status_code)
+        else:
+            key_value = r.text
+    else:
+        key_value = get_global_setting(key_name.lower(), True)
+    return key_value
 
 
 def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
