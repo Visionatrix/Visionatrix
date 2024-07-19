@@ -66,7 +66,7 @@ function uploadFlow() {
 	flowsStore.uploadFlow(file).then((res: any) => {
 		console.debug('uploadFlow', res)
 		const toast = useToast()
-		if (res && 'error' in res && res?.error !== '') {
+		if (res && 'detail' in res && res?.detail !== '') {
 			toast.add({
 				title: 'Error uploading flow',
 				description: res.error,
