@@ -66,7 +66,7 @@ function uploadFlow() {
 	flowsStore.uploadFlow(file).then((res: any) => {
 		console.debug('uploadFlow', res)
 		const toast = useToast()
-		if ('error' in res && res?.error !== '') {
+		if (res && 'error' in res && res?.error !== '') {
 			toast.add({
 				title: 'Error uploading flow',
 				description: res.error,
@@ -173,8 +173,7 @@ function uploadFlow() {
 							ref="flowFileInput"
 							type="file"
 							accept=".json"
-							class="w-auto"
-							@change="handleFileUpload" />
+							class="w-auto" />
 						<UButton
 							icon="i-heroicons-arrow-up-tray-16-solid"
 							variant="outline"
