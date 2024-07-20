@@ -21,7 +21,7 @@ from .comfyui import (
     soft_empty_cache,
 )
 from .db_queries import get_global_setting
-from .flows import get_installed_flows_names, get_ollama_nodes
+from .flows import get_google_nodes, get_installed_flows_names, get_ollama_nodes
 from .pydantic_models import (
     TaskDetails,
     TaskDetailsShort,
@@ -218,6 +218,15 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
                 task_to_exec["flow_comfy"][node]["inputs"]["url"] = ollama_url
             if ollama_vision_model and task_to_exec["flow_comfy"][node]["class_type"] == "OllamaVision":
                 task_to_exec["flow_comfy"][node]["inputs"]["model"] = ollama_vision_model
+
+    google_nodes = get_google_nodes(task_to_exec["flow_comfy"])
+    if google_nodes:
+        google_proxy = get_worker_value("GOOGLE_PROXY")
+        google_api_key = get_worker_value("GOOGLE_API_KEY")
+        for node in google_nodes:
+            if google_api_key:
+                task_to_exec["flow_comfy"][node]["inputs"]["api_key"] = google_api_key
+                task_to_exec["flow_comfy"][node]["inputs"]["proxy"] = google_proxy
     return task_to_exec
 
 
