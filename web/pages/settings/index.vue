@@ -69,7 +69,7 @@ function uploadFlow() {
 		if (res && 'detail' in res && res?.detail !== '') {
 			toast.add({
 				title: 'Error uploading flow',
-				description: res.error,
+				description: res.detail,
 			})
 			return
 		} else {
@@ -156,6 +156,19 @@ function uploadFlow() {
 						<UInput
 							v-model="settingsStore.settingsMap['ollama_url'].value"
 							placeholder="Ollama URL"
+							class="w-full"
+							type="text"
+							size="md"
+						/>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Ollama Vision Model"
+						description="Override Ollama Vision model used in workflows by default">
+						<UInput
+							v-model="settingsStore.settingsMap['ollama_vision_model'].value"
+							placeholder="Ollama Vision Model"
 							class="w-full"
 							type="text"
 							size="md"
