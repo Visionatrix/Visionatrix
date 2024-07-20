@@ -7,14 +7,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: true,
 				admin: true,
 			},
-			proxy: {
-				key: 'proxy',
+			google_proxy: {
+				key: 'google_proxy',
 				value: '',
 				sensitive: true,
 				admin: true,
 			},
-			gemini_token: {
-				key: 'gemini_token',
+			google_api_key: {
+				key: 'google_api_key',
 				value: '',
 				sensitive: true,
 				admin: true,
@@ -31,8 +31,8 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: true,
 				admin: true,
 			},
-			gemini_token_user: {
-				key: 'gemini_token',
+			google_api_key_user: {
+				key: 'google_api_key_user',
 				value: '',
 				sensitive: false,
 				admin: false,
