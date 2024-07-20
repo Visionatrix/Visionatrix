@@ -25,6 +25,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: true,
 				admin: true,
 			},
+			ollama_vision_model: {
+				key: 'ollama_vision_model',
+				value: '',
+				sensitive: true,
+				admin: true,
+			},
 			gemini_token_user: {
 				key: 'gemini_token',
 				value: '',

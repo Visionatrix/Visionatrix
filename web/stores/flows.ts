@@ -285,8 +285,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}).then((res: any) => {
 				if (res && res.details === '') {
 					this.fetchFlows()
-					return res
 				}
+				return res
 			})
 		},
 

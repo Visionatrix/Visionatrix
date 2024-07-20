@@ -227,6 +227,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
             if google_api_key:
                 task_to_exec["flow_comfy"][node]["inputs"]["api_key"] = google_api_key
                 task_to_exec["flow_comfy"][node]["inputs"]["proxy"] = google_proxy
+
     return task_to_exec
 
 

@@ -66,10 +66,10 @@ function uploadFlow() {
 	flowsStore.uploadFlow(file).then((res: any) => {
 		console.debug('uploadFlow', res)
 		const toast = useToast()
-		if ('error' in res && res?.error !== '') {
+		if (res && 'detail' in res && res?.detail !== '') {
 			toast.add({
 				title: 'Error uploading flow',
-				description: res.error,
+				description: res.detail,
 			})
 			return
 		} else {
@@ -161,6 +161,19 @@ function uploadFlow() {
 							size="md"
 						/>
 					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Ollama Vision Model"
+						description="Override Ollama Vision model used in workflows by default">
+						<UInput
+							v-model="settingsStore.settingsMap['ollama_vision_model'].value"
+							placeholder="Ollama Vision Model"
+							class="w-full"
+							type="text"
+							size="md"
+						/>
+					</UFormGroup>
 				</div>
 				<div v-if="userStore.isAdmin" class="upload-flow mb-5 py-4 rounded-md">
 					<h3 class="mb-3 text-xl font-bold">Upload Flow</h3>
@@ -173,8 +186,7 @@ function uploadFlow() {
 							ref="flowFileInput"
 							type="file"
 							accept=".json"
-							class="w-auto"
-							@change="handleFileUpload" />
+							class="w-auto" />
 						<UButton
 							icon="i-heroicons-arrow-up-tray-16-solid"
 							variant="outline"
