@@ -40,7 +40,7 @@ def update() -> None:
         old_requirements = Path(requirements_path).read_text(encoding="utf-8")
         if Version(_version.__version__).is_devrelease:
             check_call(["git", "checkout", "master"], cwd=options.BACKEND_DIR)
-            check_call("git pull".split(), cwd=options.BACKEND_DIR)
+            check_call("git pull --rebase".split(), cwd=options.BACKEND_DIR)
         else:
             check_call(["git", "fetch", "--all"], cwd=options.BACKEND_DIR)
             clone_env = os.environ.copy()

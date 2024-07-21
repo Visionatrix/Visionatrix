@@ -127,7 +127,7 @@ def update_base_custom_nodes() -> None:
             main_branch_name = node_details.get("main_branch", "main")
             run(["git", "checkout", main_branch_name], check=True, cwd=os.path.join(custom_nodes_dir, node_name))
             try:
-                run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
+                run("git pull --rebase".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
             except CalledProcessError:
                 LOGGER.info(
                     "Error pulling changes from remote. Resetting state of the local repository(%s) to the remote one",
