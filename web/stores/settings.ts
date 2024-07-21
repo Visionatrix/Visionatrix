@@ -32,7 +32,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 				admin: true,
 			},
 			google_api_key_user: {
-				key: 'google_api_key_user',
+				key: 'google_api_key',
 				value: '',
 				sensitive: false,
 				admin: false,
