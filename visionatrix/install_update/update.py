@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from subprocess import check_call
+from subprocess import CalledProcessError, check_call
 
 from packaging.version import Version
 
@@ -33,14 +33,18 @@ def update() -> None:
     if options.BACKEND_DIR:
         if options.PYTHON_EMBEDED:
             create_missing_models_dirs()
-            print("Updating the Backend for the EMBEDDED version is currently not possible, skipped.")
+            logging.warning("Updating the Backend for the EMBEDDED version is currently not possible, skipped.")
             return
         logging.info("Updating backend(ComfyUI)..")
         requirements_path = os.path.join(options.BACKEND_DIR, "requirements.txt")
         old_requirements = Path(requirements_path).read_text(encoding="utf-8")
         if Version(_version.__version__).is_devrelease:
             check_call(["git", "checkout", "master"], cwd=options.BACKEND_DIR)
-            check_call("git pull --rebase".split(), cwd=options.BACKEND_DIR)
+            try:
+                check_call("git pull".split(), cwd=options.BACKEND_DIR)
+            except CalledProcessError:
+                logging.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", options.BACKEND_DIR)
+                check_call("git pull --rebase".split(), cwd=options.BACKEND_DIR)
         else:
             check_call(["git", "fetch", "--all"], cwd=options.BACKEND_DIR)
             clone_env = os.environ.copy()
