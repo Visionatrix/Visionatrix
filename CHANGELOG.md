@@ -6,7 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- `OLLAMA_VISION_MODEL` setting/env var to override vision model that used in workflows.
+- `OLLAMA_VISION_MODEL` setting/env var to override vision model that used in workflows. #116
+- `ComfyUI_Gemini_Flash` node with free `Flash` model and proxy support for that. #118
+
+### Changed
+
+- `Photo Stickers2` and `Mad Scientist` workflows can optionally use `Google Gemini` instead of **Ollama**.
 
 ## [0.8.0 - 2024-07-15]
 

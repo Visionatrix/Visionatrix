@@ -99,4 +99,5 @@ Some examples of workflow results can be found in **Twitter** by tag [#Visionatr
   - [Working modes](https://visionatrix.github.io/VixFlowsDocs/WorkingModes.html)
   - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/VixWorkflows.html)
   - [Technical information](https://visionatrix.github.io/VixFlowsDocs/TechnicalInformation.html)
+  - [Hardware FAQ](https://visionatrix.github.io/VixFlowsDocs/HardwareFAQ.html)
   - [OpenAPI](https://visionatrix.github.io/VixFlowsDocs/swagger.html)

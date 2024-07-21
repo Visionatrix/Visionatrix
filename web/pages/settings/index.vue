@@ -124,11 +124,11 @@ function uploadFlow() {
 					<UFormGroup
 						size="md"
 						class="py-3"
-						label="Gemini API key"
-						description="Global Gemini API key, required for Flows where ComfyUI-Gemini Node is used">
+						label="Google API key"
+						description="Global Google API key, required for Flows, e.g. where ComfyUI-Gemini Node is used">
 						<UInput
-							v-model="settingsStore.settingsMap['gemini_token'].value"
-							placeholder="Gemini API key"
+							v-model="settingsStore.settingsMap['google_api_key'].value"
+							placeholder="Google API key"
 							class="w-full"
 							type="password"
 							icon="i-heroicons-shield-check"
@@ -141,7 +141,7 @@ function uploadFlow() {
 						label="Proxy"
 						description="Proxy configuration string (to access Gemini)">
 						<UInput
-							v-model="settingsStore.settingsMap['proxy'].value"
+							v-model="settingsStore.settingsMap['google_proxy'].value"
 							placeholder="Proxy"
 							class="w-full"
 							type="text"
@@ -201,11 +201,11 @@ function uploadFlow() {
 					<UFormGroup
 						size="md"
 						class="py-3"
-						label="Gemini API key"
-						description="Gemini API key, required for Flows where ComfyUI-Gemini Node is used">
+						label="Google API key"
+						description="Google API key, required for Flows where, e.g. ComfyUI-Gemini Node is used">
 						<UInput
-							v-model="settingsStore.settingsMap['gemini_token_user'].value"
-							placeholder="Gemini API key"
+							v-model="settingsStore.settingsMap['google_api_key_user'].value"
+							placeholder="Google API key"
 							class="w-full"
 							type="password"
 							icon="i-heroicons-shield-check"
