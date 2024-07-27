@@ -23,6 +23,28 @@ const setupButtonText = computed(() => {
 const deleting = ref(false)
 const showConfirmDelete = ref(false)
 
+const flowActions = computed(() => {
+	const actions = [
+		[{
+			label: 'Delete flow',
+			icon: 'i-heroicons-trash',
+			click: deleteFlow,
+		}]
+	]
+
+	if (flowStore?.currentFlow?.new_version_available !== '') {
+		actions[0].unshift({
+			label: `Update to ${flowStore.currentFlow.new_version_available}`,
+			icon: 'i-heroicons-arrow-path',
+			click: () => {
+				flowStore.updateFlow(flowStore.currentFlow)
+			},
+		})
+	}
+
+	return actions
+})
+
 function _deleteFlow(flow: Flow, isFlowPrivate = false) {
 	deleting.value = true
 	flowStore.deleteFlow(flow).then(() => {
@@ -106,6 +128,9 @@ const userStore = useUserStore()
 								<UIcon name="i-heroicons-clock" class="mr-1" />
 								<b>Version:</b>&nbsp;
 								<span>{{ flowStore.currentFlow?.version }}</span>
+								<span v-if="flowStore.currentFlow?.new_version_available !== ''">
+									&nbsp;(new version available: {{ flowStore.currentFlow?.new_version_available }})
+								</span>
 							</p>
 							<p class="flex flex-row items-center text-md mb-2">
 								<UIcon name="i-heroicons-tag" class="mr-1" />
@@ -204,13 +229,12 @@ const userStore = useUserStore()
 										Cancel
 									</UButton>
 								</UTooltip>
-								<UDropdown v-if="flowStore.isFlowInstalled(route.params.name as string)" :items="[
-									[{
-										label: 'Delete flow',
-										icon: 'i-heroicons-trash',
-										click: deleteFlow,
-									}]
-								]" mode="click" label="Actions" :popper="{ placement: 'bottom-end' }">
+								<UDropdown
+									v-if="flowStore.isFlowInstalled(route.params.name as string)"
+									:items="flowActions"
+									mode="click"
+									label="Actions"
+									:popper="{ placement: 'bottom-end' }">
 									<UButton color="white" label="Actions" trailing-icon="i-heroicons-chevron-down-20-solid" />
 								</UDropdown>
 							</div>
