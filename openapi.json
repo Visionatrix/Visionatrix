@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "0.8.0.dev0"
+    "version": "0.9.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -231,6 +231,74 @@
         "responses": {
           "204": {
             "description": "Flow deleted successfully"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flows/flow-update": {
+      "post": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Flow Update",
+        "description": "Endpoint to initiate the update process of an installed flow based on its name.\nThis endpoint requires admin privileges to perform the update. If another flow installation or update is already\nin progress, it prevents a new update to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the update process using the specified flow name. It checks the\navailability of a newer version of the flow and starts the update if a newer version is found. It ensures that no\ntwo installations or updates can run concurrently.",
+        "operationId": "flow_update",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the flow you wish to update",
+              "title": "Name"
+            },
+            "description": "Name of the flow you wish to update"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful start of update process"
+          },
+          "404": {
+            "description": "Flow not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Can't find `flow_name` flow."
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another flow installation or update is in progress",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Another flow installation or update is in progress."
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Flow does not have a newer version",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Flow `flow_name` does not have a newer version."
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1858,6 +1926,12 @@
             "title": "Private",
             "description": "Whether the workflow is missing from the `FLOWS_CATALOG_URL`",
             "default": false
+          },
+          "new_version_available": {
+            "type": "string",
+            "title": "New Version Available",
+            "description": "If not empty, contains the new version of the workflow.",
+            "default": ""
           }
         },
         "type": "object",
@@ -2619,7 +2693,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-09T16:57:52.662537Z"
+            "default": "2024-07-27T15:31:44.084416Z"
           }
         },
         "type": "object",

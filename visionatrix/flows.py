@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import UploadFile
-from packaging.version import Version
+from packaging.version import Version, parse
 
 from . import _version, comfyui_class_info, db_queries, options
 from .models import install_model
@@ -100,7 +100,8 @@ def get_installed_flows(flows_comfy: list | None = None) -> list[Flow]:
             flows_comfy.extend(CACHE_INSTALLED_FLOWS["flows_comfy"])
         return CACHE_INSTALLED_FLOWS["flows"]
 
-    public_flows_names = [i.name for i in get_available_flows([])]
+    available_flows = get_available_flows([])
+    public_flows_names = [i.name for i in available_flows]
     CACHE_INSTALLED_FLOWS["update_time"] = time.time()
     flows = [entry for entry in Path(options.FLOWS_DIR).iterdir() if entry.is_file() and entry.name.endswith(".json")]
     r = []
@@ -110,6 +111,9 @@ def get_installed_flows(flows_comfy: list | None = None) -> list[Flow]:
         _flow_vix = get_vix_flow(_flow_comfy)
         if _flow_vix.name not in public_flows_names:
             _flow_vix.private = True
+        _fresh_flow_info = [i for i in available_flows if i.name == _flow_vix.name]
+        if _fresh_flow_info and parse(_flow_vix.version) < parse(_fresh_flow_info[0].version):
+            _flow_vix.new_version_available = _fresh_flow_info[0].version
         r.append(_flow_vix)
         r_comfy.append(_flow_comfy)
     CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
