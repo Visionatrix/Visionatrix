@@ -252,7 +252,7 @@ const userStore = useUserStore()
 											{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Installed' : 'Not installed' }}
 										</span>
 									</div>
-									<div class="text-right">
+									<div v-if="!flowStore.isFlowInstalled(route.params.name as string)" class="text-right">
 										<p class="text-orange-500">Only admin can manage workflows.</p>
 										<span class="text-slate-500">Ask your admin to setup this workflow</span>
 									</div>
