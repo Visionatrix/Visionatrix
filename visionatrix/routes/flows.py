@@ -14,6 +14,7 @@ from fastapi import (
     responses,
     status,
 )
+from packaging.version import parse
 
 from .. import options
 from ..db_queries import (
@@ -164,6 +165,68 @@ def install_from_file(
     delete_flows_progress_install(flow.name)
     add_flow_progress_install(flow.name, flow_comfy)
     b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
+
+
+@ROUTER.post(
+    "/flow-update",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successful start of update process"},
+        404: {
+            "description": "Flow not found",
+            "content": {"application/json": {"example": {"detail": "Can't find `flow_name` flow."}}},
+        },
+        409: {
+            "description": "Another flow installation or update is in progress",
+            "content": {
+                "application/json": {"example": {"detail": "Another flow installation or update is in progress."}}
+            },
+        },
+        412: {
+            "description": "Flow does not have a newer version",
+            "content": {"application/json": {"example": {"detail": "Flow `flow_name` does not have a newer version."}}},
+        },
+    },
+)
+def flow_update(
+    request: Request,
+    b_tasks: BackgroundTasks,
+    name: str = Query(..., description="Name of the flow you wish to update"),
+):
+    """
+    Endpoint to initiate the update process of an installed flow based on its name.
+    This endpoint requires admin privileges to perform the update. If another flow installation or update is already
+    in progress, it prevents a new update to avoid conflicts, returning a 409 Conflict HTTP status.
+
+    This endpoint schedules a background task for the update process using the specified flow name. It checks the
+    availability of a newer version of the flow and starts the update if a newer version is found. It ensures that no
+    two installations or updates can run concurrently.
+    """
+    require_admin(request)
+    if flows_installation_in_progress():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Another flow installation or update is in progress."
+        )
+
+    flows_comfy = []
+    flows = get_installed_flows(flows_comfy)
+    for i, flow in enumerate(flows):
+        if flow.name == name:
+            available_flows = get_available_flows([])
+            _fresh_flow_info = [i for i in available_flows if i.name == name]
+            if not _fresh_flow_info:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` flow.")
+            if parse(flow.version) >= parse(_fresh_flow_info[0].version):
+                raise HTTPException(
+                    status_code=status.HTTP_412_PRECONDITION_FAILED,
+                    detail=f"Flow `{name}` does not have a newer version.",
+                )
+            delete_flows_progress_install(name)
+            add_flow_progress_install(name, flows_comfy[i])
+            b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
+            return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` flow.")
 
 
 @ROUTER.get("/install-progress")

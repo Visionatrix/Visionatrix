@@ -253,6 +253,30 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
+		async updateFlow(flow: Flow) {
+			const { $apiFetch } = useNuxtApp()
+			return await $apiFetch(`/flows/flow-update?name=${flow.name}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			}).then(() => {
+				this.installing.push({
+					flow_name: flow.name,
+					progress: 0,
+				})
+				this.startFlowInstallingPolling(flow.name)
+			}).catch((e) => {
+				console.debug(e)
+				const toast = useToast()
+				toast.add({
+					title: 'Failed to update flow - ' + flow.display_name,
+					description: e.message,
+					timeout: 5000,
+				})
+			})
+		},
+
 		async cancelFlowSetup(flow: Flow) {
 			const { $apiFetch } = useNuxtApp()
 			return await $apiFetch(`/flows/install-progress?name=${flow.name}`, {

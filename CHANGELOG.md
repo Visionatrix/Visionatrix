@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - `OLLAMA_VISION_MODEL` setting/env var to override vision model that used in workflows. #116
 - `ComfyUI_Gemini_Flash` node with free `Flash` model and proxy support for that. #118
+- `/flow-update` endpoint and ability to see in UI which workflows have updates.
 
 ### Changed
 
