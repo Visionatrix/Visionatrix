@@ -8,6 +8,7 @@ CLASS_INFO: dict[str, tuple[str, list[str]]] = {
     "VixUiCheckboxLogic": ("bool", ["inputs", "state"]),
     "VixUiRangeFloat": ("range", ["inputs", "value"]),
     "VixUiRangeScaleFloat": ("range_scale", ["inputs", "value"]),
+    "VixUiRangeInt": ("range", ["inputs", "value"]),
     "VixUiPrompt": ("text", ["inputs", "text"]),
     "VixUiList": ("list", ["inputs", "default_value"]),
     "VixUiListLogic": ("list", ["inputs", "default_value"]),

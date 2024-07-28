@@ -414,7 +414,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             "order": order,
             "comfy_node_id": {node_id: input_path},
         }
-        if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat"):
+        if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat", "VixUiRangeInt"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]
             if node_details["class_type"] == "VixUiRangeScaleFloat" and "source_input_name" in node_details["inputs"]:
