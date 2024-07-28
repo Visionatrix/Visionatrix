@@ -10,6 +10,15 @@ useHead({
 })
 
 const flowsStore = useFlowsStore()
+
+watch(() => flowsStore.paginatedFlows, () => {
+	if (flowsStore.flows.length <= flowsStore.$state.pageSize) {
+		flowsStore.$state.page = 1
+	} else if (flowsStore.$state.page > Math.ceil(flowsStore.flows.length / flowsStore.$state.pageSize)) {
+		flowsStore.$state.page = Math.ceil(flowsStore.flows.length / flowsStore.$state.pageSize)
+	}
+})
+
 </script>
 
 <template>
