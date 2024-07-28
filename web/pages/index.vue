@@ -15,7 +15,7 @@ const flowsStore = useFlowsStore()
 <template>
 	<AppContainer class="lg:h-dvh">
 		<UProgress v-if="flowsStore.$state.loading.flows_available || flowsStore.loading.flows_installed || flowsStore.$state.loading.tasks_history" />
-		<template v-else-if="flowsStore.flows.length > 0">
+		<template v-else>
 			<div class="w-full sticky z-[100] top-1 flex flex-col md:flex-row justify-center items-center my-1">
 				<USelectMenu
 					v-model="flowsStore.$state.flows_tags_filter"
@@ -33,12 +33,12 @@ const flowsStore = useFlowsStore()
 					:page-count="flowsStore.$state.pageSize"
 					:total="flowsStore.flows.length" />
 			</div>
-			<div class="flex flex-wrap justify-center items-center mb-10">
+			<div v-if="flowsStore.flows.length > 0" class="flex flex-wrap justify-center items-center mb-10">
 				<WorkflowListItem v-for="flow in flowsStore.paginatedFlows" :key="flow.name" :flow="flow" />
 			</div>
+			<p v-else class="text-center text-slate-500">
+				No flows available
+			</p>
 		</template>
-		<p v-else class="text-center text-slate-500">
-			No flows available
-		</p>
 	</AppContainer>
 </template>

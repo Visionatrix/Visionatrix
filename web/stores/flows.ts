@@ -29,7 +29,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return [
 					...state.flows_installed,
 					...state.flows_available,
-				].filter(flow => flow.tags.some(tag => state.flows_tags_filter.includes(tag)))
+				].filter(flow => state.flows_tags_filter.every(tag => flow.tags.includes(tag)))
 			}
 			return [
 				...state.flows_installed,
@@ -48,7 +48,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return paginate([
 					...state.flows_installed,
 					...state.flows_available,
-				].filter(flow => flow.tags.some(tag => state.flows_tags_filter.includes(tag))), state.page, state.pageSize) as Flow[]
+				].filter(flow => state.flows_tags_filter.every(tag => flow.tags.includes(tag))), state.page, state.pageSize) as Flow[]
 			}
 			return paginate([
 				...state.flows_installed,
