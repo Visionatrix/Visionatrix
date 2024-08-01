@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0 - 2024-08-xx]
+
+### Added
+
+- **Relationship of task results, send task result to another tasks and possibility to return to the previous result.**
+
 ## [0.9.0 - 2024-07-28]
 
 ### Added
