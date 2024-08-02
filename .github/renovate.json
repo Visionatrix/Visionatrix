@@ -10,5 +10,6 @@
     "**/docs/**",
     "**/tests/**",
     "**/web/**"
-  ]
+  ],
+  "prConcurrentLimit": 5
 }

@@ -2,13 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.9.0 - 2024-07-2x]
+## [1.0.0 - 2024-08-xx]
+
+### Added
+
+- **Relationship of task results, send task result to another tasks and possibility to return to the previous result.**
+
+## [0.9.0 - 2024-07-28]
 
 ### Added
 
 - `OLLAMA_VISION_MODEL` setting/env var to override vision model that used in workflows. #116
 - `ComfyUI_Gemini_Flash` node with free `Flash` model and proxy support for that. #118
-- `/flow-update` endpoint and ability to see in UI which workflows have updates.
+- `/flow-update` endpoint and ability to see in UI which workflows have updates. #120
 
 ### Changed
 
