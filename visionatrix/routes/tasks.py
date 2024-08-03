@@ -45,7 +45,6 @@ from ..tasks_engine import (
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name,
     task_restart_database,
-    update_task_children,
     update_task_outputs,
     update_task_progress_database,
 )
@@ -57,7 +56,6 @@ from ..tasks_engine_async import (
     get_tasks_short_async,
     put_task_in_queue_async,
     task_restart_database_async,
-    update_task_children_async,
     update_task_outputs_async,
     update_task_progress_database_async,
 )
@@ -98,35 +96,19 @@ async def __task_run(
     task_details["flow_comfy"] = flow_comfy
     task_details["webhook_url"] = webhook_url
     task_details["webhook_headers"] = webhook_headers
-    parent_task = None
     if child_task:
         if not in_files or not isinstance(in_files[0], dict):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No input file provided. A child task can only be created from the node ID of the parent task.",
             ) from None
-        if options.VIX_MODE == "SERVER":
-            parent_task = await get_task_async(in_files[0]["task_id"], user_info.user_id)
-        else:
-            parent_task = get_task(in_files[0]["task_id"], user_info.user_id)
-        if parent_task is None:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Parent task with id={task_details['parent_task_id']} for user={user_info.user_id} is missing.",
-            ) from None
-        task_details["parent_task_id"] = parent_task["task_id"]
+        task_details["parent_task_id"] = in_files[0]["task_id"]
         task_details["parent_task_node_id"] = in_files[0]["node_id"]
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
-        if parent_task:
-            await update_task_children_async(
-                parent_task["task_id"], [*parent_task["children_ids"], task_details["task_id"]]
-            )
     else:
         put_task_in_queue(task_details)
-        if parent_task:
-            update_task_children(parent_task["task_id"], [*parent_task["children_ids"], task_details["task_id"]])
     return task_details
 
 

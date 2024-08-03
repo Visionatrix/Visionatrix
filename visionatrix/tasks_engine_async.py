@@ -118,23 +118,6 @@ async def update_task_outputs_async(task_id: int, outputs: list[dict]) -> bool:
     return False
 
 
-async def update_task_children_async(task_id: int, children_ids: list[int]) -> bool:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            result = await session.execute(
-                update(database.TaskDetails)
-                .where(database.TaskDetails.task_id == task_id)
-                .values(children_ids=children_ids)
-            )
-            if result.rowcount == 1:
-                await session.commit()
-                return True
-        except Exception as e:
-            await session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails children IDs: %s", task_id, e)
-    return False
-
-
 async def get_incomplete_task_without_error_database_async(
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,

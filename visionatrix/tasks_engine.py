@@ -10,7 +10,7 @@ import typing
 from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy import Row, and_, delete, desc, select, update
+from sqlalchemy import Row, and_, delete, desc, func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -46,7 +46,6 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.worker_id,
     database.TaskDetails.parent_task_id,
     database.TaskDetails.parent_task_node_id,
-    database.TaskDetails.children_ids,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -96,7 +95,6 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         webhook_headers=task_details.get("webhook_headers"),
         parent_task_id=task_details.get("parent_task_id"),
         parent_task_node_id=task_details.get("parent_task_node_id"),
-        children_ids=task_details.get("children_ids"),
     )
 
 
@@ -118,6 +116,9 @@ def __task_details_to_dict(task_details: Row) -> dict:
 
 
 def __task_details_short_to_dict(task_details: Row) -> dict:
+    children_ids = (
+        [int(_id) for _id in task_details.children_ids_str.split(",")] if task_details.children_ids_str else []
+    )
     return {
         "progress": task_details.progress,
         "error": task_details.error,
@@ -130,7 +131,7 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "worker_id": task_details.worker_id,
         "parent_task_id": task_details.parent_task_id,
         "parent_task_node_id": task_details.parent_task_node_id,
-        "children_ids": task_details.children_ids if task_details.children_ids else [],  # remove in version 2.0
+        "children_ids": children_ids,
     }
 
 
@@ -184,9 +185,22 @@ def put_task_in_queue(task_details: dict) -> None:
 
 
 def __get_task_query(task_id: int, user_id: str | None):
-    query = select(*TASK_DETAILS_COLUMNS)
-    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
-    query = query.filter(database.TaskDetails.task_id == task_id)
+    # Subquery to get the concatenated list of children IDs for each task
+    children_subquery = (
+        select(
+            database.TaskDetails.parent_task_id,
+            func.group_concat(database.TaskDetails.task_id, ",").label("children_ids_str"),
+        )
+        .group_by(database.TaskDetails.parent_task_id)
+        .subquery()
+    )
+
+    query = (
+        select(*TASK_DETAILS_COLUMNS, children_subquery.c.children_ids_str)
+        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+        .outerjoin(children_subquery, children_subquery.c.parent_task_id == database.TaskDetails.task_id)
+        .filter(database.TaskDetails.task_id == task_id)
+    )
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     return query
@@ -377,8 +391,24 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
 
 
 def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
-    query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT))
-    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+    # Subquery to get the concatenated list of children IDs for each task
+    children_subquery = (
+        select(
+            database.TaskDetails.parent_task_id,
+            func.group_concat(database.TaskDetails.task_id, ",").label("children_ids_str"),
+        )
+        .group_by(database.TaskDetails.parent_task_id)
+        .subquery()
+    )
+
+    query = (
+        select(
+            *(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT), children_subquery.c.children_ids_str
+        )
+        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+        .outerjoin(children_subquery, children_subquery.c.parent_task_id == database.TaskDetails.task_id)
+    )
+
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     if name is not None:
@@ -591,23 +621,6 @@ def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
             interrupt_processing()
             session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails outputs: %s", task_id, e)
-    return False
-
-
-def update_task_children(task_id: int, children_ids: list[int]) -> bool:
-    with database.SESSION() as session:
-        try:
-            result = session.execute(
-                update(database.TaskDetails)
-                .where(database.TaskDetails.task_id == task_id)
-                .values(children_ids=children_ids)
-            )
-            if result.rowcount == 1:
-                session.commit()
-                return True
-        except Exception as e:
-            session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails children IDs: %s", task_id, e)
     return False
 
 
