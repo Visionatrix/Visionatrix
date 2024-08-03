@@ -130,7 +130,7 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "worker_id": task_details.worker_id,
         "parent_task_id": task_details.parent_task_id,
         "parent_task_node_id": task_details.parent_task_node_id,
-        "children_ids": task_details.children_ids,
+        "children_ids": task_details.children_ids if task_details.children_ids else [],  # remove in version 2.0
     }
 
 

@@ -138,7 +138,7 @@ async def create_task(
     input_params: str = Form(None, description="List of input parameters as an encoded json string"),
     webhook_url: str | None = Form(None, description="URL to call when task state changes"),
     webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
-    child_task: str = Form(1, description="Int boolean indicating whether to create a relation between tasks"),
+    child_task: str = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
     files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """
