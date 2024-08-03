@@ -44,6 +44,8 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.outputs,
     database.TaskLock.locked_at,
     database.TaskDetails.worker_id,
+    database.TaskDetails.parent_task_id,
+    database.TaskDetails.parent_task_node_id,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -90,6 +92,8 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         execution_time=task_details["execution_time"],
         webhook_url=task_details.get("webhook_url"),
         webhook_headers=task_details.get("webhook_headers"),
+        parent_task_id=task_details.get("parent_task_id"),
+        parent_task_node_id=task_details.get("parent_task_node_id"),
     )
 
 
@@ -121,6 +125,8 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "execution_time": task_details.execution_time,
         "locked_at": task_details.locked_at,
         "worker_id": task_details.worker_id,
+        "parent_task_id": task_details.parent_task_id,
+        "parent_task_node_id": task_details.parent_task_node_id,
     }
 
 

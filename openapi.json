@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "0.9.0.dev0"
+    "version": "1.0.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -1642,6 +1642,12 @@
             "title": "Webhook Headers",
             "description": "Headers for webhook url as an encoded json string"
           },
+          "child_task": {
+            "type": "string",
+            "title": "Child Task",
+            "description": "Int boolean indicating whether to create a relation between tasks",
+            "default": 0
+          },
           "files": {
             "items": {
               "anyOf": [
@@ -2132,6 +2138,30 @@
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
           },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id",
+            "description": "Parent task ID if is a child task."
+          },
+          "parent_task_node_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Node Id",
+            "description": "Parent task Node ID if is a child task."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2336,6 +2366,30 @@
             "type": "number",
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id",
+            "description": "Parent task ID if is a child task."
+          },
+          "parent_task_node_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Node Id",
+            "description": "Parent task Node ID if is a child task."
           }
         },
         "type": "object",
@@ -2693,7 +2747,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-07-27T15:31:44.084416Z"
+            "default": "2024-08-03T12:15:49.491752Z"
           }
         },
         "type": "object",

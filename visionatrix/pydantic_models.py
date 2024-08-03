@@ -119,6 +119,8 @@ class TaskDetailsShort(BaseModel):
     locked_at: datetime | None = Field(None, description="Lock time if task is locked.")
     worker_id: str | None = Field(None, description="Unique identifier of the worker working on the task.")
     execution_time: float = Field(..., description="Execution time of the ComfyUI workflow in seconds.")
+    parent_task_id: int | None = Field(None, description="Parent task ID if is a child task.")
+    parent_task_node_id: int | None = Field(None, description="Parent task Node ID if is a child task.")
 
 
 class TaskDetails(TaskDetailsShort):
