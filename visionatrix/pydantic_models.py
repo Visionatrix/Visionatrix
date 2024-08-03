@@ -121,6 +121,7 @@ class TaskDetailsShort(BaseModel):
     execution_time: float = Field(..., description="Execution time of the ComfyUI workflow in seconds.")
     parent_task_id: int | None = Field(None, description="Parent task ID if is a child task.")
     parent_task_node_id: int | None = Field(None, description="Parent task Node ID if is a child task.")
+    children_ids: list[int] = Field([], description="List of child task IDs if any.")
 
 
 class TaskDetails(TaskDetailsShort):

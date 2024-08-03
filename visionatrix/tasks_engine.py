@@ -46,6 +46,7 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.worker_id,
     database.TaskDetails.parent_task_id,
     database.TaskDetails.parent_task_node_id,
+    database.TaskDetails.children_ids,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -72,6 +73,7 @@ def __init_new_task_details(task_id: int, name: str, input_params: dict, user_in
         "flow_comfy": {},
         "user_id": user_info.user_id,
         "execution_time": 0.0,
+        "children_ids": [],
     }
 
 
@@ -94,6 +96,7 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         webhook_headers=task_details.get("webhook_headers"),
         parent_task_id=task_details.get("parent_task_id"),
         parent_task_node_id=task_details.get("parent_task_node_id"),
+        children_ids=task_details.get("children_ids"),
     )
 
 
@@ -127,6 +130,7 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "worker_id": task_details.worker_id,
         "parent_task_id": task_details.parent_task_id,
         "parent_task_node_id": task_details.parent_task_node_id,
+        "children_ids": task_details.children_ids,
     }
 
 
@@ -587,6 +591,23 @@ def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
             interrupt_processing()
             session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails outputs: %s", task_id, e)
+    return False
+
+
+def update_task_children(task_id: int, children_ids: list[int]) -> bool:
+    with database.SESSION() as session:
+        try:
+            result = session.execute(
+                update(database.TaskDetails)
+                .where(database.TaskDetails.task_id == task_id)
+                .values(children_ids=children_ids)
+            )
+            if result.rowcount == 1:
+                session.commit()
+                return True
+        except Exception as e:
+            session.rollback()
+            LOGGER.exception("Task %s: failed to update TaskDetails children IDs: %s", task_id, e)
     return False
 
 
