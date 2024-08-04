@@ -2072,6 +2072,11 @@
       },
       "TaskDetails": {
         "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id",
+            "description": "Unique identifier of the task."
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2162,6 +2167,15 @@
             "title": "Parent Task Node Id",
             "description": "Parent task Node ID if is a child task."
           },
+          "child_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsShort"
+            },
+            "type": "array",
+            "title": "Child Tasks",
+            "description": "List of child tasks of type `TaskDetailsShort` if any.",
+            "default": []
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2193,11 +2207,6 @@
             ],
             "title": "Finished At",
             "description": "Finish time of the task."
-          },
-          "task_id": {
-            "type": "integer",
-            "title": "Task Id",
-            "description": "Unique identifier of the task."
           },
           "flow_comfy": {
             "type": "object",
@@ -2236,6 +2245,7 @@
         },
         "type": "object",
         "required": [
+          "task_id",
           "progress",
           "error",
           "name",
@@ -2244,7 +2254,6 @@
           "input_files",
           "execution_time",
           "created_at",
-          "task_id",
           "flow_comfy",
           "user_id"
         ],
@@ -2301,6 +2310,11 @@
       },
       "TaskDetailsShort": {
         "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id",
+            "description": "Unique identifier of the task."
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2390,10 +2404,20 @@
             ],
             "title": "Parent Task Node Id",
             "description": "Parent task Node ID if is a child task."
+          },
+          "child_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsShort"
+            },
+            "type": "array",
+            "title": "Child Tasks",
+            "description": "List of child tasks of type `TaskDetailsShort` if any.",
+            "default": []
           }
         },
         "type": "object",
         "required": [
+          "task_id",
           "progress",
           "error",
           "name",
@@ -2747,7 +2771,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-03T12:15:49.491752Z"
+            "default": "2024-08-04T11:29:57.077484Z"
           }
         },
         "type": "object",

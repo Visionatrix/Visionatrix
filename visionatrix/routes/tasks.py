@@ -191,9 +191,9 @@ async def get_tasks_progress(
     Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id)
+        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     else:
-        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id)
+        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     return r
 
 
@@ -206,9 +206,9 @@ async def get_tasks_progress_summary(
     Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id)
+        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     else:
-        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id)
+        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     return r
 
 
@@ -219,9 +219,9 @@ async def get_task_progress(request: Request, task_id: int) -> TaskDetails:
     Access is restricted to the task owner or an administrator.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+        r = await get_task_async(task_id, request.scope["user_info"].user_id, fetch_child=True)
     else:
-        r = get_task(task_id, request.scope["user_info"].user_id)
+        r = get_task(task_id, request.scope["user_info"].user_id, fetch_child=True)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     try:

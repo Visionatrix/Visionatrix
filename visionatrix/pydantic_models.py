@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -102,6 +104,7 @@ class TaskDetailsOutput(BaseModel):
 class TaskDetailsShort(BaseModel):
     """Brief information about the Task."""
 
+    task_id: int = Field(..., description="Unique identifier of the task.")
     progress: float = Field(
         ..., description="Progress from 0 to 100, task results are only available once progress reaches 100."
     )
@@ -121,7 +124,9 @@ class TaskDetailsShort(BaseModel):
     execution_time: float = Field(..., description="Execution time of the ComfyUI workflow in seconds.")
     parent_task_id: int | None = Field(None, description="Parent task ID if is a child task.")
     parent_task_node_id: int | None = Field(None, description="Parent task Node ID if is a child task.")
-    children_ids: list[int] = Field([], description="List of child task IDs if any.")
+    child_tasks: list[TaskDetailsShort] = Field(
+        [], description="List of child tasks of type `TaskDetailsShort` if any."
+    )
 
 
 class TaskDetails(TaskDetailsShort):
