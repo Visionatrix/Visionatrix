@@ -209,14 +209,18 @@ export const useFlowsStore = defineStore('flowsStore', {
 						error: task?.error || null,
 						outputs: task.outputs,
 						execution_time: task.execution_time || null,
+						child_tasks: task.child_tasks || [],
+						parent_task_id: task.parent_task_id,
 					})
 				} else if (task.progress === 100) {
 					finishedFlows.push(<FlowResult>{
 						task_id: task_id,
 						flow_name: task.name,
-						output_params: task.outputs,
+						outputs: task.outputs,
 						input_params_mapped: input_params_mapped_updated || null,
 						execution_time: task.execution_time || 0,
+						child_tasks: task.child_tasks || [],
+						parent_task_id: task.parent_task_id,
 					})
 				}
 			})
@@ -327,7 +331,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return response
 		},
 
-		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1) {
+		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1, child_task: boolean = false) {
 			const formData = new FormData()
 
 			console.debug('input_params:', input_params)
@@ -357,6 +361,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 					console.debug('file:', param[paramName].value)
 					formData.append('files', param[paramName].value)
 				})
+			}
+
+			if (child_task) {
+				formData.append('child_task', '1')
 			}
 
 			console.debug('form_data:', formData)
@@ -640,6 +648,22 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (progress[task_id].input_files) {
 							runningFlow.input_files = progress[task_id].input_files
 						}
+						// if parent_task_id is set - update parent task history record
+						if (progress[task_id].parent_task_id) {
+							const parentTaskId = progress[task_id].parent_task_id
+							console.debug('[child_task] updating parent_task_id:', progress[task_id].parent_task_id)
+							const parentTaskHistoryProgress = progress[parentTaskId]
+							console.debug('[child_task] parentTaskHistoryProgress:', parentTaskHistoryProgress)
+							if (parentTaskHistoryProgress) {
+								const parentTask = this.flow_results.find(flow => flow.task_id === parentTaskId.toString())
+								if (parentTask) {
+									parentTask.child_tasks.push({
+										...parentTaskHistoryProgress,
+										task_id: Number(task_id),
+									})
+								}
+							}
+						}
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
 							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
@@ -653,9 +677,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 							this.flow_results.push({
 								task_id: task_id.toString(),
 								flow_name: flow.name,
-								output_params: progress[task_id].outputs,
+								outputs: progress[task_id].outputs,
 								input_params_mapped: runningFlow.input_params_mapped,
 								execution_time: progress[task_id]?.execution_time || 0,
+								child_tasks: progress[task_id].child_tasks || [],
+								parent_task_id: progress[task_id].parent_task_id,
 							})
 						}
 					})
@@ -785,6 +811,7 @@ export interface Flow {
 	version: string
 	private: boolean
 	requires: string[]
+	new_version_available?: string
 }
 
 export interface Model {
@@ -844,6 +871,8 @@ export interface FlowRunning {
 	outputs: FlowOutputParam[]
 	error?: string
 	execution_time?: number
+	parent_task_id?: number
+	child_tasks?: TaskHistoryItem[]
 }
 
 export interface FlowProgress {
@@ -854,15 +883,18 @@ export interface FlowProgress {
 	name: string
 	flow_comfy?: any
 	outputs: FlowOutputParam[]
+	parent_task_id?: number
 	execution_time?: number
 }
 
 export interface FlowResult {
 	task_id: string
 	flow_name: string
-	output_params: FlowOutputParam[]
+	outputs: FlowOutputParam[]
 	input_params_mapped: TaskHistoryInputParam
 	execution_time: number
+	parent_task_id: number
+	child_tasks: TaskHistoryItem[]
 }
 
 export interface TasksHistory {
@@ -883,11 +915,22 @@ export interface TaskHistoryInputParam {
 }
 
 export interface TaskHistoryItem {
-	name: string
-	input_params: TaskHistoryInputParam
-	input_files: TaskInputFile
-	progress: number
+	child_tasks: TaskHistoryItem[]
+	created_at: string
 	error?: string
-	outputs: FlowOutputParam[]
 	execution_time: number
+	finished_at: string
+	flow_comfy: any
+	input_files: TaskInputFile
+	input_params: TaskHistoryInputParam
+	locked_at: string
+	name: string
+	outputs: FlowOutputParam[]
+	parent_task_id: number
+	parent_task_node_id: number
+	progress: number
+	task_id: number
+	updated_at: string
+	user_id: string
+	worker_id: string
 }

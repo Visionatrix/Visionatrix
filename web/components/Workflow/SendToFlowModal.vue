@@ -17,6 +17,10 @@ const props = defineProps({
 		type: Number,
 		required: true,
 	},
+	inputParamsMapped: {
+		type: Object,
+		required: true,
+	},
 })
 
 const flowStore = useFlowsStore()
@@ -65,7 +69,7 @@ function sendToFlow() {
 			input_param_map[input_param.name] = {
 				value: JSON.stringify({
 					task_id: props.flowResult.task_id,
-					node_id: props.flowResult.output_params[props.outputParamIndex].comfy_node_id,
+					node_id: props.flowResult.outputs[props.outputParamIndex].comfy_node_id
 				}) || '',
 				type: input_param.type,
 			}
@@ -93,17 +97,20 @@ function sendToFlow() {
 	console.debug('[Send to flow]: input_params_map', input_params_map)
 
 	sending.value = true
-	flowStore.runFlow(targetFlow, input_params_map).finally(() => {
+	flowStore.runFlow(targetFlow, input_params_map, 1, childTask.value).finally(() => {
 		sending.value = false
 		emit('update:show', false)
 	})
 }
+
+const childTask = ref(false)
 
 onBeforeMount(() => {
 	// TODO: change to dynamic according to the output type
 	flowStore.fetchSubFlows('image').then(() => {
 		selectedFlow.value = subFlows.value[0] || ''
 	})
+	childTask.value = false
 })
 </script>
 
@@ -114,15 +121,18 @@ onBeforeMount(() => {
 			<div class="flex justify-center mb-4">
 				<NuxtImg :src="outputImgSrc" class="w-1/2 rounded-lg" :draggable="false" />
 			</div>
-			<p class="text-sm text-slate-500 text-center mb-4">
+			<p v-if="inputParamsMapped" class="text-sm text-slate-500 text-center mb-4">
 				{{
-					Object.keys(flowResult.input_params_mapped)
-						.filter((key) => {
-							return flowResult.input_params_mapped[key].value !== ''
-						})
-						.map((key) => {
-							return `${flowResult.input_params_mapped[key].display_name}: ${flowResult.input_params_mapped[key].value}`
-						}).join(' | ')
+					[
+						'#' + flowResult.task_id,
+						...Object.keys(inputParamsMapped)
+							.filter((key) => {
+								return inputParamsMapped[key].value !== ''
+							})
+							.map((key) => {
+								return `${inputParamsMapped[key].display_name}: ${inputParamsMapped[key].value}`
+							})
+					].join(' | ')
 				}}
 			</p>
 			<p class="text-md text-center text-red-500 mb-4">
@@ -134,7 +144,8 @@ onBeforeMount(() => {
 					:options="subFlows" />
 				<span v-else>No sub-flows available</span>
 			</p>
-			<div class="flex justify-end">
+			<div class="flex items-center justify-between">
+				<UCheckbox v-model="childTask" label="Child task (bind as sub-tasks)" />
 				<UButton
 					icon="i-heroicons-arrow-uturn-up-solid"
 					color="violet"

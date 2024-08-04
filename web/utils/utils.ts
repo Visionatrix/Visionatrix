@@ -18,3 +18,10 @@ export function formatBytes(bytes: number, decimals: number = 2) {
 
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
 }
+
+export function findLatestChildTask(task: any): TaskHistoryItem|FlowResult {
+	if (task.child_tasks.length === 0) {
+		return task
+	}
+	return findLatestChildTask(task.child_tasks[task.child_tasks.length - 1])
+}
