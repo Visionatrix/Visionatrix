@@ -37,6 +37,11 @@ MODEL_LOAD_CLASSES = {
         "3": ["inputs", "lora_03"],
         "4": ["inputs", "lora_04"],
     },
+    "UNETLoader": {"1": ["inputs", "unet_name"]},
+    "DualCLIPLoader": {
+        "1": ["inputs", "clip_name1"],
+        "2": ["inputs", "clip_name2"],
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
