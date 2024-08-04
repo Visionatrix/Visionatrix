@@ -14,6 +14,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@img-comparison-slider/vue": "^8.0.0",
     "@nuxt/ui": "^2.17.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.31",
