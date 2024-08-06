@@ -316,7 +316,10 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
         if "inputs" in node_details:
             if "seed" in node_details["inputs"]:
                 node_details["inputs"]["seed"] = random_seed
-            elif node_details["class_type"] == "SamplerCustom" and "noise_seed" in node_details["inputs"]:
+            elif (
+                node_details["class_type"] in ("SamplerCustom", "RandomNoise")
+                and "noise_seed" in node_details["inputs"]
+            ):
                 node_details["inputs"]["noise_seed"] = random_seed
     in_texts_params["seed"] = random_seed
 
