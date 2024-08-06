@@ -57,7 +57,7 @@ BASIC_NODE_LIST = {
     "ComfyUI-Custom-Scripts": {},
     "ComfyUI_IPAdapter_plus": {},
     "comfyui_controlnet_aux": {},
-    "ComfyUI-AutomaticCFG": {},
+    "Skimmed_CFG": {},
     "comfyui-art-venture": {},
     "was-node-suite-comfyui": {},
     "ComfyUI-Visionatrix": {},
