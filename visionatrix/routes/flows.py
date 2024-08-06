@@ -209,15 +209,15 @@ def flow_update(
             status_code=status.HTTP_409_CONFLICT, detail="Another flow installation or update is in progress."
         )
 
+    _installed_flow_info = [i for i in get_installed_flows(None) if i.name == name]
+    if not _installed_flow_info:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` in installed flows.")
+
     flows_comfy = []
-    flows = get_installed_flows(flows_comfy)
-    for i, flow in enumerate(flows):
+    available_flows = get_available_flows(flows_comfy)
+    for i, flow in enumerate(available_flows):
         if flow.name == name:
-            available_flows = get_available_flows([])
-            _fresh_flow_info = [i for i in available_flows if i.name == name]
-            if not _fresh_flow_info:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` flow.")
-            if parse(flow.version) >= parse(_fresh_flow_info[0].version):
+            if parse(_installed_flow_info[0].version) >= parse(flow.version):
                 raise HTTPException(
                     status_code=status.HTTP_412_PRECONDITION_FAILED,
                     detail=f"Flow `{name}` does not have a newer version.",
@@ -226,7 +226,7 @@ def flow_update(
             add_flow_progress_install(name, flows_comfy[i])
             b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
             return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` flow.")
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` in available flows.")
 
 
 @ROUTER.get("/install-progress")
