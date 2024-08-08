@@ -122,12 +122,10 @@ lint.extend-ignore = [
   "S603",
 ]
 
-lint.per-file-ignores."scripts/easy_install.py" = [
+lint.per-file-ignores."scripts/*.*" = [
+  "E402",
   "S602",
   "S607",
-]
-lint.per-file-ignores."scripts/generate_openapi.py" = [
-  "E402",
 ]
 lint.per-file-ignores."visionatrix/__init__.py" = [
   "F401",
