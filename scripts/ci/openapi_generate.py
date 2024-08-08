@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-os.chdir(Path(__file__).parent.parent)  # set current directory to the repository root
+os.chdir(Path(__file__).parent.parent.parent)  # set current directory to the repository root
 
 from visionatrix.backend import APP  # noqa
 from visionatrix import _version  # noqa

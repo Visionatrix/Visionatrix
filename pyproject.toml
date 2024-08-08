@@ -62,6 +62,7 @@ dependencies = [
   "wheel",
 ]
 optional-dependencies.dev = [
+  "jsondiff",
   "pre-commit",
   "pylint",
   "pytest",
