@@ -17,7 +17,7 @@ help:
 .PHONY: openapi
 openapi:
 	@echo "Building OpenAPI.json.."
-	@python3 -m pip install . && python3 scripts/generate_openapi.py
+	@python3 -m pip install . && python3 scripts/ci/openapi_generate.py
 
 .PHONY: build-client
 build-client:
