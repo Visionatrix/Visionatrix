@@ -2,6 +2,7 @@
 
 [![Analysis & Coverage](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml/badge.svg)](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml)
 [![Docs](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/docs.yml/badge.svg)](https://visionatrix.github.io/VixFlowsDocs/)
+[![Models Catalog](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/check-models-catalog.yml/badge.svg)](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/check-models-catalog.yml)
 
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
