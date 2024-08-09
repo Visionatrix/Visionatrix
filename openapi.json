@@ -1642,6 +1642,12 @@
             "title": "Webhook Headers",
             "description": "Headers for webhook url as an encoded json string"
           },
+          "child_task": {
+            "type": "integer",
+            "title": "Child Task",
+            "description": "Int boolean indicating whether to create a relation between tasks",
+            "default": 0
+          },
           "files": {
             "items": {
               "anyOf": [
@@ -2066,6 +2072,11 @@
       },
       "TaskDetails": {
         "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id",
+            "description": "Unique identifier of the task."
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2132,6 +2143,39 @@
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
           },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id",
+            "description": "Parent task ID if is a child task."
+          },
+          "parent_task_node_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Node Id",
+            "description": "Parent task Node ID if is a child task."
+          },
+          "child_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsShort"
+            },
+            "type": "array",
+            "title": "Child Tasks",
+            "description": "List of child tasks of type `TaskDetailsShort` if any.",
+            "default": []
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2163,11 +2207,6 @@
             ],
             "title": "Finished At",
             "description": "Finish time of the task."
-          },
-          "task_id": {
-            "type": "integer",
-            "title": "Task Id",
-            "description": "Unique identifier of the task."
           },
           "flow_comfy": {
             "type": "object",
@@ -2206,6 +2245,7 @@
         },
         "type": "object",
         "required": [
+          "task_id",
           "progress",
           "error",
           "name",
@@ -2214,7 +2254,6 @@
           "input_files",
           "execution_time",
           "created_at",
-          "task_id",
           "flow_comfy",
           "user_id"
         ],
@@ -2271,6 +2310,11 @@
       },
       "TaskDetailsShort": {
         "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id",
+            "description": "Unique identifier of the task."
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2336,10 +2380,44 @@
             "type": "number",
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id",
+            "description": "Parent task ID if is a child task."
+          },
+          "parent_task_node_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Node Id",
+            "description": "Parent task Node ID if is a child task."
+          },
+          "child_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsShort"
+            },
+            "type": "array",
+            "title": "Child Tasks",
+            "description": "List of child tasks of type `TaskDetailsShort` if any.",
+            "default": []
           }
         },
         "type": "object",
         "required": [
+          "task_id",
           "progress",
           "error",
           "name",
@@ -2693,7 +2771,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-08T14:17:04.861129Z"
+            "default": "2024-08-09T10:26:17.119916Z"
           }
         },
         "type": "object",

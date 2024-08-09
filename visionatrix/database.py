@@ -14,6 +14,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
@@ -64,6 +65,10 @@ class TaskDetails(Base):
     execution_time = Column(Float, default=0.0)
     webhook_url = Column(String, nullable=True)
     webhook_headers = Column(JSON, nullable=True)
+    parent_task_id = Column(Integer, nullable=True, index=True)
+    parent_task_node_id = Column(Integer, nullable=True)
+
+    __table_args__ = (Index("ix_parent_task", "parent_task_id", "parent_task_node_id"),)
 
 
 class TaskLock(Base):

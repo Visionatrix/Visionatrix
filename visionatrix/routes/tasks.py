@@ -74,6 +74,7 @@ async def __task_run(
     user_info: UserInfo,
     webhook_url: str | None,
     webhook_headers: dict | None,
+    child_task: bool,
 ):
     if options.VIX_MODE == "SERVER":
         task_details = await create_new_task_async(name, input_params, user_info)
@@ -95,6 +96,14 @@ async def __task_run(
     task_details["flow_comfy"] = flow_comfy
     task_details["webhook_url"] = webhook_url
     task_details["webhook_headers"] = webhook_headers
+    if child_task:
+        if not in_files or not isinstance(in_files[0], dict):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No input file provided. A child task can only be created from the node ID of the parent task.",
+            ) from None
+        task_details["parent_task_id"] = in_files[0]["task_id"]
+        task_details["parent_task_node_id"] = in_files[0]["node_id"]
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
@@ -111,6 +120,7 @@ async def create_task(
     input_params: str = Form(None, description="List of input parameters as an encoded json string"),
     webhook_url: str | None = Form(None, description="URL to call when task state changes"),
     webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
+    child_task: int = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
     files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """
@@ -161,6 +171,7 @@ async def create_task(
             request.scope["user_info"],
             webhook_url,
             webhook_headers_dict,
+            bool(child_task),
         )
         tasks_ids.append(task_details["task_id"])
         if "seed" in input_params_dict:
@@ -180,9 +191,9 @@ async def get_tasks_progress(
     Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id)
+        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     else:
-        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id)
+        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     return r
 
 
@@ -195,9 +206,9 @@ async def get_tasks_progress_summary(
     Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id)
+        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     else:
-        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id)
+        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
     return r
 
 
@@ -208,9 +219,9 @@ async def get_task_progress(request: Request, task_id: int) -> TaskDetails:
     Access is restricted to the task owner or an administrator.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+        r = await get_task_async(task_id, request.scope["user_info"].user_id, fetch_child=True)
     else:
-        r = get_task(task_id, request.scope["user_info"].user_id)
+        r = get_task(task_id, request.scope["user_info"].user_id, fetch_child=True)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     try:

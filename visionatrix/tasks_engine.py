@@ -44,6 +44,8 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.outputs,
     database.TaskLock.locked_at,
     database.TaskDetails.worker_id,
+    database.TaskDetails.parent_task_id,
+    database.TaskDetails.parent_task_node_id,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -70,6 +72,7 @@ def __init_new_task_details(task_id: int, name: str, input_params: dict, user_in
         "flow_comfy": {},
         "user_id": user_info.user_id,
         "execution_time": 0.0,
+        "children_ids": [],
     }
 
 
@@ -90,6 +93,8 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         execution_time=task_details["execution_time"],
         webhook_url=task_details.get("webhook_url"),
         webhook_headers=task_details.get("webhook_headers"),
+        parent_task_id=task_details.get("parent_task_id"),
+        parent_task_node_id=task_details.get("parent_task_node_id"),
     )
 
 
@@ -112,6 +117,7 @@ def __task_details_to_dict(task_details: Row) -> dict:
 
 def __task_details_short_to_dict(task_details: Row) -> dict:
     return {
+        "task_id": task_details.task_id,
         "progress": task_details.progress,
         "error": task_details.error,
         "name": task_details.name,
@@ -121,6 +127,9 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "execution_time": task_details.execution_time,
         "locked_at": task_details.locked_at,
         "worker_id": task_details.worker_id,
+        "parent_task_id": task_details.parent_task_id,
+        "parent_task_node_id": task_details.parent_task_node_id,
+        "child_tasks": [],
     }
 
 
@@ -174,20 +183,52 @@ def put_task_in_queue(task_details: dict) -> None:
 
 
 def __get_task_query(task_id: int, user_id: str | None):
-    query = select(*TASK_DETAILS_COLUMNS)
-    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
-    query = query.filter(database.TaskDetails.task_id == task_id)
+    query = (
+        select(*TASK_DETAILS_COLUMNS)
+        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+        .filter(database.TaskDetails.task_id == task_id)
+    )
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     return query
 
 
-def get_task(task_id: int, user_id: str | None = None) -> dict | None:
+def fetch_child_tasks(session, parent_task_ids: list[int]) -> dict[int, list[TaskDetailsShort]]:
+    if not parent_task_ids:
+        return {}
+
+    query = (
+        select(*TASK_DETAILS_COLUMNS_SHORT)
+        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+        .filter(database.TaskDetails.parent_task_id.in_(parent_task_ids))
+    )
+    child_tasks = session.execute(query).all()
+
+    parent_to_children = {}
+    for task in child_tasks:
+        task_details = __task_details_short_to_dict(task)
+        parent_to_children.setdefault(task.parent_task_id, []).append(task_details)
+
+    next_level_parent_ids = [task.task_id for task in child_tasks]
+    next_level_children = fetch_child_tasks(session, next_level_parent_ids)
+    for children in parent_to_children.values():
+        for child in children:
+            child["child_tasks"] = next_level_children.get(child["task_id"], [])
+    return parent_to_children
+
+
+def get_task(task_id: int, user_id: str | None = None, fetch_child: bool = False) -> dict | None:
     with database.SESSION() as session:
         try:
             query = __get_task_query(task_id, user_id)
             task = session.execute(query).one_or_none()
-            return __task_details_to_dict(task) if task else None
+            if task:
+                task_dict = __task_details_to_dict(task)
+                if fetch_child:
+                    child_tasks = fetch_child_tasks(session, [task.task_id])
+                    task_dict["child_tasks"] = child_tasks.get(task.task_id, [])
+                return task_dict
+            return None
         except Exception:
             LOGGER.exception("Failed to retrieve task: %s", task_id)
             raise
@@ -367,8 +408,10 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
 
 
 def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
-    query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT))
-    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+    query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT)).outerjoin(
+        database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id
+    )
+
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     if name is not None:
@@ -385,12 +428,20 @@ def get_tasks(
     name: str | None = None,
     finished: bool | None = None,
     user_id: str | None = None,
+    fetch_child: bool = False,
 ) -> dict[int, TaskDetails]:
     with database.SESSION() as session:
         try:
             query = __get_tasks_query(name, finished, user_id)
             results = session.execute(query).all()
-            return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
+            tasks = {}
+            task_ids = [task.task_id for task in results]
+            child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
+            for task in results:
+                task_details = __task_details_to_dict(task)
+                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
+                tasks[task.task_id] = TaskDetails.model_validate(task_details)
+            return tasks
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
@@ -400,14 +451,20 @@ def get_tasks_short(
     user_id: str,
     name: str | None = None,
     finished: bool | None = None,
+    fetch_child: bool = False,
 ) -> dict[int, TaskDetailsShort]:
     with database.SESSION() as session:
         try:
             query = __get_tasks_query(name, finished, user_id, full_info=False)
             results = session.execute(query).all()
-            return {
-                task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
-            }
+            tasks = {}
+            task_ids = [task.task_id for task in results]
+            child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
+            for task in results:
+                task_details = __task_details_short_to_dict(task)
+                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
+                tasks[task.task_id] = TaskDetailsShort.model_validate(task_details)
+            return tasks
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise

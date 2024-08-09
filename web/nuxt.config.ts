@@ -10,4 +10,5 @@ export default defineNuxtConfig({
 		}
 	},
 	ssr: false, // we use only client side rendering,
+	compatibilityDate: '2024-08-03',
 })

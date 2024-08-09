@@ -17,5 +17,6 @@ module.exports = {
 		'vue/singleline-html-element-content-newline': 0,
 		'vue/no-mutating-props': 0,
 		'vue/no-deprecated-v-bind-sync': 0,
+		'vue/no-deprecated-slot-attribute': 0,
 	}
 }
