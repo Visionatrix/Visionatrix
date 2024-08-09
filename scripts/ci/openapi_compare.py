@@ -6,7 +6,7 @@ from jsondiff import diff
 
 
 def load_json(file_path):
-    with builtins.open(file_path) as file:
+    with builtins.open(file_path, encoding="UTF-8") as file:
         return json.load(file)
 
 
