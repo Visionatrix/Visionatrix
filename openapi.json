@@ -2771,7 +2771,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-04T11:29:57.077484Z"
+            "default": "2024-08-08T14:17:04.861129Z"
           }
         },
         "type": "object",
