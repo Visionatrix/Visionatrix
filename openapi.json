@@ -1643,7 +1643,7 @@
             "description": "Headers for webhook url as an encoded json string"
           },
           "child_task": {
-            "type": "string",
+            "type": "integer",
             "title": "Child Task",
             "description": "Int boolean indicating whether to create a relation between tasks",
             "default": 0
@@ -2771,7 +2771,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-08T14:17:04.861129Z"
+            "default": "2024-08-09T10:26:17.119916Z"
           }
         },
         "type": "object",
