@@ -145,7 +145,7 @@ def install_custom_flow(
     progress_info = {
         "name": flow.name,
         "current": 1.0,
-        "progress_for_model": 97 / len(flow.models),
+        "progress_for_model": 97 / max(len(flow.models), 1),
     }
     if progress_callback is not None:
         progress_callback(flow.name, progress_info["current"], "")

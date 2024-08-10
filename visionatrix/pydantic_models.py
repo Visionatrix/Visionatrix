@@ -68,6 +68,12 @@ class Flow(BaseModel):
     requires: list[str] = Field(default=[], description="Required external workflow dependencies.")
     private: bool = Field(False, description="Whether the workflow is missing from the `FLOWS_CATALOG_URL`")
     new_version_available: str = Field("", description="If not empty, contains the new version of the workflow.")
+    is_seed_supported: bool = Field(
+        True, description="Flag determining if 'Random Seed' input will be displayed in the UI."
+    )
+    is_count_supported: bool = Field(
+        True, description="Flag determining if 'Number of images' input will be displayed in the UI."
+    )
 
 
 class FlowProgressInstall(BaseModel):

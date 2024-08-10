@@ -6,22 +6,32 @@
 
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
+<div align="center">
+ <img alt="Visionatrix" height="200px" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/logo.png">
+</div>
 
-The goal of the project is to provide a highly scalable and convenient way to create and process images and videos.
+The goal of the project is to provide use of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) workflows in an easy way.
 
-To achieve this goal, the [ComfyUI](https://github.com/comfyanonymous/ComfyUI) project was chosen, since its flow format looks very great.
+Visionatrix features:
 
-Visionatrix projects provides:
-
-  * *Simplified Setup*:  one-click installation process.
-  * *User-Centric Design*:  built-in interface focused on ease of use.
-  * *Standardized Workflows*:  workflows based on ComfyUI workflow format.
-  * *Seamless Integration*:  backend endpoints for task and server management.
-  * *Scalability*:  automatic task scheduling across multiple instances.
-  * *User Support*:  easily configured to work with multiple users and plug in different user backends.
+  * **Simplified Setup and Update**:  a simple installation and update process to new versions.
+  * **Minimalistic UI**:  designed for daily use of workflows.
+  * **Stable Workflows**:  versioning and update processes for workflows to new versions.
+  * **Scalability**:  support for multiple instances with multiple task workers running simultaneously.
+  * **Multiple User Support**:  easily configured to work with multiple users and integrate different user backends.
+  * **LLM power**:  easy integration with Ollama/Gemini for use as LLM for ComfyUI Workflows.
+  * **Seamless Integration**:  operates as a service with backend endpoints and webhook support.
 
 > [!NOTE]
-> The project is currently in the development stage, expect breaking changes.
+> Since we are already approaching the release of version 1.0 and all the decisions for how the project will look are completed -
+> we are welcome to the new ideas which we can implement further. If you wish to join the development, feel free to do so.
+
+### User Interface of **Visionatrix**
+
+By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
+
+![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1.png)
+![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_2.png)
 
 ## Easy installation for home use
 
@@ -70,13 +80,6 @@ Currently, only versions for CUDA/CPU is build, if there will be request we can 
 
 If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/VixFlowsDocs/Installation.html) how to do that.
 
-### User Interface of **Visionatrix**
-
-By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
-
-![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1.png)
-![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_2.png)
-
 ## Update process (Linux/macOS)
 
 Run `easy_install` script and select "**Update**" option.
@@ -91,14 +94,14 @@ Run `easy_install` script and select "**Update**" option.
 
 If you have any questions, we will try to answer them, do not hesitate to create [Discussion](https://github.com/Visionatrix/Visionatrix/discussions/new/choose) and ask.
 
-Some examples of workflow results can be found in **Twitter** by tag [#Visionatrix](https://twitter.com/search?q=%23Visionatrix&src=typed_query)
-
 - [Documentation](https://visionatrix.github.io/VixFlowsDocs/)
   - [Available Flows](https://visionatrix.github.io/VixFlowsDocs/Flows/index.html)
   - [Manual Installation](https://visionatrix.github.io/VixFlowsDocs/Installation.html)
   - [Command Line Options](https://visionatrix.github.io/VixFlowsDocs/CommandLineOptions.html)
   - [Working modes](https://visionatrix.github.io/VixFlowsDocs/WorkingModes.html)
   - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/VixWorkflows.html)
+  - [Creating Workflows](https://visionatrix.github.io/VixFlowsDocs/ComfyUI2VixMigration.html)
   - [Technical information](https://visionatrix.github.io/VixFlowsDocs/TechnicalInformation.html)
+  - [FAQ](https://visionatrix.github.io/VixFlowsDocs/FAQ.html)
   - [Hardware FAQ](https://visionatrix.github.io/VixFlowsDocs/HardwareFAQ.html)
   - [OpenAPI](https://visionatrix.github.io/VixFlowsDocs/swagger.html)

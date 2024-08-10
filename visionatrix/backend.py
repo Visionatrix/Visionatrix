@@ -9,6 +9,7 @@ from fastapi import APIRouter, FastAPI, HTTPException, responses, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
+from pillow_heif import register_heif_opener
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -70,6 +71,7 @@ class VixAuthMiddleware:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    register_heif_opener()
     tasks.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
     await start_tasks_engine(comfy_queue, EXIT_EVENT)
     if options.UI_DIR:
@@ -132,6 +134,7 @@ def run_vix(*args, **kwargs) -> None:
         except KeyboardInterrupt:
             print("Visionatrix is shutting down.")
     else:
+        register_heif_opener()
         _, comfy_queue = comfyui.load(task_progress_callback)
 
         try:
