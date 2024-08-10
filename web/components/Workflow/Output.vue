@@ -59,8 +59,6 @@ watch(currentPageNumber, () => {
 	}
 })
 
-const img = useImage()
-
 const collapsed = ref(false)
 const isModalOpen = ref(false)
 const modalImageSrc = ref('')
@@ -71,7 +69,8 @@ const showSendToFlowModal = ref(false)
 const sendToImgSrc = ref('')
 const sendToFlowResult = ref<FlowResult|TaskHistoryItem|any>(null)
 const sendToFlowInputParamsMapped = ref<any>({})
-const sentDoOutputParamIndex = ref(0)
+const sendToFlowOutputParamIndex = ref(0)
+const sendToFlowIsChildTask = ref(false)
 
 function handleSendToFlow(flowResult: FlowResult) {
 	showSendToFlowModal.value = true
@@ -82,18 +81,18 @@ function handleSendToFlow(flowResult: FlowResult) {
 			node_id: flowResult.outputs[0].comfy_node_id
 		})
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
+		sendToFlowIsChildTask.value = false
 	} else {
 		const targetTask = findLatestChildTask(flowResult)
 		sendToFlowResult.value = targetTask
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
-		console.debug('[Send to flow]: sendToFlowResult', sendToFlowResult)
 		sendToImgSrc.value = outputImgSrc({
 			task_id: targetTask.task_id,
 			node_id: targetTask.outputs[0].comfy_node_id
 		})
-		console.debug('[Send to flow]: sendToImgSrc', sendToImgSrc)
+		sendToFlowIsChildTask.value = true
 	}
-	sentDoOutputParamIndex.value = 0
+	sendToFlowOutputParamIndex.value = 0
 }
 
 function buildResultInputParams(flowResult: FlowResult) {
@@ -109,14 +108,8 @@ function buildResultInputParams(flowResult: FlowResult) {
 	].join(' | ') + `${flowResult.execution_time
 		? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's'
 		: ''
-	}` + `${flowResult?.parent_task_id
-		? ' | parent_task: ' + flowResult?.parent_task_id
-		: ''
 	}`
 }
-
-const showChildTasksModal = ref(false)
-const childTasksTargetFlowResult = ref<FlowResult|any>(null)
 
 function buildResultDropdownItems(flowResult: FlowResult) {
 	const taskDropdownItems = [
@@ -145,39 +138,8 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
 		}]
 	]
-	if (flowResult.child_tasks.length > 0) {
-		taskDropdownItems.push([{
-			label: 'View child tasks',
-			labelClass: 'text-green-500',
-			icon: 'i-heroicons-queue-list-20-solid',
-			iconClass: 'bg-green-500',
-			click: () => {
-				showChildTasksModal.value = true
-				childTasksTargetFlowResult.value = flowResult
-			}
-		}])
-	}
 	return taskDropdownItems
 }
-
-
-onMounted(() => {
-	const route = useRoute()
-	const router = useRouter()
-	if (route.query.task_id) {
-		const task_id = route.query.task_id as string
-		const taskIndex = results.value.findIndex((result) => result.task_id === task_id)
-		const taskPage = Math.ceil((taskIndex + 1) / flowStore.$state.resultsPageSize)
-		flowStore.$state.resultsPage = taskPage
-		router.replace({ query: {} })
-		const target = document.getElementById(`task_id_${task_id}`)
-		if (target) {
-			setTimeout(() => {
-				target.scrollIntoView({ behavior: 'smooth' })
-			}, 500)
-		}
-	}
-})
 </script>
 
 <template>
@@ -202,7 +164,7 @@ onMounted(() => {
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
 					class="md:mr-3"
-					:label="'Filter results by prompt'"
+					:label="'Filter by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
 				<UPagination v-if="results.length > flowStore.$state.resultsPageSize"
@@ -260,63 +222,80 @@ onMounted(() => {
 					:id="'task_id_' + flowResult.task_id"
 					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
-					<template v-if="flowResult.child_tasks && flowResult?.child_tasks.length > 0">
-						<WorkflowChildOutput :flow-result="flowResult" />
-					</template>
-					<template v-else>
-						<NuxtImg v-if="flowResult.outputs.length === 1"
-							class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
+					<template v-if="flowResult.outputs.length === 1">
+						<WorkflowChildOutput
+							v-if="flowResult?.child_tasks
+								&& flowResult?.child_tasks.length > 0
+								&& flowResult?.child_tasks.some((task) => task.progress === 100)"
+							:flow-result="flowResult"
+							:open-image-modal="openImageModal" />
+						<NuxtImg v-else-if="flowResult.outputs.length === 1"
+							class="mb-2 h-100 mx-auto rounded-lg cursor-pointer"
+							draggable="false"
 							fit="outside"
 							loading="lazy"
-							:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 							:src="outputImgSrc({
 								task_id: flowResult.task_id,
 								node_id: flowResult.outputs[0].comfy_node_id
 							})"
-							@click="() => openImageModal(outputImgSrc({
+							@click="openImageModal(outputImgSrc({
 								task_id: flowResult.task_id,
 								node_id: flowResult.outputs[0].comfy_node_id
 							}))" />
-						<UCarousel v-else
-							v-slot="{ item }"
-							class="mb-3 rounded-lg overflow-hidden"
-							:items="flowResult.outputs.map((result_output_param, index) => {
-								return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id, index }
-							})"
-							:ui="{
-								item: 'basis-full md:basis-1/2',
-								indicators: {
-									wrapper: 'relative bottom-0 mt-4'
-								}
-							}"
-							:page="1"
-							indicators>
-							<div class="flex flex-col basis-full">
-								<NuxtImg class="w-full cursor-pointer mx-auto"
-									loading="lazy"
-									:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
-									:src="outputImgSrc(item)"
-									draggable="false"
-									@click="() => openImageModal(outputImgSrc(item))" />
-								<UButton
-									class="mt-2 w-fit mx-auto"
-									icon="i-heroicons-arrow-uturn-up-solid"
-									color="violet"
-									variant="outline"
-									@click="() => {
-										handleSendToFlow(flowResult)
-									}">
-									Send to flow
-								</UButton>
-							</div>
-						</UCarousel>
 					</template>
+					<UCarousel v-else-if="flowResult.outputs.length > 1"
+						v-slot="{ item }"
+						class="mb-3 rounded-lg overflow-hidden"
+						:items="flowResult.outputs.map((result_output_param, index) => {
+							return {
+								task_id: flowResult.task_id,
+								node_id: result_output_param.comfy_node_id,
+								index,
+							}
+						})"
+						:ui="{
+							item: 'basis-full md:basis-1/2',
+							indicators: {
+								wrapper: 'relative bottom-0 mt-4'
+							}
+						}"
+						:page="1"
+						indicators>
+						<div class="flex flex-col basis-full">
+							<WorkflowChildOutput
+								v-if="flowResult?.child_tasks
+									&& flowResult?.child_tasks.length > 0
+									&& flowResult?.child_tasks.filter((task) => task.parent_task_node_id === item.node_id)
+										.some((task) => task.progress === 100)"
+								:flow-result="flowResult"
+								:outputs-index="item.index"
+								:open-image-modal="openImageModal" />
+							<NuxtImg
+								v-else
+								class="mb-2 h-100 mx-auto rounded-lg cursor-pointer"
+								draggable="false"
+								fit="outside"
+								loading="lazy"
+								:src="outputImgSrc(item)"
+								@click="openImageModal(outputImgSrc(item))" />
+							<UButton
+								class="mt-2 w-fit mx-auto"
+								icon="i-heroicons-arrow-uturn-up-solid"
+								color="violet"
+								variant="outline"
+								@click="() => {
+									handleSendToFlow(flowResult)
+								}">
+								Send to flow
+							</UButton>
+						</div>
+					</UCarousel>
 					<div class="text-sm text-slate-500 text-center mb-1">
 						<div class="w-5/6 mx-auto">
 							<UBadge v-for="inputParamStr in buildResultInputParams(flowResult).split('|')"
 								:key="inputParamStr"
 								class="mr-2 mb-2 last:mr-0 hover:cursor-pointer"
-								variant="solid"
+								variant="soft"
 								color="gray"
 								@click="() => {
 									const clipboard = useCopyToClipboard()
@@ -352,8 +331,9 @@ onMounted(() => {
 					v-model="showSendToFlowModal"
 					:flow-result="sendToFlowResult"
 					:output-img-src="sendToImgSrc"
-					:output-param-index="sentDoOutputParamIndex"
+					:output-param-index="sendToFlowOutputParamIndex"
 					:input-params-mapped="sendToFlowInputParamsMapped"
+					:is-child-task="sendToFlowIsChildTask"
 					@update:show="(value) => showSendToFlowModal = value" />
 			</div>
 			<p v-else class="text-center text-slate-500">

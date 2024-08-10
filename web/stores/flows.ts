@@ -61,17 +61,17 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowResultsByName(state) {
 			return (name: string) => {
 				if (state.flow_results_filter !== '') {
-					return state.flow_results.filter(flow => flow.flow_name === name && flow.input_params_mapped['prompt'].includes(state.flow_results_filter))
+					return state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter))
 				}
-				return state.flow_results.filter(flow => flow.flow_name === name)
+				return state.flow_results.filter(task => task.flow_name === name)
 			}
 		},
 		flowResultsByNamePaginated(state) {
 			return (name: string) => {
 				if (state.flow_results_filter !== '') {
-					return paginate(state.flow_results.filter(flow => flow.flow_name === name && flow.input_params_mapped['prompt'].includes(state.flow_results_filter)).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+					return paginate(state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
 				}
-				return paginate(state.flow_results.filter(flow => flow.flow_name === name).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+				return paginate(state.flow_results.filter(task => task.flow_name === name).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
 			}
 		},
 		flowInstallingByName(state) {
@@ -221,7 +221,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 						execution_time: task.execution_time || 0,
 						child_tasks: task.child_tasks || [],
 						parent_task_id: task.parent_task_id,
-					})
+						progress: task.progress,
+					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
 			if (runningFlows && runningFlows.length > 0) {
@@ -648,22 +649,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (progress[task_id].input_files) {
 							runningFlow.input_files = progress[task_id].input_files
 						}
-						// if parent_task_id is set - update parent task history record
-						if (progress[task_id].parent_task_id) {
-							const parentTaskId = progress[task_id].parent_task_id
-							console.debug('[child_task] updating parent_task_id:', progress[task_id].parent_task_id)
-							const parentTaskHistoryProgress = progress[parentTaskId]
-							console.debug('[child_task] parentTaskHistoryProgress:', parentTaskHistoryProgress)
-							if (parentTaskHistoryProgress) {
-								const parentTask = this.flow_results.find(flow => flow.task_id === parentTaskId.toString())
-								if (parentTask) {
-									parentTask.child_tasks.push({
-										...parentTaskHistoryProgress,
-										task_id: Number(task_id),
-									})
-								}
-							}
-						}
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
 							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
@@ -674,7 +659,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 							}
 							// Save flow results history
 							const flow = <Flow>this.flowByName(runningFlow.flow_name)
-							this.flow_results.push({
+							const flowResult = <FlowResult>{
 								task_id: task_id.toString(),
 								flow_name: flow.name,
 								outputs: progress[task_id].outputs,
@@ -682,7 +667,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 								execution_time: progress[task_id]?.execution_time || 0,
 								child_tasks: progress[task_id].child_tasks || [],
 								parent_task_id: progress[task_id].parent_task_id,
-							})
+								progress: progress[task_id].progress,
+							}
+							this.flow_results.push(flowResult)
+
+							if (progress[task_id].parent_task_id) {
+								this.updateChildTasksTillRootParent(progress[task_id].parent_task_id, progress[task_id])
+							}
 						}
 					})
 				}).catch((e): any => {
@@ -693,9 +684,20 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}, 3000)
 		},
 
+		updateChildTasksTillRootParent(parentTaskId: number|null, task: TaskHistoryItem|FlowResult|any) {
+			if (parentTaskId === null) {
+				return
+			}
+			const parentTask = this.flow_results.find(flowResult => Number(flowResult.task_id) === Number(parentTaskId))
+			if (parentTask) {
+				parentTask.child_tasks = [task]
+				this.updateChildTasksTillRootParent(parentTask.parent_task_id, parentTask)
+			}
+		},
+
 		deleteFlowHistory(task_id: string) {
 			const { $apiFetch } = useNuxtApp()
-			$apiFetch(`/tasks/task?task_id=${task_id}`, {
+			return $apiFetch(`/tasks/task?task_id=${task_id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -895,6 +897,7 @@ export interface FlowResult {
 	execution_time: number
 	parent_task_id: number
 	child_tasks: TaskHistoryItem[]
+	progress: number
 }
 
 export interface TasksHistory {

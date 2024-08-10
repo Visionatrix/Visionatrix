@@ -21,6 +21,11 @@ const props = defineProps({
 		type: Object,
 		required: true,
 	},
+	isChildTask: {
+		type: Boolean,
+		required: false,
+		default: false,
+	},
 })
 
 const flowStore = useFlowsStore()
@@ -97,20 +102,20 @@ function sendToFlow() {
 	console.debug('[Send to flow]: input_params_map', input_params_map)
 
 	sending.value = true
-	flowStore.runFlow(targetFlow, input_params_map, 1, childTask.value).finally(() => {
+	flowStore.runFlow(targetFlow, input_params_map, 1, bindAsChildTask.value).finally(() => {
 		sending.value = false
 		emit('update:show', false)
 	})
 }
 
-const childTask = ref(false)
+const bindAsChildTask = ref(false)
 
 onBeforeMount(() => {
 	// TODO: change to dynamic according to the output type
 	flowStore.fetchSubFlows('image').then(() => {
 		selectedFlow.value = subFlows.value[0] || ''
 	})
-	childTask.value = false
+	bindAsChildTask.value = false
 })
 </script>
 
@@ -144,8 +149,13 @@ onBeforeMount(() => {
 					:options="subFlows" />
 				<span v-else>No sub-flows available</span>
 			</p>
+			<UAlert v-if="isChildTask"
+				class="mb-4"
+				icon="i-heroicons-exclamation-circle-solid"
+				title="Child task"
+				description="For tasks with child tasks, the latest child task is always sent to the sub-flow" />
 			<div class="flex items-center justify-between">
-				<UCheckbox v-model="childTask" label="Child task (bind as sub-tasks)" />
+				<UCheckbox v-model="bindAsChildTask" label="Bind as child task" />
 				<UButton
 					icon="i-heroicons-arrow-uturn-up-solid"
 					color="violet"
