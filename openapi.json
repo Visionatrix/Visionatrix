@@ -1932,6 +1932,18 @@
             "title": "New Version Available",
             "description": "If not empty, contains the new version of the workflow.",
             "default": ""
+          },
+          "is_seed_supported": {
+            "type": "boolean",
+            "title": "Is Seed Supported",
+            "description": "Flag determining if 'Random Seed' input will be displayed in the UI.",
+            "default": true
+          },
+          "is_count_supported": {
+            "type": "boolean",
+            "title": "Is Count Supported",
+            "description": "Flag determining if 'Number of images' input will be displayed in the UI.",
+            "default": true
           }
         },
         "type": "object",
@@ -2693,7 +2705,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-08T14:17:04.861129Z"
+            "default": "2024-08-10T09:49:15.565064Z"
           }
         },
         "type": "object",
