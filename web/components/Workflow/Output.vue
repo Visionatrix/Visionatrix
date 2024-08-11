@@ -155,7 +155,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			}">
 			<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
-			Output ({{ results.length }})
+			Output ({{ results.filter((task) => task.parent_task_id === null).length }})
 		</h2>
 
 		<template v-if="!collapsed">
@@ -167,11 +167,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:label="'Filter by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
-				<UPagination v-if="results.length > flowStore.$state.resultsPageSize"
+				<UPagination v-if="results.filter((task) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.$state.resultsPage"
 					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
-					:total="results.length"
+					:total="results.filter((task) => task.parent_task_id === null).length"
 					show-first
 					show-last />
 				<div class="flex items-center justify-center">
@@ -224,9 +224,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					class="flex flex-col justify-center mx-auto mb-5">
 					<template v-if="flowResult.outputs.length === 1">
 						<WorkflowChildOutput
-							v-if="flowResult?.child_tasks
-								&& flowResult?.child_tasks.length > 0
-								&& flowResult?.child_tasks.some((task) => task.progress === 100)"
+							v-if="flowResult?.child_tasks && flowResult?.child_tasks.length > 0"
 							:flow-result="flowResult"
 							:open-image-modal="openImageModal" />
 						<NuxtImg v-else-if="flowResult.outputs.length === 1"
@@ -263,10 +261,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 						indicators>
 						<div class="flex flex-col basis-full">
 							<WorkflowChildOutput
-								v-if="flowResult?.child_tasks
-									&& flowResult?.child_tasks.length > 0
-									&& flowResult?.child_tasks.filter((task) => task.parent_task_node_id === item.node_id)
-										.some((task) => task.progress === 100)"
+								v-if="flowResult?.child_tasks && flowResult?.child_tasks.length > 0"
 								:flow-result="flowResult"
 								:outputs-index="item.index"
 								:open-image-modal="openImageModal" />

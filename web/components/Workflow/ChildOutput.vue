@@ -18,14 +18,16 @@ const props = defineProps({
 const flowsStore = useFlowsStore()
 
 // Currently only linear child_tasks linked list is supported
-const findPreLatestAndLatestChildTask = (task: FlowResult|TaskHistoryItem|any) => {
+const findPreLatestAndLatestChildTask = (task: FlowResult|TaskHistoryItem|any, keepLeft: boolean = false) => {
 	if (task.child_tasks.length === 0) {
 		return task
 	}
 	if (task.child_tasks.length === 1) {
-		leftComparisonTask.value = task
+		if (!keepLeft) {
+			leftComparisonTask.value = task
+		}
 	}
-	return findPreLatestAndLatestChildTask(task.child_tasks[0])
+	return findPreLatestAndLatestChildTask(task.child_tasks[0], keepLeft)
 }
 
 function findChildTaskByTaskId(task: FlowResult|TaskHistoryItem|any, taskId: number) {
@@ -65,7 +67,7 @@ function buildLeftDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 }
 
 function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
-	return [
+	const items: any = [
 		[
 			{
 				label: `${flowsStore.flowByName(task?.flow_name ?? task?.name)?.display_name}#${task.task_id}`,
@@ -76,6 +78,7 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 			{
 				label: 'View image',
 				icon: 'i-heroicons-eye',
+				disabled: task.progress < 100 || task.error !== '',
 				click: () => {
 					props.openImageModal(outputImgSrc({
 						task_id: task.task_id,
@@ -94,12 +97,41 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 								return childTask.task_id !== task.task_id
 							})
 						}
-						resetComparison()
+						resetComparison(false, props.flowResult)
 					})
 				}
 			}
 		],
 	]
+
+	if (task.progress < 100) {
+		items[0][1]= {
+			label: `Progress: ${Math.ceil(task.progress)}% (${task.execution_time.toFixed(2)}s)`,
+			labelClass: 'text-blue-500',
+			disabled: true,
+		}
+	}
+
+	if (task.error !== '') {
+		items[0].push({
+			label: `Error: ${task.error}`,
+			labelClass: 'text-red-500',
+			slot: 'error',
+			click: () => {
+				// copy error message to clipboard
+				const clipboard = useCopyToClipboard()
+				clipboard.copy(task.error)
+				const toast = useToast()
+				toast.add({
+					title: 'Clipboard',
+					description: `Task #${task.task_id} error copied to clipboard`,
+					timeout: 2000,
+				})
+			}
+		})
+	}
+
+	return items
 }
 
 
@@ -142,26 +174,47 @@ function nextRightComparisonTask() {
 	rightComparisonTask.value = rightComparisonTask.value.child_tasks[0]
 }
 
-function resetComparison() {
-	leftComparisonTask.value = props.flowResult
-	rightComparisonTask.value = findPreLatestAndLatestChildTask(props.flowResult)
+function resetComparison(keepLeft = false, flowResult: FlowResult|null = null, ) {
+	if (!keepLeft) {
+		leftComparisonTask.value = flowResult
+	}
+	rightComparisonTask.value = findPreLatestAndLatestChildTask(flowResult, keepLeft)
 	toggleOriginal.value = false
 }
 
 // watch for flowResult.child_tasks changes
 watch(props.flowResult, (newFlowResult) => {
 	console.debug('[ChildOutput] flowResult changed', newFlowResult)
-	resetComparison()
+	resetComparison(true, newFlowResult)
 })
 
 const toggleOriginal = ref(false)
 const toggleCompare = ref(true)
+const prevLeftCompare = ref(null)
 
 watch(toggleOriginal, (newToggleOriginal) => {
 	if (newToggleOriginal) {
+		prevLeftCompare.value = leftComparisonTask.value
 		leftComparisonTask.value = props.flowResult
+	} else {
+		if (prevLeftCompare.value) {
+			leftComparisonTask.value = prevLeftCompare.value
+			rightComparisonTask.value = findLatestChildTask(prevLeftCompare.value)
+		}
 	}
 })
+
+const leftImageDimensions = ref({width: 0, height: 0})
+
+function getImageDimensions(src: string) {
+	const img = new Image()
+	img.onload = function() {
+		leftImageDimensions.value.width = img.naturalWidth ?? 512
+		leftImageDimensions.value.height = img.naturalHeight ?? 512
+		URL.revokeObjectURL(img.src)
+	}
+	img.src = src
+}
 </script>
 
 <template>
@@ -184,6 +237,8 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			class="mb-2 mx-auto outline-none w-fit rounded-lg">
 			<NuxtImg
 				slot="first"
+				fit="outside"
+				draggable="false"
 				:src="outputImgSrc({
 					task_id: !toggleOriginal ? leftComparisonTask.task_id : flowResult.task_id,
 					node_id: !toggleOriginal ? leftComparisonTask?.outputs[outputsIndex].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
@@ -191,10 +246,22 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			<NuxtImg
 				v-if="rightComparisonTask && rightComparisonTask.progress === 100"
 				slot="second"
+				fit="outside"
+				draggable="false"
 				:src="outputImgSrc({
 					task_id: rightComparisonTask.task_id,
 					node_id: rightComparisonTask.outputs[outputsIndex].comfy_node_id
 				})" />
+			<NuxtImg
+				v-else
+				slot="second"
+				:class="`h-100 max-h-[${getImageDimensions(outputImgSrc({
+					task_id: !toggleOriginal ? leftComparisonTask.task_id : flowResult.task_id,
+					node_id: !toggleOriginal ? leftComparisonTask?.outputs[outputsIndex].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
+				}))}px]`"
+				fit="outside"
+				draggable="false"
+				:src="`${buildBackendUrl()}/vix_logo.png`" />
 		</ImgComparisonSlider>
 		<div class="text-slate-500 text-center text-sm w-full mx-auto flex flex-wrap items-center justify-center md:justify-between">
 			<div class="toggles py-2">
@@ -263,11 +330,20 @@ watch(toggleOriginal, (newToggleOriginal) => {
 					mode="click"
 					:popper="{ placement: 'top' }">
 					<UButton
+						:class="{
+							'text-blue-500': rightComparisonTask.progress !== 100 && rightComparisonTask.error === '',
+							'text-red-500': rightComparisonTask.error !== '',
+						}"
 						variant="link"
 						color="white"
 						size="xs">
-						#{{ rightComparisonTask.task_id }}
+						{{ rightComparisonTask.progress === 100 ? '#' + rightComparisonTask.task_id: Math.ceil(rightComparisonTask.progress) + '%' }}
 					</UButton>
+					<template #error="{ item }">
+						<div class="text-red-500 truncate" :title="item.label">
+							{{ item.label }}
+						</div>
+					</template>
 				</UDropdown>
 				<UButton
 					icon="i-heroicons-arrow-small-right-20-solid"
@@ -285,7 +361,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 						size="2xs"
 						variant="outline"
 						color="white"
-						@click="resetComparison" />
+						@click="() => resetComparison(false, flowResult)" />
 				</UTooltip>
 			</div>
 		</div>

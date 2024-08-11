@@ -69,9 +69,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowResultsByNamePaginated(state) {
 			return (name: string) => {
 				if (state.flow_results_filter !== '') {
-					return paginate(state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+					return paginate(state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter) && task.parent_task_id === null).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
 				}
-				return paginate(state.flow_results.filter(task => task.flow_name === name).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+				return paginate(state.flow_results.filter(task => task.flow_name === name && task.parent_task_id === null).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
 			}
 		},
 		flowInstallingByName(state) {
@@ -670,10 +670,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 								progress: progress[task_id].progress,
 							}
 							this.flow_results.push(flowResult)
+						}
 
-							if (progress[task_id].parent_task_id) {
-								this.updateChildTasksTillRootParent(progress[task_id].parent_task_id, progress[task_id])
-							}
+						if (progress[task_id].parent_task_id) {
+							this.updateChildTasksTillRootParent(progress[task_id].parent_task_id, progress[task_id])
 						}
 					})
 				}).catch((e): any => {
@@ -814,6 +814,8 @@ export interface Flow {
 	private: boolean
 	requires: string[]
 	new_version_available?: string
+	is_seed_supported: boolean
+	is_count_supported: boolean
 }
 
 export interface Model {
