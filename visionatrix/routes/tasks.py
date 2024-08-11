@@ -31,6 +31,7 @@ from ..pydantic_models import TaskRunResults, UserInfo, WorkerDetailsRequest
 from ..tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
+    collect_child_task_ids,
     create_new_task,
     get_incomplete_task_without_error_database,
     get_task,
@@ -39,7 +40,6 @@ from ..tasks_engine import (
     get_tasks_short,
     put_task_in_queue,
     remove_task_by_id_database,
-    remove_task_by_name,
     remove_task_files,
     remove_task_lock_database,
     remove_unfinished_task_by_id,
@@ -294,7 +294,7 @@ async def restart_task(
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Successfully removed the specified task"},
+        204: {"description": "Successfully removed the specified task and its child tasks"},
         404: {
             "description": "Task not found",
             "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
@@ -305,16 +305,19 @@ async def delete_task(request: Request, task_id: int = Query(..., description="I
     """
     Removes a task from the system by the task ID.
     Access is limited to the task owner or administrators.
+    Also removes any child tasks associated with the specified task.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id)
+        r = await get_task_async(task_id, fetch_child=True)
     else:
-        r = get_task(task_id)
+        r = get_task(task_id, fetch_child=True)
     if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-    remove_task_by_id_database(task_id)
+    task_ids_to_remove = [task_id]
+    collect_child_task_ids(r, task_ids_to_remove)
+    remove_task_by_id_database(task_ids_to_remove)
 
 
 @ROUTER.delete(
@@ -322,16 +325,25 @@ async def delete_task(request: Request, task_id: int = Query(..., description="I
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Successfully removed results of all finished tasks with the specified name"},
+        204: {"description": "Successfully removed results of all finished parent tasks with the specified name"},
     },
 )
 async def clear_tasks(
     request: Request, name: str = Query(..., description="Name of the task whose results need to be deleted")
 ):
     """
-    Removes all finished tasks associated with a specific task name, scoped to the requesting user.
+    Removes all finished parent tasks associated with a specific task name, scoped to the requesting user.
+    All child tasks associated with the parent task will also be deleted.
     """
-    remove_task_by_name(name, request.scope["user_info"].user_id)
+    if options.VIX_MODE == "SERVER":
+        r = await get_tasks_async(name, True, request.scope["user_info"].user_id, fetch_child=True, only_parent=True)
+    else:
+        r = get_tasks(name, True, request.scope["user_info"].user_id, fetch_child=True, only_parent=True)
+    task_ids_to_remove = []
+    for task_id, task_details in r.items():
+        task_ids_to_remove.append(task_id)
+        collect_child_task_ids(task_details, task_ids_to_remove)
+    remove_task_by_id_database(task_ids_to_remove)
 
 
 @ROUTER.get(

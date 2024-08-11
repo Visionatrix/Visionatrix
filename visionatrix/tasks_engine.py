@@ -193,6 +193,17 @@ def __get_task_query(task_id: int, user_id: str | None):
     return query
 
 
+def collect_child_task_ids(task: dict | TaskDetailsShort, output_ids: list) -> None:
+    if isinstance(task, dict):
+        for child in task["child_tasks"]:
+            output_ids.append(child["task_id"])
+            collect_child_task_ids(child, output_ids)
+    else:
+        for child in task.child_tasks:
+            output_ids.append(child.task_id)
+            collect_child_task_ids(child, output_ids)
+
+
 def fetch_child_tasks(session, parent_task_ids: list[int]) -> dict[int, list[TaskDetailsShort]]:
     if not parent_task_ids:
         return {}
@@ -407,7 +418,7 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
         return {}
 
 
-def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
+def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True, only_parent=False):
     query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT)).outerjoin(
         database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id
     )
@@ -421,6 +432,11 @@ def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | No
             query = query.filter(database.TaskDetails.progress == 100.0)
         else:
             query = query.filter(database.TaskDetails.progress < 100.0)
+    if only_parent:
+        query = query.filter(
+            (database.TaskDetails.parent_task_id == None)  # noqa # pylint: disable=singleton-comparison
+            | (database.TaskDetails.parent_task_id == 0)
+        )
     return query
 
 
@@ -429,10 +445,11 @@ def get_tasks(
     finished: bool | None = None,
     user_id: str | None = None,
     fetch_child: bool = False,
+    only_parent: bool = False,
 ) -> dict[int, TaskDetails]:
     with database.SESSION() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id)
+            query = __get_tasks_query(name, finished, user_id, only_parent=only_parent)
             results = session.execute(query).all()
             tasks = {}
             task_ids = [task.task_id for task in results]
@@ -473,24 +490,25 @@ def get_tasks_short(
 def remove_task_by_id(task_id: int) -> bool:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return remove_task_by_id_server(task_id)
-    return remove_task_by_id_database(task_id)
+    return remove_task_by_id_database([task_id])
 
 
-def remove_task_by_id_database(task_id: int) -> bool:
+def remove_task_by_id_database(task_ids: list[int]) -> bool:
     session = database.SESSION()
     try:
-        lock_result = session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
-        details_result = session.execute(delete(database.TaskDetails).where(database.TaskDetails.task_id == task_id))
+        lock_result = session.execute(delete(database.TaskLock).where(database.TaskLock.task_id.in_(task_ids)))
+        details_result = session.execute(delete(database.TaskDetails).where(database.TaskDetails.task_id.in_(task_ids)))
         if lock_result.rowcount + details_result.rowcount > 0:
             session.commit()
             return True
     except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task: %s", task_id)
+        LOGGER.exception("Failed to remove tasks: %s", task_ids)
         raise
     finally:
         session.close()
-        remove_task_files(task_id, ["output", "input"])
+        for i in task_ids:
+            remove_task_files(i, ["output", "input"])
     return False
 
 
@@ -508,23 +526,6 @@ def remove_task_by_id_server(task_id: int) -> bool:
     except Exception as e:
         LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
     return False
-
-
-def remove_task_by_name(name: str, user_id: str) -> None:
-    tasks_to_delete = get_tasks(name=name, finished=True, user_id=user_id)
-    session = database.SESSION()
-    try:
-        for task_id in tasks_to_delete:
-            session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
-            session.execute(delete(database.TaskDetails).where(database.TaskDetails.task_id == task_id))
-            session.commit()
-            remove_task_files(task_id, ["output", "input"])
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to remove task by name: %s", name)
-        raise
-    finally:
-        session.close()
 
 
 def remove_unfinished_task_by_id(task_id: int) -> bool:

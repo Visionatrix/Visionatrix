@@ -913,7 +913,7 @@
           "tasks"
         ],
         "summary": "Delete Task",
-        "description": "Removes a task from the system by the task ID.\nAccess is limited to the task owner or administrators.",
+        "description": "Removes a task from the system by the task ID.\nAccess is limited to the task owner or administrators.\nAlso removes any child tasks associated with the specified task.",
         "operationId": "delete_task",
         "parameters": [
           {
@@ -930,7 +930,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Successfully removed the specified task"
+            "description": "Successfully removed the specified task and its child tasks"
           },
           "404": {
             "description": "Task not found",
@@ -961,7 +961,7 @@
           "tasks"
         ],
         "summary": "Clear Tasks",
-        "description": "Removes all finished tasks associated with a specific task name, scoped to the requesting user.",
+        "description": "Removes all finished parent tasks associated with a specific task name, scoped to the requesting user.\nAll child tasks associated with the parent task will also be deleted.",
         "operationId": "clear_tasks",
         "parameters": [
           {
@@ -978,7 +978,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Successfully removed results of all finished tasks with the specified name"
+            "description": "Successfully removed results of all finished parent tasks with the specified name"
           },
           "422": {
             "description": "Validation Error",
@@ -2783,7 +2783,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-10T09:49:15.565064Z"
+            "default": "2024-08-11T08:27:47.816511Z"
           }
         },
         "type": "object",

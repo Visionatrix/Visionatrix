@@ -106,10 +106,11 @@ async def get_tasks_async(
     finished: bool | None = None,
     user_id: str | None = None,
     fetch_child: bool = False,
+    only_parent: bool = False,
 ) -> dict[int, TaskDetails]:
     async with database.SESSION_ASYNC() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id)
+            query = __get_tasks_query(name, finished, user_id, only_parent=only_parent)
             results = (await session.execute(query)).all()
             tasks = {}
             task_ids = [task.task_id for task in results]
