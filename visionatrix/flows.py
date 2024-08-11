@@ -24,7 +24,7 @@ from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import Flow
 
 SECONDS_TO_CACHE_INSTALLED_FLOWS = 10
-SECONDS_TO_CACHE_AVALAIBLE_FLOWS = 60
+SECONDS_TO_CACHE_AVALAIBLE_FLOWS = 3 * 60
 
 LOGGER = logging.getLogger("visionatrix")
 CACHE_AVAILABLE_FLOWS = {
@@ -54,7 +54,12 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
         else:
             flows_storage_url += f"flows-{vix_version.major}.{vix_version.minor}.zip"
     if urlparse(flows_storage_url).scheme in ("http", "https", "ftp", "ftps"):
-        r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
+        try:
+            r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
+        except httpx.NetworkError as e:
+            LOGGER.error("Request to get flows failed with: %s", str(e))
+            flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+            return CACHE_AVAILABLE_FLOWS["flows"]
         if r.status_code == 304:
             flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
             return CACHE_AVAILABLE_FLOWS["flows"]
@@ -317,7 +322,7 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
             if "seed" in node_details["inputs"]:
                 node_details["inputs"]["seed"] = random_seed
             elif (
-                node_details["class_type"] in ("SamplerCustom", "RandomNoise")
+                node_details["class_type"] in ("SamplerCustom", "RandomNoise", "KSamplerAdvanced")
                 and "noise_seed" in node_details["inputs"]
             ):
                 node_details["inputs"]["noise_seed"] = random_seed
