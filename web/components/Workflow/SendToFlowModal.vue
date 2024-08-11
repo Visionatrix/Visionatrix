@@ -109,7 +109,7 @@ function sendToFlow() {
 }
 
 const bindAsChildTask = ref(false)
-const flowResultReady = computed(() => props.flowResult.progress === 100 && props.flowResult.error === '')
+const flowResultReady = computed(() => props.flowResult.progress === 100 && props.flowResult?.error === '')
 
 onBeforeMount(() => {
 	// TODO: change to dynamic according to the output type
@@ -170,7 +170,7 @@ onBeforeMount(() => {
 					color="violet"
 					variant="outline"
 					:loading="sending"
-					:disabled="subFlows.length === 0 || !flowResultReady"
+					:disabled="subFlows.length === 0 || (isChildTask && !flowResultReady)"
 					@click="sendToFlow">
 					Send
 				</UButton>

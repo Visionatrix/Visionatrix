@@ -222,6 +222,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						child_tasks: task.child_tasks || [],
 						parent_task_id: task.parent_task_id,
 						progress: task.progress,
+						error: task?.error || '',
 					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
@@ -668,6 +669,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 								child_tasks: progress[task_id].child_tasks || [],
 								parent_task_id: progress[task_id].parent_task_id,
 								progress: progress[task_id].progress,
+								error: progress[task_id]?.error || '',
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -900,6 +902,7 @@ export interface FlowResult {
 	parent_task_id: number
 	child_tasks: TaskHistoryItem[]
 	progress: number
+	error: string
 }
 
 export interface TasksHistory {
