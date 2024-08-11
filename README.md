@@ -24,7 +24,9 @@ Visionatrix features:
 
 > [!NOTE]
 > Since we are already approaching the release of version 1.0 and all the decisions for how the project will look are completed -
-> we are welcome to the new ideas which we can implement further. If you wish to join the development, feel free to do so.
+> we are welcome to the new ideas which we can implement further.
+>
+> If you wish to join the development, feel free to do so.
 
 ### User Interface of **Visionatrix**
 
