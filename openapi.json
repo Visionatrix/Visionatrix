@@ -651,6 +651,18 @@
               "title": "Name"
             },
             "description": "Optional name to filter tasks by their name"
+          },
+          {
+            "name": "only_parent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Fetch only parent tasks",
+              "default": false,
+              "title": "Only Parent"
+            },
+            "description": "Fetch only parent tasks"
           }
         ],
         "responses": {
@@ -753,6 +765,18 @@
               "title": "Name"
             },
             "description": "Optional name to filter tasks by their name"
+          },
+          {
+            "name": "only_parent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Fetch only parent tasks",
+              "default": false,
+              "title": "Only Parent"
+            },
+            "description": "Fetch only parent tasks"
           }
         ],
         "responses": {
@@ -2783,7 +2807,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-11T08:27:47.816511Z"
+            "default": "2024-08-11T10:17:36.483785Z"
           }
         },
         "type": "object",

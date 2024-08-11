@@ -186,14 +186,17 @@ async def create_task(
 async def get_tasks_progress(
     request: Request,
     name: str = Query(None, description="Optional name to filter tasks by their name"),
+    only_parent: bool = Query(False, description="Fetch only parent tasks"),
 ) -> dict[int, TaskDetails]:
     """
     Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
+        r = await get_tasks_async(
+            name=name, user_id=request.scope["user_info"].user_id, fetch_child=True, only_parent=only_parent
+        )
     else:
-        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
+        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True, only_parent=only_parent)
     return r
 
 
@@ -201,14 +204,19 @@ async def get_tasks_progress(
 async def get_tasks_progress_summary(
     request: Request,
     name: str = Query(None, description="Optional name to filter tasks by their name"),
+    only_parent: bool = Query(False, description="Fetch only parent tasks"),
 ) -> dict[int, TaskDetailsShort]:
     """
     Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
+        r = await get_tasks_short_async(
+            name=name, user_id=request.scope["user_info"].user_id, fetch_child=True, only_parent=only_parent
+        )
     else:
-        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id, fetch_child=True)
+        r = get_tasks_short(
+            name=name, user_id=request.scope["user_info"].user_id, fetch_child=True, only_parent=only_parent
+        )
     return r
 
 

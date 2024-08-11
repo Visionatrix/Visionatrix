@@ -469,10 +469,11 @@ def get_tasks_short(
     name: str | None = None,
     finished: bool | None = None,
     fetch_child: bool = False,
+    only_parent: bool = False,
 ) -> dict[int, TaskDetailsShort]:
     with database.SESSION() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id, full_info=False)
+            query = __get_tasks_query(name, finished, user_id, full_info=False, only_parent=only_parent)
             results = session.execute(query).all()
             tasks = {}
             task_ids = [task.task_id for task in results]
