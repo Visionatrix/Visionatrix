@@ -109,6 +109,7 @@ function sendToFlow() {
 }
 
 const bindAsChildTask = ref(false)
+const flowResultReady = computed(() => props.flowResult.progress === 100 && props.flowResult.error === '')
 
 onBeforeMount(() => {
 	// TODO: change to dynamic according to the output type
@@ -124,7 +125,15 @@ onBeforeMount(() => {
 		<div class="p-4">
 			<h2 class="text-lg text-center mb-4">Send to flow</h2>
 			<div class="flex justify-center mb-4">
-				<NuxtImg :src="outputImgSrc" class="w-1/2 rounded-lg" :draggable="false" />
+				<NuxtImg v-if="flowResultReady"
+					:src="outputImgSrc"
+					class="w-1/2 rounded-lg"
+					:draggable="false" />
+				<UAlert v-else
+					color="orange"
+					icon="i-heroicons-exclamation-circle-solid"
+					:title="`Task is still running (${Math.ceil(flowResult.progress)}%, ${flowResult.execution_time.toFixed(2)}s)`"
+					:description="flowResult.error !== '' ? flowResult.error : ''" />
 			</div>
 			<p v-if="inputParamsMapped" class="text-sm text-slate-500 text-center mb-4">
 				{{
@@ -153,7 +162,7 @@ onBeforeMount(() => {
 				class="mb-4"
 				icon="i-heroicons-exclamation-circle-solid"
 				title="Child task"
-				description="For tasks with child tasks, the latest child task is always sent to the sub-flow" />
+				description="The latest child task is always used as input for sub-flow" />
 			<div class="flex items-center justify-between">
 				<UCheckbox v-model="bindAsChildTask" label="Bind as child task" />
 				<UButton
@@ -161,7 +170,7 @@ onBeforeMount(() => {
 					color="violet"
 					variant="outline"
 					:loading="sending"
-					:disabled="subFlows.length === 0"
+					:disabled="subFlows.length === 0 || !flowResultReady"
 					@click="sendToFlow">
 					Send
 				</UButton>

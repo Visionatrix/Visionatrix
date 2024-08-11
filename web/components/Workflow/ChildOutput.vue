@@ -87,8 +87,10 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 				}
 			},
 			{
-				label: `Delete #${task.task_id} task`,
-				icon: 'i-heroicons-trash',
+				label: (task.progress < 100) ? 'Cancel' : 'Delete',
+				labelClass: (task.progress < 100) ? 'text-orange-500' : 'text-red-500',
+				icon: (task.progress < 100) ? 'i-heroicons-stop' : 'i-heroicons-trash',
+				iconClass: (task.progress < 100) ? 'bg-orange-500' : 'bg-red-500',
 				click: () => {
 					flowsStore.deleteFlowHistory(task.task_id).then(() => {
 						const parentTask = findChildTaskByTaskId(props.flowResult, task.parent_task_id)
