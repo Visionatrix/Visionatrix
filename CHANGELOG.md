@@ -2,11 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.0 - 2024-08-xx]
+## [1.0.0 - 2024-08-1x]
 
 ### Added
 
-- **Relationship of task results, send task result to another tasks and possibility to return to the previous result.**
+- **Child tasks: Send the result of a task to other tasks and work with it further on the same page.**
+- Support for `HEIF`/`HEIC` files as input. #135
+- Workflows with `Flux`: 16 and 8 bits and 'realism' lora.
+- Workflow with `HunyuanDiT` model.
+
+### Changed
+
+- Replaced `ComfyUI-AutomaticCFG` with `Skimmed_CFG` node. #126
+- `ColorfulXL` workflow was updated to use the last version of model.
+
+### Fixed
+
+- Fixed `Update flow` action in backend(UI was affected). #128
+- Support for workflows without explicit models. #134
+- Better support of different ComfyUI nodes. #125 #138
+- Many other UI bug fixes.
 
 ## [0.9.0 - 2024-07-28]
 
