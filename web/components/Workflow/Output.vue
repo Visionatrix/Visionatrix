@@ -72,18 +72,18 @@ const sendToFlowInputParamsMapped = ref<any>({})
 const sendToFlowOutputParamIndex = ref(0)
 const sendToFlowIsChildTask = ref(false)
 
-function handleSendToFlow(flowResult: FlowResult) {
+function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 	showSendToFlowModal.value = true
 	if (flowResult.child_tasks.length === 0) {
 		sendToFlowResult.value = flowResult
 		sendToImgSrc.value = outputImgSrc({
 			task_id: flowResult.task_id,
-			node_id: flowResult.outputs[0].comfy_node_id
+			node_id: flowResult.outputs[outputIndex].comfy_node_id
 		})
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
 		sendToFlowIsChildTask.value = false
 	} else {
-		const targetTask = findLatestChildTask(flowResult)
+		const targetTask = findLatestChildTask(flowResult, outputIndex)
 		sendToFlowResult.value = targetTask
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
 		sendToImgSrc.value = outputImgSrc({
@@ -139,6 +139,16 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 		}]
 	]
 	return taskDropdownItems
+}
+
+function hasChildTaskByParentTaskNodeId(task: FlowResult|TaskHistoryItem, node_id: number) {
+	if (task.parent_task_node_id === node_id) {
+		return true
+	}
+	if (task.child_tasks.length === 0) {
+		return false
+	}
+	return hasChildTaskByParentTaskNodeId(task.child_tasks[0], node_id)
 }
 </script>
 
@@ -261,7 +271,9 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 						indicators>
 						<div class="flex flex-col basis-full">
 							<WorkflowChildOutput
-								v-if="flowResult?.child_tasks && flowResult?.child_tasks.length > 0"
+								v-if="flowResult?.child_tasks
+									&& flowResult?.child_tasks.length === 1
+									&& hasChildTaskByParentTaskNodeId(flowResult, item.node_id)"
 								:flow-result="flowResult"
 								:outputs-index="item.index"
 								:open-image-modal="openImageModal" />
@@ -279,7 +291,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 								color="violet"
 								variant="outline"
 								@click="() => {
-									handleSendToFlow(flowResult)
+									handleSendToFlow(flowResult, item.index)
 								}">
 								Send to flow
 							</UButton>

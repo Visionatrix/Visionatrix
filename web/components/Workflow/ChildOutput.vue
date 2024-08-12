@@ -205,18 +205,6 @@ watch(toggleOriginal, (newToggleOriginal) => {
 		}
 	}
 })
-
-const leftImageDimensions = ref({width: 0, height: 0})
-
-function getImageDimensions(src: string) {
-	const img = new Image()
-	img.onload = function() {
-		leftImageDimensions.value.width = img.naturalWidth ?? 512
-		leftImageDimensions.value.height = img.naturalHeight ?? 512
-		URL.revokeObjectURL(img.src)
-	}
-	img.src = src
-}
 </script>
 
 <template>
@@ -228,12 +216,12 @@ function getImageDimensions(src: string) {
 			fit="outside"
 			loading="lazy"
 			:src="outputImgSrc({
-				task_id: flowResult.task_id,
-				node_id: flowResult.outputs[outputsIndex].comfy_node_id
+				task_id: rightComparisonTask.progress === 100 ? rightComparisonTask.task_id : flowResult.task_id,
+				node_id: rightComparisonTask.progress === 100 ? rightComparisonTask.outputs[outputsIndex].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
 			})"
 			@click="openImageModal(outputImgSrc({
-				task_id: flowResult.task_id,
-				node_id: flowResult.outputs[outputsIndex].comfy_node_id
+				task_id: rightComparisonTask.task_id ?? flowResult.task_id,
+				node_id: rightComparisonTask.outputs[outputsIndex].comfy_node_id ?? flowResult.outputs[outputsIndex].comfy_node_id
 			}))" />
 		<ImgComparisonSlider v-if="toggleCompare"
 			class="mb-2 mx-auto outline-none w-fit rounded-lg">
@@ -257,10 +245,6 @@ function getImageDimensions(src: string) {
 			<NuxtImg
 				v-else
 				slot="second"
-				:class="`h-100 max-h-[${getImageDimensions(outputImgSrc({
-					task_id: !toggleOriginal ? leftComparisonTask.task_id : flowResult.task_id,
-					node_id: !toggleOriginal ? leftComparisonTask?.outputs[outputsIndex].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
-				}))}px]`"
 				fit="outside"
 				draggable="false"
 				:src="`${buildBackendUrl()}/vix_logo.png`" />

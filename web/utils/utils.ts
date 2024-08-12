@@ -19,9 +19,15 @@ export function formatBytes(bytes: number, decimals: number = 2) {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
 }
 
-export function findLatestChildTask(task: any): TaskHistoryItem|FlowResult {
+export function findLatestChildTask(task: any, outputIndex: number = 0): TaskHistoryItem|FlowResult {
 	if (task.child_tasks.length === 0) {
 		return task
 	}
-	return findLatestChildTask(task.child_tasks[task.child_tasks.length - 1])
+	if (task.child_tasks.length > 1
+		&& task.outputs.length > 1
+		&& task.outputs[outputIndex].comfy_node_id === task.child_tasks
+			.find((t: FlowResult|TaskHistoryItem|any) => t.comfy_node_id === task.outputs[outputIndex].comfy_node_id).comfy_node_id) {
+		return task
+	}
+	return findLatestChildTask(task.child_tasks[task.child_tasks.length - 1], outputIndex)
 }
