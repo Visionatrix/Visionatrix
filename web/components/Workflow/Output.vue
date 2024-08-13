@@ -74,7 +74,7 @@ const sendToFlowIsChildTask = ref(false)
 
 function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 	showSendToFlowModal.value = true
-	if (flowResult.child_tasks.length === 0) {
+	if (flowResult.child_tasks.length === 0 || !hasChildTaskByParentTaskNodeId(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)) {
 		sendToFlowResult.value = flowResult
 		sendToImgSrc.value = outputImgSrc({
 			task_id: flowResult.task_id,
@@ -83,7 +83,7 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
 		sendToFlowIsChildTask.value = false
 	} else {
-		const targetTask = findLatestChildTask(flowResult, outputIndex)
+		const targetTask = findLatestChildTask(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)
 		sendToFlowResult.value = targetTask
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
 		sendToImgSrc.value = outputImgSrc({
@@ -92,7 +92,7 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 		})
 		sendToFlowIsChildTask.value = true
 	}
-	sendToFlowOutputParamIndex.value = 0
+	sendToFlowOutputParamIndex.value = outputIndex
 }
 
 function buildResultInputParams(flowResult: FlowResult) {
@@ -139,16 +139,6 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 		}]
 	]
 	return taskDropdownItems
-}
-
-function hasChildTaskByParentTaskNodeId(task: FlowResult|TaskHistoryItem, node_id: number) {
-	if (task.parent_task_node_id === node_id) {
-		return true
-	}
-	if (task.child_tasks.length === 0) {
-		return false
-	}
-	return hasChildTaskByParentTaskNodeId(task.child_tasks[0], node_id)
 }
 </script>
 
@@ -272,8 +262,7 @@ function hasChildTaskByParentTaskNodeId(task: FlowResult|TaskHistoryItem, node_i
 						<div class="flex flex-col basis-full">
 							<WorkflowChildOutput
 								v-if="flowResult?.child_tasks
-									&& flowResult?.child_tasks.length === 1
-									&& hasChildTaskByParentTaskNodeId(flowResult, item.node_id)"
+									&& hasChildTaskByParentTaskNodeId(flowResult, item.index, item.node_id)"
 								:flow-result="flowResult"
 								:outputs-index="item.index"
 								:open-image-modal="openImageModal" />

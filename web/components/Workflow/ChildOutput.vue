@@ -17,31 +17,41 @@ const props = defineProps({
 
 const flowsStore = useFlowsStore()
 
-// Currently only linear child_tasks linked list is supported
-const findPreLatestAndLatestChildTask = (task: FlowResult|TaskHistoryItem|any, keepLeft: boolean = false) => {
+
+const findPreLatestAndLatestChildTask = (task: FlowResult|TaskHistoryItem|any, parentNodeId: number|null = null, keepLeft: boolean = false) => {
 	if (task.child_tasks.length === 0) {
 		return task
 	}
-	if (task.child_tasks.length === 1) {
+	const childTaskIndex = task.child_tasks.findIndex((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === parentNodeId)
+	if (childTaskIndex !== -1) {
 		if (!keepLeft) {
 			leftComparisonTask.value = task
 		}
+		return findPreLatestAndLatestChildTask(task.child_tasks[childTaskIndex], task.child_tasks[childTaskIndex].outputs[0].comfy_node_id, keepLeft)
 	}
-	return findPreLatestAndLatestChildTask(task.child_tasks[0], keepLeft)
+	return task
 }
 
-function findChildTaskByTaskId(task: FlowResult|TaskHistoryItem|any, taskId: number) {
-	if (Number(task.task_id) === taskId) {
+function findChildTaskByTaskId(task: FlowResult|TaskHistoryItem|any, taskId: number, parentNodeId: number|null = null) {
+	if (parentNodeId !== null && task.parent_task_node_id === parentNodeId) {
+		return task
+	} else if (Number(task.task_id) === taskId) {
 		return task
 	}
 	if (task.child_tasks.length === 0) {
 		return null
 	}
-	return findChildTaskByTaskId(task.child_tasks[0], taskId)
+	if (parentNodeId !== null) {
+		const childTask = task.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === parentNodeId)
+		if (childTask && Number(childTask.task_id) === taskId) {
+			return childTask
+		}
+	}
+	return findChildTaskByTaskId(task.child_tasks[0], taskId, task.child_tasks[0].outputs[0].comfy_node_id)
 }
 
 const leftComparisonTask: Ref<FlowResult|TaskHistoryItem|any> = ref(props.flowResult)
-const rightComparisonTask: Ref<TaskHistoryItem|FlowResult|any> = ref(findPreLatestAndLatestChildTask(props.flowResult))
+const rightComparisonTask: Ref<TaskHistoryItem|FlowResult|any> = ref(findPreLatestAndLatestChildTask(props.flowResult, props.flowResult.outputs[props.outputsIndex].comfy_node_id, false))
 
 function buildLeftDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 	return [
@@ -58,7 +68,7 @@ function buildLeftDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 				click: () => {
 					props.openImageModal(outputImgSrc({
 						task_id: task.task_id,
-						node_id: task.outputs[props.outputsIndex].comfy_node_id
+						node_id: task.outputs.length > 1 ? task.outputs[props.outputsIndex].comfy_node_id : task.outputs[0].comfy_node_id
 					}))
 				}
 			},
@@ -82,7 +92,7 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 				click: () => {
 					props.openImageModal(outputImgSrc({
 						task_id: task.task_id,
-						node_id: task.outputs[props.outputsIndex].comfy_node_id
+						node_id: task.outputs.length > 1 ? task.outputs[props.outputsIndex].comfy_node_id : task.outputs[0].comfy_node_id
 					}))
 				}
 			},
@@ -93,7 +103,7 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 				iconClass: (task.progress < 100) ? 'bg-orange-500' : 'bg-red-500',
 				click: () => {
 					flowsStore.deleteFlowHistory(task.task_id).then(() => {
-						const parentTask = findChildTaskByTaskId(props.flowResult, task.parent_task_id)
+						const parentTask = findChildTaskByTaskId(props.flowResult, task.parent_task_id, task.parent_task_node_id)
 						if (parentTask) {
 							parentTask.child_tasks = parentTask.child_tasks.filter((childTask: TaskHistoryItem) => {
 								return childTask.task_id !== task.task_id
@@ -143,7 +153,7 @@ function prevLeftComparisonTask() {
 	if (!parentTaskId) {
 		return
 	}
-	const parentTask = findChildTaskByTaskId(props.flowResult, parentTaskId)
+	const parentTask = findChildTaskByTaskId(props.flowResult, parentTaskId, leftComparisonTask.value.parent_task_node_id)
 	if (!parentTask) {
 		return
 	}
@@ -154,7 +164,9 @@ function nextLeftComparisonTask() {
 	if (leftComparisonTask.value.child_tasks.length === 0) {
 		return
 	}
-	leftComparisonTask.value = leftComparisonTask.value.child_tasks[0]
+	const currentOutputNodeId = leftComparisonTask.value.outputs.length > 1 ? leftComparisonTask.value.outputs[props.outputsIndex].comfy_node_id : leftComparisonTask.value.outputs[0].comfy_node_id
+	const nextChildTask = leftComparisonTask.value.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === currentOutputNodeId)
+	leftComparisonTask.value = nextChildTask ?? leftComparisonTask.value.child_tasks[0]
 }
 
 function prevRightComparisonTask() {
@@ -162,7 +174,7 @@ function prevRightComparisonTask() {
 	if (!parentTaskId) {
 		return
 	}
-	const parentTask = findChildTaskByTaskId(props.flowResult, parentTaskId)
+	const parentTask = findChildTaskByTaskId(props.flowResult, parentTaskId, rightComparisonTask.value.parent_task_node_id)
 	if (!parentTask) {
 		return
 	}
@@ -173,14 +185,16 @@ function nextRightComparisonTask() {
 	if (rightComparisonTask.value.child_tasks.length === 0) {
 		return
 	}
-	rightComparisonTask.value = rightComparisonTask.value.child_tasks[0]
+	const currentOutputNodeId = rightComparisonTask.value.outputs[0].comfy_node_id
+	const nextChildTask = rightComparisonTask.value.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === currentOutputNodeId)
+	rightComparisonTask.value = nextChildTask ?? rightComparisonTask.value.child_tasks[0]
 }
 
-function resetComparison(keepLeft = false, flowResult: FlowResult|null = null, ) {
+function resetComparison(keepLeft = false, flowResult: FlowResult|null = null) {
 	if (!keepLeft) {
 		leftComparisonTask.value = flowResult
 	}
-	rightComparisonTask.value = findPreLatestAndLatestChildTask(flowResult, keepLeft)
+	rightComparisonTask.value = findPreLatestAndLatestChildTask(flowResult, flowResult?.outputs[props.outputsIndex].comfy_node_id, keepLeft)
 	toggleOriginal.value = false
 }
 
@@ -201,7 +215,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 	} else {
 		if (prevLeftCompare.value) {
 			leftComparisonTask.value = prevLeftCompare.value
-			rightComparisonTask.value = findLatestChildTask(prevLeftCompare.value)
+			rightComparisonTask.value = findLatestChildTask(prevLeftCompare.value, props.outputsIndex, leftComparisonTask.value.outputs.length > 1 ? leftComparisonTask.value.outputs[props.outputsIndex].comfy_node_id : leftComparisonTask.value.outputs[0].comfy_node_id)
 		}
 	}
 })
@@ -217,11 +231,11 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			loading="lazy"
 			:src="outputImgSrc({
 				task_id: rightComparisonTask.progress === 100 ? rightComparisonTask.task_id : flowResult.task_id,
-				node_id: rightComparisonTask.progress === 100 ? rightComparisonTask.outputs[outputsIndex].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
+				node_id: rightComparisonTask.progress === 100 ? rightComparisonTask.outputs[0].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
 			})"
 			@click="openImageModal(outputImgSrc({
 				task_id: rightComparisonTask.task_id ?? flowResult.task_id,
-				node_id: rightComparisonTask.outputs[outputsIndex].comfy_node_id ?? flowResult.outputs[outputsIndex].comfy_node_id
+				node_id: rightComparisonTask.outputs[0].comfy_node_id ?? flowResult.outputs[outputsIndex].comfy_node_id
 			}))" />
 		<ImgComparisonSlider v-if="toggleCompare"
 			class="mb-2 mx-auto outline-none w-fit rounded-lg">
@@ -231,7 +245,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 				draggable="false"
 				:src="outputImgSrc({
 					task_id: !toggleOriginal ? leftComparisonTask.task_id : flowResult.task_id,
-					node_id: !toggleOriginal ? leftComparisonTask?.outputs[outputsIndex].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
+					node_id: !toggleOriginal ? leftComparisonTask.parent_task_node_id !== null ? leftComparisonTask?.outputs[0].comfy_node_id : leftComparisonTask?.outputs[outputsIndex].comfy_node_id ?? leftComparisonTask?.outputs[0].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
 				})" />
 			<NuxtImg
 				v-if="rightComparisonTask && rightComparisonTask.progress === 100"
@@ -240,7 +254,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 				draggable="false"
 				:src="outputImgSrc({
 					task_id: rightComparisonTask.task_id,
-					node_id: rightComparisonTask.outputs[outputsIndex].comfy_node_id
+					node_id: rightComparisonTask.outputs[0].comfy_node_id
 				})" />
 			<NuxtImg
 				v-else
@@ -253,24 +267,24 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			<div class="toggles py-2">
 				<div class="mr-2 inline-flex items-center text-sm">
 					<UToggle
-						:id="`toggle-compare-${flowResult.task_id}`"
+						:id="`toggle-compare-${flowResult.task_id}-${outputsIndex}`"
 						v-model="toggleCompare"
 						size="xs"
 						class="mr-2" />
 					<label class="cursor-pointer select-none"
-						:for="`toggle-compare-${flowResult.task_id}`">
+						:for="`toggle-compare-${flowResult.task_id}-${outputsIndex}`">
 						Comparison
 					</label>
 				</div>
 				<div class="mr-2 inline-flex items-center text-sm">
 					<UToggle
-						:id="`toggle-original-${flowResult.task_id}`"
+						:id="`toggle-original-${flowResult.task_id}-${outputsIndex}`"
 						v-model="toggleOriginal"
 						:disabled="!toggleCompare"
 						size="xs"
 						class="mr-2" />
 					<label class="cursor-pointer select-none"
-						:for="`toggle-original-${flowResult.task_id}`">
+						:for="`toggle-original-${flowResult.task_id}-${outputsIndex}`">
 						Original
 					</label>
 				</div>

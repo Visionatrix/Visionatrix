@@ -74,7 +74,7 @@ function sendToFlow() {
 			input_param_map[input_param.name] = {
 				value: JSON.stringify({
 					task_id: props.flowResult.task_id,
-					node_id: props.flowResult.outputs[props.outputParamIndex].comfy_node_id
+					node_id: props.flowResult.outputs.length > 1 ? props.flowResult.outputs[props.outputParamIndex].comfy_node_id : props.flowResult.outputs[0].comfy_node_id,
 				}) || '',
 				type: input_param.type,
 			}
