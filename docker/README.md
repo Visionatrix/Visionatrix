@@ -50,7 +50,7 @@ the container so that you don't have to download them again inside docker contai
 
 ```bash
 docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 \
-	--volume ./docker/data/flows:/app/vix_flows --volume ./docker/data/models:/apps/vix_models \
+	--volume ./docker/data/flows:/app/vix_flows --volume ./docker/data/models:/app/vix_models \
 	-d visionatrix/visionatrix_<compute_device>
 ```
 
