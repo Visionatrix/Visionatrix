@@ -42,7 +42,7 @@ function findChildTaskByTaskId(task: FlowResult|TaskHistoryItem|any, taskId: num
 		return null
 	}
 	if (parentNodeId !== null) {
-		const childTask = task.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === parentNodeId)
+		const childTask = task.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => Number(t.parent_task_node_id) === Number(parentNodeId))
 		if (childTask && Number(childTask.task_id) === taskId) {
 			return childTask
 		}
@@ -106,7 +106,7 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 						const parentTask = findChildTaskByTaskId(props.flowResult, task.parent_task_id, task.parent_task_node_id)
 						if (parentTask) {
 							parentTask.child_tasks = parentTask.child_tasks.filter((childTask: TaskHistoryItem) => {
-								return childTask.task_id !== task.task_id
+								return Number(childTask.task_id) !== Number(task.task_id)
 							})
 						}
 						resetComparison(false, props.flowResult)

@@ -676,7 +676,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 							this.flow_results.push(flowResult)
 						}
 
-						if (progress[task_id].parent_task_id) {
+						if (progress[task_id].parent_task_id !== null) {
 							this.updateChildTasksTillRootParent(progress[task_id].parent_task_id, progress[task_id])
 						}
 					})
@@ -692,9 +692,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 			if (parentTaskId === null) {
 				return
 			}
-			const parentTask = this.flow_results.find(flowResult => Number(flowResult.task_id) === Number(parentTaskId))
+			const parentTask = this.flow_results.find(flowResult => Number(flowResult.task_id) === Number(parentTaskId) && flowResult.outputs.some((o: FlowOutputParam) => Number(o.comfy_node_id) === Number(task.parent_task_node_id)))
+			console.debug('[updateChildTasksTillRootParent] parentTask:', parentTask)
 			if (parentTask) {
-				const childTaskIndex = parentTask.child_tasks.findIndex((t: FlowResult|TaskHistoryItem|any) => t.task_id === task.task_id)
+				const childTaskIndex = parentTask.child_tasks.findIndex((t: FlowResult|TaskHistoryItem|any) => Number(t.task_id) === Number(task.task_id))
 				if (childTaskIndex !== -1) {
 					console.debug('updating child task:', task, 'in parent task:', parentTask)
 					parentTask.child_tasks[childTaskIndex] = task
@@ -702,8 +703,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 					console.debug('adding child task:', task, 'in parent task:', parentTask)
 					parentTask.child_tasks.push(task)
 				}
-				// TODO: Fix logic
 				this.updateChildTasksTillRootParent(parentTask.parent_task_id, parentTask)
+			} else {
+				this.updateChildTasksTillRootParent(task.parent_task_id, task)
 			}
 		},
 
