@@ -47,7 +47,15 @@ function findChildTaskByTaskId(task: FlowResult|TaskHistoryItem|any, taskId: num
 			return childTask
 		}
 	}
-	return findChildTaskByTaskId(task.child_tasks[0], taskId, task.child_tasks[0].outputs[0].comfy_node_id)
+	for (let k=0; k < task.child_tasks.length; k++) {
+		for (let i = 0; i < task.child_tasks[k].outputs.length; i++) {
+			const result_task: FlowResult|TaskHistoryItem|any = findChildTaskByTaskId(task.child_tasks[k], taskId, task.child_tasks[k].outputs[i].comfy_node_id)
+			if (result_task !== null) {
+				return result_task
+			}
+		}
+	}
+	return null
 }
 
 const leftComparisonTask: Ref<FlowResult|TaskHistoryItem|any> = ref(props.flowResult)
