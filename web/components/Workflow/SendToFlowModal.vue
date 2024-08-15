@@ -102,7 +102,7 @@ function sendToFlow() {
 	console.debug('[Send to flow]: input_params_map', input_params_map)
 
 	sending.value = true
-	flowStore.runFlow(targetFlow, input_params_map, 1, bindAsChildTask.value).finally(() => {
+	flowStore.runFlow(targetFlow, input_params_map, 1, bindAsChildTask.value, bindAsChildTask.value ? Number(props.flowResult.task_id) : null).finally(() => {
 		sending.value = false
 		emit('update:show', false)
 	})

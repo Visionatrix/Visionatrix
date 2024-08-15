@@ -335,7 +335,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return response
 		},
 
-		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1, child_task: boolean = false) {
+		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1, child_task: boolean = false, parent_task_id: number|null = null) {
 			const formData = new FormData()
 
 			console.debug('input_params:', input_params)
@@ -402,6 +402,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 							},
 						},
 						outputs: [], // outputs are dynamic and populated later by polling task progress
+						parent_task_id: parent_task_id,
 					})
 				})
 				console.debug('running:', this.running)
@@ -889,7 +890,7 @@ export interface FlowRunning {
 	outputs: FlowOutputParam[]
 	error?: string
 	execution_time?: number
-	parent_task_id?: number
+	parent_task_id: number|null
 	child_tasks?: TaskHistoryItem[]
 }
 
