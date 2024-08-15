@@ -693,14 +693,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return
 			}
 			const parentTask = this.flow_results.find(flowResult => Number(flowResult.task_id) === Number(parentTaskId) && flowResult.outputs.some((o: FlowOutputParam) => Number(o.comfy_node_id) === Number(task.parent_task_node_id)))
-			console.debug('[updateChildTasksTillRootParent] parentTask:', parentTask)
 			if (parentTask) {
 				const childTaskIndex = parentTask.child_tasks.findIndex((t: FlowResult|TaskHistoryItem|any) => Number(t.task_id) === Number(task.task_id))
 				if (childTaskIndex !== -1) {
-					console.debug('updating child task:', task, 'in parent task:', parentTask)
 					parentTask.child_tasks[childTaskIndex] = task
 				} else {
-					console.debug('adding child task:', task, 'in parent task:', parentTask)
 					parentTask.child_tasks.push(task)
 				}
 				this.updateChildTasksTillRootParent(parentTask.parent_task_id, parentTask)
