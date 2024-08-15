@@ -23,12 +23,6 @@ export function findLatestChildTask(task: any, outputIndex: number = 0, parentNo
 	if (task.child_tasks.length === 0) {
 		return task
 	}
-	// if (parentNodeId !== null) {
-	// 	const childTask = task.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === parentNodeId)
-	// 	if (childTask) {
-	// 		return findLatestChildTask(childTask, outputIndex, childTask.outputs[0].comfy_node_id)
-	// 	}
-	// }
 	if (task.child_tasks.length === 1) {
 		return findLatestChildTask(task.child_tasks[0], outputIndex, parentNodeId)
 	}

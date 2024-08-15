@@ -32,24 +32,15 @@ const findPreLatestAndLatestChildTask = (task: FlowResult|TaskHistoryItem|any, p
 	return task
 }
 
-function findChildTaskByTaskId(task: FlowResult|TaskHistoryItem|any, taskId: number, parentNodeId: number|null = null) {
-	if (parentNodeId !== null && task.parent_task_node_id === parentNodeId) {
+function findChildTaskByTaskIdNodeId(task: FlowResult|TaskHistoryItem|any, taskId: number, parentNodeId: number|null = null) {
+	if (parentNodeId !== null && task.parent_task_node_id === parentNodeId 
+		|| (Number(task.task_id) === taskId)) {
 		return task
-	} else if (Number(task.task_id) === taskId) {
-		return task
 	}
-	if (task.child_tasks.length === 0) {
-		return null
-	}
-	if (parentNodeId !== null) {
-		const childTask = task.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => Number(t.parent_task_node_id) === Number(parentNodeId))
-		if (childTask && Number(childTask.task_id) === taskId) {
-			return childTask
-		}
-	}
+
 	for (let k=0; k < task.child_tasks.length; k++) {
 		for (let i = 0; i < task.child_tasks[k].outputs.length; i++) {
-			const result_task: FlowResult|TaskHistoryItem|any = findChildTaskByTaskId(task.child_tasks[k], taskId, task.child_tasks[k].outputs[i].comfy_node_id)
+			const result_task: FlowResult|TaskHistoryItem|any = findChildTaskByTaskIdNodeId(task.child_tasks[k], taskId, task.child_tasks[k].outputs[i].comfy_node_id)
 			if (result_task !== null) {
 				return result_task
 			}
@@ -111,7 +102,7 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 				iconClass: (task.progress < 100) ? 'bg-orange-500' : 'bg-red-500',
 				click: () => {
 					flowsStore.deleteFlowHistory(task.task_id).then(() => {
-						const parentTask = findChildTaskByTaskId(props.flowResult, task.parent_task_id, task.parent_task_node_id)
+						const parentTask = findChildTaskByTaskIdNodeId(props.flowResult, task.parent_task_id, task.parent_task_node_id)
 						if (parentTask) {
 							parentTask.child_tasks = parentTask.child_tasks.filter((childTask: TaskHistoryItem) => {
 								return Number(childTask.task_id) !== Number(task.task_id)
@@ -155,13 +146,12 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 }
 
 
-
 function prevLeftComparisonTask() {
 	const parentTaskId = leftComparisonTask.value.parent_task_id
 	if (!parentTaskId) {
 		return
 	}
-	const parentTask = findChildTaskByTaskId(props.flowResult, parentTaskId, leftComparisonTask.value.parent_task_node_id)
+	const parentTask = findChildTaskByTaskIdNodeId(props.flowResult, parentTaskId, leftComparisonTask.value.parent_task_node_id)
 	if (!parentTask) {
 		return
 	}
@@ -174,15 +164,27 @@ function nextLeftComparisonTask() {
 	}
 	const currentOutputNodeId = leftComparisonTask.value.outputs.length > 1 ? leftComparisonTask.value.outputs[props.outputsIndex].comfy_node_id : leftComparisonTask.value.outputs[0].comfy_node_id
 	const nextChildTask = leftComparisonTask.value.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === currentOutputNodeId)
-	leftComparisonTask.value = nextChildTask ?? leftComparisonTask.value.child_tasks[0]
+	if (!nextChildTask) {
+		return
+	}
+	leftComparisonTask.value = nextChildTask
 }
+
+const hasNextLeftComparisonTask = computed(() => {
+	if (leftComparisonTask.value.child_tasks.length === 0) {
+		return
+	}
+	const currentOutputNodeId = leftComparisonTask.value.outputs.length > 1 ? leftComparisonTask.value.outputs[props.outputsIndex].comfy_node_id : leftComparisonTask.value.outputs[0].comfy_node_id
+	const nextChildTask = leftComparisonTask.value.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === currentOutputNodeId)
+	return nextChildTask.task_id !== rightComparisonTask.value.task_id
+})
 
 function prevRightComparisonTask() {
 	const parentTaskId = rightComparisonTask.value.parent_task_id
 	if (!parentTaskId) {
 		return
 	}
-	const parentTask = findChildTaskByTaskId(props.flowResult, parentTaskId, rightComparisonTask.value.parent_task_node_id)
+	const parentTask = findChildTaskByTaskIdNodeId(props.flowResult, parentTaskId, rightComparisonTask.value.parent_task_node_id)
 	if (!parentTask) {
 		return
 	}
@@ -193,9 +195,12 @@ function nextRightComparisonTask() {
 	if (rightComparisonTask.value.child_tasks.length === 0) {
 		return
 	}
-	const currentOutputNodeId = rightComparisonTask.value.outputs[0].comfy_node_id
-	const nextChildTask = rightComparisonTask.value.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === currentOutputNodeId)
-	rightComparisonTask.value = nextChildTask ?? rightComparisonTask.value.child_tasks[0]
+	const currentOutputNodeId = Number(rightComparisonTask.value.outputs[0].comfy_node_id)
+	const nextChildTask = rightComparisonTask.value.child_tasks.find((t: FlowResult|TaskHistoryItem|any) => Number(t.parent_task_node_id) === currentOutputNodeId)
+	if (!nextChildTask) {
+		return
+	}
+	rightComparisonTask.value = nextChildTask
 }
 
 function resetComparison(keepLeft = false, flowResult: FlowResult|null = null) {
@@ -206,9 +211,7 @@ function resetComparison(keepLeft = false, flowResult: FlowResult|null = null) {
 	toggleOriginal.value = false
 }
 
-// watch for flowResult.child_tasks changes
 watch(props.flowResult, (newFlowResult) => {
-	console.debug('[ChildOutput] flowResult changed', newFlowResult)
 	resetComparison(true, newFlowResult)
 })
 
@@ -321,7 +324,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 					size="2xs"
 					variant="soft"
 					color="cyan"
-					:disabled="toggleOriginal || Number(leftComparisonTask.child_tasks[0].task_id) === Number(rightComparisonTask.task_id)"
+					:disabled="toggleOriginal || !hasNextLeftComparisonTask"
 					@click="nextLeftComparisonTask" />
 
 				<UIcon class="mx-3" name="i-heroicons-arrows-right-left-16-solid" />
@@ -331,7 +334,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 					size="2xs"
 					variant="soft"
 					color="cyan"
-					:disabled="rightComparisonTask.parent_task_id === Number(leftComparisonTask.task_id) || rightComparisonTask.parent_task_id === null"
+					:disabled="!findChildTaskByTaskIdNodeId(props.flowResult, rightComparisonTask.parent_task_id, rightComparisonTask.parent_task_node_id) || rightComparisonTask.parent_task_id === Number(leftComparisonTask.task_id) || rightComparisonTask.parent_task_id === null"
 					@click="prevRightComparisonTask" />
 				<UDropdown
 					:items="buildRightDropdownItems(rightComparisonTask)"

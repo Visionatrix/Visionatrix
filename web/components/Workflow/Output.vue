@@ -73,8 +73,8 @@ const sendToFlowOutputParamIndex = ref(0)
 const sendToFlowIsChildTask = ref(false)
 
 function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
-	showSendToFlowModal.value = true
-	if (flowResult.child_tasks.length === 0 || !hasChildTaskByParentTaskNodeId(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)) {
+	if (flowResult.child_tasks.length === 0 
+		|| !hasChildTaskByParentTaskNodeId(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)) {
 		sendToFlowResult.value = flowResult
 		sendToImgSrc.value = outputImgSrc({
 			task_id: flowResult.task_id,
@@ -93,6 +93,7 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 		sendToFlowIsChildTask.value = true
 	}
 	sendToFlowOutputParamIndex.value = outputIndex
+	showSendToFlowModal.value = true
 }
 
 function buildResultInputParams(flowResult: FlowResult) {
