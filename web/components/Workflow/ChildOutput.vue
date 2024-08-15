@@ -33,7 +33,7 @@ const findPreLatestAndLatestChildTask = (task: FlowResult|TaskHistoryItem|any, p
 }
 
 function findChildTaskByTaskIdNodeId(task: FlowResult|TaskHistoryItem|any, taskId: number, parentNodeId: number|null = null) {
-	if (parentNodeId !== null && task.parent_task_node_id === parentNodeId 
+	if (parentNodeId !== null && task.parent_task_node_id === parentNodeId
 		|| (Number(task.task_id) === taskId)) {
 		return task
 	}
@@ -236,9 +236,11 @@ watch(toggleOriginal, (newToggleOriginal) => {
 	<div class="flex flex-col items-center mb-2 max-w-fit mx-auto z-0">
 		<NuxtImg
 			v-show="!toggleCompare"
-			class="mb-2 h-100 max-h-[512px] mx-auto rounded-lg cursor-pointer"
+			class="mb-2 rounded-lg cursor-pointer"
+			:height="flowsStore.outputMaxSize"
+			:width="flowsStore.outputMaxSize"
 			draggable="false"
-			fit="outside"
+			fit="cover"
 			loading="lazy"
 			:src="outputImgSrc({
 				task_id: rightComparisonTask.progress === 100 ? rightComparisonTask.task_id : flowResult.task_id,
@@ -252,8 +254,9 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			class="mb-2 mx-auto outline-none w-fit rounded-lg">
 			<NuxtImg
 				slot="first"
-				:class="`max-h-[${flowsStore.outputMaxHeight}px]`"
-				fit="outside"
+				:height="flowsStore.outputMaxSize"
+				:width="flowsStore.outputMaxSize"
+				fit="cover"
 				draggable="false"
 				:src="outputImgSrc({
 					task_id: !toggleOriginal ? leftComparisonTask.task_id : flowResult.task_id,
@@ -262,8 +265,9 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			<NuxtImg
 				v-if="rightComparisonTask && rightComparisonTask.progress === 100"
 				slot="second"
-				:class="`max-h-[${flowsStore.outputMaxHeight}px]`"
-				fit="outside"
+				:height="flowsStore.outputMaxSize"
+				:width="flowsStore.outputMaxSize"
+				fit="cover"
 				draggable="false"
 				:src="outputImgSrc({
 					task_id: rightComparisonTask.task_id,
@@ -272,8 +276,9 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			<NuxtImg
 				v-else
 				slot="second"
-				:class="`max-h-[${flowsStore.outputMaxHeight}px]`"
-				fit="outside"
+				:height="flowsStore.outputMaxSize"
+				:width="flowsStore.outputMaxSize"
+				fit="cover"
 				draggable="false"
 				:src="`${buildBackendUrl()}/vix_logo.png`" />
 		</ImgComparisonSlider>

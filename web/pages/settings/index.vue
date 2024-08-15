@@ -89,7 +89,7 @@ function uploadFlow() {
 	})
 }
 
-watch(() => flowsStore.outputMaxHeight, () => {
+watch(() => flowsStore.outputMaxSize, () => {
 	flowsStore.saveUserOptions()
 })
 
@@ -218,11 +218,11 @@ watch(() => flowsStore.outputMaxHeight, () => {
 					<UFormGroup
 						size="md"
 						class="py-3"
-						label="Outputs max image height"
-						description="To keep the output seamless, we limit the height of the outputs (512px by default)">
+						label="Outputs maximum image size"
+						description="To keep the output seamless, we limit the size of the outputs (512px by default)">
 						<USelectMenu
-							v-model="flowsStore.$state.outputMaxHeight"
-							:options="['512', '1024', '2048']" />
+							v-model="flowsStore.$state.outputMaxSize"
+							:options="['512', '768', '1024', '1536', '2048']" />
 					</UFormGroup>
 				</div>
 				<UButton

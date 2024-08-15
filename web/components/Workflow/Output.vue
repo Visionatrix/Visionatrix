@@ -73,7 +73,7 @@ const sendToFlowOutputParamIndex = ref(0)
 const sendToFlowIsChildTask = ref(false)
 
 function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
-	if (flowResult.child_tasks.length === 0 
+	if (flowResult.child_tasks.length === 0
 		|| !hasChildTaskByParentTaskNodeId(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)) {
 		sendToFlowResult.value = flowResult
 		sendToImgSrc.value = outputImgSrc({
@@ -229,9 +229,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							:flow-result="flowResult"
 							:open-image-modal="openImageModal" />
 						<NuxtImg v-else-if="flowResult.outputs.length === 1"
-							:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxHeight}px] mx-auto rounded-lg cursor-pointer`"
+							class="mb-2 mx-auto rounded-lg cursor-pointer"
+							:height="flowStore.$state.outputMaxSize"
+							:width="flowStore.$state.outputMaxSize"
 							draggable="false"
-							fit="outside"
+							fit="cover"
 							loading="lazy"
 							:src="outputImgSrc({
 								task_id: flowResult.task_id,
@@ -260,7 +262,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 						}"
 						:page="1"
 						indicators>
-						<div class="flex flex-col basis-full">
+						<div class="flex flex-col basis-full mx-2">
 							<WorkflowChildOutput
 								v-if="flowResult?.child_tasks
 									&& hasChildTaskByParentTaskNodeId(flowResult, item.index, item.node_id)"
@@ -269,9 +271,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 								:open-image-modal="openImageModal" />
 							<NuxtImg
 								v-else
-								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxHeight}px] mx-auto rounded-lg cursor-pointer`"
+								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] rounded-lg cursor-pointer`"
 								draggable="false"
-								fit="outside"
+								:height="flowStore.$state.outputMaxSize"
+								:width="flowStore.$state.outputMaxSize"
+								fit="cover"
 								loading="lazy"
 								:src="outputImgSrc(item)"
 								@click="openImageModal(outputImgSrc(item))" />
