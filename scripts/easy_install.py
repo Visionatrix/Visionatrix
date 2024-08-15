@@ -148,8 +148,13 @@ def update_visionatrix():
         major_version = get_major_version(visionatrix_version)
         latest_version_tag = get_latest_version(major_version)
         if latest_version_tag != f"v{visionatrix_version}":
-            print(f"Updating to the latest version {latest_version_tag} in this major version {major_version}..")
-            subprocess.check_call(["git", "checkout", f"tags/{latest_version_tag}"], env=clone_env)
+            if latest_version_tag is None:
+                result = subprocess.run(["git", "pull"], capture_output=True, text=True)
+                if "Already up to date." in result.stdout:
+                    print("No new commits were pulled.")
+            else:
+                print(f"Updating to the latest version {latest_version_tag} in this major version {major_version}..")
+                subprocess.check_call(["git", "checkout", f"tags/{latest_version_tag}"], env=clone_env)
         else:
             latest_version_tag = get_latest_version(major_version + 1)
             if latest_version_tag is None:
