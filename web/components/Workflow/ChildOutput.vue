@@ -236,7 +236,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 	<div class="flex flex-col items-center mb-2 max-w-fit mx-auto z-0">
 		<NuxtImg
 			v-show="!toggleCompare"
-			class="mb-2 h-100 mx-auto rounded-lg cursor-pointer"
+			class="mb-2 h-100 max-h-[512px] mx-auto rounded-lg cursor-pointer"
 			draggable="false"
 			fit="outside"
 			loading="lazy"
@@ -252,6 +252,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			class="mb-2 mx-auto outline-none w-fit rounded-lg">
 			<NuxtImg
 				slot="first"
+				:class="`max-h-[${flowsStore.outputMaxHeight}px]`"
 				fit="outside"
 				draggable="false"
 				:src="outputImgSrc({
@@ -261,6 +262,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			<NuxtImg
 				v-if="rightComparisonTask && rightComparisonTask.progress === 100"
 				slot="second"
+				:class="`max-h-[${flowsStore.outputMaxHeight}px]`"
 				fit="outside"
 				draggable="false"
 				:src="outputImgSrc({
@@ -270,6 +272,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			<NuxtImg
 				v-else
 				slot="second"
+				:class="`max-h-[${flowsStore.outputMaxHeight}px]`"
 				fit="outside"
 				draggable="false"
 				:src="`${buildBackendUrl()}/vix_logo.png`" />

@@ -12,6 +12,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		installing: <FlowInstalling[]>[],
 		resultsPage: 1,
 		resultsPageSize: 5,
+		outputMaxHeight: 512,
 		flow_results_filter: '',
 		flow_results: <FlowResult[]>[],
 		flows_available: <Flow[]>[],
@@ -779,13 +780,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const user_options = localStorage.getItem('user_options')
 			if (user_options) {
 				const options = JSON.parse(user_options)
-				this.resultsPageSize = Number(options.resultsPageSize)
+				this.resultsPageSize = Number(options.resultsPageSize) || 5
+				this.outputMaxHeight = Number(options.outputMaxHeight) || 512
 			}
 		},
 
 		saveUserOptions() {
 			localStorage.setItem('user_options', JSON.stringify({
 				resultsPageSize: this.resultsPageSize,
+				outputMaxHeight: this.outputMaxHeight,
 			}))
 		},
 

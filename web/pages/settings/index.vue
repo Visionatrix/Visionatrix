@@ -24,22 +24,21 @@ const links = [
 
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
+const toast = useToast()
 
 function saveChanges() {
-	console.debug('Saving settings', settingsStore.settingsMap.value)
+	console.debug('Saving settings', settingsStore.settingsMap)
 	Promise.all(Object.keys(settingsStore.settingsMap).map((key) => {
 		if (settingsStore.settingsMap[key].admin && userStore.isAdmin) {
 			return settingsStore.saveGlobalSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap[key].value, settingsStore.settingsMap[key].sensitive)
 		}
 		return settingsStore.saveUserSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap[key].value)
 	})).then(() => {
-		const toast = useToast()
 		toast.add({
 			title: 'Settings saved',
 			description: 'Settings saved successfully',
 		})
 	}).catch((error) => {
-		const toast = useToast()
 		toast.add({
 			title: 'Error saving setting',
 			description: error.message,
@@ -52,9 +51,9 @@ const flowFileInput = ref(null)
 const uploadingFlow = ref(false)
 
 function uploadFlow() {
+	// @ts-ignore
 	const file = flowFileInput.value.$refs.input.files[0] || null
 	if (!file) {
-		const toast = useToast()
 		toast.add({
 			title: 'No file selected',
 			description: 'Please select a file to upload',
@@ -65,7 +64,6 @@ function uploadFlow() {
 	uploadingFlow.value = true
 	flowsStore.uploadFlow(file).then((res: any) => {
 		console.debug('uploadFlow', res)
-		const toast = useToast()
 		if (res && 'detail' in res && res?.detail !== '') {
 			toast.add({
 				title: 'Error uploading flow',
@@ -78,10 +76,10 @@ function uploadFlow() {
 				description: 'Flow uploaded successfully',
 			})
 		}
+		// @ts-ignore
 		flowFileInput.value.$refs.input.value = ''
 	}).catch((e) => {
 		console.debug('uploadFlow error', e)
-		const toast = useToast()
 		toast.add({
 			title: 'Error uploading flow',
 			description: e.message,
@@ -90,6 +88,11 @@ function uploadFlow() {
 		uploadingFlow.value = false
 	})
 }
+
+watch(() => flowsStore.outputMaxHeight, () => {
+	flowsStore.saveUserOptions()
+})
+
 </script>
 
 <template>
@@ -211,6 +214,15 @@ function uploadFlow() {
 							icon="i-heroicons-shield-check"
 							size="md"
 						/>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Outputs max image height"
+						description="To keep the output seamless, we limit the height of the outputs (512px by default)">
+						<USelectMenu
+							v-model="flowsStore.$state.outputMaxHeight"
+							:options="['512', '1024', '2048']" />
 					</UFormGroup>
 				</div>
 				<UButton

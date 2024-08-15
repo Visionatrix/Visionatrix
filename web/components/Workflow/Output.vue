@@ -229,7 +229,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							:flow-result="flowResult"
 							:open-image-modal="openImageModal" />
 						<NuxtImg v-else-if="flowResult.outputs.length === 1"
-							class="mb-2 h-100 mx-auto rounded-lg cursor-pointer"
+							:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxHeight}px] mx-auto rounded-lg cursor-pointer`"
 							draggable="false"
 							fit="outside"
 							loading="lazy"
@@ -269,7 +269,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 								:open-image-modal="openImageModal" />
 							<NuxtImg
 								v-else
-								class="mb-2 h-100 mx-auto rounded-lg cursor-pointer"
+								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxHeight}px] mx-auto rounded-lg cursor-pointer`"
 								draggable="false"
 								fit="outside"
 								loading="lazy"
