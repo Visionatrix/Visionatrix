@@ -39,6 +39,7 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.progress,
     database.TaskDetails.error,
     database.TaskDetails.execution_time,
+    database.TaskDetails.group_scope,
     database.TaskDetails.input_params,
     database.TaskDetails.input_files,
     database.TaskDetails.outputs,
@@ -72,7 +73,6 @@ def __init_new_task_details(task_id: int, name: str, input_params: dict, user_in
         "flow_comfy": {},
         "user_id": user_info.user_id,
         "execution_time": 0.0,
-        "children_ids": [],
     }
 
 
@@ -91,6 +91,7 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         updated_at=task_details.get("updated_at"),
         finished_at=task_details.get("finished_at"),
         execution_time=task_details["execution_time"],
+        group_scope=task_details["group_scope"],
         webhook_url=task_details.get("webhook_url"),
         webhook_headers=task_details.get("webhook_headers"),
         parent_task_id=task_details.get("parent_task_id"),
@@ -125,6 +126,7 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "outputs": task_details.outputs,
         "input_files": task_details.input_files,
         "execution_time": task_details.execution_time,
+        "group_scope": task_details.group_scope,
         "locked_at": task_details.locked_at,
         "worker_id": task_details.worker_id,
         "parent_task_id": task_details.parent_task_id,
@@ -418,7 +420,14 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
         return {}
 
 
-def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True, only_parent=False):
+def __get_tasks_query(
+    name: str | None,
+    group_scope: int,
+    finished: bool | None,
+    user_id: str | None,
+    full_info=True,
+    only_parent=False,
+):
     query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT)).outerjoin(
         database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id
     )
@@ -437,11 +446,14 @@ def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | No
             (database.TaskDetails.parent_task_id == None)  # noqa # pylint: disable=singleton-comparison
             | (database.TaskDetails.parent_task_id == 0)
         )
+    if group_scope:
+        query = query.filter(database.TaskDetails.group_scope == group_scope)
     return query
 
 
 def get_tasks(
     name: str | None = None,
+    group_scope: int = 1,
     finished: bool | None = None,
     user_id: str | None = None,
     fetch_child: bool = False,
@@ -449,7 +461,7 @@ def get_tasks(
 ) -> dict[int, TaskDetails]:
     with database.SESSION() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id, only_parent=only_parent)
+            query = __get_tasks_query(name, group_scope, finished, user_id, only_parent=only_parent)
             results = session.execute(query).all()
             tasks = {}
             task_ids = [task.task_id for task in results]
@@ -467,13 +479,14 @@ def get_tasks(
 def get_tasks_short(
     user_id: str,
     name: str | None = None,
+    group_scope: int = 1,
     finished: bool | None = None,
     fetch_child: bool = False,
     only_parent: bool = False,
 ) -> dict[int, TaskDetailsShort]:
     with database.SESSION() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id, full_info=False, only_parent=only_parent)
+            query = __get_tasks_query(name, group_scope, finished, user_id, full_info=False, only_parent=only_parent)
             results = session.execute(query).all()
             tasks = {}
             task_ids = [task.task_id for task in results]
@@ -551,7 +564,7 @@ def remove_unfinished_task_by_id(task_id: int) -> bool:
     return False
 
 
-def remove_unfinished_tasks_by_name(name: str, user_id: str) -> bool:
+def remove_unfinished_tasks_by_name_and_group(name: str, user_id: str, group_scope: int) -> bool:
     session = database.SESSION()
     try:
         stmt = delete(database.TaskDetails).where(
@@ -559,6 +572,7 @@ def remove_unfinished_tasks_by_name(name: str, user_id: str) -> bool:
                 database.TaskDetails.progress != 100.0,
                 database.TaskDetails.name == name,
                 database.TaskDetails.user_id == user_id,
+                (database.TaskDetails.group_scope == group_scope if group_scope else True),
                 or_(
                     database.TaskDetails.parent_task_id == None,  # noqa # pylint: disable=singleton-comparison
                     database.TaskDetails.parent_task_id == 0,
@@ -811,8 +825,13 @@ def upload_results_to_server(task_details: dict) -> bool:
         for task_output in task_details["outputs"]:
             task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
             relevant_files = [file_info for file_info in output_files if file_info[0].startswith(task_file_prefix)]
-            if relevant_files:
-                task_output["file_size"] = os.path.getsize(relevant_files[0][1])
+            file_size = 0
+            batch_size = 0
+            for i in relevant_files:
+                file_size += os.path.getsize(i[1])
+                batch_size += 1
+            task_output["file_size"] = file_size
+            task_output["batch_size"] = batch_size
         update_task_outputs(task_id, task_details["outputs"])
         return True
     files = []

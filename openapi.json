@@ -638,7 +638,7 @@
           "tasks"
         ],
         "summary": "Get Tasks Progress",
-        "description": "Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.",
+        "description": "Retrieves the full tasks details information for a specific user.\nOptionally filter tasks by their name or a group number.",
         "operationId": "get_tasks_progress",
         "parameters": [
           {
@@ -651,6 +651,18 @@
               "title": "Name"
             },
             "description": "Optional name to filter tasks by their name"
+          },
+          {
+            "name": "group_scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Optional parameter to filter tasks by their group number",
+              "default": 1,
+              "title": "Group Scope"
+            },
+            "description": "Optional parameter to filter tasks by their group number"
           },
           {
             "name": "only_parent",
@@ -752,7 +764,7 @@
           "tasks"
         ],
         "summary": "Get Tasks Progress Summary",
-        "description": "Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.",
+        "description": "Retrieves summary of the tasks progress details for a specific user.\nOptionally filter tasks by their name or a group number.",
         "operationId": "get_tasks_progress_summary",
         "parameters": [
           {
@@ -765,6 +777,18 @@
               "title": "Name"
             },
             "description": "Optional name to filter tasks by their name"
+          },
+          {
+            "name": "group_scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Optional parameter to filter tasks by their group number",
+              "default": 1,
+              "title": "Group Scope"
+            },
+            "description": "Optional parameter to filter tasks by their group number"
           },
           {
             "name": "only_parent",
@@ -985,7 +1009,7 @@
           "tasks"
         ],
         "summary": "Clear Tasks",
-        "description": "Removes all finished parent tasks associated with a specific task name, scoped to the requesting user.\nAll child tasks associated with the parent task will also be deleted.",
+        "description": "Removes all finished parent tasks associated with a specific task name,\nscoped to the requesting user and group scope.\nAll child tasks associated with the parent tasks will also be deleted.",
         "operationId": "clear_tasks",
         "parameters": [
           {
@@ -998,6 +1022,18 @@
               "title": "Name"
             },
             "description": "Name of the task whose results need to be deleted"
+          },
+          {
+            "name": "group_scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Optional group scope to filter tasks only belonging to a specific group. Defaults to 1.",
+              "default": 1,
+              "title": "Group Scope"
+            },
+            "description": "Optional group scope to filter tasks only belonging to a specific group. Defaults to 1."
           }
         ],
         "responses": {
@@ -1088,7 +1124,7 @@
           "tasks"
         ],
         "summary": "Get Task Results",
-        "description": "Retrieves the result file associated with a specific task and node ID. This function searches for\noutput files in the designated output directory that match the task and node identifiers.\nIf the specific result file is not found, or if the task does not exist, 404 HTTP error is returned.",
+        "description": "Retrieves the result file associated with a specific task and node ID. This function searches for\noutput files in the designated output directory that match the task and node identifiers.\n\nParameters:\n- task_id (int): ID of the task.\n- node_id (int): ID of the node.\n- batch_index (int, optional): Index of the node result if the node produced more than one result.\n  - If set to 0 (default), the first result file is returned.\n  - If set to a positive integer, the corresponding result file index is returned.\n  - If set to -1, all results are returned as a ZIP archive.\n\nIf the specific result file is not found, or if the task does not exist, a 404 HTTP error is returned.\n\nReturns:\n- FileResponse: The result file or a ZIP archive containing all result files if batch_index is -1.\n- HTTPException: If the task or result file is not found.",
         "operationId": "get_task_results",
         "parameters": [
           {
@@ -1112,6 +1148,18 @@
               "title": "Node Id"
             },
             "description": "ID of the node"
+          },
+          {
+            "name": "batch_index",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results are returned as a ZIP archive.",
+              "default": 0,
+              "title": "Batch Index"
+            },
+            "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results are returned as a ZIP archive."
           }
         ],
         "responses": {
@@ -1232,6 +1280,18 @@
               "title": "Name"
             },
             "description": "Name of the task to clear unfinished tasks from the queue"
+          },
+          {
+            "name": "group_scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Optional group scope to filter tasks only belonging to a specific group. Defaults to 1.",
+              "default": 1,
+              "title": "Group Scope"
+            },
+            "description": "Optional group scope to filter tasks only belonging to a specific group. Defaults to 1."
           }
         ],
         "responses": {
@@ -1671,6 +1731,12 @@
             "title": "Child Task",
             "description": "Int boolean indicating whether to create a relation between tasks",
             "default": 0
+          },
+          "group_scope": {
+            "type": "integer",
+            "title": "Group Scope",
+            "description": "Group number to which task should be assigned",
+            "default": 1
           },
           "files": {
             "items": {
@@ -2179,6 +2245,12 @@
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
           },
+          "group_scope": {
+            "type": "integer",
+            "title": "Group Scope",
+            "description": "Group number to which task is assigned.",
+            "default": 1
+          },
           "parent_task_id": {
             "anyOf": [
               {
@@ -2332,7 +2404,13 @@
           "file_size": {
             "type": "integer",
             "title": "File Size",
-            "description": "Size of file in bytes.",
+            "description": "Size of file(s) in bytes.",
+            "default": -1
+          },
+          "batch_size": {
+            "type": "integer",
+            "title": "Batch Size",
+            "description": "Count of outputs(files) produced by node.",
             "default": -1
           }
         },
@@ -2416,6 +2494,12 @@
             "type": "number",
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
+          },
+          "group_scope": {
+            "type": "integer",
+            "title": "Group Scope",
+            "description": "Group number to which task is assigned.",
+            "default": 1
           },
           "parent_task_id": {
             "anyOf": [
@@ -2807,7 +2891,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-16T08:42:38.935290Z"
+            "default": "2024-08-16T10:56:31.926264Z"
           }
         },
         "type": "object",
