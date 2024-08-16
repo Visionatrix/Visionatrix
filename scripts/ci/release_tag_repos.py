@@ -3,6 +3,7 @@ import stat
 import subprocess
 from pathlib import Path
 from shutil import rmtree
+from time import sleep
 
 from packaging.version import Version
 
@@ -55,12 +56,19 @@ if __name__ == "__main__":
     os.chdir(Path(__file__).parent.parent.parent)
     visionatrix_version = Version(_version.__version__)
     if visionatrix_version.is_prerelease:
-        raise ValueError(f"This is a prerelease: {_version.__version__} !! Only final releases should be tagged!")
+        print("Visionatrix is in a prerelease state. Only Nodes repositories will be tagged.")
+    sleep(60)
 
     if os.path.exists("temp_repo_clones"):
         rmtree("temp_repo_clones", onerror=remove_readonly)
     os.mkdir("temp_repo_clones")
 
     for r in [*install_update.BASIC_NODE_LIST, "Visionatrix"]:
-        tag_repository(r, f"v{_version.__version__}")
+        tag_repository(r, f"v{visionatrix_version.base_version}")
+
+    if visionatrix_version.is_prerelease:
+        print("Skipping tagging of Visionatrix repo.")
+    else:
+        tag_repository("Visionatrix", f"v{_version.__version__}")
+
     print("Tagging process completed.")
