@@ -385,7 +385,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				}
 			})
 			return await $apiFetch('/tasks/create', {
-				method: 'POST',
+				method: 'PUT',
 				headers: {
 					'Access-Control-Allow-Origin': '*',
 				},
