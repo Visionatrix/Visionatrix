@@ -68,7 +68,7 @@ if __name__ == "__main__":
         rmtree("temp_repo_clones", onerror=remove_readonly)
     os.mkdir("temp_repo_clones")
 
-    for r in [*install_update.BASIC_NODE_LIST, "Visionatrix"]:
+    for r in install_update.BASIC_NODE_LIST:
         tag_repository(r, f"v{visionatrix_version.base_version}")
 
     if visionatrix_version.is_prerelease:
