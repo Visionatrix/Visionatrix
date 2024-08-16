@@ -271,7 +271,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 								:open-image-modal="openImageModal" />
 							<NuxtImg
 								v-else
-								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] rounded-lg cursor-pointer`"
+								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] mx-auto rounded-lg cursor-pointer`"
 								draggable="false"
 								:height="flowStore.$state.outputMaxSize"
 								:width="flowStore.$state.outputMaxSize"

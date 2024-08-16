@@ -24,14 +24,31 @@ Visionatrix features:
 
 > [!NOTE]
 > Since we are already approaching the release of version 1.0 and all the decisions for how the project will look are completed -
-> we are welcome to the new ideas which we can implement further. If you wish to join the development, feel free to do so.
+> we are welcome to the new ideas which we can implement further.
+>
+> If you wish to join the development, feel free to do so.
 
 ### User Interface of **Visionatrix**
 
 By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
-![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1.png)
-![UI](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_2.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1_dark.jpeg">
+  <img alt="Visionatrix UI" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1_light.jpeg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_3_dark.jpeg">
+  <img alt="Visionatrix UI" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_3_light.jpeg">
+</picture>
+
+<details>
+
+  Short [video demo](https://github.com/Visionatrix/VixFlowsDocs/blob/main/screenshots/short_demo.webp)
+
+  ![Visionatrix Demo](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/short_demo.webp)
+
+</details>
 
 ## Easy installation for home use
 

@@ -116,7 +116,7 @@ async def __task_run(
     return task_details
 
 
-@ROUTER.post("/create")
+@ROUTER.put("/create")
 async def create_task(
     request: Request,
     name: str = Form(description="Name of the flow from which the task should be created"),
