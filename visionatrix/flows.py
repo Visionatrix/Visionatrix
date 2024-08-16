@@ -56,7 +56,7 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
     if urlparse(flows_storage_url).scheme in ("http", "https", "ftp", "ftps"):
         try:
             r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
-        except httpx.NetworkError as e:
+        except httpx.TransportError as e:
             LOGGER.error("Request to get flows failed with: %s", str(e))
             flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
             return CACHE_AVAILABLE_FLOWS["flows"]

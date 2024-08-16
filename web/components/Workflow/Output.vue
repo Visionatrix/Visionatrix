@@ -5,10 +5,6 @@ const hasOutputResult = computed(() => flowStore.flowResultsByName(flowStore.cur
 const results = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).reverse() || [])
 const resultsPerPage = computed(() => flowStore.$state.resultsPageSize)
 
-const outputImgSrc = function (result: any) {
-	return `${buildBackendApiUrl()}/tasks/results?task_id=${result.task_id}&node_id=${result.node_id}`
-}
-
 // watch for total results length and update the page to the last one
 watch(results, () => {
 	if (results.value.length <= flowStore.$state.resultsPageSize) {
@@ -63,8 +59,6 @@ watch(currentPageNumber, () => {
 	}
 })
 
-const img = useImage()
-
 const collapsed = ref(false)
 const isModalOpen = ref(false)
 const modalImageSrc = ref('')
@@ -73,8 +67,80 @@ const deletingFlowResults = ref(false)
 
 const showSendToFlowModal = ref(false)
 const sendToImgSrc = ref('')
-const sendToFlowResult = ref<FlowResult|any>(null)
-const sentDoOutputParamIndex = ref(0)
+const sendToFlowResult = ref<FlowResult|TaskHistoryItem|any>(null)
+const sendToFlowInputParamsMapped = ref<any>({})
+const sendToFlowOutputParamIndex = ref(0)
+const sendToFlowIsChildTask = ref(false)
+
+function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
+	if (flowResult.child_tasks.length === 0
+		|| !hasChildTaskByParentTaskNodeId(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)) {
+		sendToFlowResult.value = flowResult
+		sendToImgSrc.value = outputImgSrc({
+			task_id: flowResult.task_id,
+			node_id: flowResult.outputs[outputIndex].comfy_node_id
+		})
+		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
+		sendToFlowIsChildTask.value = false
+	} else {
+		const targetTask = findLatestChildTask(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)
+		sendToFlowResult.value = targetTask
+		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
+		sendToImgSrc.value = outputImgSrc({
+			task_id: targetTask.task_id,
+			node_id: targetTask.outputs[0].comfy_node_id
+		})
+		sendToFlowIsChildTask.value = true
+	}
+	sendToFlowOutputParamIndex.value = outputIndex
+	showSendToFlowModal.value = true
+}
+
+function buildResultInputParams(flowResult: FlowResult) {
+	return [
+		'#' + flowResult.task_id,
+		...Object.keys(flowResult.input_params_mapped)
+			.filter((key) => {
+				return flowResult.input_params_mapped[key].value && flowResult.input_params_mapped[key].value !== ''
+			})
+			.map((key) => {
+				return `${flowResult.input_params_mapped[key].display_name}: ${flowResult.input_params_mapped[key].value}`
+			}),
+	].join(' | ') + `${flowResult.execution_time
+		? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's'
+		: ''
+	}`
+}
+
+function buildResultDropdownItems(flowResult: FlowResult) {
+	const taskDropdownItems = [
+		[{
+			label: 'Use params',
+			labelClass: 'text-cyan-500',
+			icon: 'i-heroicons-document-duplicate-16-solid',
+			iconClass: 'bg-cyan-500',
+			click: () => copyPromptInputs(flowResult),
+		}],
+		[{
+			label: 'Send to flow',
+			labelClass: 'text-violet-500',
+			icon: 'i-heroicons-arrow-uturn-up-solid',
+			iconClass: 'bg-violet-500',
+			click: () => {
+				handleSendToFlow(flowResult)
+			},
+			disabled: flowResult.outputs.length !== 1
+		}],
+		[{
+			label: 'Comfy flow',
+			labelClass: 'text-blue-500',
+			icon: 'i-heroicons-arrow-down-tray',
+			iconClass: 'bg-blue-500',
+			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
+		}]
+	]
+	return taskDropdownItems
+}
 </script>
 
 <template>
@@ -90,7 +156,7 @@ const sentDoOutputParamIndex = ref(0)
 			}">
 			<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
-			Output ({{ results.length }})
+			Output ({{ results.filter((task) => task.parent_task_id === null).length }})
 		</h2>
 
 		<template v-if="!collapsed">
@@ -99,14 +165,14 @@ const sentDoOutputParamIndex = ref(0)
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
 					class="md:mr-3"
-					:label="'Filter results by prompt'"
+					:label="'Filter by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
-				<UPagination v-if="results.length > flowStore.$state.resultsPageSize"
+				<UPagination v-if="results.filter((task) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.$state.resultsPage"
 					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
-					:total="results.length"
+					:total="results.filter((task) => task.parent_task_id === null).length"
 					show-first
 					show-last />
 				<div class="flex items-center justify-center">
@@ -154,26 +220,39 @@ const sentDoOutputParamIndex = ref(0)
 			</div>
 			<div v-if="hasOutputResult" class="results overflow-auto">
 				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
+					:id="'task_id_' + flowResult.task_id"
 					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
-					<NuxtImg v-if="flowResult.output_params.length === 1"
-						class="mb-2 h-100 mx-auto rounded-lg cursor-pointer" draggable="false"
-						fit="outside"
-						loading="lazy"
-						:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
-						:src="outputImgSrc({
-							task_id: flowResult.task_id,
-							node_id: flowResult.output_params[0].comfy_node_id
-						})"
-						@click="() => openImageModal(outputImgSrc({
-							task_id: flowResult.task_id,
-							node_id: flowResult.output_params[0].comfy_node_id
-						}))" />
-					<UCarousel v-else
+					<template v-if="flowResult.outputs.length === 1">
+						<WorkflowChildOutput
+							v-if="flowResult?.child_tasks && flowResult?.child_tasks.length > 0"
+							:flow-result="flowResult"
+							:open-image-modal="openImageModal" />
+						<NuxtImg v-else-if="flowResult.outputs.length === 1"
+							class="mb-2 mx-auto rounded-lg cursor-pointer"
+							:height="flowStore.$state.outputMaxSize"
+							:width="flowStore.$state.outputMaxSize"
+							draggable="false"
+							fit="cover"
+							loading="lazy"
+							:src="outputImgSrc({
+								task_id: flowResult.task_id,
+								node_id: flowResult.outputs[0].comfy_node_id
+							})"
+							@click="openImageModal(outputImgSrc({
+								task_id: flowResult.task_id,
+								node_id: flowResult.outputs[0].comfy_node_id
+							}))" />
+					</template>
+					<UCarousel v-else-if="flowResult.outputs.length > 1"
 						v-slot="{ item }"
 						class="mb-3 rounded-lg overflow-hidden"
-						:items="flowResult.output_params.map((result_output_param, index) => {
-							return { task_id: flowResult.task_id, node_id: result_output_param.comfy_node_id, index }
+						:items="flowResult.outputs.map((result_output_param, index) => {
+							return {
+								task_id: flowResult.task_id,
+								node_id: result_output_param.comfy_node_id,
+								index,
+							}
 						})"
 						:ui="{
 							item: 'basis-full md:basis-1/2',
@@ -183,45 +262,56 @@ const sentDoOutputParamIndex = ref(0)
 						}"
 						:page="1"
 						indicators>
-						<div class="flex flex-col basis-full">
-							<NuxtImg class="w-full cursor-pointer mx-auto"
-								loading="lazy"
-								:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
-								:src="outputImgSrc(item)"
+						<div class="flex flex-col basis-full mx-2">
+							<WorkflowChildOutput
+								v-if="flowResult?.child_tasks
+									&& hasChildTaskByParentTaskNodeId(flowResult, item.index, item.node_id)"
+								:flow-result="flowResult"
+								:outputs-index="item.index"
+								:open-image-modal="openImageModal" />
+							<NuxtImg
+								v-else
+								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] rounded-lg cursor-pointer`"
 								draggable="false"
-								@click="() => openImageModal(outputImgSrc(item))" />
+								:height="flowStore.$state.outputMaxSize"
+								:width="flowStore.$state.outputMaxSize"
+								fit="cover"
+								loading="lazy"
+								:src="outputImgSrc(item)"
+								@click="openImageModal(outputImgSrc(item))" />
 							<UButton
 								class="mt-2 w-fit mx-auto"
 								icon="i-heroicons-arrow-uturn-up-solid"
 								color="violet"
 								variant="outline"
 								@click="() => {
-									showSendToFlowModal = true
-									sendToFlowResult = flowResult
-									sendToImgSrc = outputImgSrc(item)
-									sentDoOutputParamIndex = item.index
+									handleSendToFlow(flowResult, item.index)
 								}">
 								Send to flow
 							</UButton>
 						</div>
 					</UCarousel>
-					<p class="text-sm text-slate-500 text-center mb-3">
-						{{
-							[
-								'#' + flowResult.task_id,
-								...Object.keys(flowResult.input_params_mapped)
-									.filter((key) => {
-										return flowResult.input_params_mapped[key].value && flowResult.input_params_mapped[key].value !== ''
+					<div class="text-sm text-slate-500 text-center mb-1">
+						<div class="w-5/6 mx-auto">
+							<UBadge v-for="inputParamStr in buildResultInputParams(flowResult).split('|')"
+								:key="inputParamStr"
+								class="mr-2 mb-2 last:mr-0 hover:cursor-pointer"
+								variant="soft"
+								color="gray"
+								@click="() => {
+									const clipboard = useCopyToClipboard()
+									clipboard.copy(inputParamStr)
+									const toast = useToast()
+									toast.add({
+										title: 'Clipboard',
+										description: `${inputParamStr.split(':')[0].trim()} copied to clipboard`,
+										timeout: 2000,
 									})
-									.map((key) => {
-										return `${flowResult.input_params_mapped[key].display_name}: ${flowResult.input_params_mapped[key].value}`
-									}),
-							].join(' | ') + `${flowResult.execution_time
-								? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's'
-								: ''
-							}`
-						}}
-					</p>
+								}">
+								{{ inputParamStr }}
+							</UBadge>
+						</div>
+					</div>
 					<div class="w-full flex justify-center items-center">
 						<UButton
 							class="mr-3"
@@ -231,38 +321,7 @@ const sentDoOutputParamIndex = ref(0)
 							@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
 							Delete
 						</UButton>
-						<UDropdown :items="[
-								[{
-									label: 'Use params',
-									labelClass: 'text-cyan-500',
-									icon: 'i-heroicons-document-duplicate-16-solid',
-									iconClass: 'bg-cyan-500',
-									click: () => copyPromptInputs(flowResult),
-								}],
-								[{
-									label: 'Send to flow',
-									labelClass: 'text-violet-500',
-									icon: 'i-heroicons-arrow-uturn-up-solid',
-									iconClass: 'bg-violet-500',
-									click: () => {
-										showSendToFlowModal = true
-										sendToFlowResult = flowResult
-										sendToImgSrc = outputImgSrc({
-											task_id: flowResult.task_id,
-											node_id: flowResult.output_params[0].comfy_node_id
-										})
-										sentDoOutputParamIndex = 0
-									},
-									disabled: flowResult.output_params.length !== 1
-								}],
-								[{
-									label: 'Comfy flow',
-									labelClass: 'text-blue-500',
-									icon: 'i-heroicons-arrow-down-tray',
-									iconClass: 'bg-blue-500',
-									click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
-								}]
-							]"
+						<UDropdown :items="buildResultDropdownItems(flowResult)"
 							mode="click"
 							:popper="{ placement: 'bottom-start' }">
 							<UButton color="white" icon="i-heroicons-ellipsis-vertical-16-solid" />
@@ -273,7 +332,9 @@ const sentDoOutputParamIndex = ref(0)
 					v-model="showSendToFlowModal"
 					:flow-result="sendToFlowResult"
 					:output-img-src="sendToImgSrc"
-					:output-param-index="sentDoOutputParamIndex"
+					:output-param-index="sendToFlowOutputParamIndex"
+					:input-params-mapped="sendToFlowInputParamsMapped"
+					:is-child-task="sendToFlowIsChildTask"
 					@update:show="(value) => showSendToFlowModal = value" />
 			</div>
 			<p v-else class="text-center text-slate-500">

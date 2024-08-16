@@ -651,6 +651,18 @@
               "title": "Name"
             },
             "description": "Optional name to filter tasks by their name"
+          },
+          {
+            "name": "only_parent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Fetch only parent tasks",
+              "default": false,
+              "title": "Only Parent"
+            },
+            "description": "Fetch only parent tasks"
           }
         ],
         "responses": {
@@ -753,6 +765,18 @@
               "title": "Name"
             },
             "description": "Optional name to filter tasks by their name"
+          },
+          {
+            "name": "only_parent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Fetch only parent tasks",
+              "default": false,
+              "title": "Only Parent"
+            },
+            "description": "Fetch only parent tasks"
           }
         ],
         "responses": {
@@ -913,7 +937,7 @@
           "tasks"
         ],
         "summary": "Delete Task",
-        "description": "Removes a task from the system by the task ID.\nAccess is limited to the task owner or administrators.",
+        "description": "Removes a task from the system by the task ID.\nAccess is limited to the task owner or administrators.\nAlso removes any child tasks associated with the specified task.",
         "operationId": "delete_task",
         "parameters": [
           {
@@ -930,7 +954,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Successfully removed the specified task"
+            "description": "Successfully removed the specified task and its child tasks"
           },
           "404": {
             "description": "Task not found",
@@ -961,7 +985,7 @@
           "tasks"
         ],
         "summary": "Clear Tasks",
-        "description": "Removes all finished tasks associated with a specific task name, scoped to the requesting user.",
+        "description": "Removes all finished parent tasks associated with a specific task name, scoped to the requesting user.\nAll child tasks associated with the parent task will also be deleted.",
         "operationId": "clear_tasks",
         "parameters": [
           {
@@ -978,7 +1002,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Successfully removed results of all finished tasks with the specified name"
+            "description": "Successfully removed results of all finished parent tasks with the specified name"
           },
           "422": {
             "description": "Validation Error",
@@ -1195,7 +1219,7 @@
           "tasks"
         ],
         "summary": "Remove Tasks From Queue",
-        "description": "Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.",
+        "description": "Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user and group scope.\nChild tasks are ignored and not removed from the queue.",
         "operationId": "remove_tasks_from_queue",
         "parameters": [
           {
@@ -1642,6 +1666,12 @@
             "title": "Webhook Headers",
             "description": "Headers for webhook url as an encoded json string"
           },
+          "child_task": {
+            "type": "integer",
+            "title": "Child Task",
+            "description": "Int boolean indicating whether to create a relation between tasks",
+            "default": 0
+          },
           "files": {
             "items": {
               "anyOf": [
@@ -2078,6 +2108,11 @@
       },
       "TaskDetails": {
         "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id",
+            "description": "Unique identifier of the task."
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2144,6 +2179,39 @@
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
           },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id",
+            "description": "Parent task ID if is a child task."
+          },
+          "parent_task_node_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Node Id",
+            "description": "Parent task Node ID if is a child task."
+          },
+          "child_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsShort"
+            },
+            "type": "array",
+            "title": "Child Tasks",
+            "description": "List of child tasks of type `TaskDetailsShort` if any.",
+            "default": []
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2175,11 +2243,6 @@
             ],
             "title": "Finished At",
             "description": "Finish time of the task."
-          },
-          "task_id": {
-            "type": "integer",
-            "title": "Task Id",
-            "description": "Unique identifier of the task."
           },
           "flow_comfy": {
             "type": "object",
@@ -2218,6 +2281,7 @@
         },
         "type": "object",
         "required": [
+          "task_id",
           "progress",
           "error",
           "name",
@@ -2226,7 +2290,6 @@
           "input_files",
           "execution_time",
           "created_at",
-          "task_id",
           "flow_comfy",
           "user_id"
         ],
@@ -2283,6 +2346,11 @@
       },
       "TaskDetailsShort": {
         "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id",
+            "description": "Unique identifier of the task."
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2348,10 +2416,44 @@
             "type": "number",
             "title": "Execution Time",
             "description": "Execution time of the ComfyUI workflow in seconds."
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id",
+            "description": "Parent task ID if is a child task."
+          },
+          "parent_task_node_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Node Id",
+            "description": "Parent task Node ID if is a child task."
+          },
+          "child_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsShort"
+            },
+            "type": "array",
+            "title": "Child Tasks",
+            "description": "List of child tasks of type `TaskDetailsShort` if any.",
+            "default": []
           }
         },
         "type": "object",
         "required": [
+          "task_id",
           "progress",
           "error",
           "name",
@@ -2705,7 +2807,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-10T09:49:15.565064Z"
+            "default": "2024-08-16T08:42:38.935290Z"
           }
         },
         "type": "object",

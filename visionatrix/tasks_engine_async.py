@@ -16,6 +16,7 @@ from .pydantic_models import (
     WorkerDetailsRequest,
 )
 from .tasks_engine import (
+    TASK_DETAILS_COLUMNS_SHORT,
     __get_get_incomplete_task_without_error_query,
     __get_task_query,
     __get_tasks_query,
@@ -59,12 +60,42 @@ async def put_task_in_queue_async(task_details: dict) -> None:
             raise
 
 
-async def get_task_async(task_id: int, user_id: str | None = None) -> dict | None:
+async def fetch_child_tasks_async(session, parent_task_ids: list[int]) -> dict[int, list[TaskDetailsShort]]:
+    if not parent_task_ids:
+        return {}
+
+    query = (
+        select(*TASK_DETAILS_COLUMNS_SHORT)
+        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+        .filter(database.TaskDetails.parent_task_id.in_(parent_task_ids))
+    )
+    child_tasks = (await session.execute(query)).all()
+
+    parent_to_children = {}
+    for task in child_tasks:
+        task_details = __task_details_short_to_dict(task)
+        parent_to_children.setdefault(task.parent_task_id, []).append(task_details)
+
+    next_level_parent_ids = [task.task_id for task in child_tasks]
+    next_level_children = await fetch_child_tasks_async(session, next_level_parent_ids)
+    for children in parent_to_children.values():
+        for child in children:
+            child["child_tasks"] = next_level_children.get(child["task_id"], [])
+    return parent_to_children
+
+
+async def get_task_async(task_id: int, user_id: str | None = None, fetch_child: bool = False) -> dict | None:
     async with database.SESSION_ASYNC() as session:
         try:
             query = __get_task_query(task_id, user_id)
             task = (await session.execute(query)).one_or_none()
-            return __task_details_to_dict(task) if task else None
+            if task:
+                task_dict = __task_details_to_dict(task)
+                if fetch_child:
+                    child_tasks = await fetch_child_tasks_async(session, [task.task_id])
+                    task_dict["child_tasks"] = child_tasks.get(task.task_id, [])
+                return task_dict
+            return None
         except Exception:
             LOGGER.exception("Failed to retrieve task: %s", task_id)
             raise
@@ -74,12 +105,21 @@ async def get_tasks_async(
     name: str | None = None,
     finished: bool | None = None,
     user_id: str | None = None,
+    fetch_child: bool = False,
+    only_parent: bool = False,
 ) -> dict[int, TaskDetails]:
     async with database.SESSION_ASYNC() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id)
+            query = __get_tasks_query(name, finished, user_id, only_parent=only_parent)
             results = (await session.execute(query)).all()
-            return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
+            tasks = {}
+            task_ids = [task.task_id for task in results]
+            child_tasks = await fetch_child_tasks_async(session, task_ids) if fetch_child else {}
+            for task in results:
+                task_details = __task_details_to_dict(task)
+                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
+                tasks[task.task_id] = TaskDetails.model_validate(task_details)
+            return tasks
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
@@ -89,14 +129,21 @@ async def get_tasks_short_async(
     user_id: str,
     name: str | None = None,
     finished: bool | None = None,
+    fetch_child: bool = False,
+    only_parent: bool = False,
 ) -> dict[int, TaskDetailsShort]:
     async with database.SESSION_ASYNC() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id, full_info=False)
+            query = __get_tasks_query(name, finished, user_id, full_info=False, only_parent=only_parent)
             results = (await session.execute(query)).all()
-            return {
-                task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
-            }
+            tasks = {}
+            task_ids = [task.task_id for task in results]
+            child_tasks = await fetch_child_tasks_async(session, task_ids) if fetch_child else {}
+            for task in results:
+                task_details = __task_details_short_to_dict(task)
+                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
+                tasks[task.task_id] = TaskDetailsShort.model_validate(task_details)
+            return tasks
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise

@@ -90,7 +90,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	}
 }) || [])
 
-const additionalInputParamsMap: any = ref([
+const additionalInputParamsMap: any = ref((flowStore.currentFlow.is_seed_supported) ? [
 	{
 		seed: {
 			name: 'seed',
@@ -103,7 +103,7 @@ const additionalInputParamsMap: any = ref([
 			max: 10000000,
 		}
 	}
-])
+] : [])
 
 function copyPromptInputs(input_params_map: TaskHistoryInputParam) {
 	console.debug('Copy prompt inputs', input_params_map)
@@ -162,12 +162,12 @@ const collapsed = ref(false)
 			<WorkflowInputParams :input-params-map.sync="inputParamsMap"
 				:additional-input-params-map.sync="additionalInputParamsMap"
 				:advanced="false" />
-			<WorkflowInputParams
+			<WorkflowInputParams v-if="additionalInputParamsMap.length > 0"
 				:input-params-map.sync="inputParamsMap"
 				:additional-input-params-map.sync="additionalInputParamsMap"
 				:advanced="true" />
 
-			<UFormGroup label="Number of images">
+			<UFormGroup v-if="flowStore.currentFlow.is_count_supported" label="Number of images">
 				<UInput v-model="batchSize"
 					type="number"
 					min="1"

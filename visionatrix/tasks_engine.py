@@ -10,7 +10,7 @@ import typing
 from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy import Row, and_, delete, desc, select, update
+from sqlalchemy import Row, and_, delete, desc, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -44,6 +44,8 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.outputs,
     database.TaskLock.locked_at,
     database.TaskDetails.worker_id,
+    database.TaskDetails.parent_task_id,
+    database.TaskDetails.parent_task_node_id,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -70,6 +72,7 @@ def __init_new_task_details(task_id: int, name: str, input_params: dict, user_in
         "flow_comfy": {},
         "user_id": user_info.user_id,
         "execution_time": 0.0,
+        "children_ids": [],
     }
 
 
@@ -90,6 +93,8 @@ def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
         execution_time=task_details["execution_time"],
         webhook_url=task_details.get("webhook_url"),
         webhook_headers=task_details.get("webhook_headers"),
+        parent_task_id=task_details.get("parent_task_id"),
+        parent_task_node_id=task_details.get("parent_task_node_id"),
     )
 
 
@@ -112,6 +117,7 @@ def __task_details_to_dict(task_details: Row) -> dict:
 
 def __task_details_short_to_dict(task_details: Row) -> dict:
     return {
+        "task_id": task_details.task_id,
         "progress": task_details.progress,
         "error": task_details.error,
         "name": task_details.name,
@@ -121,6 +127,9 @@ def __task_details_short_to_dict(task_details: Row) -> dict:
         "execution_time": task_details.execution_time,
         "locked_at": task_details.locked_at,
         "worker_id": task_details.worker_id,
+        "parent_task_id": task_details.parent_task_id,
+        "parent_task_node_id": task_details.parent_task_node_id,
+        "child_tasks": [],
     }
 
 
@@ -174,20 +183,63 @@ def put_task_in_queue(task_details: dict) -> None:
 
 
 def __get_task_query(task_id: int, user_id: str | None):
-    query = select(*TASK_DETAILS_COLUMNS)
-    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
-    query = query.filter(database.TaskDetails.task_id == task_id)
+    query = (
+        select(*TASK_DETAILS_COLUMNS)
+        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+        .filter(database.TaskDetails.task_id == task_id)
+    )
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     return query
 
 
-def get_task(task_id: int, user_id: str | None = None) -> dict | None:
+def collect_child_task_ids(task: dict | TaskDetailsShort, output_ids: list) -> None:
+    if isinstance(task, dict):
+        for child in task["child_tasks"]:
+            output_ids.append(child["task_id"])
+            collect_child_task_ids(child, output_ids)
+    else:
+        for child in task.child_tasks:
+            output_ids.append(child.task_id)
+            collect_child_task_ids(child, output_ids)
+
+
+def fetch_child_tasks(session, parent_task_ids: list[int]) -> dict[int, list[TaskDetailsShort]]:
+    if not parent_task_ids:
+        return {}
+
+    query = (
+        select(*TASK_DETAILS_COLUMNS_SHORT)
+        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+        .filter(database.TaskDetails.parent_task_id.in_(parent_task_ids))
+    )
+    child_tasks = session.execute(query).all()
+
+    parent_to_children = {}
+    for task in child_tasks:
+        task_details = __task_details_short_to_dict(task)
+        parent_to_children.setdefault(task.parent_task_id, []).append(task_details)
+
+    next_level_parent_ids = [task.task_id for task in child_tasks]
+    next_level_children = fetch_child_tasks(session, next_level_parent_ids)
+    for children in parent_to_children.values():
+        for child in children:
+            child["child_tasks"] = next_level_children.get(child["task_id"], [])
+    return parent_to_children
+
+
+def get_task(task_id: int, user_id: str | None = None, fetch_child: bool = False) -> dict | None:
     with database.SESSION() as session:
         try:
             query = __get_task_query(task_id, user_id)
             task = session.execute(query).one_or_none()
-            return __task_details_to_dict(task) if task else None
+            if task:
+                task_dict = __task_details_to_dict(task)
+                if fetch_child:
+                    child_tasks = fetch_child_tasks(session, [task.task_id])
+                    task_dict["child_tasks"] = child_tasks.get(task.task_id, [])
+                return task_dict
+            return None
         except Exception:
             LOGGER.exception("Failed to retrieve task: %s", task_id)
             raise
@@ -366,9 +418,11 @@ def lock_task_and_return_details(session, task: type[database.TaskDetails] | dat
         return {}
 
 
-def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True):
-    query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT))
-    query = query.outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
+def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | None, full_info=True, only_parent=False):
+    query = select(*(TASK_DETAILS_COLUMNS if full_info else TASK_DETAILS_COLUMNS_SHORT)).outerjoin(
+        database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id
+    )
+
     if user_id is not None:
         query = query.filter(database.TaskDetails.user_id == user_id)
     if name is not None:
@@ -378,6 +432,11 @@ def __get_tasks_query(name: str | None, finished: bool | None, user_id: str | No
             query = query.filter(database.TaskDetails.progress == 100.0)
         else:
             query = query.filter(database.TaskDetails.progress < 100.0)
+    if only_parent:
+        query = query.filter(
+            (database.TaskDetails.parent_task_id == None)  # noqa # pylint: disable=singleton-comparison
+            | (database.TaskDetails.parent_task_id == 0)
+        )
     return query
 
 
@@ -385,12 +444,21 @@ def get_tasks(
     name: str | None = None,
     finished: bool | None = None,
     user_id: str | None = None,
+    fetch_child: bool = False,
+    only_parent: bool = False,
 ) -> dict[int, TaskDetails]:
     with database.SESSION() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id)
+            query = __get_tasks_query(name, finished, user_id, only_parent=only_parent)
             results = session.execute(query).all()
-            return {task.task_id: TaskDetails.model_validate(__task_details_to_dict(task)) for task in results}
+            tasks = {}
+            task_ids = [task.task_id for task in results]
+            child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
+            for task in results:
+                task_details = __task_details_to_dict(task)
+                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
+                tasks[task.task_id] = TaskDetails.model_validate(task_details)
+            return tasks
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
@@ -400,14 +468,21 @@ def get_tasks_short(
     user_id: str,
     name: str | None = None,
     finished: bool | None = None,
+    fetch_child: bool = False,
+    only_parent: bool = False,
 ) -> dict[int, TaskDetailsShort]:
     with database.SESSION() as session:
         try:
-            query = __get_tasks_query(name, finished, user_id, full_info=False)
+            query = __get_tasks_query(name, finished, user_id, full_info=False, only_parent=only_parent)
             results = session.execute(query).all()
-            return {
-                task.task_id: TaskDetailsShort.model_validate(__task_details_short_to_dict(task)) for task in results
-            }
+            tasks = {}
+            task_ids = [task.task_id for task in results]
+            child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
+            for task in results:
+                task_details = __task_details_short_to_dict(task)
+                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
+                tasks[task.task_id] = TaskDetailsShort.model_validate(task_details)
+            return tasks
         except Exception:
             LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
             raise
@@ -416,24 +491,25 @@ def get_tasks_short(
 def remove_task_by_id(task_id: int) -> bool:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return remove_task_by_id_server(task_id)
-    return remove_task_by_id_database(task_id)
+    return remove_task_by_id_database([task_id])
 
 
-def remove_task_by_id_database(task_id: int) -> bool:
+def remove_task_by_id_database(task_ids: list[int]) -> bool:
     session = database.SESSION()
     try:
-        lock_result = session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
-        details_result = session.execute(delete(database.TaskDetails).where(database.TaskDetails.task_id == task_id))
+        lock_result = session.execute(delete(database.TaskLock).where(database.TaskLock.task_id.in_(task_ids)))
+        details_result = session.execute(delete(database.TaskDetails).where(database.TaskDetails.task_id.in_(task_ids)))
         if lock_result.rowcount + details_result.rowcount > 0:
             session.commit()
             return True
     except Exception:
         session.rollback()
-        LOGGER.exception("Failed to remove task: %s", task_id)
+        LOGGER.exception("Failed to remove tasks: %s", task_ids)
         raise
     finally:
         session.close()
-        remove_task_files(task_id, ["output", "input"])
+        for i in task_ids:
+            remove_task_files(i, ["output", "input"])
     return False
 
 
@@ -451,23 +527,6 @@ def remove_task_by_id_server(task_id: int) -> bool:
     except Exception as e:
         LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
     return False
-
-
-def remove_task_by_name(name: str, user_id: str) -> None:
-    tasks_to_delete = get_tasks(name=name, finished=True, user_id=user_id)
-    session = database.SESSION()
-    try:
-        for task_id in tasks_to_delete:
-            session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
-            session.execute(delete(database.TaskDetails).where(database.TaskDetails.task_id == task_id))
-            session.commit()
-            remove_task_files(task_id, ["output", "input"])
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to remove task by name: %s", name)
-        raise
-    finally:
-        session.close()
 
 
 def remove_unfinished_task_by_id(task_id: int) -> bool:
@@ -500,6 +559,10 @@ def remove_unfinished_tasks_by_name(name: str, user_id: str) -> bool:
                 database.TaskDetails.progress != 100.0,
                 database.TaskDetails.name == name,
                 database.TaskDetails.user_id == user_id,
+                or_(
+                    database.TaskDetails.parent_task_id == None,  # noqa # pylint: disable=singleton-comparison
+                    database.TaskDetails.parent_task_id == 0,
+                ),
             )
         )
         result = session.execute(stmt)
