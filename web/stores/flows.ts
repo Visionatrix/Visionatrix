@@ -149,10 +149,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const flows = await $apiFetch('/flows/installed', {
 				method: 'GET',
 				timeout: 15000,
-			}).then((res) => {
+			}).then((res: any) => {
 				console.debug('installed_flows: ', res)
 				this.loading.flows_installed = false
-				this.flows_installed = <Flow[]>res
+				this.flows_installed = <Flow[]>res.map((flow: Flow) => {
+					flow.input_params = flow.input_params.filter((input_param: FlowInputParam) => input_param.hidden !== true)
+					return flow
+				})
 				this.flows_installed.sort(this.sortByFlowNameCallback)
 			}).catch((e) => {
 				console.debug('error fetching installed flows:', e)
@@ -856,6 +859,7 @@ export interface FlowInputParam {
 	max?: number
 	step?: number
 	source_input_name?: string
+	hidden: boolean
 }
 
 export interface FlowOutputParam {
