@@ -310,7 +310,9 @@ def flow_prepare_output_params(
                 f"class_type={r_node['class_type']}: only `SaveImage` nodes are supported currently as output node"
             )
         r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
-        task_details["outputs"].append({"comfy_node_id": int(param), "type": "image", "file_size": -1})
+        task_details["outputs"].append(
+            {"comfy_node_id": int(param), "type": "image", "file_size": -1, "batch_size": -1}
+        )
 
 
 def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, dict]) -> None:
@@ -388,6 +390,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             advanced = node_details["inputs"]["advanced"]
             order = node_details["inputs"]["order"]
             custom_id = node_details["inputs"]["custom_id"]
+            hidden_attribute = node_details["inputs"].get("hidden", False)
         elif node_details["_meta"]["title"].startswith("input;"):
             input_info = str(node_details["_meta"]["title"]).split(";")
             input_info = [i.strip() for i in input_info]
@@ -403,6 +406,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             for attribute in other_attributes:
                 if attribute.startswith("custom_id="):
                     custom_id = attribute[10:]
+            hidden_attribute = False
         else:
             continue
         try:
@@ -421,6 +425,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             "default": get_node_value(node_details, input_path),
             "order": order,
             "comfy_node_id": {node_id: input_path},
+            "hidden": hidden_attribute,
         }
         if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat", "VixUiRangeInt"):
             for ex_input in ("min", "max", "step"):

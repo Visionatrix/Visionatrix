@@ -63,6 +63,7 @@ class TaskDetails(Base):
     updated_at = Column(DateTime, nullable=True, default=None, index=True)
     finished_at = Column(DateTime, nullable=True, default=None)
     execution_time = Column(Float, default=0.0)
+    group_scope = Column(Integer, default=1, index=True)
     webhook_url = Column(String, nullable=True)
     webhook_headers = Column(JSON, nullable=True)
     parent_task_id = Column(Integer, nullable=True, index=True)
