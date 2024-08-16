@@ -42,6 +42,13 @@ By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
   <img alt="Visionatrix UI" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_3_light.jpeg">
 </picture>
 
+<details>
+
+  Short [demo video](https://github.com/Visionatrix/VixFlowsDocs/blob/main/screenshots/short_demo.mp4):
+
+  [![Visionatrix Demo](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_2_dark.jpeg)](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/short_demo.mp4)
+
+</details>
 
 ## Easy installation for home use
 
