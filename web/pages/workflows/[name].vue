@@ -274,7 +274,6 @@ const userStore = useUserStore()
 		</template>
 		<template v-else>
 			<UProgress class="mb-3" />
-			<USkeleton class="w-full h-80" />
 		</template>
 		<UModal
 			v-model="showConfirmDelete"

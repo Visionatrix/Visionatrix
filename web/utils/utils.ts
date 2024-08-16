@@ -18,3 +18,29 @@ export function formatBytes(bytes: number, decimals: number = 2) {
 
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
 }
+
+export function findLatestChildTask(task: any, outputIndex: number = 0, parentNodeId: number|null = null): TaskHistoryItem|FlowResult {
+	if (task.child_tasks.length === 0) {
+		return task
+	}
+	if (task.child_tasks.length === 1) {
+		return findLatestChildTask(task.child_tasks[0], outputIndex, parentNodeId)
+	}
+
+	const childBranchIndex = task.child_tasks.findIndex((t: FlowResult|TaskHistoryItem|any) => t.parent_task_node_id === parentNodeId)
+	if (childBranchIndex !== -1) {
+		return findLatestChildTask(task.child_tasks[childBranchIndex], outputIndex, parentNodeId)
+	}
+	// If still not found, current task is the latest
+	return task
+}
+
+export function hasChildTaskByParentTaskNodeId(task: FlowResult|TaskHistoryItem, outputIndex: number, parentNodeId: number): boolean {
+	if (Number(task.parent_task_node_id) === Number(parentNodeId)) {
+		return true
+	}
+	if (task.child_tasks.length === 0) {
+		return false
+	}
+	return task.child_tasks.some((t: FlowResult|TaskHistoryItem|any) => hasChildTaskByParentTaskNodeId(t, outputIndex, parentNodeId))
+}

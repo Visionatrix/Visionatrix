@@ -273,7 +273,7 @@ watch(rows, (newRows) => {
 									<span>{{ row.tasks_to_give.length }} selected</span>
 								</UButton>
 								<template #panel>
-									<div class="p-4 flex flex-wrap max-w-64">
+									<div class="p-4 flex flex-wrap max-w-64 max-h-60 overflow-y-auto">
 										<UBadge v-for="task in row.tasks_to_give" :key="task" class="mr-2 mb-2" variant="solid" color="cyan">
 											<ULink class="hover:underline" :to="`/workflows/${task}`">
 												{{ task }}

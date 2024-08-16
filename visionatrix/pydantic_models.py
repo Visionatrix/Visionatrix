@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -102,12 +104,14 @@ class TaskDetailsOutput(BaseModel):
     type: str = Field(
         ..., description="Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
     )
-    file_size: int = Field(-1, description="Size of file in bytes.")
+    file_size: int = Field(-1, description="Size of file(s) in bytes.")
+    batch_size: int = Field(-1, description="Count of outputs(files) produced by node.")
 
 
 class TaskDetailsShort(BaseModel):
     """Brief information about the Task."""
 
+    task_id: int = Field(..., description="Unique identifier of the task.")
     progress: float = Field(
         ..., description="Progress from 0 to 100, task results are only available once progress reaches 100."
     )
@@ -125,6 +129,12 @@ class TaskDetailsShort(BaseModel):
     locked_at: datetime | None = Field(None, description="Lock time if task is locked.")
     worker_id: str | None = Field(None, description="Unique identifier of the worker working on the task.")
     execution_time: float = Field(..., description="Execution time of the ComfyUI workflow in seconds.")
+    group_scope: int = Field(default=1, description="Group number to which task is assigned.")
+    parent_task_id: int | None = Field(None, description="Parent task ID if is a child task.")
+    parent_task_node_id: int | None = Field(None, description="Parent task Node ID if is a child task.")
+    child_tasks: list[TaskDetailsShort] = Field(
+        [], description="List of child tasks of type `TaskDetailsShort` if any."
+    )
 
 
 class TaskDetails(TaskDetailsShort):

@@ -4,7 +4,9 @@ import logging
 import os
 import shutil
 import typing
+from io import BytesIO
 from pathlib import Path
+from zipfile import ZipFile
 
 import httpx
 from fastapi import (
@@ -31,6 +33,7 @@ from ..pydantic_models import TaskRunResults, UserInfo, WorkerDetailsRequest
 from ..tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
+    collect_child_task_ids,
     create_new_task,
     get_incomplete_task_without_error_database,
     get_task,
@@ -39,11 +42,10 @@ from ..tasks_engine import (
     get_tasks_short,
     put_task_in_queue,
     remove_task_by_id_database,
-    remove_task_by_name,
     remove_task_files,
     remove_task_lock_database,
     remove_unfinished_task_by_id,
-    remove_unfinished_tasks_by_name,
+    remove_unfinished_tasks_by_name_and_group,
     task_restart_database,
     update_task_outputs,
     update_task_progress_database,
@@ -74,6 +76,8 @@ async def __task_run(
     user_info: UserInfo,
     webhook_url: str | None,
     webhook_headers: dict | None,
+    child_task: bool,
+    group_scope: int,
 ):
     if options.VIX_MODE == "SERVER":
         task_details = await create_new_task_async(name, input_params, user_info)
@@ -95,6 +99,15 @@ async def __task_run(
     task_details["flow_comfy"] = flow_comfy
     task_details["webhook_url"] = webhook_url
     task_details["webhook_headers"] = webhook_headers
+    if child_task:
+        if not in_files or not isinstance(in_files[0], dict):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No input file provided. A child task can only be created from the node ID of the parent task.",
+            ) from None
+        task_details["parent_task_id"] = in_files[0]["task_id"]
+        task_details["parent_task_node_id"] = in_files[0]["node_id"]
+    task_details["group_scope"] = group_scope
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
@@ -111,12 +124,18 @@ async def create_task(
     input_params: str = Form(None, description="List of input parameters as an encoded json string"),
     webhook_url: str | None = Form(None, description="URL to call when task state changes"),
     webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
+    child_task: int = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
+    group_scope: int = Form(1, description="Group number to which task should be assigned"),
     files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """
     Endpoint to initiate the creation and execution of tasks within the Vix workflow environment,
     handling both file inputs and task-related parameters.
     """
+
+    if group_scope < 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Group number should be >= 1") from None
+
     in_files = []
     for i in files if files else []:
         if isinstance(i, str):
@@ -161,6 +180,8 @@ async def create_task(
             request.scope["user_info"],
             webhook_url,
             webhook_headers_dict,
+            bool(child_task),
+            group_scope,
         )
         tasks_ids.append(task_details["task_id"])
         if "seed" in input_params_dict:
@@ -175,14 +196,29 @@ async def create_task(
 async def get_tasks_progress(
     request: Request,
     name: str = Query(None, description="Optional name to filter tasks by their name"),
+    group_scope: int = Query(1, description="Optional parameter to filter tasks by their group number"),
+    only_parent: bool = Query(False, description="Fetch only parent tasks"),
 ) -> dict[int, TaskDetails]:
     """
-    Retrieves the full tasks details information for a specific user. Optionally filter tasks by their name.
+    Retrieves the full tasks details information for a specific user.
+    Optionally filter tasks by their name or a group number.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_async(name=name, user_id=request.scope["user_info"].user_id)
+        r = await get_tasks_async(
+            name=name,
+            group_scope=group_scope,
+            user_id=request.scope["user_info"].user_id,
+            fetch_child=True,
+            only_parent=only_parent,
+        )
     else:
-        r = get_tasks(name=name, user_id=request.scope["user_info"].user_id)
+        r = get_tasks(
+            name=name,
+            group_scope=group_scope,
+            user_id=request.scope["user_info"].user_id,
+            fetch_child=True,
+            only_parent=only_parent,
+        )
     return r
 
 
@@ -190,14 +226,29 @@ async def get_tasks_progress(
 async def get_tasks_progress_summary(
     request: Request,
     name: str = Query(None, description="Optional name to filter tasks by their name"),
+    group_scope: int = Query(1, description="Optional parameter to filter tasks by their group number"),
+    only_parent: bool = Query(False, description="Fetch only parent tasks"),
 ) -> dict[int, TaskDetailsShort]:
     """
-    Retrieves summary of the tasks progress details for a specific user. Optionally filter tasks by their name.
+    Retrieves summary of the tasks progress details for a specific user.
+    Optionally filter tasks by their name or a group number.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_tasks_short_async(name=name, user_id=request.scope["user_info"].user_id)
+        r = await get_tasks_short_async(
+            name=name,
+            group_scope=group_scope,
+            user_id=request.scope["user_info"].user_id,
+            fetch_child=True,
+            only_parent=only_parent,
+        )
     else:
-        r = get_tasks_short(name=name, user_id=request.scope["user_info"].user_id)
+        r = get_tasks_short(
+            name=name,
+            group_scope=group_scope,
+            user_id=request.scope["user_info"].user_id,
+            fetch_child=True,
+            only_parent=only_parent,
+        )
     return r
 
 
@@ -208,9 +259,9 @@ async def get_task_progress(request: Request, task_id: int) -> TaskDetails:
     Access is restricted to the task owner or an administrator.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+        r = await get_task_async(task_id, request.scope["user_info"].user_id, fetch_child=True)
     else:
-        r = get_task(task_id, request.scope["user_info"].user_id)
+        r = get_task(task_id, request.scope["user_info"].user_id, fetch_child=True)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     try:
@@ -283,7 +334,7 @@ async def restart_task(
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Successfully removed the specified task"},
+        204: {"description": "Successfully removed the specified task and its child tasks"},
         404: {
             "description": "Task not found",
             "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
@@ -294,16 +345,19 @@ async def delete_task(request: Request, task_id: int = Query(..., description="I
     """
     Removes a task from the system by the task ID.
     Access is limited to the task owner or administrators.
+    Also removes any child tasks associated with the specified task.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id)
+        r = await get_task_async(task_id, fetch_child=True)
     else:
-        r = get_task(task_id)
+        r = get_task(task_id, fetch_child=True)
     if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-    remove_task_by_id_database(task_id)
+    task_ids_to_remove = [task_id]
+    collect_child_task_ids(r, task_ids_to_remove)
+    remove_task_by_id_database(task_ids_to_remove)
 
 
 @ROUTER.delete(
@@ -311,16 +365,44 @@ async def delete_task(request: Request, task_id: int = Query(..., description="I
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Successfully removed results of all finished tasks with the specified name"},
+        204: {"description": "Successfully removed results of all finished parent tasks with the specified name"},
     },
 )
 async def clear_tasks(
-    request: Request, name: str = Query(..., description="Name of the task whose results need to be deleted")
+    request: Request,
+    name: str = Query(..., description="Name of the task whose results need to be deleted"),
+    group_scope: int = Query(
+        1, description="Optional group scope to filter tasks only belonging to a specific group. Defaults to 1."
+    ),
 ):
     """
-    Removes all finished tasks associated with a specific task name, scoped to the requesting user.
+    Removes all finished parent tasks associated with a specific task name,
+    scoped to the requesting user and group scope.
+    All child tasks associated with the parent tasks will also be deleted.
     """
-    remove_task_by_name(name, request.scope["user_info"].user_id)
+    if options.VIX_MODE == "SERVER":
+        r = await get_tasks_async(
+            name,
+            group_scope,
+            True,
+            request.scope["user_info"].user_id,
+            fetch_child=True,
+            only_parent=True,
+        )
+    else:
+        r = get_tasks(
+            name,
+            group_scope,
+            True,
+            request.scope["user_info"].user_id,
+            fetch_child=True,
+            only_parent=True,
+        )
+    task_ids_to_remove = []
+    for task_id, task_details in r.items():
+        task_ids_to_remove.append(task_id)
+        collect_child_task_ids(task_details, task_ids_to_remove)
+    remove_task_by_id_database(task_ids_to_remove)
 
 
 @ROUTER.get(
@@ -386,11 +468,29 @@ async def get_task_results(
     request: Request,
     task_id: int = Query(..., description="ID of the task"),
     node_id: int = Query(..., description="ID of the node"),
+    batch_index: int = Query(
+        0,
+        description="Optional index of the node result if the node produced more than one result. "
+        "If set to -1, all results are returned as a ZIP archive.",
+    ),
 ):
     """
     Retrieves the result file associated with a specific task and node ID. This function searches for
     output files in the designated output directory that match the task and node identifiers.
-    If the specific result file is not found, or if the task does not exist, 404 HTTP error is returned.
+
+    Parameters:
+    - task_id (int): ID of the task.
+    - node_id (int): ID of the node.
+    - batch_index (int, optional): Index of the node result if the node produced more than one result.
+      - If set to 0 (default), the first result file is returned.
+      - If set to a positive integer, the corresponding result file index is returned.
+      - If set to -1, all results are returned as a ZIP archive.
+
+    If the specific result file is not found, or if the task does not exist, a 404 HTTP error is returned.
+
+    Returns:
+    - FileResponse: The result file or a ZIP archive containing all result files if batch_index is -1.
+    - HTTPException: If the task or result file is not found.
     """
     if options.VIX_MODE == "SERVER":
         r = await get_task_async(task_id, request.scope["user_info"].user_id)
@@ -400,14 +500,31 @@ async def get_task_results(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     result_prefix = f"{task_id}_{node_id}_"
     output_files = get_task_files(task_id, "output")
-    for output_file in output_files:
-        if output_file[0].startswith(result_prefix):
-            base_name, extension = os.path.splitext(output_file[0])
-            content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension
-            return responses.FileResponse(output_file[1], filename=content_disposition)
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
-    )
+    relevant_files = [file_info for file_info in output_files if file_info[0].startswith(result_prefix)]
+    if not relevant_files:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
+        )
+    if batch_index == -1:
+        zip_buffer = BytesIO()
+        with ZipFile(zip_buffer, "w") as zip_file:
+            for file_info in relevant_files:
+                file_name, file_path = file_info
+                with builtins.open(file_path, "rb") as f:
+                    zip_file.writestr(file_name, f.read())
+        zip_buffer.seek(0)
+        return responses.Response(
+            content=zip_buffer.read(),
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename={task_id}_{node_id}_results.zip"},
+        )
+    if batch_index + 1 > len(relevant_files):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
+        )
+    base_name, extension = os.path.splitext(relevant_files[batch_index][0])
+    content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension
+    return responses.FileResponse(relevant_files[batch_index][1], filename=content_disposition)
 
 
 @ROUTER.delete(
@@ -419,12 +536,17 @@ async def get_task_results(
     },
 )
 async def remove_tasks_from_queue(
-    request: Request, name: str = Query(..., description="Name of the task to clear unfinished tasks from the queue")
+    request: Request,
+    name: str = Query(..., description="Name of the task to clear unfinished tasks from the queue"),
+    group_scope: int = Query(
+        1, description="Optional group scope to filter tasks only belonging to a specific group. Defaults to 1."
+    ),
 ):
     """
-    Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.
+    Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user and group scope.
+    Child tasks are ignored and not removed from the queue.
     """
-    remove_unfinished_tasks_by_name(name, request.scope["user_info"].user_id)
+    remove_unfinished_tasks_by_name_and_group(name, request.scope["user_info"].user_id, group_scope)
 
 
 @ROUTER.delete(
@@ -584,38 +706,39 @@ async def set_task_results(
     If the task is not found or unauthorized, a 404 HTTP error is raised.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id)
+        task_details = await get_task_async(task_id)
     else:
-        r = get_task(task_id)
-    if r is None:
+        task_details = get_task(task_id)
+    if task_details is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
+    if task_details["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
-    for result_file in files:
-        node_found_in_flow = False
-        for task_output in r["outputs"]:
-            task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
-            if result_file.filename.startswith(task_file_prefix):
-                task_output["file_size"] = result_file.size
-                node_found_in_flow = True
-                break
-        if not node_found_in_flow:
+    for task_output in task_details["outputs"]:
+        task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
+        relevant_files = [file_info for file_info in files if file_info.filename.startswith(task_file_prefix)]
+        if not relevant_files:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"{result_file.filename} does not belong to task.",
+                detail=f"No results found for: {task_file_prefix}",
             )
-        try:
-            file_path = Path(output_directory).joinpath(result_file.filename)
-            with builtins.open(file_path, mode="wb") as out_file:
-                shutil.copyfileobj(result_file.file, out_file)
-        finally:
-            result_file.file.close()
-
+        file_size = 0
+        batch_size = 0
+        for i in relevant_files:
+            file_size += i.size
+            batch_size += 1
+            try:
+                file_path = Path(output_directory).joinpath(i.filename)
+                with builtins.open(file_path, mode="wb") as out_file:
+                    shutil.copyfileobj(i.file, out_file)
+            finally:
+                i.file.close()
+        task_output["file_size"] = file_size
+        task_output["batch_size"] = batch_size
     if options.VIX_MODE == "SERVER":
-        await update_task_outputs_async(task_id, r["outputs"])
+        await update_task_outputs_async(task_id, task_details["outputs"])
     else:
-        update_task_outputs(task_id, r["outputs"])
+        update_task_outputs(task_id, task_details["outputs"])
 
 
 @ROUTER.delete(

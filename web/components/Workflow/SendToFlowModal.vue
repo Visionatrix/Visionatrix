@@ -17,6 +17,15 @@ const props = defineProps({
 		type: Number,
 		required: true,
 	},
+	inputParamsMapped: {
+		type: Object,
+		required: true,
+	},
+	isChildTask: {
+		type: Boolean,
+		required: false,
+		default: false,
+	},
 })
 
 const flowStore = useFlowsStore()
@@ -65,7 +74,7 @@ function sendToFlow() {
 			input_param_map[input_param.name] = {
 				value: JSON.stringify({
 					task_id: props.flowResult.task_id,
-					node_id: props.flowResult.output_params[props.outputParamIndex].comfy_node_id,
+					node_id: props.flowResult.outputs.length > 1 ? props.flowResult.outputs[props.outputParamIndex].comfy_node_id : props.flowResult.outputs[0].comfy_node_id,
 				}) || '',
 				type: input_param.type,
 			}
@@ -93,17 +102,21 @@ function sendToFlow() {
 	console.debug('[Send to flow]: input_params_map', input_params_map)
 
 	sending.value = true
-	flowStore.runFlow(targetFlow, input_params_map).finally(() => {
+	flowStore.runFlow(targetFlow, input_params_map, 1, bindAsChildTask.value, bindAsChildTask.value ? Number(props.flowResult.task_id) : null).finally(() => {
 		sending.value = false
 		emit('update:show', false)
 	})
 }
+
+const bindAsChildTask = ref(false)
+const flowResultReady = computed(() => props.flowResult.progress === 100 && props.flowResult?.error === '')
 
 onBeforeMount(() => {
 	// TODO: change to dynamic according to the output type
 	flowStore.fetchSubFlows('image').then(() => {
 		selectedFlow.value = subFlows.value[0] || ''
 	})
+	bindAsChildTask.value = false
 })
 </script>
 
@@ -112,17 +125,28 @@ onBeforeMount(() => {
 		<div class="p-4">
 			<h2 class="text-lg text-center mb-4">Send to flow</h2>
 			<div class="flex justify-center mb-4">
-				<NuxtImg :src="outputImgSrc" class="w-1/2 rounded-lg" :draggable="false" />
+				<NuxtImg v-if="flowResultReady"
+					:src="outputImgSrc"
+					class="w-1/2 rounded-lg"
+					:draggable="false" />
+				<UAlert v-else
+					color="orange"
+					icon="i-heroicons-exclamation-circle-solid"
+					:title="`Task is still running (${Math.ceil(flowResult.progress)}%, ${flowResult.execution_time.toFixed(2)}s)`"
+					:description="flowResult.error !== '' ? flowResult.error : ''" />
 			</div>
-			<p class="text-sm text-slate-500 text-center mb-4">
+			<p v-if="inputParamsMapped" class="text-sm text-slate-500 text-center mb-4">
 				{{
-					Object.keys(flowResult.input_params_mapped)
-						.filter((key) => {
-							return flowResult.input_params_mapped[key] !== ''
-						})
-						.map((key) => {
-							return `${key}: ${flowResult.input_params_mapped[key]}`
-						}).join(' | ')
+					[
+						'#' + flowResult.task_id,
+						...Object.keys(inputParamsMapped)
+							.filter((key) => {
+								return inputParamsMapped[key].value !== ''
+							})
+							.map((key) => {
+								return `${inputParamsMapped[key].display_name}: ${inputParamsMapped[key].value}`
+							})
+					].join(' | ')
 				}}
 			</p>
 			<p class="text-md text-center text-red-500 mb-4">
@@ -134,13 +158,19 @@ onBeforeMount(() => {
 					:options="subFlows" />
 				<span v-else>No sub-flows available</span>
 			</p>
-			<div class="flex justify-end">
+			<UAlert v-if="isChildTask"
+				class="mb-4"
+				icon="i-heroicons-exclamation-circle-solid"
+				title="Child task"
+				description="The latest child task is always used as input for sub-flow" />
+			<div class="flex items-center justify-between">
+				<UCheckbox v-model="bindAsChildTask" label="Bind as child task" />
 				<UButton
 					icon="i-heroicons-arrow-uturn-up-solid"
 					color="violet"
 					variant="outline"
 					:loading="sending"
-					:disabled="subFlows.length === 0"
+					:disabled="subFlows.length === 0 || (isChildTask && !flowResultReady)"
 					@click="sendToFlow">
 					Send
 				</UButton>
