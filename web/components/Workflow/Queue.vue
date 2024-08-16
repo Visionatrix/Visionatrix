@@ -14,9 +14,9 @@ const collapsed = ref(true)
 				<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 					class="mr-2" />
 				<span>
-					Queue ({{ flowStore.flowsRunningByName(flowStore.currentFlow?.name).filter((running) => running.parent_task_id === null).length }})
+					Queue ({{ flowStore.flowsRunningByName(flowStore.currentFlow?.name).length }})
 				</span>
-				<span v-if="flowStore.flowsRunningByName(flowStore.currentFlow?.name).filter((running) => running.parent_task_id === null).length > 0">
+				<span v-if="flowStore.flowsRunningByName(flowStore.currentFlow?.name).length > 0">
 					&nbsp;-
 					{{
 						`${flowStore.flowsRunningByName(flowStore.currentFlow?.name)

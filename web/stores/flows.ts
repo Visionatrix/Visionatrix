@@ -79,10 +79,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return (name: string) => state.installing.find(flow => flow.flow_name === name) ?? null
 		},
 		flowsRunningByName(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name) ?? null
+			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.parent_task_id === null) ?? null
 		},
 		flowsRunningByNameWithErrors(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error) ?? null
+			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null) ?? null
 		},
 		currentFlow(state): Flow {
 			return state.current_flow
