@@ -10,7 +10,7 @@ import typing
 from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy import Row, and_, delete, desc, select, update
+from sqlalchemy import Row, and_, delete, desc, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -559,6 +559,10 @@ def remove_unfinished_tasks_by_name(name: str, user_id: str) -> bool:
                 database.TaskDetails.progress != 100.0,
                 database.TaskDetails.name == name,
                 database.TaskDetails.user_id == user_id,
+                or_(
+                    database.TaskDetails.parent_task_id == None,  # noqa # pylint: disable=singleton-comparison
+                    database.TaskDetails.parent_task_id == 0,
+                ),
             )
         )
         result = session.execute(stmt)

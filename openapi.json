@@ -1219,7 +1219,7 @@
           "tasks"
         ],
         "summary": "Remove Tasks From Queue",
-        "description": "Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.",
+        "description": "Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user and group scope.\nChild tasks are ignored and not removed from the queue.",
         "operationId": "remove_tasks_from_queue",
         "parameters": [
           {
@@ -2807,7 +2807,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-11T10:17:36.483785Z"
+            "default": "2024-08-16T08:42:38.935290Z"
           }
         },
         "type": "object",

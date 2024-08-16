@@ -450,10 +450,12 @@ async def get_task_results(
     },
 )
 async def remove_tasks_from_queue(
-    request: Request, name: str = Query(..., description="Name of the task to clear unfinished tasks from the queue")
+    request: Request,
+    name: str = Query(..., description="Name of the task to clear unfinished tasks from the queue"),
 ):
     """
-    Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user.
+    Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user and group scope.
+    Child tasks are ignored and not removed from the queue.
     """
     remove_unfinished_tasks_by_name(name, request.scope["user_info"].user_id)
 
