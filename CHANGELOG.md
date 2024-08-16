@@ -2,11 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.0 - 2024-08-1x]
+## [1.0.0 - 2024-08-17]
 
 ### Added
 
-- **Child tasks: Send the result of a task to other tasks and work with it further on the same page.**
+- **Child tasks: Send the result of a task to other tasks and work with it further on the same page.** #124
 - Support for `HEIF`/`HEIC` files as input. #135
 - Workflows with `Flux`: 16 and 8 bits and 'realism' lora.
 - Workflow with `HunyuanDiT` model.
@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 
 - Replaced `ComfyUI-AutomaticCFG` with `Skimmed_CFG` node. #126
 - `ColorfulXL` workflow was updated to use the last version of model.
+- **Breaking API Change**: `/api/tasks/create` endpoint was changed from `POST` to `PUT` method. #139
 
 ### Fixed
 
