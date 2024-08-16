@@ -44,9 +44,9 @@ By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
 
 <details>
 
-  Short [demo video](https://github.com/Visionatrix/VixFlowsDocs/blob/main/screenshots/short_demo.mp4):
+  Short [video demo](https://github.com/Visionatrix/VixFlowsDocs/blob/main/screenshots/short_demo.webp)
 
-  [![Visionatrix Demo](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_2_dark.jpeg)](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/short_demo.mp4)
+  ![Visionatrix Demo](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/short_demo.webp)
 
 </details>
 
