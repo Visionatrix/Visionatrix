@@ -18,6 +18,9 @@ jobs:
         run: python3 -m pip install .
 
       - name: Run tag repos script
-        run: python3 scripts/ci/release_tag_repos.py
+        run: |
+          git config --global user.name "Release Tagger"
+          git config --global user.email "release_tagger@users.noreply.github.com"
+          python3 scripts/ci/release_tag_repos.py
         env:
           GITHUB_TOKEN: ${{ secrets.VISIONATRIX_TAGS }}

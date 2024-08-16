@@ -13,15 +13,20 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 if os.environ.get("CI", False) and not GITHUB_TOKEN:
     raise ValueError("GitHub token is required for CI.")
 
-GITHUB_URL_PREFIX = f"https://{GITHUB_TOKEN}:x-oauth-basic@github.com/Visionatrix/"
-
 
 def tag_repository(repo_name: str, tag_name: str, force_flag: bool = True) -> None:
     local_path = os.path.join("temp_repo_clones", repo_name)
 
     tag_msg = f"Visionatrix version {tag_name}"
     print(f"Cloning {repo_name}...")
-    subprocess.check_call(["git", "clone", GITHUB_URL_PREFIX + repo_name, local_path])
+    if GITHUB_TOKEN:
+        subprocess.check_call(
+            ["git", "clone", f"https://{GITHUB_TOKEN}:x-oauth-basic@github.com/Visionatrix/" + repo_name, local_path]
+        )
+    else:
+        subprocess.check_call(
+            ["git", "clone", "https://github.com/Visionatrix/" + repo_name, local_path]
+        )
     try:
         print(f"Creating tag {tag_name} in {repo_name}...")
         try:
@@ -56,7 +61,7 @@ if __name__ == "__main__":
     os.chdir(Path(__file__).parent.parent.parent)
     visionatrix_version = Version(_version.__version__)
     if visionatrix_version.is_prerelease:
-        print("Visionatrix is in a prerelease state. Only Nodes repositories will be tagged.")
+        print("Visionatrix is in a prerelease state. Only Nodes repositories will be tagged.", flush=True)
     sleep(60)
 
     if os.path.exists("temp_repo_clones"):
@@ -67,8 +72,8 @@ if __name__ == "__main__":
         tag_repository(r, f"v{visionatrix_version.base_version}")
 
     if visionatrix_version.is_prerelease:
-        print("Skipping tagging of Visionatrix repo.")
+        print("Skipping tagging of Visionatrix repo.", flush=True)
     else:
         tag_repository("Visionatrix", f"v{_version.__version__}")
 
-    print("Tagging process completed.")
+    print("Tagging process completed.", flush=True)
