@@ -14,6 +14,8 @@ def remove_dynamic_fields(data):
     if isinstance(data, dict):
         if "last_seen" in data:
             del data["last_seen"]
+        if "info" in data and "version" in data["info"]:
+            del data["info"]["version"]
         for value in data.values():
             remove_dynamic_fields(value)
     elif isinstance(data, list):
