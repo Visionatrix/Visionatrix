@@ -76,6 +76,10 @@ optional-dependencies.docs = [
   "sphinx-issues>=3.0.1",
   "sphinx-rtd-theme>=1",
 ]
+optional-dependencies.pgsql = [
+  "greenlet",
+  "psycopg",
+]
 urls.Changelog = "https://github.com/Visionatrix/Visionatrix/blob/main/CHANGELOG.md"
 urls.Documentation = "https://visionatrix.github.io/VixFlowsDocs/"
 urls.Source = "https://github.com/Visionatrix/Visionatrix"
