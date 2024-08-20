@@ -8,6 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
+from ._tasks_enigne_helpers import init_new_task_details
 from .comfyui import interrupt_processing
 from .pydantic_models import (
     TaskDetails,
@@ -20,7 +21,6 @@ from .tasks_engine import (
     __get_get_incomplete_task_without_error_query,
     __get_task_query,
     __get_tasks_query,
-    __init_new_task_details,
     __lock_task_and_return_details,
     __prepare_worker_info_update,
     __task_details_from_dict,
@@ -44,7 +44,7 @@ async def create_new_task_async(name: str, input_params: dict, user_info: UserIn
             LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
             raise
     remove_task_files(new_task_queue.id, ["output", "input"])
-    return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
+    return init_new_task_details(new_task_queue.id, name, input_params, user_info)
 
 
 async def put_task_in_queue_async(task_details: dict) -> None:

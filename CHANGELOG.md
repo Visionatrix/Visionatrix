@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Unable to stop flow installation in Server mode.
 - Spam with authentication errors in Server mode. (incorrect `bcrypt` version was pinned)
+- Webhooks were not working in some special cases.
 
 ## [1.0.0 - 2024-08-17]
 

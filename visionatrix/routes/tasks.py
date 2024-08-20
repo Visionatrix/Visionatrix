@@ -610,17 +610,20 @@ async def get_next_task(
 async def __webhook_task_progress(
     url: str, headers: dict | None, task_id: int, progress: float, execution_time: float, error: str
 ) -> None:
-    async with httpx.AsyncClient(base_url=url, timeout=3.0) as client:
-        await client.post(
-            url="task-progress",
-            json={
-                "task_id": task_id,
-                "progress": progress,
-                "execution_time": execution_time,
-                "error": error,
-            },
-            headers=headers,
-        )
+    try:
+        async with httpx.AsyncClient(base_url=url, timeout=3.0) as client:
+            await client.post(
+                url="task-progress",
+                json={
+                    "task_id": task_id,
+                    "progress": progress,
+                    "execution_time": execution_time,
+                    "error": error,
+                },
+                headers=headers,
+            )
+    except httpx.RequestError as e:
+        LOGGER.exception("Exception during calling webhook %s: %s", url, e)
 
 
 @ROUTER.put(

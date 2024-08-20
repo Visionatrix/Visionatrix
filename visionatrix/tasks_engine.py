@@ -14,6 +14,7 @@ from sqlalchemy import Row, and_, delete, desc, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
+from ._tasks_enigne_helpers import init_new_task_details
 from .comfyui import (
     cleanup_models,
     get_worker_details,
@@ -59,21 +60,6 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.webhook_url,
     database.TaskDetails.webhook_headers,
 ]
-
-
-def __init_new_task_details(task_id: int, name: str, input_params: dict, user_info: UserInfo) -> dict:
-    return {
-        "task_id": task_id,
-        "name": name,
-        "input_params": input_params,
-        "progress": 0.0,
-        "error": "",
-        "outputs": [],
-        "input_files": [],
-        "flow_comfy": {},
-        "user_id": user_info.user_id,
-        "execution_time": 0.0,
-    }
 
 
 def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
@@ -168,7 +154,7 @@ def create_new_task(name: str, input_params: dict, user_info: UserInfo) -> dict:
             LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
             raise
     remove_task_files(new_task_queue.id, ["output", "input"])
-    return __init_new_task_details(new_task_queue.id, name, input_params, user_info)
+    return init_new_task_details(new_task_queue.id, name, input_params, user_info)
 
 
 def put_task_in_queue(task_details: dict) -> None:
@@ -407,6 +393,8 @@ def __lock_task_and_return_details(task: type[database.TaskDetails] | database.T
         "flow_comfy": task.flow_comfy,
         "user_id": task.user_id,
         "execution_time": 0.0,
+        "webhook_url": task.webhook_url,
+        "webhook_headers": task.webhook_headers,
     }
 
 
@@ -665,7 +653,7 @@ def update_task_progress(task_details: dict) -> bool:
     __update_temporary_execution_time(task_details)
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         return update_task_progress_server(task_details)
-    return update_task_progress_database(
+    r = update_task_progress_database(
         task_details["task_id"],
         task_details["progress"],
         task_details["error"],
@@ -673,6 +661,22 @@ def update_task_progress(task_details: dict) -> bool:
         database.DEFAULT_USER.user_id,
         WorkerDetailsRequest.model_validate(get_worker_details()),
     )
+    if r and task_details["webhook_url"]:
+        try:
+            with httpx.Client(base_url=task_details["webhook_url"], timeout=3.0) as client:
+                client.post(
+                    url="task-progress",
+                    json={
+                        "task_id": task_details["task_id"],
+                        "progress": task_details["progress"],
+                        "execution_time": task_details["error"],
+                        "error": task_details["execution_time"],
+                    },
+                    headers=task_details["webhook_headers"],
+                )
+        except httpx.RequestError as e:
+            LOGGER.exception("Exception during calling webhook %s: %s", task_details["webhook_url"], e)
+    return r
 
 
 def update_task_progress_database(
