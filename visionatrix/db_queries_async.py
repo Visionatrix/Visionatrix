@@ -151,7 +151,7 @@ async def get_flows_progress_install_async() -> list[FlowProgressInstall]:
 async def delete_flows_progress_install_async(name: str) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
-            stmt = delete(database.FlowsInstallStatus).where(database.FlowsInstallStatus.flow_name == name)
+            stmt = delete(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
             result = await session.execute(stmt)
             await session.commit()
             return result.rowcount > 0

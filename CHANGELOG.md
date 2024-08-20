@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1 - 2024-08-20]
+
+### Fixed
+
+- Unable to stop flow installation in Server mode.
+- Spam with authentication errors in Server mode. (incorrect `bcrypt` version was pinned)
+
 ## [1.0.0 - 2024-08-17]
 
 ### Added
