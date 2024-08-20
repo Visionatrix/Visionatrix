@@ -623,7 +623,7 @@ async def __webhook_task_progress(
                 headers=headers,
             )
     except httpx.RequestError as e:
-        LOGGER.exception("Exception during calling webhook %s: %s", url, e)
+        LOGGER.exception("Exception during calling webhook %s, progress=%s: %s", url, progress, e)
 
 
 @ROUTER.put(

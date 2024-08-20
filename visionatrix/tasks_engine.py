@@ -669,13 +669,18 @@ def update_task_progress(task_details: dict) -> bool:
                     json={
                         "task_id": task_details["task_id"],
                         "progress": task_details["progress"],
-                        "execution_time": task_details["error"],
-                        "error": task_details["execution_time"],
+                        "execution_time": task_details["execution_time"],
+                        "error": task_details["error"],
                     },
                     headers=task_details["webhook_headers"],
                 )
         except httpx.RequestError as e:
-            LOGGER.exception("Exception during calling webhook %s: %s", task_details["webhook_url"], e)
+            LOGGER.exception(
+                "Exception during calling webhook %s, progress=%s: %s",
+                task_details["webhook_url"],
+                task_details["progress"],
+                e,
+            )
     return r
 
 
