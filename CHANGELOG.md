@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0 - 2024-09-0x]
+
+### Added
+
+- New `--reserve-vram` and `--fast` commandline options from the last ComfyUI.
+
+### Changed
+
+- ComfyUI updated with PR #2666 (Execution Model Inversion)
+
 ## [1.0.1 - 2024-08-20]
 
 ### Fixed
