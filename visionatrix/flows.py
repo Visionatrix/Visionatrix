@@ -212,7 +212,6 @@ def prepare_flow_comfy(
             set_node_value(node, input_path, v)
     process_seed_value(flow, in_texts_params, r)
     prepare_flow_comfy_files_params(flow, in_files_params, task_details["task_id"], task_details, r)
-    process_logic_nodes(r)
     return r
 
 
@@ -329,25 +328,6 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
             ):
                 node_details["inputs"]["noise_seed"] = random_seed
     in_texts_params["seed"] = random_seed
-
-
-def process_logic_nodes(flow_comfy: dict[str, dict]) -> None:
-    for node_details in flow_comfy.values():
-        if node_details["class_type"] == "VixUiCheckboxLogic":
-            if node_details["inputs"]["state"]:
-                node_details["inputs"].pop("input_off_state", None)
-            else:
-                node_details["inputs"].pop("input_on_state", None)
-        elif node_details["class_type"] == "VixUiListLogic":
-            possible_values: list = json.loads(node_details["inputs"]["possible_values"])
-            enabled_input_index = possible_values.index(node_details["inputs"]["default_value"])
-            inputs_keys = ["input_first", "input_second", "input_third", "input_fourth", "input_fifth", "input_sixth"]
-            inputs_to_remove = []
-            for i, v in enumerate(inputs_keys):
-                if v in node_details["inputs"] and i != enabled_input_index:
-                    inputs_to_remove.append(v)
-            for k in inputs_to_remove:
-                node_details["inputs"].pop(k)
 
 
 def get_vix_flow(flow_comfy: dict[str, dict]) -> Flow:
