@@ -258,6 +258,15 @@ def add_arguments(parser):
         "--force-channels-last", action="store_true", help="Force channels last format when inferencing the models."
     )
 
+    cache_group = parser.add_mutually_exclusive_group()
+    cache_group.add_argument("--cache-classic", action="store_true", help="Use the old style (aggressive) caching.")
+    cache_group.add_argument(
+        "--cache-lru",
+        type=int,
+        default=0,
+        help="Use LRU caching with a maximum of N node results cached. May use more RAM/VRAM.",
+    )
+
     parser.add_argument(
         "--disable-ipex-optimize",
         action="store_true",
@@ -312,7 +321,17 @@ def add_arguments(parser):
     vram_group.add_argument("--cpu", action="store_true", help="To use the CPU for everything (slow).")
 
     parser.add_argument(
+        "--reserve-vram",
+        type=float,
+        default=None,
+        help="Set the amount of VRAM in GB you want to reserve for use by your OS/other software.",
+    )
+
+    parser.add_argument(
         "--disable-smart-memory",
         action="store_true",
         help="Force ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.",
+    )
+    parser.add_argument(
+        "--fast", action="store_true", help="Enable some untested and potentially quality deteriorating optimizations."
     )
