@@ -69,36 +69,36 @@ docker run --name visionatrix --gpus all -p 8288:8288 -e VIX_HOST=0.0.0.0 \
 
 The same container can be created using docker compose:
 
-1. `visionatrix_nvidia` - client and server with NVIDIA gpus attached
+### `visionatrix_nvidia` - client and server with NVIDIA gpus attached
 
-    ```bash
-    docker compose up -d visionatrix_nvidia
-    ```
+```bash
+docker compose up -d visionatrix_nvidia
+```
 
-2. `visionatrix_amd` - client and server with AMD gpus attached
+### `visionatrix_amd` - client and server with AMD gpus attached
 
     ```bash
     docker compose up -d visionatrix_amd
     ```
 
-3. `visionatrix_cpu` - client and server on CPU without GPUs
+### `visionatrix_cpu` - client and server on CPU without GPUs
 
     ```bash
     docker compose up -d visionatrix_cpu
     ```
 
-4. `iconify_api` - Iconify API icons server
+### `iconify_api` - Iconify API icons server
 
-    By default, Visionatrix loading icons from public [Iconify API](https://iconify.design/docs/api/#public-api). If you want them to be loaded fully locally, then use this container to do so.
+By default, Visionatrix loading icons from public [Iconify API](https://iconify.design/docs/api/#public-api). If you want them to be loaded fully locally, then use this container to do so.
 
 > [!NOTE]
 > You will also have to rebuild Visionatrix front-end with specified environment
-> in `web/.env`: `ICONIFY_API_URL="http://127.0.0.1:3001"`.
+> in `web/.env.local`: `ICONIFY_API_URL="http://127.0.0.1:3001"`.
 > In visionatrix root folder execute make command: `make build-client`
 
 
-    Before running this service, please follow the https://github.com/iconify/api?tab=readme-ov-file#docker instructions to build `iconify/api` Docker image.
+Before running this service, please follow the https://github.com/iconify/api?tab=readme-ov-file#docker instructions to build `iconify/api` Docker image.
 
-    ```bash
-    docker compose up -d iconify_api
-    ```
+```bash
+docker compose up -d iconify_api
+```
