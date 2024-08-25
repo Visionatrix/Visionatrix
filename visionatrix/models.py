@@ -30,15 +30,32 @@ def install_model(
     else:
         save_path = Path(options.MODELS_DIR).joinpath(model.save_path)
     LOGGER.debug("model=%s --> save_path=%s", model.name, save_path)
+    check_result = True
     if save_path.exists() and not model.url.endswith(".zip"):
         if check_hash(model.hash, save_path):
             LOGGER.info("`%s` already exists.", save_path)
-            if progress_callback is not None:
-                progress_info["current"] += progress_info["progress_for_model"]
-                progress_info["current"] = math.floor(progress_info["current"] * 10) / 10
-                progress_callback(progress_info["name"], progress_info["current"], "")
-            return True
-        LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", model.name)
+        else:
+            LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", model.name)
+    elif save_path.suffix == ".zip":
+        if not model.hashes:
+            LOGGER.info("`%s` does not provide hashes for files in archive, skipping.", save_path)
+        else:
+            for model_name, model_hash in model.hashes.items():
+                archive_element = Path(save_path.with_suffix("")).joinpath(model_name)
+                if archive_element.exists():
+                    if check_hash(model_hash, archive_element):
+                        LOGGER.info("`%s` already exists.", archive_element)
+                        continue
+                    LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", archive_element)
+                check_result = False
+                break
+
+    if check_result is True:
+        if progress_callback is not None:
+            progress_info["current"] += progress_info["progress_for_model"]
+            progress_info["current"] = math.floor(progress_info["current"] * 10) / 10
+            progress_callback(progress_info["name"], progress_info["current"], "")
+        return True
 
     os.makedirs(save_path.parent, exist_ok=True)
     for _ in range(DOWNLOAD_RETRY_COUNT):

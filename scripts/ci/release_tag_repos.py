@@ -7,7 +7,7 @@ from time import sleep
 
 from packaging.version import Version
 
-from visionatrix import _version, install_update  # noqa
+from visionatrix import _version, basic_node_list  # noqa
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 if os.environ.get("CI", False) and not GITHUB_TOKEN:
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         rmtree("temp_repo_clones", onerror=remove_readonly)
     os.mkdir("temp_repo_clones")
 
-    for r in [*install_update.BASIC_NODE_LIST, "ComfyUI"]:
+    for r in [*basic_node_list.BASIC_NODE_LIST, "ComfyUI"]:
         tag_repository(r, f"v{visionatrix_version.base_version}")
 
     if visionatrix_version.is_prerelease:

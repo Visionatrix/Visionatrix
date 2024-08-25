@@ -138,6 +138,7 @@ if __name__ == "__main__":
     elif args.command == "run":
         run_vix()
     elif args.command == "install-flow":
+        comfyui.load(None)
         install_flow = {}
         if args.file:
             with builtins.open(Path(args.file), "rb") as fp:
@@ -147,12 +148,12 @@ if __name__ == "__main__":
             flows_comfy = []
             flows = get_available_flows(flows_comfy)
             for i, flow in enumerate(flows):
-                if flow.name == args.flow:
+                if flow.name == args.name:
                     install_flow = flow
                     install_flow_comfy = flows_comfy[i]
                     break
             if not install_flow:
-                logging.getLogger("visionatrix").error("Can not find the specific flow: %s", args.flow)
+                logging.getLogger("visionatrix").error("Can not find the specific flow: %s", args.name)
                 sys.exit(2)
         install_custom_flow(flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=__progress_callback)
     else:
