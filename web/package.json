@@ -4,7 +4,7 @@
   "description": "AI Media processing using ComfyUI",
   "private": true,
   "scripts": {
-    "build": "nuxt build --prerender",
+    "build": "nuxt build --prerender --dotenv ./.env.local",
     "dev": "nuxt dev --dotenv ./.env.dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

@@ -11,4 +11,7 @@ export default defineNuxtConfig({
 	},
 	ssr: false, // we use only client side rendering,
 	compatibilityDate: '2024-08-03',
+	icon: {
+		iconifyApiEndpoint: process.env.ICONIFY_API_URL || 'https://api.iconify.design',
+	}
 })
