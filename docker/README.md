@@ -91,10 +91,10 @@ The same container can be created using docker compose:
 
     By default, Visionatrix loading icons from public [Iconify API](https://iconify.design/docs/api/#public-api). If you want them to be loaded fully locally, then use this container to do so.
 
-    > [!NOTE]
-    > You will also have to rebuild Visionatrix front-end with specified environment
-    > in `web/.env`: `ICONIFY_API_URL="http://127.0.0.1:3001"`.
-    > In visionatrix root folder execute make command: `make build-client`
+> [!NOTE]
+> You will also have to rebuild Visionatrix front-end with specified environment
+> in `web/.env`: `ICONIFY_API_URL="http://127.0.0.1:3001"`.
+> In visionatrix root folder execute make command: `make build-client`
 
 
     Before running this service, please follow the https://github.com/iconify/api?tab=readme-ov-file#docker instructions to build `iconify/api` Docker image.
