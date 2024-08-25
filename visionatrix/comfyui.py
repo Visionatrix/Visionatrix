@@ -45,6 +45,10 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--ui",
         "--loglevel",
         "^run$",
+        "^update$",
+        "^install-flow$",
+        "--name=",
+        "--file=",
         "--mode",
         "--server",
         "--disable-device-detection",
@@ -100,6 +104,9 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     folder_paths.add_model_folder_path("checkpoints", os.path.join(folder_paths.get_output_directory(), "checkpoints"))
     folder_paths.add_model_folder_path("clip", os.path.join(folder_paths.get_output_directory(), "clip"))
     folder_paths.add_model_folder_path("vae", os.path.join(folder_paths.get_output_directory(), "vae"))
+    folder_paths.add_model_folder_path(
+        "diffusion_models", os.path.join(folder_paths.get_output_directory(), "diffusion_models")
+    )
     folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
 
     return execution.validate_prompt, get_comfy_prompt_executor(comfy_server, task_progress_callback)
@@ -131,6 +138,12 @@ def get_comfy_prompt_executor(comfy_server, task_progress_callback):
             task_progress_callback(event, data, broadcast)
 
     return ComfyPromptExecutor(comfy_server)
+
+
+def get_node_class_mappings() -> dict[str, object]:
+    import nodes  # noqa
+
+    return nodes.NODE_CLASS_MAPPINGS
 
 
 def interrupt_processing() -> None:

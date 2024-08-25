@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - New `--reserve-vram` and `--fast` commandline options from the last ComfyUI.
 
+### Fixed
+
+- Now for nodes like `ComfyUI_InstantID` or `ComfyUI-BRIA_AI-RMBG`, their required models are displayed in the flow models.
+
 ### Changed
 
 - ComfyUI updated with PR #2666 (Execution Model Inversion)

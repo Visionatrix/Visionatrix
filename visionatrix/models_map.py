@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 import httpx
 
 from . import options
+from .basic_node_list import BASIC_NODE_LIST
+from .comfyui import get_node_class_mappings
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import AIResourceModel
 
@@ -47,10 +49,22 @@ MODELS_CATALOG: dict[str, dict] = {}
 
 
 def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
+    nodes_with_models = {key: value["models"] for key, value in BASIC_NODE_LIST.items() if value.get("models")}
+    nodes_class_mappings = get_node_class_mappings()
+
     models_catalog = get_models_catalog()
     models_info: list[AIResourceModel] = []
     for node_details in flow_comfy.values():
-        if (load_class := MODEL_LOAD_CLASSES.get(node_details.get("class_type"))) is None:
+        class_type = node_details.get("class_type")
+        node_class_mapping = nodes_class_mappings.get(class_type)
+        if node_class_mapping and hasattr(node_class_mapping, "RELATIVE_PYTHON_MODULE"):
+            node_module = str(node_class_mapping.RELATIVE_PYTHON_MODULE).rsplit(".", 1)[-1]
+            models_from_nodes = nodes_with_models.get(node_module, [])
+            for node_model_info in models_from_nodes:
+                if node_model_info.name not in [i.name for i in models_info]:
+                    models_info.append(node_model_info)
+
+        if (load_class := MODEL_LOAD_CLASSES.get(class_type)) is None:
             continue
         for k, node_model_load_path in load_class.items():
             node_input_model_name = get_node_value(node_details, node_model_load_path)

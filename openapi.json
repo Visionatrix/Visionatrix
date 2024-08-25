@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.0.1"
+    "version": "1.1.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -1658,6 +1658,12 @@
             "title": "Hash",
             "description": "SHA256 hash of the model file for integrity verification."
           },
+          "hashes": {
+            "type": "object",
+            "title": "Hashes",
+            "description": "For archives, may contain filename:hash pairs for integrity checks after the archive is deleted.",
+            "default": {}
+          },
           "regexes": {
             "items": {
               "type": "object"
@@ -2891,7 +2897,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-20T17:36:00.696493Z"
+            "default": "2024-08-25T14:00:59.083560Z"
           }
         },
         "type": "object",

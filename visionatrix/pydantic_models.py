@@ -36,6 +36,10 @@ class AIResourceModel(BaseModel):
     url: str = Field(..., description="URL from which the model can be downloaded.")
     homepage: str = Field("", description="Webpage with detailed information about the model.")
     hash: str = Field(..., description="SHA256 hash of the model file for integrity verification.")
+    hashes: dict = Field(
+        {},
+        description="For archives, may contain filename:hash pairs for integrity checks after the archive is deleted.",
+    )
     regexes: list[dict] = Field(
         default=[],
         description="List of regex patterns that dynamically resolve model details based on workflow configurations.",
