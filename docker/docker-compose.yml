@@ -52,3 +52,9 @@ services:
     environment:
       - VIX_HOST=0.0.0.0
       - VIX_PORT=8288
+
+  iconify_api:
+    image: iconify/api
+    container_name: iconify_api
+    ports:
+      - "${ICONIFY_API_PORT:-3001}:3000"
