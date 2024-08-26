@@ -185,7 +185,8 @@ onBeforeUnmount(() => {
 					}" />
 			</template>
 
-			<div v-if="inputParam.type === 'image'" class="flex flex-row flex-grow items-center justify-between">
+			<div v-if="inputParam.type === 'image' || inputParam.type === 'image-inpaint'"
+				class="flex flex-row flex-grow items-center justify-between">
 				<UInput ref="imageInput"
 					type="file"
 					accept="image/*"
@@ -197,6 +198,10 @@ onBeforeUnmount(() => {
 						inputParamsMap[index][inputParam.name].value = file as File
 						imagePreviewUrl = createObjectUrl(file)
 						console.debug('inputParamsMap', inputParamsMap)
+						if (inputParam.type === 'image-inpaint') {
+							// Force open modal to draw the mask
+							imagePreviewModalOpen = true
+						}
 					}" />
 				<NuxtImg v-if="imagePreviewUrl !== ''"
 					:src="imagePreviewUrl"
@@ -210,22 +215,26 @@ onBeforeUnmount(() => {
 					class="ml-2"
 					@click="removeImagePreview" />
 			</div>
-			<template v-if="inputParam.type === 'image'">
+			<template v-if="inputParam.type === 'image' || inputParam.type === 'image-inpaint'">
 				<UModal v-model="imagePreviewModalOpen"
-					class="z-[90]"
+					class="z-[90] overflow-y-auto"
 					:transition="false"
 					fullscreen>
 					<UButton class="absolute top-4 right-4"
 						icon="i-heroicons-x-mark"
 						variant="ghost"
 						@click="() => imagePreviewModalOpen = false" />
-					<div class="flex items-center justify-center w-full h-full p-4"
+					<div v-if="inputParam.type === 'image'"
+						class="flex items-center justify-center w-full h-full p-4"
 						@click.left="() => imagePreviewModalOpen = false">
-						<NuxtImg v-if="imagePreviewUrl"
+						<NuxtImg 
 							class="lg:h-full"
 							fit="inside"
 							:src="imagePreviewUrl" />
 					</div>
+					<WorkflowImageInpaint v-else
+						:image-src="imagePreviewUrl"
+						class="flex items-center justify-center w-full h-full p-4" />
 				</UModal>
 			</template>
 

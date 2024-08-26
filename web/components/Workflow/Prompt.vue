@@ -25,8 +25,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				advanced: input_param.advanced || false,
 			}
 		})
-	}
-	else if (input_param.type === 'number') {
+	} else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
 				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
@@ -35,8 +34,16 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				advanced: input_param.advanced || false,
 			}
 		})
-	}
-	else if (input_param.type === 'image') {
+	} else if (input_param.type === 'image') {
+		return ({
+			[input_param.name]: {
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || {},
+				type: input_param.type,
+				optional: input_param.optional,
+				advanced: input_param.advanced || false,
+			}
+		})
+	} else if (input_param.type === 'image-inpaint') {
 		return ({
 			[input_param.name]: {
 				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || {},
@@ -123,10 +130,9 @@ defineExpose({
 	copyPromptInputs
 })
 
-
 inputParamsMap.value.forEach((inputParam: any) => {
 	const input_param_name = Object.keys(inputParam)[0]
-	if (inputParam[input_param_name].type !== 'image') {
+	if (!['image', 'image-inpaint'].includes(inputParam[input_param_name].type)) {
 		watch(() => inputParam[input_param_name].value, () => {
 			const input_params_map: any = {}
 			inputParamsMap.value.forEach((inputParam: any) => {
