@@ -75,4 +75,5 @@ BASIC_NODE_LIST = {
         "main_branch": "master",
     },
     "ComfyUI_Gemini_Flash": {},
+    "ComfyUI-Inpaint-CropAndStitch": {},
 }
