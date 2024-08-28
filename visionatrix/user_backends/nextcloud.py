@@ -50,6 +50,6 @@ async def get_user_info(_scope: Scope, http_connection: HTTPConnection) -> UserI
     return UserInfo(
         user_id=userinfo["id"],
         full_name=userinfo["displayname"],
-        email=userinfo["email"],
+        email=userinfo["email"] if userinfo["email"] else "",
         is_admin=is_admin,
     )
