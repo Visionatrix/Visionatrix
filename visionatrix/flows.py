@@ -384,10 +384,12 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             for attribute in other_attributes:
                 if attribute.startswith("order="):
                     order = int(attribute[6:])
+                    break
             custom_id = ""
             for attribute in other_attributes:
                 if attribute.startswith("custom_id="):
                     custom_id = attribute[10:]
+                    break
             hidden_attribute = False
             image_inpaint = bool("inpaint" in other_attributes)
             if image_inpaint:
@@ -395,6 +397,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
                 for attribute in other_attributes:
                     if attribute.startswith("edge_size="):
                         inpaint_edge_size = int(attribute[10:])
+                        break
         else:
             continue
         try:
