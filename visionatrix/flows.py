@@ -9,6 +9,7 @@ import shutil
 import time
 import typing
 import zipfile
+from base64 import b64decode
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlparse
@@ -273,7 +274,14 @@ def prepare_flow_comfy_files_params(
         else:
             with builtins.open(result_path, mode="wb") as fp:
                 v.file.seek(0)
-                shutil.copyfileobj(v.file, fp)
+                start_of_file = v.file.read(30)
+                base64_index = start_of_file.find(b"base64,")
+                if base64_index != -1:
+                    v.file.seek(base64_index + len(b"base64,"))
+                    fp.write(b64decode(v.file.read()))
+                else:
+                    v.file.seek(0)
+                    shutil.copyfileobj(v.file, fp)
         task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
     for node_to_disconnect in files_params[len(in_files_params) :]:
         for node_id_to_disconnect in node_to_disconnect["comfy_node_id"]:
