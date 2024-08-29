@@ -50,6 +50,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
+				edge_size: input_param?.edge_size || 0,
 			}
 		})
 	} else if (input_param.type === 'list') {

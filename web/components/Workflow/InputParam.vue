@@ -28,6 +28,7 @@ function createObjectUrl(file?: File) {
 const imageInput = ref(null)
 const imagePreviewUrl = ref('')
 const imagePreviewModalOpen = ref(false)
+const imageInpaintWithMask = ref('')
 
 const targetImageDimensions = ref({width: 0, height: 0})
 
@@ -125,6 +126,14 @@ onBeforeUnmount(() => {
 	}
 })
 
+if (props.inputParam.type === 'image-inpaint') {
+	watch(imageInpaintWithMask, () => {
+		// Convert to a File object
+		const imageInpaintWithMaskFile = new File([imageInpaintWithMask.value], 'image-inpaint-masked.png', {type: 'image/png'})
+		props.inputParamsMap[props.index][props.inputParam.name].value = imageInpaintWithMaskFile
+	})
+}
+
 </script>
 
 <template>
@@ -201,10 +210,12 @@ onBeforeUnmount(() => {
 						if (inputParam.type === 'image-inpaint') {
 							// Force open modal to draw the mask
 							imagePreviewModalOpen = true
+							// Reset previous masked image
+							imageInpaintWithMask = ''
 						}
 					}" />
 				<NuxtImg v-if="imagePreviewUrl !== ''"
-					:src="imagePreviewUrl"
+					:src="!imageInpaintWithMask ? imagePreviewUrl : imageInpaintWithMask"
 					class="w-10 h-10 rounded-lg cursor-pointer ml-2"
 					@click="() => {
 						imagePreviewModalOpen = true
@@ -233,8 +244,11 @@ onBeforeUnmount(() => {
 							:src="imagePreviewUrl" />
 					</div>
 					<WorkflowImageInpaint v-else
-						:image-src="imagePreviewUrl"
-						class="flex items-center justify-center w-full h-full p-4" />
+						ref="imageInpaint"
+						v-model:image-inpaint-with-mask="imageInpaintWithMask"
+						:edge-size="inputParam?.edge_size"
+						class="flex items-center justify-center w-full h-full p-4"
+						:image-src="imagePreviewUrl" />
 				</UModal>
 			</template>
 

@@ -358,7 +358,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
-				return param[paramName].type === 'image'
+				return ['image', 'image-inpaint'].includes(param[paramName].type)
 					&& (param[paramName].value instanceof File || typeof param[paramName].value === 'string')
 			})
 			console.debug('file_input_params:', file_input_params)
@@ -860,6 +860,7 @@ export interface FlowInputParam {
 	step?: number
 	source_input_name?: string
 	hidden: boolean
+	edge_size?: number
 }
 
 export interface FlowOutputParam {

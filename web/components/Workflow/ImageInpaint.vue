@@ -6,6 +6,8 @@ const props = defineProps({
 	},
 })
 
+const imageInpaintWithMask = defineModel('imageInpaintWithMask', { default: '' })
+
 const flowsStore = useFlowsStore()
 
 const stageRef: any = ref(null)
@@ -30,60 +32,75 @@ const hoverCircle = ref({
 })
 const minDistance = ref(5)
 const isDrawing = ref(false)
-const imageWithMask = ref(null)
+const imageWithMask: Ref<string|null> = ref(null)
 
 function applyMask() {
 	if (!stageRef.value || !imageLayerRef.value || !maskLayerRef.value) {
-		console.error('Could not get stage, image layer or mask layer')
+		console.error('Could not get stage, image layer, or mask layer')
 		return
 	}
 
 	const stage = stageRef.value.getNode()
-	const imageLayer = imageLayerRef.value.getNode()
 
-	// Get image data from the original image layer
-	const imageContext = imageLayer.canvas._canvas.getContext('2d')
-	imageContext.clearRect(0, 0, stage.width(), stage.height())
-	const imageData = imageContext.getImageData(0, 0, stage.width(), stage.height())
+	// Ensure off-screen canvas matches the original image dimensions
+	const imageWidth = image.value.width
+	const imageHeight = image.value.height
 
-	// Create an off-screen canvas for the mask
-	const maskCanvas = document.createElement('canvas')
-	maskCanvas.width = stage.width()
-	maskCanvas.height = stage.height()
-	const maskContext: CanvasRenderingContext2D|null = maskCanvas.getContext('2d')
-
-	if (!maskContext) {
-		console.error('Could not get 2d context for mask canvas')
+	// Create an off-screen canvas with the same dimensions as the original image
+	const offCanvas = document.createElement('canvas')
+	offCanvas.width = imageWidth
+	offCanvas.height = imageHeight
+	const offCtx = offCanvas.getContext('2d')
+	if (!offCtx) {
+		console.error('Could not get 2d context for off-canvas')
 		return
 	}
 
-	// Draw the circles as a mask on the maskContext
+	// Draw the original image onto the off-screen canvas at full size
+	offCtx.drawImage(image.value, 0, 0, imageWidth, imageHeight)
+
+	// Set composite operation to 'destination-out' to erase the mask areas
+	offCtx.globalCompositeOperation = 'destination-out'
+
+	// Scale the circles to match the image dimensions, then draw them
+	const scaleX = imageWidth / stage.width()
+	const scaleY = imageHeight / stage.height()
+
 	circles.value.forEach((circle: any) => {
-		maskContext.beginPath()
-		maskContext.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2, true)
-		maskContext.closePath()
-		maskContext.fillStyle = 'rgba(0, 0, 0, 0)'
-		maskContext.fill()
+		offCtx.beginPath()
+		offCtx.arc(circle.x * scaleX, circle.y * scaleY, circle.radius * Math.max(scaleX, scaleY), 0, Math.PI * 2, true)
+		offCtx.closePath()
+		offCtx.fillStyle = 'black'
+		offCtx.fill()
 	})
 
-	// Get mask data (this contains the alpha information where circles were drawn)
-	const maskData = maskContext.getImageData(0, 0, maskCanvas.width, maskCanvas.height)
+	// Reset composite operation to default
+	offCtx.globalCompositeOperation = 'source-over'
 
-	// Iterate through each pixel and adjust the alpha channel
-	for (let i = 0; i < imageData.data.length; i += 4) {
-		const maskAlpha = maskData.data[i + 3] // Alpha value from mask
-		if (maskAlpha > 0) {
-			// Make the corresponding pixel in the image fully transparent
-			imageData.data[i + 3] = 0
-		}
+	// Generate the final image with the applied mask
+	const uri = offCanvas.toDataURL('image/png')
+	if (uri) {
+		imageWithMask.value = uri
+		imageInpaintWithMask.value = uri
+		// reset the canvas
+		circles.value = []
+		hoverCircle.value.visible = false
+		isDrawing.value = false
+	} else {
+		console.error('Could not get data URI for masked image')
 	}
+}
 
-	// Put the modified image data back onto the original image layer
-	imageContext.putImageData(imageData, 0, 0)
 
-	const uri = stage.toDataURL()
-	imageWithMask.value = uri
-	console.log(uri)
+function downloadImageWithMask() {
+	if (imageInpaintWithMask.value !== '') {
+		const link = document.createElement('a')
+		link.href = imageInpaintWithMask.value
+		link.download = 'masked_image.png'
+		link.click()
+	} else {
+		console.error('No masked image to download')
+	}
 }
 
 function startDrawing(e: any) {
@@ -141,6 +158,7 @@ function finishDrawing() {
 function resetMask() {
 	circles.value = []
 	imageWithMask.value = null
+	imageInpaintWithMask.value = ''
 }
 
 function moveHoverCircle(e: MouseEvent|any) {
@@ -150,6 +168,7 @@ function moveHoverCircle(e: MouseEvent|any) {
 }
 function hideHoverCircle() {
 	hoverCircle.value.visible = false
+	isDrawing.value = false
 }
 
 function showHoverCircle() {
@@ -200,7 +219,14 @@ onBeforeMount(() => {
 				:height="flowsStore.$state.outputMaxSize"
 				draggable="false"
 				:src="imageWithMask" />
-			<v-stage v-if="imageWithMask === null"
+			<NuxtImg v-else-if="imageInpaintWithMask !== ''"
+				class="lg:h-full"
+				fit="inside"
+				:width="flowsStore.$state.outputMaxSize"
+				:height="flowsStore.$state.outputMaxSize"
+				draggable="false"
+				:src="imageInpaintWithMask" />
+			<v-stage v-if="imageWithMask === null && imageInpaintWithMask === ''"
 				ref="stageRef"
 				:config="stageConfig"
 				@mousedown="startDrawing"
@@ -225,27 +251,45 @@ onBeforeMount(() => {
 				</v-layer>
 			</v-stage>
 		</div>
-		<div class="actions mb-3 w-full max-w-[320px]">
+		<div class="actions mb-3 mx-auto">
 			<UButton
 				class="mr-3"
 				size="sm"
 				icon="i-heroicons-clipboard-document-check-16-solid"
 				variant="soft"
+				:disabled="circles.length === 0"
 				@click="applyMask">
 				Apply mask to image
 			</UButton>
 			<UButton
+				class="mr-3"
 				size="sm"
 				icon="i-heroicons-arrow-turn-up-left-20-solid"
 				variant="soft"
+				:disabled="circles.length === 0 && imageWithMask === null && imageInpaintWithMask === ''"
 				color="orange"
 				@click="resetMask">
 				Reset mask
 			</UButton>
+			<UButton
+				size="sm"
+				icon="i-heroicons-arrow-down-tray"
+				variant="soft"
+				color="blue"
+				:disabled="imageWithMask === null"
+				@click="downloadImageWithMask">
+				Download
+			</UButton>
 		</div>
 		<div class="options w-full max-w-[320px]">
 			<UFormGroup label="Brush radius" class="mb-3 text-sm">
-				<URange v-model="brushRadius" :min="1" :max="100" size="sm" class="my-2" />
+				<URange
+					v-model="brushRadius"
+					:min="1"
+					:max="100"
+					size="sm"
+					class="my-2"
+					:disabled="imageInpaintWithMask !== ''" />
 				<span>value: {{ brushRadius }}</span>
 			</UFormGroup>
 		</div>
