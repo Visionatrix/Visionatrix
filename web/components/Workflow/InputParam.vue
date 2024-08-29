@@ -129,7 +129,8 @@ onBeforeUnmount(() => {
 if (props.inputParam.type === 'image-inpaint') {
 	watch(imageInpaintWithMask, () => {
 		// Convert to a File object
-		const imageInpaintWithMaskFile = new File([imageInpaintWithMask.value], 'image-inpaint-masked.png', {type: 'image/png'})
+		const imageInpaintWithMaskFile = new File([imageInpaintWithMask.value], 'image-inpaint-masked.png', { type: 'image/png' })
+		// convert base64 png image to image/png file
 		props.inputParamsMap[props.index][props.inputParam.name].value = imageInpaintWithMaskFile
 	})
 }

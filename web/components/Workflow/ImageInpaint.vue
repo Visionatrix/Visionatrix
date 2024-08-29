@@ -4,9 +4,13 @@ const props = defineProps({
 		type: String,
 		required: true,
 	},
+	edgeSize: {
+		type: Number,
+		default: 0,
+	},
 })
 
-const imageInpaintWithMask = defineModel('imageInpaintWithMask', { default: '' })
+const imageInpaintWithMask = defineModel('imageInpaintWithMask', { default: '', type: String })
 
 const flowsStore = useFlowsStore()
 
@@ -27,9 +31,12 @@ const hoverCircle = ref({
 	y: 0,
 	radius: brushRadius.value,
 	fill: 'rgba(255, 255, 255, 0.5)',  // White with half opacity
-	stroke: null,
+	stroke: 'white',
+	strokeWidth: 2,
+	dash: [5, 5],  // Create a dashed outline
 	visible: false,
 })
+const isWithinBounds = ref(false)
 const minDistance = ref(5)
 const isDrawing = ref(false)
 const imageWithMask: Ref<string|null> = ref(null)
@@ -112,10 +119,24 @@ function startDrawing(e: any) {
 }
 
 function createCircle(pos: any) {
+	// Check if the position is within the edgeSize boundary
+	if (props.edgeSize > 0) {
+		const stage = stageRef.value.getNode()
+		const scaleX = stage.width() / image.value.width
+		const scaleY = stage.height() / image.value.height
+		const edgeSizeX = props.edgeSize * scaleX
+		const edgeSizeY = props.edgeSize * scaleY
+
+		if (pos.x < edgeSizeX || pos.x > stage.width() - edgeSizeX ||
+				pos.y < edgeSizeY || pos.y > stage.height() - edgeSizeY) {
+			return // Don't create circle if outside the edgeSize boundary
+		}
+	}
+
 	const newCircle = {
 		x: pos.x,
 		y: pos.y,
-		radius: brushRadius.value,  // Use the brush radius
+		radius: brushRadius.value,
 		fill: 'rgba(255, 255, 255, 1)',
 	}
 
@@ -165,7 +186,24 @@ function moveHoverCircle(e: MouseEvent|any) {
 	const pos = e.target.getStage().getPointerPosition()
 	hoverCircle.value.x = pos.x
 	hoverCircle.value.y = pos.y
+
+	if (props.edgeSize > 0) {
+		const stage = stageRef.value.getNode()
+		const scaleX = stage.width() / image.value.width
+		const scaleY = stage.height() / image.value.height
+		const edgeSizeX = props.edgeSize * scaleX
+		const edgeSizeY = props.edgeSize * scaleY
+
+		isWithinBounds.value = pos.x >= edgeSizeX && pos.x <= stage.width() - edgeSizeX &&
+			pos.y >= edgeSizeY && pos.y <= stage.height() - edgeSizeY
+	} else {
+		isWithinBounds.value = true
+	}
+
+	hoverCircle.value.fill = isWithinBounds.value ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 0, 0, 0.3)'
+	hoverCircle.value.stroke = isWithinBounds.value ? 'white' : 'red'
 }
+
 function hideHoverCircle() {
 	hoverCircle.value.visible = false
 	isDrawing.value = false
