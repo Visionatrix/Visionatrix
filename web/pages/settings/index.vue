@@ -122,6 +122,7 @@ watch(() => flowsStore.outputMaxSize, () => {
 							type="password"
 							icon="i-heroicons-shield-check"
 							size="md"
+							autocomplete="off"
 						/>
 					</UFormGroup>
 					<UFormGroup
@@ -136,6 +137,7 @@ watch(() => flowsStore.outputMaxSize, () => {
 							type="password"
 							icon="i-heroicons-shield-check"
 							size="md"
+							autocomplete="off"
 						/>
 					</UFormGroup>
 					<UFormGroup
@@ -149,6 +151,7 @@ watch(() => flowsStore.outputMaxSize, () => {
 							class="w-full"
 							type="text"
 							size="md"
+							autocomplete="off"
 						/>
 					</UFormGroup>
 					<UFormGroup
@@ -162,6 +165,7 @@ watch(() => flowsStore.outputMaxSize, () => {
 							class="w-full"
 							type="text"
 							size="md"
+							autocomplete="off"
 						/>
 					</UFormGroup>
 					<UFormGroup
@@ -175,6 +179,7 @@ watch(() => flowsStore.outputMaxSize, () => {
 							class="w-full"
 							type="text"
 							size="md"
+							autocomplete="off"
 						/>
 					</UFormGroup>
 				</div>
@@ -213,6 +218,7 @@ watch(() => flowsStore.outputMaxSize, () => {
 							type="password"
 							icon="i-heroicons-shield-check"
 							size="md"
+							autocomplete="off"
 						/>
 					</UFormGroup>
 					<UFormGroup
