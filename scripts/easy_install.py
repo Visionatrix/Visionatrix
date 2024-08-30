@@ -148,7 +148,7 @@ def update_visionatrix():
         major_version = get_major_version(visionatrix_version)
         latest_version_tag = get_latest_version(major_version)
         if latest_version_tag != f"v{visionatrix_version}":
-            if latest_version_tag is None:
+            if latest_version_tag is None or is_dev_version(visionatrix_version):
                 result = subprocess.run(["git", "pull"], capture_output=True, text=True)
                 if "Already up to date." in result.stdout:
                     print("No new commits were pulled.")
@@ -297,6 +297,14 @@ def get_major_version(version_str: str) -> int:
     """Extracts and returns the major version number from a version string."""
     major, _, _ = parse_version(version_str)
     return major
+
+
+def is_dev_version(version_str: str) -> bool:
+    """
+    Checks if a given version string is a development version (e.g., '1.1.0.dev0').
+    Returns True if it is a development version, otherwise False.
+    """
+    return bool(re.match(r"\d+\.\d+\.\d+\.dev\d+", version_str))
 
 
 if __name__ == "__main__":
