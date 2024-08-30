@@ -31,15 +31,14 @@ const hoverCircle = ref({
 	y: 0,
 	radius: brushRadius.value,
 	fill: 'rgba(255, 255, 255, 0.5)',  // White with half opacity
-	stroke: 'white',
-	strokeWidth: 2,
-	dash: [5, 5],  // Create a dashed outline
+	stroke: null,
+	strokeWidth: 0,
 	visible: false,
 })
 const isWithinBounds = ref(false)
 const minDistance = ref(5)
 const isDrawing = ref(false)
-const imageWithMask: Ref<string|null> = ref(null)
+const imageWithMask: Ref<string | null> = ref(null)
 
 function applyMask() {
 	if (!stageRef.value || !imageLayerRef.value || !maskLayerRef.value) {
@@ -66,26 +65,48 @@ function applyMask() {
 	// Draw the original image onto the off-screen canvas at full size
 	offCtx.drawImage(image.value, 0, 0, imageWidth, imageHeight)
 
-	// Set composite operation to 'destination-out' to erase the mask areas
-	offCtx.globalCompositeOperation = 'destination-out'
+	// Create a separate canvas for the mask
+	const maskCanvas = document.createElement('canvas')
+	maskCanvas.width = imageWidth
+	maskCanvas.height = imageHeight
+	const maskCtx = maskCanvas.getContext('2d')
+	if (!maskCtx) {
+		console.error('Could not get 2d context for mask canvas')
+		return
+	}
 
-	// Scale the circles to match the image dimensions, then draw them
+	// Scale the circles to match the image dimensions, then draw them on the mask canvas
 	const scaleX = imageWidth / stage.width()
 	const scaleY = imageHeight / stage.height()
 
+	maskCtx.fillStyle = 'rgba(255, 255, 255, 1)'
+	maskCtx.fillRect(0, 0, imageWidth, imageHeight)
+	maskCtx.fillStyle = 'rgba(0, 0, 0, 1)'
 	circles.value.forEach((circle: any) => {
-		offCtx.beginPath()
-		offCtx.arc(circle.x * scaleX, circle.y * scaleY, circle.radius * Math.max(scaleX, scaleY), 0, Math.PI * 2, true)
-		offCtx.closePath()
-		offCtx.fillStyle = 'black'
-		offCtx.fill()
+		maskCtx.beginPath()
+		maskCtx.arc(circle.x * scaleX, circle.y * scaleY, circle.radius * Math.max(scaleX, scaleY), 0, Math.PI * 2, true)
+		maskCtx.closePath()
+		maskCtx.fill()
 	})
 
-	// Reset composite operation to default
-	offCtx.globalCompositeOperation = 'source-over'
+	// Get image data
+	const imageData = offCtx.getImageData(0, 0, imageWidth, imageHeight)
+	const maskData = maskCtx.getImageData(0, 0, imageWidth, imageHeight)
+
+	// Apply the mask
+	for (let i = 0; i < imageData.data.length; i += 4) {
+		// If the mask pixel is black (masked area)
+		if (maskData.data[i] === 0) {
+			// Set alpha to 64 so that browser doesn't optimize it away
+			imageData.data[i + 3] = 64
+		}
+	}
+
+	// Put the modified image data back
+	offCtx.putImageData(imageData, 0, 0)
 
 	// Generate the final image with the applied mask
-	const uri = offCanvas.toDataURL('image/png')
+	const uri = offCanvas.toDataURL('image/png', 1.0)
 	if (uri) {
 		imageWithMask.value = uri
 		imageInpaintWithMask.value = uri
@@ -127,8 +148,8 @@ function createCircle(pos: any) {
 		const edgeSizeX = props.edgeSize * scaleX
 		const edgeSizeY = props.edgeSize * scaleY
 
-		if (pos.x < edgeSizeX || pos.x > stage.width() - edgeSizeX ||
-				pos.y < edgeSizeY || pos.y > stage.height() - edgeSizeY) {
+		if (pos.x < edgeSizeX + brushRadius.value || pos.x > stage.width() - edgeSizeX - brushRadius.value ||
+			pos.y < edgeSizeY + brushRadius.value || pos.y > stage.height() - edgeSizeY - brushRadius.value) {
 			return // Don't create circle if outside the edgeSize boundary
 		}
 	}
@@ -156,7 +177,7 @@ function calculateDistance(pos1: any, pos2: any) {
 	)
 }
 
-function drawMultipleCircles(e: MouseEvent|any) {
+function drawMultipleCircles(e: MouseEvent | any) {
 	// Update hover circle position
 	moveHoverCircle(e)
 
@@ -182,7 +203,7 @@ function resetMask() {
 	imageInpaintWithMask.value = ''
 }
 
-function moveHoverCircle(e: MouseEvent|any) {
+function moveHoverCircle(e: MouseEvent | any) {
 	const pos = e.target.getStage().getPointerPosition()
 	hoverCircle.value.x = pos.x
 	hoverCircle.value.y = pos.y
@@ -194,14 +215,13 @@ function moveHoverCircle(e: MouseEvent|any) {
 		const edgeSizeX = props.edgeSize * scaleX
 		const edgeSizeY = props.edgeSize * scaleY
 
-		isWithinBounds.value = pos.x >= edgeSizeX && pos.x <= stage.width() - edgeSizeX &&
-			pos.y >= edgeSizeY && pos.y <= stage.height() - edgeSizeY
+		isWithinBounds.value = pos.x >= edgeSizeX + brushRadius.value && pos.x <= stage.width() - edgeSizeX - brushRadius.value &&
+			pos.y >= edgeSizeY + brushRadius.value && pos.y <= stage.height() - edgeSizeY - brushRadius.value
 	} else {
 		isWithinBounds.value = true
 	}
 
 	hoverCircle.value.fill = isWithinBounds.value ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 0, 0, 0.3)'
-	hoverCircle.value.stroke = isWithinBounds.value ? 'white' : 'red'
 }
 
 function hideHoverCircle() {
@@ -314,7 +334,7 @@ onBeforeMount(() => {
 				icon="i-heroicons-arrow-down-tray"
 				variant="soft"
 				color="blue"
-				:disabled="imageWithMask === null"
+				:disabled="imageInpaintWithMask === ''"
 				@click="downloadImageWithMask">
 				Download
 			</UButton>
