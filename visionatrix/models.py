@@ -30,13 +30,15 @@ def install_model(
     else:
         save_path = Path(options.MODELS_DIR).joinpath(model.save_path)
     LOGGER.debug("model=%s --> save_path=%s", model.name, save_path)
-    check_result = True
+    check_result = False
     if save_path.exists() and not model.url.endswith(".zip"):
         if check_hash(model.hash, save_path):
             LOGGER.info("`%s` already exists.", save_path)
+            check_result = True
         else:
             LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", model.name)
     elif save_path.suffix == ".zip":
+        check_result = True
         if not model.hashes:
             LOGGER.info("`%s` does not provide hashes for files in archive, skipping.", save_path)
         else:
