@@ -151,6 +151,40 @@ inputParamsMap.value.forEach((inputParam: any) => {
 const running = ref(false)
 const batchSize = ref(1)
 const collapsed = ref(false)
+
+const requiredInputParamsValid = computed(() => {
+	return inputParamsMap.value.every((inputParam: any) => {
+		const input_param_name = Object.keys(inputParam)[0]
+		if (inputParam[input_param_name].optional) {
+			return true
+		}
+
+		const input_param_value = inputParam[input_param_name].value
+
+		if (inputParam[input_param_name].type === 'text') {
+			return input_param_value !== ''
+		} else if (inputParam[input_param_name].type === 'number') {
+			return input_param_value >= inputParam[input_param_name].min
+				&& input_param_value <= inputParam[input_param_name].max
+		} else if (inputParam[input_param_name].type === 'list') {
+			return input_param_value !== ''
+				&& Object.keys(inputParam[input_param_name].options).includes(input_param_value)
+		} else if (inputParam[input_param_name].type === 'bool') {
+			return true
+		} else if (inputParam[input_param_name].type === 'range') {
+			return input_param_value >= inputParam[input_param_name].min
+				&& input_param_value <= inputParam[input_param_name].max
+		} else if (inputParam[input_param_name].type === 'range_scale') {
+			return input_param_value >= inputParam[input_param_name].min
+				&& input_param_value <= inputParam[input_param_name].max
+		} else if (inputParam[input_param_name].type === 'image') {
+			return input_param_value instanceof File && input_param_value.size > 0
+		} else if (inputParam[input_param_name].type === 'image-inpaint') {
+			return input_param_value instanceof File && input_param_value.size > 0
+				&& (inputParam[input_param_name]?.mask_applied || false)
+		}
+	})
+})
 </script>
 
 <template>
@@ -186,6 +220,7 @@ const collapsed = ref(false)
 				<UButton icon="i-heroicons-sparkles-16-solid"
 					variant="outline"
 					:loading="running"
+					:disabled="!requiredInputParamsValid"
 					@click="() => {
 						running = true
 						flowStore.runFlow(

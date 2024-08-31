@@ -116,25 +116,25 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 	const taskDropdownItems: any[] = [
 		[{
 			label: 'Use params',
-			labelClass: 'text-cyan-500',
+			labelClass: 'text-cyan-500 text-sm',
 			icon: 'i-heroicons-document-duplicate-16-solid',
-			iconClass: 'bg-cyan-500',
+			iconClass: 'bg-cyan-500 h-4 w-4',
 			click: () => copyPromptInputs(flowResult),
 		}],
 		[{
 			label: 'Comfy flow',
-			labelClass: 'text-blue-500',
+			labelClass: 'text-blue-500 text-sm',
 			icon: 'i-heroicons-arrow-down-tray',
-			iconClass: 'bg-blue-500',
+			iconClass: 'bg-blue-500 h-4 w-4',
 			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
 		}]
 	]
 	if (flowResult.outputs.length === 1) {
 		taskDropdownItems.splice(1, 0, [{
 			label: 'Send to flow',
-			labelClass: 'text-violet-500',
+			labelClass: 'text-violet-500 text-sm',
 			icon: 'i-heroicons-arrow-uturn-up-solid',
-			iconClass: 'bg-violet-500',
+			iconClass: 'bg-violet-500 h-4 w-4',
 			click: () => {
 				handleSendToFlow(flowResult)
 			},

@@ -29,6 +29,7 @@ const imageInput = ref(null)
 const imagePreviewUrl = ref('')
 const imagePreviewModalOpen = ref(false)
 const imageInpaintWithMask = ref('')
+const imageInpaintEdgeSizeEnabled = ref(true)
 
 const targetImageDimensions = ref({width: 0, height: 0})
 
@@ -127,11 +128,17 @@ onBeforeUnmount(() => {
 })
 
 if (props.inputParam.type === 'image-inpaint') {
-	watch(imageInpaintWithMask, () => {
-		// Convert to a File object
+	watch(imageInpaintWithMask, (newImageInpaint) => {
+		// convert to File object
 		const imageInpaintWithMaskFile = new File([imageInpaintWithMask.value], 'image-inpaint-masked.png', { type: 'image/png' })
-		// convert base64 png image to image/png file
 		props.inputParamsMap[props.index][props.inputParam.name].value = imageInpaintWithMaskFile
+		// set and update mask_applied flag to current image-inpaint inputParam, required for validation
+		props.inputParamsMap[props.index][props.inputParam.name].mask_applied = newImageInpaint !== ''
+	})
+	watch(imageInpaintEdgeSizeEnabled, () => {
+		console.debug('imageInpaintEdgeSizeEnabled changed')
+		// set edge_size_enabled flag to current image-inpaint inputParam
+		props.inputParamsMap[props.index][props.inputParam.name].edge_size_enabled = imageInpaintEdgeSizeEnabled.value
 	})
 }
 
@@ -232,7 +239,7 @@ if (props.inputParam.type === 'image-inpaint') {
 					class="z-[90] overflow-y-auto"
 					:transition="false"
 					fullscreen>
-					<UButton class="absolute top-4 right-4"
+					<UButton class="absolute top-4 right-4 z-[100]"
 						icon="i-heroicons-x-mark"
 						variant="ghost"
 						@click="() => imagePreviewModalOpen = false" />
@@ -247,6 +254,7 @@ if (props.inputParam.type === 'image-inpaint') {
 					<WorkflowImageInpaint v-else
 						ref="imageInpaint"
 						v-model:image-inpaint-with-mask="imageInpaintWithMask"
+						v-model:edge-size-enabled="imageInpaintEdgeSizeEnabled"
 						:edge-size="inputParam?.edge_size"
 						class="flex items-center justify-center w-full h-full p-4"
 						:image-src="imagePreviewUrl" />

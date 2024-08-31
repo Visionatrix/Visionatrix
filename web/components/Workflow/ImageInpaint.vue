@@ -11,6 +11,7 @@ const props = defineProps({
 })
 
 const imageInpaintWithMask = defineModel('imageInpaintWithMask', { default: '', type: String })
+const edgeSizeEnabled = defineModel('edgeSizeEnabled', { default: true, type: Boolean })
 
 const flowsStore = useFlowsStore()
 
@@ -38,7 +39,6 @@ const hoverCircle = ref({
 const isWithinBounds = ref(false)
 const minDistance = ref(5)
 const isDrawing = ref(false)
-const imageWithMask: Ref<string | null> = ref(null)
 
 function applyMask() {
 	if (!stageRef.value || !imageLayerRef.value || !maskLayerRef.value) {
@@ -108,7 +108,6 @@ function applyMask() {
 	// Generate the final image with the applied mask
 	const uri = offCanvas.toDataURL('image/png', 1.0)
 	if (uri) {
-		imageWithMask.value = uri
 		imageInpaintWithMask.value = uri
 		// reset the canvas
 		circles.value = []
@@ -120,17 +119,6 @@ function applyMask() {
 }
 
 
-function downloadImageWithMask() {
-	if (imageInpaintWithMask.value !== '') {
-		const link = document.createElement('a')
-		link.href = imageInpaintWithMask.value
-		link.download = 'masked_image.png'
-		link.click()
-	} else {
-		console.error('No masked image to download')
-	}
-}
-
 function startDrawing(e: any) {
 	// start drawing only on left mouse button click
 	if (e.evt.button !== 0) return
@@ -141,7 +129,7 @@ function startDrawing(e: any) {
 
 function createCircle(pos: any) {
 	// Check if the position is within the edgeSize boundary
-	if (props.edgeSize > 0) {
+	if (props.edgeSize > 0 && edgeSizeEnabled.value) {
 		const stage = stageRef.value.getNode()
 		const scaleX = stage.width() / image.value.width
 		const scaleY = stage.height() / image.value.height
@@ -199,7 +187,6 @@ function finishDrawing() {
 
 function resetMask() {
 	circles.value = []
-	imageWithMask.value = null
 	imageInpaintWithMask.value = ''
 }
 
@@ -208,7 +195,7 @@ function moveHoverCircle(e: MouseEvent | any) {
 	hoverCircle.value.x = pos.x
 	hoverCircle.value.y = pos.y
 
-	if (props.edgeSize > 0) {
+	if (props.edgeSize > 0 && edgeSizeEnabled.value) {
 		const stage = stageRef.value.getNode()
 		const scaleX = stage.width() / image.value.width
 		const scaleY = stage.height() / image.value.height
@@ -239,7 +226,37 @@ function loadImage() {
 	imageObj.src = props.imageSrc
 	imageObj.onload = () => {
 		image.value = imageObj
+		updateStageDimensions()
 		fitImageToCanvas()
+	}
+}
+
+function updateStageDimensions() {
+	if (!image.value) return
+
+	const windowWidth = window.innerWidth
+	const windowHeight = window.innerHeight
+	const imageRatio = image.value.width / image.value.height
+	
+	let newWidth, newHeight
+
+	// Set maximum dimensions (you can adjust these values as needed)
+	const maxWidth = Math.min(windowWidth * 0.9, 1200) // 90% of window width or 1200px, whichever is smaller
+	const maxHeight = Math.min(windowHeight * 0.8, flowsStore.outputMaxSize) // 80% of window height or 800px, whichever is smaller
+
+	if (imageRatio > maxWidth / maxHeight) {
+		// Image is wider than it is tall
+		newWidth = maxWidth
+		newHeight = newWidth / imageRatio
+	} else {
+		// Image is taller than it is wide
+		newHeight = maxHeight
+		newWidth = newHeight * imageRatio
+	}
+
+	stageConfig.value = {
+		width: Math.floor(newWidth),
+		height: Math.floor(newHeight),
 	}
 }
 
@@ -263,28 +280,22 @@ function fitImageToCanvas() {
 
 onBeforeMount(() => {
 	loadImage()
+	edgeSizeEnabled.value = props.edgeSize > 0
 })
 </script>
 
 <template>
 	<div class="image-inpaint flex flex-col w-full">
-		<div class="canvas flex flex-col items-center justify-center mb-3 relative w-full">
+		<div class="canvas flex flex-col items-center justify-center mb-3 w-full">
 			<p class="text-sm my-2 text-slate-500">Select the target area for image inpaint</p>
-			<NuxtImg v-if="imageWithMask"
+			<NuxtImg v-if="imageInpaintWithMask !== ''"
 				class="lg:h-full"
 				fit="inside"
-				:width="flowsStore.$state.outputMaxSize"
-				:height="flowsStore.$state.outputMaxSize"
-				draggable="false"
-				:src="imageWithMask" />
-			<NuxtImg v-else-if="imageInpaintWithMask !== ''"
-				class="lg:h-full"
-				fit="inside"
-				:width="flowsStore.$state.outputMaxSize"
-				:height="flowsStore.$state.outputMaxSize"
+				:width="stageConfig.width"
+				:height="stageConfig.height"
 				draggable="false"
 				:src="imageInpaintWithMask" />
-			<v-stage v-if="imageWithMask === null && imageInpaintWithMask === ''"
+			<v-stage v-if="imageInpaintWithMask === ''"
 				ref="stageRef"
 				:config="stageConfig"
 				@mousedown="startDrawing"
@@ -317,29 +328,24 @@ onBeforeMount(() => {
 				variant="soft"
 				:disabled="circles.length === 0"
 				@click="applyMask">
-				Apply mask to image
+				Apply mask
 			</UButton>
 			<UButton
 				class="mr-3"
 				size="sm"
 				icon="i-heroicons-arrow-turn-up-left-20-solid"
 				variant="soft"
-				:disabled="circles.length === 0 && imageWithMask === null && imageInpaintWithMask === ''"
+				:disabled="circles.length === 0 && imageInpaintWithMask === ''"
 				color="orange"
 				@click="resetMask">
 				Reset mask
 			</UButton>
-			<UButton
-				size="sm"
-				icon="i-heroicons-arrow-down-tray"
-				variant="soft"
-				color="blue"
-				:disabled="imageInpaintWithMask === ''"
-				@click="downloadImageWithMask">
-				Download
-			</UButton>
 		</div>
 		<div class="options w-full max-w-[320px]">
+			<UCheckbox 
+				v-model="edgeSizeEnabled"
+				class="my-2 text-xm"
+				:label="`Edge size ${edgeSizeEnabled ? 'enabled' + ' (' + edgeSize + 'px)' : 'disabled'}`" />
 			<UFormGroup label="Brush radius" class="mb-3 text-sm">
 				<URange
 					v-model="brushRadius"
