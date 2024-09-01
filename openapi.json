@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.1.0.dev0"
+    "version": "1.1.0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -2898,7 +2898,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-08-29T19:03:01.272132Z"
+            "default": "2024-09-01T19:28:29.345112Z"
           }
         },
         "type": "object",
