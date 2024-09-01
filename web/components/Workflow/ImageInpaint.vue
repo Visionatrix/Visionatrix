@@ -12,6 +12,7 @@ const props = defineProps({
 
 const imageInpaintWithMask = defineModel('imageInpaintWithMask', { default: '', type: String })
 const edgeSizeEnabled = defineModel('edgeSizeEnabled', { default: true, type: Boolean })
+const imageInpaintMaskData = defineModel('imageInpaintMaskData', { default: {}, type: Object })
 
 const flowsStore = useFlowsStore()
 
@@ -39,6 +40,9 @@ const hoverCircle = ref({
 const isWithinBounds = ref(false)
 const minDistance = ref(5)
 const isDrawing = ref(false)
+
+const undoStack = ref<Array<Array<any>>>([])
+const redoStack = ref<Array<Array<any>>>([])
 
 function applyMask() {
 	if (!stageRef.value || !imageLayerRef.value || !maskLayerRef.value) {
@@ -108,9 +112,8 @@ function applyMask() {
 	// Generate the final image with the applied mask
 	const uri = offCanvas.toDataURL('image/png', 1.0)
 	if (uri) {
+		saveCanvasState()
 		imageInpaintWithMask.value = uri
-		// reset the canvas
-		circles.value = []
 		hoverCircle.value.visible = false
 		isDrawing.value = false
 	} else {
@@ -118,12 +121,14 @@ function applyMask() {
 	}
 }
 
-
 function startDrawing(e: any) {
 	// start drawing only on left mouse button click
 	if (e.evt.button !== 0) return
 	isDrawing.value = true
 	lastPosition.value = e.target.getStage().getPointerPosition()
+
+	saveState() // Save the current state before drawing
+
 	createCircle(lastPosition.value)
 }
 
@@ -181,14 +186,60 @@ function drawMultipleCircles(e: MouseEvent | any) {
 	}
 }
 
+function saveState() {
+	undoStack.value.push([...circles.value])
+	redoStack.value = []
+}
+
+function saveCanvasState() {
+	imageInpaintMaskData.value = {
+		circles: [...circles.value],
+		brushRadius: brushRadius.value,
+		undoStack: undoStack.value,
+		redoStack: redoStack.value,
+	}
+}
+
+function loadCanvasState() {
+	if (imageInpaintMaskData.value !== null) {
+		circles.value = imageInpaintMaskData.value.circles || []
+		brushRadius.value = imageInpaintMaskData.value.brushRadius || 30
+		undoStack.value = imageInpaintMaskData.value.undoStack || []
+		redoStack.value = imageInpaintMaskData.value.redoStack || []
+	}
+}
+
+function undo() {
+	if (undoStack.value.length === 0) return
+
+	redoStack.value.push([...circles.value])
+	circles.value = undoStack.value.pop() || []
+}
+
+function redo() {
+	if (redoStack.value.length === 0) return
+
+	undoStack.value.push([...circles.value])
+	circles.value = redoStack.value.pop() || []
+}
+
 function finishDrawing() {
 	isDrawing.value = false
 }
 
+function editMask() {
+	// reset applied image to revert back to drawing from the previous state
+	imageInpaintWithMask.value = ''
+}
+
 function resetMask() {
+	saveState()
 	circles.value = []
 	imageInpaintWithMask.value = ''
 }
+
+const canUndo = computed(() => undoStack.value.length > 0)
+const canRedo = computed(() => redoStack.value.length > 0)
 
 function moveHoverCircle(e: MouseEvent | any) {
 	const pos = e.target.getStage().getPointerPosition()
@@ -258,6 +309,8 @@ function updateStageDimensions() {
 		width: Math.floor(newWidth),
 		height: Math.floor(newHeight),
 	}
+
+	fitImageToCanvas()
 }
 
 function fitImageToCanvas() {
@@ -280,7 +333,17 @@ function fitImageToCanvas() {
 
 onBeforeMount(() => {
 	loadImage()
-	edgeSizeEnabled.value = props.edgeSize > 0
+	loadCanvasState()
+})
+
+onMounted(() => {
+	window.addEventListener('resize', updateStageDimensions)
+	edgeSizeEnabled.value = Number(props.edgeSize) > 0
+})
+
+onBeforeUnmount(() => {
+	window.removeEventListener('resize', updateStageDimensions)
+	saveCanvasState()
 })
 </script>
 
@@ -320,25 +383,50 @@ onBeforeMount(() => {
 				</v-layer>
 			</v-stage>
 		</div>
-		<div class="actions mb-3 mx-auto">
+		<div class="actions flex items-center justify-center mb-3 mx-auto">
 			<UButton
-				class="mr-3"
-				size="sm"
+				class="mr-2"
+				size="xs"
 				icon="i-heroicons-clipboard-document-check-16-solid"
 				variant="soft"
-				:disabled="circles.length === 0"
+				:disabled="circles.length === 0 || imageInpaintWithMask !== ''"
 				@click="applyMask">
 				Apply mask
 			</UButton>
 			<UButton
-				class="mr-3"
-				size="sm"
+				class="mr-2"
+				size="xs"
+				icon="i-heroicons-arrow-uturn-left-16-solid"
+				variant="soft"
+				color="cyan"
+				:disabled="!canUndo || imageInpaintWithMask !== ''"
+				@click="undo" />
+			<UButton
+				class="mr-2"
+				size="xs"
+				icon="i-heroicons-arrow-uturn-right-16-solid"
+				variant="soft"
+				color="cyan"
+				:disabled="!canRedo || imageInpaintWithMask !== ''"
+				@click="redo" />
+			<UButton
+				class="mr-2"
+				size="xs"
 				icon="i-heroicons-arrow-turn-up-left-20-solid"
 				variant="soft"
 				:disabled="circles.length === 0 && imageInpaintWithMask === ''"
-				color="orange"
+				color="red"
 				@click="resetMask">
 				Reset mask
+			</UButton>
+			<UButton
+				size="xs"
+				icon="i-heroicons-pencil-solid"
+				variant="soft"
+				:disabled="imageInpaintWithMask === ''"
+				color="orange"
+				@click="editMask">
+				Edit
 			</UButton>
 		</div>
 		<div class="options w-full max-w-[320px]">
@@ -346,7 +434,10 @@ onBeforeMount(() => {
 				v-model="edgeSizeEnabled"
 				class="my-2 text-xm"
 				:label="`Edge size ${edgeSizeEnabled ? 'enabled' + ' (' + edgeSize + 'px)' : 'disabled'}`" />
-			<UFormGroup label="Brush radius" class="mb-3 text-sm">
+			<UFormGroup
+				class="mb-3 text-sm"
+				:hint="`value: ${ brushRadius }`"
+				label="Brush radius">
 				<URange
 					v-model="brushRadius"
 					:min="1"
@@ -354,7 +445,6 @@ onBeforeMount(() => {
 					size="sm"
 					class="my-2"
 					:disabled="imageInpaintWithMask !== ''" />
-				<span>value: {{ brushRadius }}</span>
 			</UFormGroup>
 		</div>
 	</div>

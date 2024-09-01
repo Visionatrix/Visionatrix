@@ -30,6 +30,7 @@ const imagePreviewUrl = ref('')
 const imagePreviewModalOpen = ref(false)
 const imageInpaintWithMask = ref('')
 const imageInpaintEdgeSizeEnabled = ref(true)
+const imageInpaintMaskData = ref({})
 
 const targetImageDimensions = ref({width: 0, height: 0})
 
@@ -135,10 +136,10 @@ if (props.inputParam.type === 'image-inpaint') {
 		// set and update mask_applied flag to current image-inpaint inputParam, required for validation
 		props.inputParamsMap[props.index][props.inputParam.name].mask_applied = newImageInpaint !== ''
 	})
-	watch(imageInpaintEdgeSizeEnabled, () => {
-		console.debug('imageInpaintEdgeSizeEnabled changed')
+	watch(imageInpaintEdgeSizeEnabled, (newValue) => {
+		console.debug('imageInpaintEdgeSizeEnabled changed to ', newValue)
 		// set edge_size_enabled flag to current image-inpaint inputParam
-		props.inputParamsMap[props.index][props.inputParam.name].edge_size_enabled = imageInpaintEdgeSizeEnabled.value
+		props.inputParamsMap[props.index][props.inputParam.name].edge_size_enabled = newValue
 	})
 }
 
@@ -220,6 +221,8 @@ if (props.inputParam.type === 'image-inpaint') {
 							imagePreviewModalOpen = true
 							// Reset previous masked image
 							imageInpaintWithMask = ''
+							// Reset the previous drawn mask and undo/redo history
+							imageInpaintMaskData = {}
 						}
 					}" />
 				<NuxtImg v-if="imagePreviewUrl !== ''"
@@ -255,6 +258,7 @@ if (props.inputParam.type === 'image-inpaint') {
 						ref="imageInpaint"
 						v-model:image-inpaint-with-mask="imageInpaintWithMask"
 						v-model:edge-size-enabled="imageInpaintEdgeSizeEnabled"
+						v-model:image-inpaint-mask-data="imageInpaintMaskData"
 						:edge-size="inputParam?.edge_size"
 						class="flex items-center justify-center w-full h-full p-4"
 						:image-src="imagePreviewUrl" />
