@@ -346,35 +346,43 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const input_params_mapped: any = {}
 			input_params.forEach(param => {
 				const paramName = Object.keys(param)[0]
-				if (param[paramName].type !== 'image' && param[paramName].value !== '')
+				if (!['image', 'image-inpaint'].includes(param[paramName].type) && param[paramName].value !== '')
 					input_params_mapped[paramName] = param[paramName].value
 			})
 			console.debug('input_params_mapped:', input_params_mapped)
 
 			formData.append('name', flow.name)
 			formData.append('count', count.toString())
-			formData.append('input_params', JSON.stringify(input_params_mapped))
 
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
-				return param[paramName].type === 'image'
+				return ['image', 'image-inpaint'].includes(param[paramName].type)
 					&& (param[paramName].value instanceof File || typeof param[paramName].value === 'string')
 			})
+
 			console.debug('file_input_params:', file_input_params)
 			if (file_input_params.length > 0) {
-				file_input_params.forEach(param => {
+				file_input_params.forEach((param: any) => {
 					const paramName = Object.keys(param)[0]
 					console.debug('file:', param[paramName].value)
 					formData.append('files', param[paramName].value)
+
+					if (param[paramName].type === 'image-inpaint'
+						&& param[paramName]?.edge_size_enabled === false) {
+						input_params_mapped['edge_size'] = 0
+						console.debug('edge_size disabled, setting edge_size to 0')
+					}
 				})
 			}
+			formData.append('input_params', JSON.stringify(input_params_mapped))
 
 			if (child_task) {
 				formData.append('child_task', '1')
 			}
 
 			console.debug('form_data:', formData)
+			// return // for debugging purposes
 
 			const { $apiFetch } = useNuxtApp()
 			const input_params_mapped_updated: any = {}
@@ -860,6 +868,7 @@ export interface FlowInputParam {
 	step?: number
 	source_input_name?: string
 	hidden: boolean
+	edge_size?: number
 }
 
 export interface FlowOutputParam {

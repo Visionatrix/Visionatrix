@@ -25,8 +25,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				advanced: input_param.advanced || false,
 			}
 		})
-	}
-	else if (input_param.type === 'number') {
+	} else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
 				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
@@ -35,14 +34,23 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				advanced: input_param.advanced || false,
 			}
 		})
-	}
-	else if (input_param.type === 'image') {
+	} else if (input_param.type === 'image') {
 		return ({
 			[input_param.name]: {
 				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || {},
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
+			}
+		})
+	} else if (input_param.type === 'image-inpaint') {
+		return ({
+			[input_param.name]: {
+				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || {},
+				type: input_param.type,
+				optional: input_param.optional,
+				advanced: input_param.advanced || false,
+				edge_size: input_param?.edge_size || 0,
 			}
 		})
 	} else if (input_param.type === 'list') {
@@ -123,10 +131,9 @@ defineExpose({
 	copyPromptInputs
 })
 
-
 inputParamsMap.value.forEach((inputParam: any) => {
 	const input_param_name = Object.keys(inputParam)[0]
-	if (inputParam[input_param_name].type !== 'image') {
+	if (!['image', 'image-inpaint'].includes(inputParam[input_param_name].type)) {
 		watch(() => inputParam[input_param_name].value, () => {
 			const input_params_map: any = {}
 			inputParamsMap.value.forEach((inputParam: any) => {
@@ -144,6 +151,40 @@ inputParamsMap.value.forEach((inputParam: any) => {
 const running = ref(false)
 const batchSize = ref(1)
 const collapsed = ref(false)
+
+const requiredInputParamsValid = computed(() => {
+	return inputParamsMap.value.every((inputParam: any) => {
+		const input_param_name = Object.keys(inputParam)[0]
+		if (inputParam[input_param_name].optional) {
+			return true
+		}
+
+		const input_param_value = inputParam[input_param_name].value
+
+		if (inputParam[input_param_name].type === 'text') {
+			return input_param_value !== ''
+		} else if (inputParam[input_param_name].type === 'number') {
+			return input_param_value >= inputParam[input_param_name].min
+				&& input_param_value <= inputParam[input_param_name].max
+		} else if (inputParam[input_param_name].type === 'list') {
+			return input_param_value !== ''
+				&& Object.keys(inputParam[input_param_name].options).includes(input_param_value)
+		} else if (inputParam[input_param_name].type === 'bool') {
+			return true
+		} else if (inputParam[input_param_name].type === 'range') {
+			return input_param_value >= inputParam[input_param_name].min
+				&& input_param_value <= inputParam[input_param_name].max
+		} else if (inputParam[input_param_name].type === 'range_scale') {
+			return input_param_value >= inputParam[input_param_name].min
+				&& input_param_value <= inputParam[input_param_name].max
+		} else if (inputParam[input_param_name].type === 'image') {
+			return input_param_value instanceof File && input_param_value.size > 0
+		} else if (inputParam[input_param_name].type === 'image-inpaint') {
+			return input_param_value instanceof File && input_param_value.size > 0
+				&& (inputParam[input_param_name]?.mask_applied || false)
+		}
+	})
+})
 </script>
 
 <template>
@@ -179,6 +220,7 @@ const collapsed = ref(false)
 				<UButton icon="i-heroicons-sparkles-16-solid"
 					variant="outline"
 					:loading="running"
+					:disabled="!requiredInputParamsValid"
 					@click="() => {
 						running = true
 						flowStore.runFlow(

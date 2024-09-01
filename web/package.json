@@ -16,8 +16,10 @@
   "dependencies": {
     "@img-comparison-slider/vue": "^8.0.0",
     "@nuxt/ui": "^2.18.4",
-    "pinia": "^2.2.1",
-    "vue": "^3.4.36",
+    "konva": "^9.3.14",
+    "pinia": "^2.2.2",
+    "vue": "^3.4.38",
+    "vue-konva": "^3.1.0",
     "vue-router": "^4.4.3"
   },
   "devDependencies": {

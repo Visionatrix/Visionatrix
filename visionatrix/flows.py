@@ -9,6 +9,7 @@ import shutil
 import time
 import typing
 import zipfile
+from base64 import b64decode
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlparse
@@ -236,7 +237,7 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
 def prepare_flow_comfy_files_params(
     flow: Flow, in_files_params: list[UploadFile | dict], task_id: int, task_details: dict, r: dict
 ) -> None:
-    files_params = [i for i in flow.input_params if i["type"] in ("image", "video")]
+    files_params = [i for i in flow.input_params if i["type"] in ("image", "image-inpaint", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
     if len(in_files_params) < min_required_files_count:
         raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
@@ -273,7 +274,14 @@ def prepare_flow_comfy_files_params(
         else:
             with builtins.open(result_path, mode="wb") as fp:
                 v.file.seek(0)
-                shutil.copyfileobj(v.file, fp)
+                start_of_file = v.file.read(30)
+                base64_index = start_of_file.find(b"base64,")
+                if base64_index != -1:
+                    v.file.seek(base64_index + len(b"base64,"))
+                    fp.write(b64decode(v.file.read()))
+                else:
+                    v.file.seek(0)
+                    shutil.copyfileobj(v.file, fp)
         task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
     for node_to_disconnect in files_params[len(in_files_params) :]:
         for node_id_to_disconnect in node_to_disconnect["comfy_node_id"]:
@@ -362,6 +370,8 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
     input_params = []
     for node_id, node_details in flow_comfy.items():
         class_type = str(node_details["class_type"])
+        image_inpaint = False
+        inpaint_edge_size = None
         if class_type.startswith("VixUi"):
             if node_details["class_type"] == "VixUiWorkflowMetadata":
                 continue
@@ -382,15 +392,26 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             for attribute in other_attributes:
                 if attribute.startswith("order="):
                     order = int(attribute[6:])
+                    break
             custom_id = ""
             for attribute in other_attributes:
                 if attribute.startswith("custom_id="):
                     custom_id = attribute[10:]
+                    break
             hidden_attribute = False
+            image_inpaint = bool("inpaint" in other_attributes)
+            if image_inpaint:
+                inpaint_edge_size = 0
+                for attribute in other_attributes:
+                    if attribute.startswith("edge_size="):
+                        inpaint_edge_size = int(attribute[10:])
+                        break
         else:
             continue
         try:
             input_type, input_path = comfyui_class_info.CLASS_INFO[node_details["class_type"]]
+            if image_inpaint is True and input_type == "image":
+                input_type = "image-inpaint"
         except KeyError as exc:
             raise ValueError(
                 f"Node with class_type={node_details['class_type']} is not currently supported as input"
@@ -407,6 +428,8 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             "comfy_node_id": {node_id: input_path},
             "hidden": hidden_attribute,
         }
+        if image_inpaint:
+            input_param_data["edge_size"] = inpaint_edge_size
         if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat", "VixUiRangeInt"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]

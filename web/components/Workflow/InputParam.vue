@@ -28,6 +28,9 @@ function createObjectUrl(file?: File) {
 const imageInput = ref(null)
 const imagePreviewUrl = ref('')
 const imagePreviewModalOpen = ref(false)
+const imageInpaintWithMask = ref('')
+const imageInpaintEdgeSizeEnabled = ref(true)
+const imageInpaintMaskData = ref({})
 
 const targetImageDimensions = ref({width: 0, height: 0})
 
@@ -125,6 +128,20 @@ onBeforeUnmount(() => {
 	}
 })
 
+if (props.inputParam.type === 'image-inpaint') {
+	watch(imageInpaintWithMask, (newImageInpaint) => {
+		// convert to File object
+		const imageInpaintWithMaskFile = new File([imageInpaintWithMask.value], 'image-inpaint-masked.png', { type: 'image/png' })
+		props.inputParamsMap[props.index][props.inputParam.name].value = imageInpaintWithMaskFile
+		// set and update mask_applied flag to current image-inpaint inputParam, required for validation
+		props.inputParamsMap[props.index][props.inputParam.name].mask_applied = newImageInpaint !== ''
+	})
+	watch(imageInpaintEdgeSizeEnabled, (newValue) => {
+		// set edge_size_enabled flag to current image-inpaint inputParam
+		props.inputParamsMap[props.index][props.inputParam.name].edge_size_enabled = newValue
+	})
+}
+
 </script>
 
 <template>
@@ -185,7 +202,8 @@ onBeforeUnmount(() => {
 					}" />
 			</template>
 
-			<div v-if="inputParam.type === 'image'" class="flex flex-row flex-grow items-center justify-between">
+			<div v-if="inputParam.type === 'image' || inputParam.type === 'image-inpaint'"
+				class="flex flex-row flex-grow items-center justify-between">
 				<UInput ref="imageInput"
 					type="file"
 					accept="image/*"
@@ -197,9 +215,17 @@ onBeforeUnmount(() => {
 						inputParamsMap[index][inputParam.name].value = file as File
 						imagePreviewUrl = createObjectUrl(file)
 						console.debug('inputParamsMap', inputParamsMap)
+						if (inputParam.type === 'image-inpaint') {
+							// Force open modal to draw the mask
+							imagePreviewModalOpen = true
+							// Reset previous masked image
+							imageInpaintWithMask = ''
+							// Reset the previous drawn mask and undo/redo history
+							imageInpaintMaskData = {}
+						}
 					}" />
 				<NuxtImg v-if="imagePreviewUrl !== ''"
-					:src="imagePreviewUrl"
+					:src="!imageInpaintWithMask ? imagePreviewUrl : imageInpaintWithMask"
 					class="w-10 h-10 rounded-lg cursor-pointer ml-2"
 					@click="() => {
 						imagePreviewModalOpen = true
@@ -210,22 +236,31 @@ onBeforeUnmount(() => {
 					class="ml-2"
 					@click="removeImagePreview" />
 			</div>
-			<template v-if="inputParam.type === 'image'">
+			<template v-if="inputParam.type === 'image' || inputParam.type === 'image-inpaint'">
 				<UModal v-model="imagePreviewModalOpen"
-					class="z-[90]"
+					class="z-[90] overflow-y-auto"
 					:transition="false"
 					fullscreen>
-					<UButton class="absolute top-4 right-4"
+					<UButton class="absolute top-4 right-4 z-[100]"
 						icon="i-heroicons-x-mark"
 						variant="ghost"
 						@click="() => imagePreviewModalOpen = false" />
-					<div class="flex items-center justify-center w-full h-full p-4"
+					<div v-if="inputParam.type === 'image'"
+						class="flex items-center justify-center w-full h-full p-4"
 						@click.left="() => imagePreviewModalOpen = false">
-						<NuxtImg v-if="imagePreviewUrl"
+						<NuxtImg 
 							class="lg:h-full"
 							fit="inside"
 							:src="imagePreviewUrl" />
 					</div>
+					<WorkflowImageInpaint v-else
+						ref="imageInpaint"
+						v-model:image-inpaint-with-mask="imageInpaintWithMask"
+						v-model:edge-size-enabled="imageInpaintEdgeSizeEnabled"
+						v-model:image-inpaint-mask-data="imageInpaintMaskData"
+						:edge-size="inputParam?.edge_size"
+						class="flex items-center justify-center w-full h-full p-4"
+						:image-src="imagePreviewUrl" />
 				</UModal>
 			</template>
 

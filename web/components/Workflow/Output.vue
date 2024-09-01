@@ -113,32 +113,33 @@ function buildResultInputParams(flowResult: FlowResult) {
 }
 
 function buildResultDropdownItems(flowResult: FlowResult) {
-	const taskDropdownItems = [
+	const taskDropdownItems: any[] = [
 		[{
 			label: 'Use params',
-			labelClass: 'text-cyan-500',
+			labelClass: 'text-cyan-500 text-sm',
 			icon: 'i-heroicons-document-duplicate-16-solid',
-			iconClass: 'bg-cyan-500',
+			iconClass: 'bg-cyan-500 h-4 w-4',
 			click: () => copyPromptInputs(flowResult),
 		}],
 		[{
-			label: 'Send to flow',
-			labelClass: 'text-violet-500',
-			icon: 'i-heroicons-arrow-uturn-up-solid',
-			iconClass: 'bg-violet-500',
-			click: () => {
-				handleSendToFlow(flowResult)
-			},
-			disabled: flowResult.outputs.length !== 1
-		}],
-		[{
 			label: 'Comfy flow',
-			labelClass: 'text-blue-500',
+			labelClass: 'text-blue-500 text-sm',
 			icon: 'i-heroicons-arrow-down-tray',
-			iconClass: 'bg-blue-500',
+			iconClass: 'bg-blue-500 h-4 w-4',
 			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
 		}]
 	]
+	if (flowResult.outputs.length === 1) {
+		taskDropdownItems.splice(1, 0, [{
+			label: 'Send to flow',
+			labelClass: 'text-violet-500 text-sm',
+			icon: 'i-heroicons-arrow-uturn-up-solid',
+			iconClass: 'bg-violet-500 h-4 w-4',
+			click: () => {
+				handleSendToFlow(flowResult)
+			},
+		}])
+	}
 	return taskDropdownItems
 }
 </script>
@@ -257,12 +258,12 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 						:ui="{
 							item: 'basis-full md:basis-1/2',
 							indicators: {
-								wrapper: 'relative bottom-0 mt-4'
+								wrapper: 'relative bottom-0 mt-4 md:hidden'
 							}
 						}"
 						:page="1"
 						indicators>
-						<div class="flex flex-col basis-full mx-2">
+						<div class="flex flex-col basis-full justify-between mx-2">
 							<WorkflowChildOutput
 								v-if="flowResult?.child_tasks
 									&& hasChildTaskByParentTaskNodeId(flowResult, item.index, item.node_id)"
@@ -283,6 +284,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 								class="mt-2 w-fit mx-auto"
 								icon="i-heroicons-arrow-uturn-up-solid"
 								color="violet"
+								size="xs"
 								variant="outline"
 								@click="() => {
 									handleSendToFlow(flowResult, item.index)
@@ -318,13 +320,17 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							color="red"
 							icon="i-heroicons-trash"
 							variant="outline"
+							size="xs"
 							@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
 							Delete
 						</UButton>
 						<UDropdown :items="buildResultDropdownItems(flowResult)"
 							mode="click"
 							:popper="{ placement: 'bottom-start' }">
-							<UButton color="white" icon="i-heroicons-ellipsis-vertical-16-solid" />
+							<UButton
+								color="white"
+								icon="i-heroicons-ellipsis-vertical-16-solid"
+								size="xs" />
 						</UDropdown>
 					</div>
 				</div>
