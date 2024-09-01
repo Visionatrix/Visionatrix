@@ -2,15 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0 - 2024-09-0x]
+## [1.1.0 - 2024-09-01]
 
 ### Added
 
-- New `--reserve-vram` and `--fast` commandline options from the last ComfyUI.
+- Basic `Inpaint` support. New Flux + ColorfulXL redraw workflows. #151
+- New `--reserve-vram` and `--fast` commandline options from the last ComfyUI. #148
 
 ### Fixed
 
-- Now for nodes like `ComfyUI_InstantID` or `ComfyUI-BRIA_AI-RMBG`, their required models are displayed in the flow models.
+- Now for nodes like `ComfyUI_InstantID` or `ComfyUI-BRIA_AI-RMBG`, their required models are displayed in the flow models. #149
 
 ### Changed
 
