@@ -337,12 +337,11 @@ onBeforeMount(() => {
 })
 
 onMounted(() => {
-	window.addEventListener('resize', updateStageDimensions)
+	// TODO: Add correct handling for window resize and canvas redraw
 	edgeSizeEnabled.value = Number(props.edgeSize) > 0
 })
 
 onBeforeUnmount(() => {
-	window.removeEventListener('resize', updateStageDimensions)
 	saveCanvasState()
 })
 </script>
