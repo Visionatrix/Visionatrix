@@ -137,7 +137,6 @@ if (props.inputParam.type === 'image-inpaint') {
 		props.inputParamsMap[props.index][props.inputParam.name].mask_applied = newImageInpaint !== ''
 	})
 	watch(imageInpaintEdgeSizeEnabled, (newValue) => {
-		console.debug('imageInpaintEdgeSizeEnabled changed to ', newValue)
 		// set edge_size_enabled flag to current image-inpaint inputParam
 		props.inputParamsMap[props.index][props.inputParam.name].edge_size_enabled = newValue
 	})

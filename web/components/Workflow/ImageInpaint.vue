@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
 				variant="soft"
 				:disabled="circles.length === 0 || imageInpaintWithMask !== ''"
 				@click="applyMask">
-				Apply mask
+				Apply
 			</UButton>
 			<UButton
 				class="mr-2"
@@ -417,7 +417,7 @@ onBeforeUnmount(() => {
 				:disabled="circles.length === 0 && imageInpaintWithMask === ''"
 				color="red"
 				@click="resetMask">
-				Reset mask
+				Reset
 			</UButton>
 			<UButton
 				size="xs"
