@@ -257,10 +257,7 @@ def install_graphics_card_packages():
             venv_run(pip_install + "torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.1")
     elif c == "nvidia":
         print("Installing packages for NVIDIA graphics card...")
-        if sys.platform.lower() == "win32":
-            venv_run(pip_install + "torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121")  # noqa
-        else:
-            venv_run(pip_install + "torch torchvision torchaudio")
+        venv_run(pip_install + "torch torchvision torchaudio")
     else:
         print("Skipping graphics card package installation.")
 
