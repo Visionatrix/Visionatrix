@@ -160,6 +160,7 @@ if (props.inputParam.type === 'image-inpaint') {
 				:resize="true"
 				:label="inputParam.display_name"
 				:value="inputParamsMap[index][inputParam.name].value"
+				autoresize
 				variant="outline" @input="(event: InputEvent) => {
 					const input = event.target as HTMLTextAreaElement
 					inputParamsMap[index][inputParam.name].value = input.value
