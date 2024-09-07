@@ -208,6 +208,8 @@ if (props.inputParam.type === 'image-inpaint') {
 					type="file"
 					accept="image/*"
 					class="w-full"
+					variant="outline"
+					color="gray"
 					:label="inputParam.display_name"
 					@change="(files: FileList) => {
 						console.debug('files', files)
@@ -226,7 +228,7 @@ if (props.inputParam.type === 'image-inpaint') {
 					}" />
 				<NuxtImg v-if="imagePreviewUrl !== ''"
 					:src="!imageInpaintWithMask ? imagePreviewUrl : imageInpaintWithMask"
-					class="w-10 h-10 rounded-lg cursor-pointer ml-2"
+					class="h-10 rounded-lg cursor-pointer ml-2"
 					@click="() => {
 						imagePreviewModalOpen = true
 					}" />
