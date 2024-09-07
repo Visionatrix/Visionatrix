@@ -237,7 +237,7 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
 def prepare_flow_comfy_files_params(
     flow: Flow, in_files_params: list[UploadFile | dict], task_id: int, task_details: dict, r: dict
 ) -> None:
-    files_params = [i for i in flow.input_params if i["type"] in ("image", "image-inpaint", "video")]
+    files_params = [i for i in flow.input_params if i["type"] in ("image", "image-mask", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
     if len(in_files_params) < min_required_files_count:
         raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")

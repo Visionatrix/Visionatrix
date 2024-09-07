@@ -64,10 +64,10 @@ async def get_not_installed() -> list[Flow]:
 
 
 @ROUTER.get("/subflows")
-async def get_subflows(input_type: typing.Literal["image", "image-inpaint", "video"]) -> list[Flow]:
+async def get_subflows(input_type: typing.Literal["image", "image-mask", "video"]) -> list[Flow]:
     """
     Retrieves a list of flows designed to post-process the results from other flows, filtering by the type
-    of input they handle, either 'image', 'image-inpaint' or 'video'. This endpoint is particularly useful for chaining
+    of input they handle, either 'image', 'image-mask' or 'video'. This endpoint is particularly useful for chaining
     workflows where the output of one flow becomes the input to another.
     It modifies the main flow's structure by adopting sub-flow's display name and selectively merging input parameters
     from the sub-flows into the main flow's parameters based on matching names.
