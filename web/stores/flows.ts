@@ -96,6 +96,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 	},
 	actions: {
 		async fetchFlows() {
+			this.loading.flows_available = true
+			this.loading.flows_installed = true
 			await Promise.all([
 				this.fetchFlowsAvailable(),
 				this.fetchFlowsInstalled(),
@@ -120,7 +122,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async fetchFlowsAvailable() {
 			const { $apiFetch } = useNuxtApp()
-			this.loading.flows_available = true
 			const flows = await $apiFetch('/flows/not-installed', {
 				method: 'GET',
 				timeout: 15000,
@@ -145,7 +146,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async fetchFlowsInstalled() {
 			const { $apiFetch } = useNuxtApp()
 			console.debug('fetching installed flows')
-			this.loading.flows_installed = true
 			const flows = await $apiFetch('/flows/installed', {
 				method: 'GET',
 				timeout: 15000,
@@ -318,9 +318,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				method: 'PUT',
 				body: formData,
 			}).then((res: any) => {
-				if (res && res.details === '') {
-					this.fetchFlows()
-				}
+				this.fetchFlows()
 				return res
 			})
 		},
