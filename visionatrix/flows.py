@@ -398,7 +398,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
                 if attribute.startswith("custom_id="):
                     custom_id = attribute[10:]
                     break
-            hidden_attribute = False
+            hidden_attribute = bool("hidden" in other_attributes)
             image_inpaint = bool("inpaint" in other_attributes)
             if image_inpaint:
                 inpaint_edge_size = 0
