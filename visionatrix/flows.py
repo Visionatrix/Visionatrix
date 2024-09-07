@@ -370,12 +370,12 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
     input_params = []
     for node_id, node_details in flow_comfy.items():
         class_type = str(node_details["class_type"])
-        image_inpaint = False
-        inpaint_edge_size = None
+        image_mask = False
         if class_type.startswith("VixUi"):
             if node_details["class_type"] == "VixUiWorkflowMetadata":
                 continue
             display_name = node_details["inputs"]["display_name"]
+            other_attributes = ()
             optional = node_details["inputs"]["optional"]
             advanced = node_details["inputs"]["advanced"]
             order = node_details["inputs"]["order"]
@@ -399,19 +399,13 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
                     custom_id = attribute[10:]
                     break
             hidden_attribute = bool("hidden" in other_attributes)
-            image_inpaint = bool("inpaint" in other_attributes)
-            if image_inpaint:
-                inpaint_edge_size = 0
-                for attribute in other_attributes:
-                    if attribute.startswith("edge_size="):
-                        inpaint_edge_size = int(attribute[10:])
-                        break
+            image_mask = bool("mask" in other_attributes)
         else:
             continue
         try:
             input_type, input_path = comfyui_class_info.CLASS_INFO[node_details["class_type"]]
-            if image_inpaint is True and input_type == "image":
-                input_type = "image-inpaint"
+            if image_mask is True and input_type == "image":
+                input_type = "image-mask"
         except KeyError as exc:
             raise ValueError(
                 f"Node with class_type={node_details['class_type']} is not currently supported as input"
@@ -428,8 +422,13 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             "comfy_node_id": {node_id: input_path},
             "hidden": hidden_attribute,
         }
-        if image_inpaint:
-            input_param_data["edge_size"] = inpaint_edge_size
+        if image_mask:
+            for attribute in other_attributes:
+                if attribute.startswith("source_input_name="):
+                    input_param_data["source_input_name"] = attribute[18:]
+                    break
+            if "source_input_name" not in input_param_data:
+                raise ValueError("`source_input_name` required for mask parameter.")
         if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat", "VixUiRangeInt"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]
