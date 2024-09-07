@@ -23,6 +23,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
+				default: input_param.default || '',
 			}
 		})
 	} else if (input_param.type === 'number') {
@@ -32,6 +33,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
+				default: input_param.default || 0,
 			}
 		})
 	} else if (input_param.type === 'image') {
@@ -61,6 +63,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				optional: input_param.optional,
 				options: input_param.options,
 				advanced: input_param.advanced || false,
+				default: Object.keys(input_param.options as object)[0] || '',
 			}
 		})
 	} else if (input_param.type === 'bool') {
@@ -70,6 +73,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
+				default: input_param.default || false,
 			}
 		})
 	} else if (['range', 'range_scale'].includes(input_param.type)) {
@@ -81,6 +85,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 			min: input_param.min || 0,
 			max: input_param.max || 100,
 			step: input_param.step || 1,
+			default: input_param.default || 0,
 		}
 		if (input_param.type === 'range_scale') {
 			param.source_input_name = input_param.source_input_name || null
@@ -147,6 +152,23 @@ inputParamsMap.value.forEach((inputParam: any) => {
 		})
 	}
 })
+
+function resetParamsToDefaults() {
+	inputParamsMap.value.forEach((inputParam: any) => {
+		const input_param_name = Object.keys(inputParam)[0]
+		if (inputParam[input_param_name].type === 'text') {
+			inputParam[input_param_name].value = inputParam[input_param_name].default || ''
+		} else if (inputParam[input_param_name].type === 'number') {
+			inputParam[input_param_name].value = inputParam[input_param_name].default || inputParam[input_param_name].min || 0
+		} else if (inputParam[input_param_name].type === 'list') {
+			inputParam[input_param_name].value = Object.keys(inputParam[input_param_name].options)[0] || ''
+		} else if (inputParam[input_param_name].type === 'bool') {
+			inputParam[input_param_name].value = inputParam[input_param_name].default || false
+		} else if (['range', 'range_scale'].includes(inputParam[input_param_name].type)) {
+			inputParam[input_param_name].value = inputParam[input_param_name].default || inputParam[input_param_name].min || 0
+		}
+	})
+}
 
 const running = ref(false)
 const batchSize = ref(1)
@@ -216,7 +238,16 @@ const requiredInputParamsValid = computed(() => {
 					label="Batch size"
 					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
-			<div class="flex justify-end px-2">
+			<div class="flex justify-between">
+				<UTooltip text="Reset input params values to defaults">
+					<UButton
+						icon="i-heroicons-arrow-path-rounded-square"
+						variant="ghost"
+						color="amber"
+						@click="resetParamsToDefaults">
+						Reset params
+					</UButton>
+				</UTooltip>
 				<UButton icon="i-heroicons-sparkles-16-solid"
 					variant="outline"
 					:loading="running"
