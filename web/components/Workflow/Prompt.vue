@@ -39,20 +39,20 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'image') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || {},
+				value: null,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
 			}
 		})
-	} else if (input_param.type === 'image-inpaint') {
+	} else if (input_param.type === 'image-mask') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || {},
+				value: null,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
-				edge_size: input_param?.edge_size || 0,
+				source_input_name: input_param.source_input_name || null,
 			}
 		})
 	} else if (input_param.type === 'list') {
@@ -138,7 +138,7 @@ defineExpose({
 
 inputParamsMap.value.forEach((inputParam: any) => {
 	const input_param_name = Object.keys(inputParam)[0]
-	if (!['image', 'image-inpaint'].includes(inputParam[input_param_name].type)) {
+	if (!['image', 'image-mask'].includes(inputParam[input_param_name].type)) {
 		watch(() => inputParam[input_param_name].value, () => {
 			const input_params_map: any = {}
 			inputParamsMap.value.forEach((inputParam: any) => {
@@ -201,7 +201,7 @@ const requiredInputParamsValid = computed(() => {
 				&& input_param_value <= inputParam[input_param_name].max
 		} else if (inputParam[input_param_name].type === 'image') {
 			return input_param_value instanceof File && input_param_value.size > 0
-		} else if (inputParam[input_param_name].type === 'image-inpaint') {
+		} else if (inputParam[input_param_name].type === 'image-mask') {
 			return input_param_value instanceof File && input_param_value.size > 0
 				&& (inputParam[input_param_name]?.mask_applied || false)
 		}

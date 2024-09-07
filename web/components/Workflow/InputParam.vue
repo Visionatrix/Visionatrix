@@ -20,23 +20,26 @@ const props = defineProps({
 	}
 })
 
-// eslint-disable-next-line
-function createObjectUrl(file?: File) {
-	return file ? URL.createObjectURL(file) : ''
-}
+const imagePreviewModalOpen = ref(false)
 
 const imageInput = ref(null)
 const imagePreviewUrl = ref('')
-const imagePreviewModalOpen = ref(false)
-const imageInpaintWithMask = ref('')
-const imageInpaintEdgeSizeEnabled = ref(true)
-const imageInpaintMaskData = ref({})
-
 const targetImageDimensions = ref({width: 0, height: 0})
+
+// for image-mask type
+const imageInpaintMask = ref('')
+const imageInpaintMaskData = ref({})
+const sourceImageInput = ref(null)
+const sourceInputParamName = props.inputParamsMap[props.index][props.inputParam.name].source_input_name
+const sourceInputImageParamIndex = props.inputParamsMap.findIndex((inputParam: any) => {
+	const key = Object.keys(inputParam)[0]
+	if (key === props.inputParamsMap[props.index][props.inputParam.name].source_input_name) {
+		return true
+	}
+})
 
 function loadTargetImageDimensions() {
 	try {
-		const sourceInputParamName = props.inputParamsMap[props.index][props.inputParam.name].source_input_name
 		const sourceImageParam: any = props.inputParamsMap.find((inputParam: any) => {
 			const key = Object.keys(inputParam)[0]
 			if (key === sourceInputParamName) {
@@ -54,12 +57,26 @@ onMounted(() => {
 	if (props.inputParam.type === 'range_scale') {
 		loadTargetImageDimensions()
 	}
+	if (props.inputParam.type === 'image-mask') {
+		watch(imageInpaintMask, (newImageInpaint) => {
+			// convert to File object
+			const imageInpaintMaskFile = new File([imageInpaintMask.value], `image-mask-${props.inputParam.name}.png`, { type: 'image/png' })
+			props.inputParamsMap[props.index][props.inputParam.name].value = imageInpaintMaskFile
+			// set and update mask_applied flag to current image-mask inputParam, required for validation
+			props.inputParamsMap[props.index][props.inputParam.name].mask_applied = newImageInpaint !== ''
+		})
+	}
 })
 
 if (props.inputParam.type === 'range_scale') {
 	watch(props.inputParamsMap, () => {
 		loadTargetImageDimensions()
 	})
+}
+
+// eslint-disable-next-line
+function createObjectUrl(file?: File) {
+	return file ? URL.createObjectURL(file) : ''
 }
 
 function removeImagePreview() {
@@ -70,6 +87,15 @@ function removeImagePreview() {
 		imageInput.value.$refs.input.value = ''
 	}
 	props.inputParamsMap[props.index][props.inputParam.name].value = null
+	props.inputParamsMap[props.index][props.inputParam.name].image_preview_url = ''
+}
+
+function resetImageMask() {
+	URL.revokeObjectURL(imageInpaintMask.value)
+	imageInpaintMask.value = ''
+	imageInpaintMaskData.value = {}
+	props.inputParamsMap[props.index][props.inputParam.name].value = null
+	props.inputParamsMap[props.index][props.inputParam.name].mask_applied = false
 }
 
 const formGroupLabel = computed(() => {
@@ -100,10 +126,6 @@ const formGroupHelp = computed(() => {
 	return ['range', 'range_scale'].includes(props.inputParam.type) ? `value: ${props.inputParamsMap[props.index][props.inputParam.name].value}` : ''
 })
 
-onBeforeUnmount(() => {
-	URL.revokeObjectURL(imagePreviewUrl.value)
-})
-
 const textareaInput = ref(null)
 
 function editAttentionListener(event: any) {
@@ -119,29 +141,26 @@ onMounted(() => {
 		// @ts-ignore
 		textareaInput.value.$refs.textarea.addEventListener('keydown', editAttentionListener)
 	}
+	if (props.inputParam.type === 'image-mask') {
+		sourceImageInput.value = props.inputParamsMap[sourceInputImageParamIndex][sourceInputParamName]
+		watch(props.inputParamsMap[sourceInputImageParamIndex][sourceInputParamName], (newSourceImageInput) => {
+			// Reset the mask on source image change
+			imageInpaintMask.value = ''
+			imageInpaintMaskData.value = {}
+			sourceImageInput.value = newSourceImageInput
+		})
+	}
 })
 
 onBeforeUnmount(() => {
+	URL.revokeObjectURL(imagePreviewUrl.value)
+	URL.revokeObjectURL(imageInpaintMask.value)
+
 	if (props.inputParam.type === 'text' && textareaInput.value) {
 		// @ts-ignore
 		textareaInput.value.$refs.textarea.removeEventListener('keydown', editAttentionListener)
 	}
 })
-
-if (props.inputParam.type === 'image-inpaint') {
-	watch(imageInpaintWithMask, (newImageInpaint) => {
-		// convert to File object
-		const imageInpaintWithMaskFile = new File([imageInpaintWithMask.value], 'image-inpaint-masked.png', { type: 'image/png' })
-		props.inputParamsMap[props.index][props.inputParam.name].value = imageInpaintWithMaskFile
-		// set and update mask_applied flag to current image-inpaint inputParam, required for validation
-		props.inputParamsMap[props.index][props.inputParam.name].mask_applied = newImageInpaint !== ''
-	})
-	watch(imageInpaintEdgeSizeEnabled, (newValue) => {
-		// set edge_size_enabled flag to current image-inpaint inputParam
-		props.inputParamsMap[props.index][props.inputParam.name].edge_size_enabled = newValue
-	})
-}
-
 </script>
 
 <template>
@@ -203,7 +222,7 @@ if (props.inputParam.type === 'image-inpaint') {
 					}" />
 			</template>
 
-			<div v-if="inputParam.type === 'image' || inputParam.type === 'image-inpaint'"
+			<div v-if="inputParam.type === 'image'"
 				class="flex flex-row flex-grow items-center justify-between">
 				<UInput ref="imageInput"
 					type="file"
@@ -217,18 +236,12 @@ if (props.inputParam.type === 'image-inpaint') {
 						const file = files?.[0]
 						inputParamsMap[index][inputParam.name].value = file as File
 						imagePreviewUrl = createObjectUrl(file)
+						// set the preview url to the inputParamsMap so that it can be used in the image-mask inputParam
+						inputParamsMap[index][inputParam.name].image_preview_url = imagePreviewUrl
 						console.debug('inputParamsMap', inputParamsMap)
-						if (inputParam.type === 'image-inpaint') {
-							// Force open modal to draw the mask
-							imagePreviewModalOpen = true
-							// Reset previous masked image
-							imageInpaintWithMask = ''
-							// Reset the previous drawn mask and undo/redo history
-							imageInpaintMaskData = {}
-						}
 					}" />
 				<NuxtImg v-if="imagePreviewUrl !== ''"
-					:src="!imageInpaintWithMask ? imagePreviewUrl : imageInpaintWithMask"
+					:src="!imageInpaintMask ? imagePreviewUrl : imageInpaintMask"
 					class="h-10 rounded-lg cursor-pointer ml-2"
 					@click="() => {
 						imagePreviewModalOpen = true
@@ -239,7 +252,48 @@ if (props.inputParam.type === 'image-inpaint') {
 					class="ml-2"
 					@click="removeImagePreview" />
 			</div>
-			<template v-if="inputParam.type === 'image' || inputParam.type === 'image-inpaint'">
+
+			<div v-if="inputParam.type === 'image-mask'"
+				class="flex flex-row flex-grow items-center">
+				<UButton v-if="sourceImageInput"
+					icon="i-heroicons-paint-brush-16-solid"
+					class="mr-2"
+					color="violet"
+					variant="outline"
+					size="xs"
+					:disabled="!sourceImageInput?.value"
+					@click="() => {
+						imagePreviewModalOpen = true
+					}">
+					<span class="sm:inline">{{ imageInpaintMask !== '' ? 'Edit mask' : 'Draw mask' }}</span>
+				</UButton>
+				<div class="preview-over-original relative">
+					<NuxtImg v-if="sourceImageInput && sourceImageInput?.value"
+						:src="sourceImageInput?.image_preview_url"
+						class="h-10 rounded-lg cursor-pointer"
+						:class="{ absolute: imageInpaintMask !== '' }"
+						@click="() => {
+							imagePreviewModalOpen = true
+						}" />
+					<NuxtImg v-if="imageInpaintMask"
+						:src="imageInpaintMask"
+						class="h-10 rounded-lg cursor-pointer opacity-50"
+						@click="() => {
+							imagePreviewModalOpen = true
+						}" />
+				</div>
+				<span v-if="!sourceImageInput || (sourceImageInput && !sourceImageInput?.value)"
+					class="text-red-300 text-sm">
+					Select source image
+				</span>
+				<UButton v-if="imageInpaintMask"
+					icon="i-heroicons-x-mark"
+					variant="outline"
+					color="violet"
+					class="ml-2"
+					@click="resetImageMask" />
+			</div>
+			<template v-if="inputParam.type === 'image' || inputParam.type === 'image-mask'">
 				<UModal v-model="imagePreviewModalOpen"
 					class="z-[90] overflow-y-auto"
 					:transition="false"
@@ -258,12 +312,10 @@ if (props.inputParam.type === 'image-inpaint') {
 					</div>
 					<WorkflowImageInpaint v-else
 						ref="imageInpaint"
-						v-model:image-inpaint-with-mask="imageInpaintWithMask"
-						v-model:edge-size-enabled="imageInpaintEdgeSizeEnabled"
+						v-model:image-inpaint-mask="imageInpaintMask"
 						v-model:image-inpaint-mask-data="imageInpaintMaskData"
-						:edge-size="inputParam?.edge_size"
 						class="flex items-center justify-center w-full h-full p-4"
-						:image-src="imagePreviewUrl" />
+						:image-src="sourceImageInput?.image_preview_url" />
 				</UModal>
 			</template>
 

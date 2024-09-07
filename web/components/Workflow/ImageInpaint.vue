@@ -10,8 +10,7 @@ const props = defineProps({
 	},
 })
 
-const imageInpaintWithMask = defineModel('imageInpaintWithMask', { default: '', type: String })
-const edgeSizeEnabled = defineModel('edgeSizeEnabled', { default: true, type: Boolean })
+const imageInpaintMask = defineModel('imageInpaintMask', { default: '', type: String })
 const imageInpaintMaskData = defineModel('imageInpaintMaskData', { default: {}, type: Object })
 
 const flowsStore = useFlowsStore()
@@ -37,7 +36,6 @@ const hoverCircle = ref({
 	strokeWidth: 0,
 	visible: false,
 })
-const isWithinBounds = ref(false)
 const minDistance = ref(5)
 const isDrawing = ref(false)
 
@@ -45,31 +43,18 @@ const undoStack = ref<Array<Array<any>>>([])
 const redoStack = ref<Array<Array<any>>>([])
 
 function applyMask() {
-	if (!stageRef.value || !imageLayerRef.value || !maskLayerRef.value) {
+	if (!stageRef.value || !maskLayerRef.value) {
 		console.error('Could not get stage, image layer, or mask layer')
 		return
 	}
 
 	const stage = stageRef.value.getNode()
 
-	// Ensure off-screen canvas matches the original image dimensions
-	const imageWidth = image.value.width
-	const imageHeight = image.value.height
+	// Get the original image dimensions
+	const imageWidth = image.value ? image.value.width : stage.width()
+	const imageHeight = image.value ? image.value.height : stage.height()
 
-	// Create an off-screen canvas with the same dimensions as the original image
-	const offCanvas = document.createElement('canvas')
-	offCanvas.width = imageWidth
-	offCanvas.height = imageHeight
-	const offCtx = offCanvas.getContext('2d')
-	if (!offCtx) {
-		console.error('Could not get 2d context for off-canvas')
-		return
-	}
-
-	// Draw the original image onto the off-screen canvas at full size
-	offCtx.drawImage(image.value, 0, 0, imageWidth, imageHeight)
-
-	// Create a separate canvas for the mask
+	// Create a canvas for the mask
 	const maskCanvas = document.createElement('canvas')
 	maskCanvas.width = imageWidth
 	maskCanvas.height = imageHeight
@@ -79,41 +64,34 @@ function applyMask() {
 		return
 	}
 
+	// Fill the canvas with black background
+	maskCtx.fillStyle = 'black'
+	maskCtx.fillRect(0, 0, imageWidth, imageHeight)
+
 	// Scale the circles to match the image dimensions, then draw them on the mask canvas
 	const scaleX = imageWidth / stage.width()
 	const scaleY = imageHeight / stage.height()
 
-	maskCtx.fillStyle = 'rgba(255, 255, 255, 1)'
-	maskCtx.fillRect(0, 0, imageWidth, imageHeight)
-	maskCtx.fillStyle = 'rgba(0, 0, 0, 1)'
+	maskCtx.fillStyle = 'white'
 	circles.value.forEach((circle: any) => {
 		maskCtx.beginPath()
-		maskCtx.arc(circle.x * scaleX, circle.y * scaleY, circle.radius * Math.max(scaleX, scaleY), 0, Math.PI * 2, true)
+		maskCtx.arc(
+			circle.x * scaleX,
+			circle.y * scaleY,
+			circle.radius * Math.max(scaleX, scaleY),
+			0,
+			Math.PI * 2,
+			true
+		)
 		maskCtx.closePath()
 		maskCtx.fill()
 	})
 
-	// Get image data
-	const imageData = offCtx.getImageData(0, 0, imageWidth, imageHeight)
-	const maskData = maskCtx.getImageData(0, 0, imageWidth, imageHeight)
-
-	// Apply the mask
-	for (let i = 0; i < imageData.data.length; i += 4) {
-		// If the mask pixel is black (masked area)
-		if (maskData.data[i] === 0) {
-			// Set alpha to 64 so that browser doesn't optimize it away
-			imageData.data[i + 3] = 64
-		}
-	}
-
-	// Put the modified image data back
-	offCtx.putImageData(imageData, 0, 0)
-
 	// Generate the final image with the applied mask
-	const uri = offCanvas.toDataURL('image/png', 1.0)
-	if (uri) {
+	const maskUri = maskCanvas.toDataURL('image/png', 1.0)
+	if (maskUri) {
 		saveCanvasState()
-		imageInpaintWithMask.value = uri
+		imageInpaintMask.value = maskUri
 		hoverCircle.value.visible = false
 		isDrawing.value = false
 	} else {
@@ -133,20 +111,6 @@ function startDrawing(e: any) {
 }
 
 function createCircle(pos: any) {
-	// Check if the position is within the edgeSize boundary
-	if (props.edgeSize > 0 && edgeSizeEnabled.value) {
-		const stage = stageRef.value.getNode()
-		const scaleX = stage.width() / image.value.width
-		const scaleY = stage.height() / image.value.height
-		const edgeSizeX = props.edgeSize * scaleX
-		const edgeSizeY = props.edgeSize * scaleY
-
-		if (pos.x < edgeSizeX + brushRadius.value || pos.x > stage.width() - edgeSizeX - brushRadius.value ||
-			pos.y < edgeSizeY + brushRadius.value || pos.y > stage.height() - edgeSizeY - brushRadius.value) {
-			return // Don't create circle if outside the edgeSize boundary
-		}
-	}
-
 	const newCircle = {
 		x: pos.x,
 		y: pos.y,
@@ -229,13 +193,13 @@ function finishDrawing() {
 
 function editMask() {
 	// reset applied image to revert back to drawing from the previous state
-	imageInpaintWithMask.value = ''
+	imageInpaintMask.value = ''
 }
 
 function resetMask() {
 	saveState()
 	circles.value = []
-	imageInpaintWithMask.value = ''
+	imageInpaintMask.value = ''
 }
 
 const canUndo = computed(() => undoStack.value.length > 0)
@@ -245,21 +209,6 @@ function moveHoverCircle(e: MouseEvent | any) {
 	const pos = e.target.getStage().getPointerPosition()
 	hoverCircle.value.x = pos.x
 	hoverCircle.value.y = pos.y
-
-	if (props.edgeSize > 0 && edgeSizeEnabled.value) {
-		const stage = stageRef.value.getNode()
-		const scaleX = stage.width() / image.value.width
-		const scaleY = stage.height() / image.value.height
-		const edgeSizeX = props.edgeSize * scaleX
-		const edgeSizeY = props.edgeSize * scaleY
-
-		isWithinBounds.value = pos.x >= edgeSizeX + brushRadius.value && pos.x <= stage.width() - edgeSizeX - brushRadius.value &&
-			pos.y >= edgeSizeY + brushRadius.value && pos.y <= stage.height() - edgeSizeY - brushRadius.value
-	} else {
-		isWithinBounds.value = true
-	}
-
-	hoverCircle.value.fill = isWithinBounds.value ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 0, 0, 0.3)'
 }
 
 function hideHoverCircle() {
@@ -337,8 +286,15 @@ onBeforeMount(() => {
 })
 
 onMounted(() => {
-	// TODO: Add correct handling for window resize and canvas redraw
-	edgeSizeEnabled.value = Number(props.edgeSize) > 0
+	// TODO :set touch event listeners to drawing canvas layer
+	// if (stageRef.value) {
+	// 	const stage = stageRef.value.getNode()
+	// 	stage.on('touchstart', startDrawing)
+	// 	stage.on('touchmove', drawMultipleCircles)
+	// 	stage.on('touchend', finishDrawing)
+	// 	stage.on('touchleave', hideHoverCircle)
+	// 	stage.on('touchenter', showHoverCircle)
+	// }
 })
 
 onBeforeUnmount(() => {
@@ -347,17 +303,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<div class="image-inpaint flex flex-col w-full">
+	<div class="image-mask flex flex-col w-full">
 		<div class="canvas flex flex-col items-center justify-center mb-3 w-full">
 			<p class="text-sm my-2 text-slate-500">Select the target area for image inpaint</p>
-			<NuxtImg v-if="imageInpaintWithMask !== ''"
+			<NuxtImg v-if="imageInpaintMask !== ''"
 				class="lg:h-full"
 				fit="inside"
 				:width="stageConfig.width"
 				:height="stageConfig.height"
 				draggable="false"
-				:src="imageInpaintWithMask" />
-			<v-stage v-if="imageInpaintWithMask === ''"
+				:src="imageInpaintMask" />
+			<v-stage v-if="imageInpaintMask === ''"
 				ref="stageRef"
 				:config="stageConfig"
 				@mousedown="startDrawing"
@@ -388,7 +344,7 @@ onBeforeUnmount(() => {
 				size="xs"
 				icon="i-heroicons-clipboard-document-check-16-solid"
 				variant="soft"
-				:disabled="circles.length === 0 || imageInpaintWithMask !== ''"
+				:disabled="circles.length === 0 || imageInpaintMask !== ''"
 				@click="applyMask">
 				Apply
 			</UButton>
@@ -398,7 +354,7 @@ onBeforeUnmount(() => {
 				icon="i-heroicons-arrow-uturn-left-16-solid"
 				variant="soft"
 				color="cyan"
-				:disabled="!canUndo || imageInpaintWithMask !== ''"
+				:disabled="!canUndo || imageInpaintMask !== ''"
 				@click="undo" />
 			<UButton
 				class="mr-2"
@@ -406,14 +362,14 @@ onBeforeUnmount(() => {
 				icon="i-heroicons-arrow-uturn-right-16-solid"
 				variant="soft"
 				color="cyan"
-				:disabled="!canRedo || imageInpaintWithMask !== ''"
+				:disabled="!canRedo || imageInpaintMask !== ''"
 				@click="redo" />
 			<UButton
 				class="mr-2"
 				size="xs"
 				icon="i-heroicons-arrow-turn-up-left-20-solid"
 				variant="soft"
-				:disabled="circles.length === 0 && imageInpaintWithMask === ''"
+				:disabled="circles.length === 0 && imageInpaintMask === ''"
 				color="red"
 				@click="resetMask">
 				Reset
@@ -422,17 +378,13 @@ onBeforeUnmount(() => {
 				size="xs"
 				icon="i-heroicons-pencil-solid"
 				variant="soft"
-				:disabled="imageInpaintWithMask === ''"
+				:disabled="imageInpaintMask === ''"
 				color="orange"
 				@click="editMask">
 				Edit
 			</UButton>
 		</div>
 		<div class="options w-full max-w-[320px]">
-			<UCheckbox 
-				v-model="edgeSizeEnabled"
-				class="my-2 text-xm"
-				:label="`Edge size ${edgeSizeEnabled ? 'enabled' + ' (' + edgeSize + 'px)' : 'disabled'}`" />
 			<UFormGroup
 				class="mb-3 text-sm"
 				:hint="`value: ${ brushRadius }`"
@@ -443,7 +395,7 @@ onBeforeUnmount(() => {
 					:max="100"
 					size="sm"
 					class="my-2"
-					:disabled="imageInpaintWithMask !== ''" />
+					:disabled="imageInpaintMask !== ''" />
 			</UFormGroup>
 		</div>
 	</div>
