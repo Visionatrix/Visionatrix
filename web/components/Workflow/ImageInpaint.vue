@@ -99,11 +99,24 @@ function applyMask() {
 	}
 }
 
-function startDrawing(e: any) {
+function getTargetPos(e: MouseEvent | TouchEvent | any) {
+	const stage = stageRef.value.getNode()
+	if (e.type.startsWith('touch')) {
+		const touch = e.evt.touches[0] || e.evt.changedTouches[0]
+		return {
+			x: touch.clientX - stage.getContainer().offsetLeft,
+			y: touch.clientY - stage.getContainer().offsetTop
+		}
+	}
+	return stage.getPointerPosition()
+}
+
+function startDrawing(e: MouseEvent | TouchEvent | any) {
 	// start drawing only on left mouse button click
-	if (e.evt.button !== 0) return
+	if (e.type === 'mousedown' && e.evt.button !== 0) return
+
 	isDrawing.value = true
-	lastPosition.value = e.target.getStage().getPointerPosition()
+	lastPosition.value = getTargetPos(e)
 
 	saveState() // Save the current state before drawing
 
@@ -134,14 +147,19 @@ function calculateDistance(pos1: any, pos2: any) {
 	)
 }
 
-function drawMultipleCircles(e: MouseEvent | any) {
+function drawMultipleCircles(e: MouseEvent | TouchEvent | any) {
+	// Prevent default behavior for touch events to avoid scrolling
+	if (e.type.startsWith('touch')) {
+		e.evt.preventDefault()
+	}
+
 	// Update hover circle position
 	moveHoverCircle(e)
 
 	if (!isDrawing.value) return
 
-	const pos = e.target.getStage().getPointerPosition()
-	const distance = calculateDistance(lastPosition.value, pos)
+	const pos = getTargetPos(e)
+	const distance = calculateDistance(lastPosition.value, getTargetPos(e))
 
 	// Check if the mouse moved enough to create a new circle
 	if (distance >= minDistance.value) {
@@ -205,8 +223,8 @@ function resetMask() {
 const canUndo = computed(() => undoStack.value.length > 0)
 const canRedo = computed(() => redoStack.value.length > 0)
 
-function moveHoverCircle(e: MouseEvent | any) {
-	const pos = e.target.getStage().getPointerPosition()
+function moveHoverCircle(e: MouseEvent | TouchEvent | any) {
+	const pos = getTargetPos(e)
 	hoverCircle.value.x = pos.x
 	hoverCircle.value.y = pos.y
 }
@@ -286,18 +304,25 @@ onBeforeMount(() => {
 })
 
 onMounted(() => {
-	// TODO :set touch event listeners to drawing canvas layer
-	// if (stageRef.value) {
-	// 	const stage = stageRef.value.getNode()
-	// 	stage.on('touchstart', startDrawing)
-	// 	stage.on('touchmove', drawMultipleCircles)
-	// 	stage.on('touchend', finishDrawing)
-	// 	stage.on('touchleave', hideHoverCircle)
-	// 	stage.on('touchenter', showHoverCircle)
-	// }
+	if (stageRef.value) {
+		const stage = stageRef.value.getNode()
+		stage.on('touchstart', startDrawing)
+		stage.on('touchmove', drawMultipleCircles)
+		stage.on('touchend', finishDrawing)
+		stage.on('touchcancel', hideHoverCircle)
+	}
 })
 
 onBeforeUnmount(() => {
+	if (stageRef.value) {
+		const stage = stageRef.value.getNode()
+
+		stage.off('touchstart')
+		stage.off('touchmove')
+		stage.off('touchend')
+		stage.off('touchcancel')
+	}
+
 	saveCanvasState()
 })
 </script>
