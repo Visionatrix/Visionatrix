@@ -116,3 +116,10 @@ def get_models_catalog() -> dict[str, dict]:
             with builtins.open(options.MODELS_CATALOG_URL, encoding="UTF-8") as models_catalog_file:
                 MODELS_CATALOG.update(json.loads(models_catalog_file.read()))
     return MODELS_CATALOG
+
+
+def get_formatted_models_catalog() -> list[AIResourceModel]:
+    r = []
+    for model, model_details in get_models_catalog().items():
+        r.append(AIResourceModel(**model_details, name=model))
+    return r

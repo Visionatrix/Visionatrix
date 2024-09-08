@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import comfyui, database, install, options, run_vix, update
 from .flows import get_available_flows, get_vix_flow, install_custom_flow
+from .orphan_models import process_orphan_models
 
 
 def get_log_level(log_level_str):
@@ -57,6 +58,7 @@ if __name__ == "__main__":
         ("run", "Starts the ComfyUI and Visionatrix backends"),
         ("install-flow", "Install flow by name or from file"),
         ("create-user", "Create new user"),
+        ("orphan-models", "Remove orphan models"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
         if i[0] == "create-user":
@@ -67,6 +69,19 @@ if __name__ == "__main__":
             subparser.add_argument("--admin", type=bool, help="Should user be admin", default=True)
             subparser.add_argument("--disabled", type=bool, help="Should account be disabled", default=False)
             continue
+
+        if i[0] == "orphan-models":
+            subparser.add_argument(
+                "--no-confirm", action="store_true", help="Do not ask for confirmation for each model"
+            )
+            subparser.add_argument(
+                "--dry-run", action="store_true", help="Perform cleaning without actual removing models"
+            )
+            subparser.add_argument(
+                "--include-useful-models",
+                action="store_true",
+                help="Include orphaned models that can be used in future flows for removal.",
+            )
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
@@ -156,6 +171,9 @@ if __name__ == "__main__":
                 logging.getLogger("visionatrix").error("Can not find the specific flow: %s", args.name)
                 sys.exit(2)
         install_custom_flow(flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=__progress_callback)
+    elif args.command == "orphan-models":
+        comfyui.load(None)
+        process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
     else:
         logging.getLogger("visionatrix").error("Unknown command: '%s'", args.command)
         sys.exit(2)
