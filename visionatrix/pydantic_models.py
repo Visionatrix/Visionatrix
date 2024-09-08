@@ -49,6 +49,12 @@ class AIResourceModel(BaseModel):
     )
     gated: bool = Field(False, description="Flag showing is the model closed to public access")
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, AIResourceModel) and self.name == other.name
+
 
 class Flow(BaseModel):
     """
@@ -81,6 +87,12 @@ class Flow(BaseModel):
     is_count_supported: bool = Field(
         True, description="Flag determining if 'Number of images' input will be displayed in the UI."
     )
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, AIResourceModel) and self.name == other.name
 
 
 class FlowProgressInstall(BaseModel):
@@ -229,3 +241,18 @@ class UserInfo(BaseModel):
     full_name: str = Field("", description="Full name of the user.")
     email: str = Field("", description="Email name of the user.")
     is_admin: bool = Field(False, description="Flag showing is user is admin.")
+
+
+class OrphanModel(BaseModel):
+    """
+    Represents an orphaned model file that is not associated with any currently installed flow.
+
+    This model provides detailed information about the orphaned file, including its
+    size, potential usage in flows, and any matching AIResourceModel, if available.
+    """
+
+    path: str = Field(..., description="The relative path of the orphaned model file within 'models_dir' directory.")
+    size: float = Field(..., description="Size of the orphaned file in megabytes.")
+    creation_time: float = Field(..., description="The file's creation time in UNIX timestamp format.")
+    res_model: AIResourceModel | None = Field(None, description="AIResourceModel describing the file, if any matches.")
+    possible_flows: list[Flow] = Field([], description="List of possible flows that could potentially use this model.")
