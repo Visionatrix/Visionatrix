@@ -153,6 +153,19 @@ inputParamsMap.value.forEach((inputParam: any) => {
 	}
 })
 
+const showResetParams: boolean = computed(() => {
+	return inputParamsMap.value
+		.filter((inputParam: any) => {
+			// do not include file inputs
+			const input_param_name = Object.keys(inputParam)[0]
+			return !['image', 'image-mask'].includes(inputParam[input_param_name].type)
+		})
+		.some((inputParam: any) => {
+			const input_param_name = Object.keys(inputParam)[0]
+			return inputParam[input_param_name].value !== inputParam[input_param_name].default
+		})
+})
+
 function resetParamsToDefaults() {
 	inputParamsMap.value.forEach((inputParam: any) => {
 		const input_param_name = Object.keys(inputParam)[0]
@@ -238,8 +251,8 @@ const requiredInputParamsValid = computed(() => {
 					label="Batch size"
 					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
-			<div class="flex justify-between">
-				<UTooltip text="Reset input params values to defaults">
+			<div class="flex" :class="{ 'justify-between': showResetParams, 'justify-end': !showResetParams }">
+				<UTooltip v-if="showResetParams" text="Reset input params values to defaults">
 					<UButton
 						icon="i-heroicons-arrow-path-rounded-square"
 						variant="ghost"
