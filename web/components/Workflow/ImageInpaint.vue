@@ -4,10 +4,6 @@ const props = defineProps({
 		type: String,
 		required: true,
 	},
-	edgeSize: {
-		type: Number,
-		default: 0,
-	},
 })
 
 const imageInpaintMask = defineModel('imageInpaintMask', { default: '', type: String })
