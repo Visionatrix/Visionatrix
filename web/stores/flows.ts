@@ -367,7 +367,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
 				return ['image', 'image-mask'].includes(param[paramName].type)
-					&& (param[paramName].value instanceof File || typeof param[paramName].value === 'string')
+					&& ((param[paramName].value instanceof File && param[paramName].value.size > 0) 
+						|| (typeof param[paramName].value === 'string' && param[paramName].value !== ''))
 			})
 
 			console.debug('file_input_params:', file_input_params)
