@@ -306,13 +306,28 @@ onBeforeUnmount(() => {
 	<div class="image-mask flex flex-col w-full">
 		<div class="canvas flex flex-col items-center justify-center mb-3 w-full">
 			<p class="text-sm my-2 text-slate-500">Select the target area for image inpaint</p>
-			<NuxtImg v-if="imageInpaintMask !== ''"
-				class="lg:h-full"
-				fit="inside"
-				:width="stageConfig.width"
-				:height="stageConfig.height"
-				draggable="false"
-				:src="imageInpaintMask" />
+			<div class="preview-over-original relative">
+				<NuxtImg v-if="imageSrc && imageSrc !== '' && imageInpaintMask !== ''"
+					:src="imageSrc"
+					fit="inside"
+					:width="stageConfig.width"
+					:height="stageConfig.height"
+					draggable="false"
+					:class="{ absolute: imageInpaintMask !== '' }"
+					@click="() => {
+						imagePreviewModalOpen = true
+					}" />
+				<NuxtImg v-if="imageInpaintMask"
+					:src="imageInpaintMask"
+					fit="inside"
+					:width="stageConfig.width"
+					:height="stageConfig.height"
+					draggable="false"
+					class="opacity-50"
+					@click="() => {
+						imagePreviewModalOpen = true
+					}" />
+			</div>
 			<v-stage v-if="imageInpaintMask === ''"
 				ref="stageRef"
 				:config="stageConfig"
