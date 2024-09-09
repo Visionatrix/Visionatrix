@@ -63,7 +63,7 @@
           "flows"
         ],
         "summary": "Get Subflows",
-        "description": "Retrieves a list of flows designed to post-process the results from other flows, filtering by the type\nof input they handle, either 'image', 'image-mask' or 'video'. This endpoint is particularly useful for chaining\nworkflows where the output of one flow becomes the input to another.\nIt modifies the main flow's structure by adopting sub-flow's display name and selectively merging input parameters\nfrom the sub-flows into the main flow's parameters based on matching names.",
+        "description": "Retrieves a list of flows designed to post-process the results from other flows, filtering by the type\nof input they handle, either 'image', 'image-inpaint' or 'video'. This endpoint is particularly useful for chaining\nworkflows where the output of one flow becomes the input to another.\nIt modifies the main flow's structure by adopting sub-flow's display name and selectively merging input parameters\nfrom the sub-flows into the main flow's parameters based on matching names.",
         "operationId": "get_subflows",
         "parameters": [
           {
@@ -73,7 +73,7 @@
             "schema": {
               "enum": [
                 "image",
-                "image-mask",
+                "image-inpaint",
                 "video"
               ],
               "type": "string",
@@ -2159,7 +2159,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "The type of object this subflow is applicable to, e.g., 'image', 'image-mask' or 'video'."
+            "description": "The type of object this subflow is applicable to, e.g., 'image', 'image-inpaint' or 'video'."
           },
           "input_params": {
             "items": {
@@ -2898,7 +2898,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-07T12:42:56.169877Z"
+            "default": "2024-09-09T08:46:39.936060Z"
           }
         },
         "type": "object",

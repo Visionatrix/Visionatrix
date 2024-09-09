@@ -17,7 +17,7 @@ class SubFlow(BaseModel):
     display_name: str = Field(..., description="The new display name when this subflow's parameters are used.")
     type: str = Field(
         ...,
-        description="The type of object this subflow is applicable to, e.g., 'image', 'image-mask' or 'video'.",
+        description="The type of object this subflow is applicable to, e.g., 'image', 'image-inpaint' or 'video'.",
     )
     input_params: list[dict] = Field(
         default=[],
