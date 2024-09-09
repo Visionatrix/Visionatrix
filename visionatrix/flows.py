@@ -19,6 +19,7 @@ from fastapi import UploadFile
 from packaging.version import Version, parse
 
 from . import _version, comfyui_class_info, db_queries, options
+from .comfyui import get_node_class_mappings
 from .models import install_model
 from .models_map import get_flow_models
 from .nodes_helpers import get_node_value, set_node_value
@@ -285,17 +286,29 @@ def prepare_flow_comfy_files_params(
         task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
     for node_to_disconnect in files_params[len(in_files_params) :]:
         for node_id_to_disconnect in node_to_disconnect["comfy_node_id"]:
-            disconnect_node(node_id_to_disconnect, r)
+            disconnect_node_graph(node_id_to_disconnect, r)
 
 
-def disconnect_node(node_id: str, flow_comfy: dict[str, dict]) -> None:
-    for node_details in flow_comfy.values():
+def disconnect_node_graph(node_id: str, flow_comfy: dict[str, dict]) -> None:
+    next_nodes_to_disconnect = []
+    nodes_class_mappings = get_node_class_mappings()
+    for next_node_id, next_node_details in flow_comfy.items():
         nodes_to_pop = []
-        for input_id, input_details in node_details.get("inputs", {}).items():
+        for input_id, input_details in next_node_details.get("inputs", {}).items():
             if isinstance(input_details, list) and input_details[0] == node_id:
                 nodes_to_pop.append(input_id)
         for i in nodes_to_pop:
-            node_details["inputs"].pop(i)
+            class_type = next_node_details.get("class_type")
+            if class_type is not None:
+                node_class_mapping = nodes_class_mappings.get(class_type)
+                if node_class_mapping is not None and hasattr(node_class_mapping, "INPUT_TYPES"):
+                    next_node_input_types = node_class_mapping.INPUT_TYPES()
+                    if "required" in next_node_input_types and i in next_node_input_types["required"]:
+                        next_nodes_to_disconnect.append(next_node_id)
+            next_node_details["inputs"].pop(i)
+    flow_comfy.pop(node_id)
+    for i in next_nodes_to_disconnect:
+        disconnect_node_graph(i, flow_comfy)
 
 
 def flow_prepare_output_params(
