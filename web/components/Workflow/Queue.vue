@@ -20,7 +20,7 @@ const collapsed = ref(true)
 					&nbsp;-
 					{{
 						`${flowStore.flowsRunningByName(flowStore.currentFlow?.name)
-							.filter((running) => running.progress > 0)[0]?.progress.toFixed(0) ?? 0}%`
+							.filter((running: FlowRunning) => running.progress > 0)[0]?.progress.toFixed(0) ?? 0}%`
 					}}
 				</span>
 				<template v-if="flowStore.flowsRunningByNameWithErrors(flowStore?.currentFlow.name).length > 0">
@@ -45,7 +45,7 @@ const collapsed = ref(true)
 			</UButton>
 		</div>
 		<template v-if="!collapsed">
-			<div v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name).filter((running) => running.parent_task_id === null)" :key="running.task_id" class="mb-5">
+			<div v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name).filter((running: FlowRunning) => running.parent_task_id === null)" :key="running.task_id" class="mb-5">
 				<UProgress class="mb-3" :value="running?.progress" indicator :color="!running.error ? 'green' : 'red'" />
 				<p class="text-sm mb-5 text-slate-500">
 					{{

@@ -19,6 +19,7 @@ from fastapi import UploadFile
 from packaging.version import Version, parse
 
 from . import _version, comfyui_class_info, db_queries, options
+from .comfyui import get_node_class_mappings
 from .models import install_model
 from .models_map import get_flow_models
 from .nodes_helpers import get_node_value, set_node_value
@@ -237,7 +238,7 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
 def prepare_flow_comfy_files_params(
     flow: Flow, in_files_params: list[UploadFile | dict], task_id: int, task_details: dict, r: dict
 ) -> None:
-    files_params = [i for i in flow.input_params if i["type"] in ("image", "image-inpaint", "video")]
+    files_params = [i for i in flow.input_params if i["type"] in ("image", "image-mask", "video")]
     min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
     if len(in_files_params) < min_required_files_count:
         raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
@@ -285,17 +286,29 @@ def prepare_flow_comfy_files_params(
         task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
     for node_to_disconnect in files_params[len(in_files_params) :]:
         for node_id_to_disconnect in node_to_disconnect["comfy_node_id"]:
-            disconnect_node(node_id_to_disconnect, r)
+            disconnect_node_graph(node_id_to_disconnect, r)
 
 
-def disconnect_node(node_id: str, flow_comfy: dict[str, dict]) -> None:
-    for node_details in flow_comfy.values():
+def disconnect_node_graph(node_id: str, flow_comfy: dict[str, dict]) -> None:
+    next_nodes_to_disconnect = []
+    nodes_class_mappings = get_node_class_mappings()
+    for next_node_id, next_node_details in flow_comfy.items():
         nodes_to_pop = []
-        for input_id, input_details in node_details.get("inputs", {}).items():
+        for input_id, input_details in next_node_details.get("inputs", {}).items():
             if isinstance(input_details, list) and input_details[0] == node_id:
                 nodes_to_pop.append(input_id)
         for i in nodes_to_pop:
-            node_details["inputs"].pop(i)
+            class_type = next_node_details.get("class_type")
+            if class_type is not None:
+                node_class_mapping = nodes_class_mappings.get(class_type)
+                if node_class_mapping is not None and hasattr(node_class_mapping, "INPUT_TYPES"):
+                    next_node_input_types = node_class_mapping.INPUT_TYPES()
+                    if "required" in next_node_input_types and i in next_node_input_types["required"]:
+                        next_nodes_to_disconnect.append(next_node_id)
+            next_node_details["inputs"].pop(i)
+    flow_comfy.pop(node_id)
+    for i in next_nodes_to_disconnect:
+        disconnect_node_graph(i, flow_comfy)
 
 
 def flow_prepare_output_params(
@@ -370,12 +383,12 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
     input_params = []
     for node_id, node_details in flow_comfy.items():
         class_type = str(node_details["class_type"])
-        image_inpaint = False
-        inpaint_edge_size = None
+        image_mask = False
         if class_type.startswith("VixUi"):
             if node_details["class_type"] == "VixUiWorkflowMetadata":
                 continue
             display_name = node_details["inputs"]["display_name"]
+            other_attributes = ()
             optional = node_details["inputs"]["optional"]
             advanced = node_details["inputs"]["advanced"]
             order = node_details["inputs"]["order"]
@@ -399,19 +412,13 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
                     custom_id = attribute[10:]
                     break
             hidden_attribute = bool("hidden" in other_attributes)
-            image_inpaint = bool("inpaint" in other_attributes)
-            if image_inpaint:
-                inpaint_edge_size = 0
-                for attribute in other_attributes:
-                    if attribute.startswith("edge_size="):
-                        inpaint_edge_size = int(attribute[10:])
-                        break
+            image_mask = bool("mask" in other_attributes)
         else:
             continue
         try:
             input_type, input_path = comfyui_class_info.CLASS_INFO[node_details["class_type"]]
-            if image_inpaint is True and input_type == "image":
-                input_type = "image-inpaint"
+            if image_mask is True and input_type == "image":
+                input_type = "image-mask"
         except KeyError as exc:
             raise ValueError(
                 f"Node with class_type={node_details['class_type']} is not currently supported as input"
@@ -428,8 +435,13 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             "comfy_node_id": {node_id: input_path},
             "hidden": hidden_attribute,
         }
-        if image_inpaint:
-            input_param_data["edge_size"] = inpaint_edge_size
+        if image_mask:
+            for attribute in other_attributes:
+                if attribute.startswith("source_input_name="):
+                    input_param_data["source_input_name"] = attribute[18:]
+                    break
+            if "source_input_name" not in input_param_data:
+                raise ValueError("`source_input_name` required for mask parameter.")
         if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat", "VixUiRangeInt"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]

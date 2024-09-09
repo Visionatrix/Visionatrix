@@ -157,7 +157,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			}">
 			<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
-			Output ({{ results.filter((task) => task.parent_task_id === null).length }})
+			Output ({{ results.filter((task: FlowResult) => task.parent_task_id === null).length }})
 		</h2>
 
 		<template v-if="!collapsed">
@@ -169,11 +169,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:label="'Filter by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
-				<UPagination v-if="results.filter((task) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
+				<UPagination v-if="results.filter((task: FlowResult) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.$state.resultsPage"
 					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
-					:total="results.filter((task) => task.parent_task_id === null).length"
+					:total="results.filter((task: FlowResult) => task.parent_task_id === null).length"
 					show-first
 					show-last />
 				<div class="flex items-center justify-center">
@@ -248,7 +248,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					<UCarousel v-else-if="flowResult.outputs.length > 1"
 						v-slot="{ item }"
 						class="mb-3 rounded-lg overflow-hidden"
-						:items="flowResult.outputs.map((result_output_param, index) => {
+						:items="flowResult.outputs.map((result_output_param: FlowOutputParam, index: number) => {
 							return {
 								task_id: flowResult.task_id,
 								node_id: result_output_param.comfy_node_id,
@@ -341,7 +341,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:output-param-index="sendToFlowOutputParamIndex"
 					:input-params-mapped="sendToFlowInputParamsMapped"
 					:is-child-task="sendToFlowIsChildTask"
-					@update:show="(value) => showSendToFlowModal = value" />
+					@update:show="(value: boolean) => showSendToFlowModal = value" />
 			</div>
 			<p v-else class="text-center text-slate-500">
 				No output results available

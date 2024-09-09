@@ -18,6 +18,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_available: <Flow[]>[],
 		flows_installed: <Flow[]>[],
 		flows_tags_filter: <string[]>[],
+		flows_search_filter: '',
 		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
@@ -26,16 +27,20 @@ export const useFlowsStore = defineStore('flowsStore', {
 	}),
 	getters: {
 		flows(state): Flow[] {
-			if (state.flows_tags_filter.length > 0) {
-				return [
-					...state.flows_installed,
-					...state.flows_available,
-				].filter(flow => state.flows_tags_filter.every(tag => flow.tags.includes(tag)))
-			}
-			return [
+			let flows: Flow[] = [
 				...state.flows_installed,
 				...state.flows_available,
 			]
+			if (state.flows_tags_filter.length > 0) {
+				flows = flows.filter(flow => state.flows_tags_filter.every(tag => flow.tags.includes(tag)))
+			}
+			if (state.flows_search_filter !== '') {
+				flows = flows
+					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase()) 
+						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
+						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
+			}
+			return flows
 		},
 		flowsTags(state): string[] {
 			const flows = [
@@ -45,16 +50,22 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return Array.from(new Set(flows.flatMap(flow => flow.tags)))
 		},
 		paginatedFlows(state) {
-			if (state.flows_tags_filter.length > 0) {
-				return paginate([
-					...state.flows_installed,
-					...state.flows_available,
-				].filter(flow => state.flows_tags_filter.every(tag => flow.tags.includes(tag))), state.page, state.pageSize) as Flow[]
-			}
-			return paginate([
+			let flows: Flow[] = [
 				...state.flows_installed,
 				...state.flows_available,
-			], state.page, state.pageSize) as Flow[]
+			]
+			if (state.flows_tags_filter.length > 0) {
+				flows = flows.filter(flow => state.flows_tags_filter.every(tag => flow.tags.includes(tag)))
+				console.debug('filter flows by tags:', state.flows_tags_filter, flows)
+			}
+			if (state.flows_search_filter !== '') {
+				flows = flows
+					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase()) 
+						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
+						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
+				console.debug('filter flows by search:', state.flows_search_filter, flows)
+			}
+			return paginate(flows, state.page, state.pageSize) as Flow[]
 		},
 		flowByName() {
 			return (name: string) => this.flows.find(flow => flow.name === name)
@@ -96,6 +107,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 	},
 	actions: {
 		async fetchFlows() {
+			this.loading.flows_available = true
+			this.loading.flows_installed = true
 			await Promise.all([
 				this.fetchFlowsAvailable(),
 				this.fetchFlowsInstalled(),
@@ -120,7 +133,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 		async fetchFlowsAvailable() {
 			const { $apiFetch } = useNuxtApp()
-			this.loading.flows_available = true
 			const flows = await $apiFetch('/flows/not-installed', {
 				method: 'GET',
 				timeout: 15000,
@@ -145,7 +157,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async fetchFlowsInstalled() {
 			const { $apiFetch } = useNuxtApp()
 			console.debug('fetching installed flows')
-			this.loading.flows_installed = true
 			const flows = await $apiFetch('/flows/installed', {
 				method: 'GET',
 				timeout: 15000,
@@ -318,9 +329,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				method: 'PUT',
 				body: formData,
 			}).then((res: any) => {
-				if (res && res.details === '') {
-					this.fetchFlows()
-				}
+				this.fetchFlows()
 				return res
 			})
 		},
@@ -346,7 +355,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const input_params_mapped: any = {}
 			input_params.forEach(param => {
 				const paramName = Object.keys(param)[0]
-				if (!['image', 'image-inpaint'].includes(param[paramName].type) && param[paramName].value !== '')
+				if (!['image', 'image-mask'].includes(param[paramName].type) && param[paramName].value !== '')
 					input_params_mapped[paramName] = param[paramName].value
 			})
 			console.debug('input_params_mapped:', input_params_mapped)
@@ -357,8 +366,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
-				return ['image', 'image-inpaint'].includes(param[paramName].type)
-					&& (param[paramName].value instanceof File || typeof param[paramName].value === 'string')
+				return ['image', 'image-mask'].includes(param[paramName].type)
+					&& ((param[paramName].value instanceof File && param[paramName].value.size > 0) 
+						|| (typeof param[paramName].value === 'string' && param[paramName].value !== ''))
 			})
 
 			console.debug('file_input_params:', file_input_params)
@@ -367,12 +377,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 					const paramName = Object.keys(param)[0]
 					console.debug('file:', param[paramName].value)
 					formData.append('files', param[paramName].value)
-
-					if (param[paramName].type === 'image-inpaint'
-						&& param[paramName]?.edge_size_enabled === false) {
-						input_params_mapped['edge_size'] = 0
-						console.debug('edge_size disabled, setting edge_size to 0')
-					}
 				})
 			}
 			formData.append('input_params', JSON.stringify(input_params_mapped))
@@ -382,7 +386,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 
 			console.debug('form_data:', formData)
-			// return // for debugging purposes
 
 			const { $apiFetch } = useNuxtApp()
 			const input_params_mapped_updated: any = {}
@@ -818,11 +821,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 	}
 })
-
-if (import.meta.hot) {
-	import.meta.hot.accept(acceptHMRUpdate(useFlowsStore, import.meta.hot))
-}
-
 
 export interface Flow {
 	id: string

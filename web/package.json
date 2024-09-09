@@ -18,23 +18,23 @@
     "@nuxt/ui": "^2.18.4",
     "konva": "^9.3.14",
     "pinia": "^2.2.2",
-    "vue": "^3.4.38",
+    "vue": "^3.5.3",
     "vue-konva": "^3.1.0",
     "vue-router": "^4.4.3"
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^0.3.1",
-    "@nuxt/image": "^1.7.0",
+    "@nuxt/image": "^1.8.0",
     "@nuxt/test-utils": "^3.14.0",
     "@pinia/nuxt": "^0.5.1",
     "@types/node": "^20.14.9",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^8.57.0",
     "happy-dom": "^13.8.2",
-    "nuxt": "^3.12.4",
-    "playwright-core": "^1.46.0",
+    "nuxt": "^3.13.1",
+    "playwright-core": "^1.47.0",
     "typescript": "^5.5.4",
     "vitest": "^1.6.0",
-    "vue-tsc": "^2.0.29"
+    "vue-tsc": "^2.1.6"
   }
 }
