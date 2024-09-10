@@ -34,11 +34,12 @@ def get_orphan_models() -> list[OrphanModel]:
     for flow in all_known_flows:
         for model in flow.models:
             if not model.save_path.startswith("{"):  # Skip if save_path starts with "{"
-                if model.save_path in models_to_flows_map:
-                    models_to_flows_map[model.save_path].append(flow)
+                model_save_path = str(Path(model.save_path))
+                if model_save_path in models_to_flows_map:
+                    models_to_flows_map[model_save_path].append(flow)
                 else:
-                    models_to_flows_map[model.save_path] = [flow]
-                all_known_models[model.save_path] = model
+                    models_to_flows_map[model_save_path] = [flow]
+                all_known_models[model_save_path] = model
 
     orphan_models = []
     ignore_filenames = [".DS_Store"]
@@ -90,7 +91,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
         if dry_run:
             continue
         if no_confirm:
-            file_to_remove = Path(options.MODELS_DIR) / orphan.path
+            file_to_remove = Path(options.MODELS_DIR).joinpath(orphan.path)
             try:
                 file_to_remove.unlink()
                 print(f"Deleted: {orphan.path}")
@@ -99,7 +100,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
         else:
             user_input = input(f"Delete {orphan.path}? (y/Y to confirm, any other key to skip): ").lower()
             if user_input == "y":
-                file_to_remove = Path(options.MODELS_DIR) / orphan.path
+                file_to_remove = Path(options.MODELS_DIR).joinpath(orphan.path)
                 try:
                     file_to_remove.unlink()
                     print(f"Deleted: {orphan.path}")
