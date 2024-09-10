@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0 - 2024-09-10]
+
+### Added
+
+- New `ComfyUI-BiRefNet` node and **second** Background Removal Flow (**with free license**).
+- New **cmd** command: `python3 -m visionatrix orphan-models` to easy clean **models** folder from non-used models. #156
+- New UI features: **reset params** button, **touch events** support.
+
+### Changed
+
+- Reworked and finalized the `Inpaint` feature. Now optional `context area` can be passed for the Inpainting. #155
+
+### Fix
+
+- Different UI fixes and adjustments. #155
+
 ## [1.1.0 - 2024-09-01]
 
 ### Added
