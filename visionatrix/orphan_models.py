@@ -27,9 +27,9 @@ def get_orphan_models() -> list[OrphanModel]:
     for flow in installed_flows:
         for model in flow.models:
             if not model.save_path.startswith("{"):  # Skip if save_path starts with "{"
-                required_models[model.save_path] = model
+                required_models[str(Path(model.save_path))] = model
 
-    all_known_models = {i.save_path: i for i in get_formatted_models_catalog()}
+    all_known_models = {str(Path(i.save_path)): i for i in get_formatted_models_catalog()}
     models_to_flows_map = {}
     for flow in all_known_flows:
         for model in flow.models:
