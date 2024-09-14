@@ -59,6 +59,17 @@ Requirements:
 
 ### Linux/macOS/WSL:
 
+<details>
+  <summary>Installing pre-requirements(python, git,...)</summary>
+
+  For Ubuntu 22.04:
+
+  ```console
+  sudo apt install wget curl python3-venv python3-pip build-essential git
+  ```
+  <hr>
+</details>
+
 Download and execute `easy_install.py` script:
 
 > [!NOTE]
