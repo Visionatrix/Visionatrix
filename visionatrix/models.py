@@ -20,8 +20,9 @@ LOGGER = logging.getLogger("visionatrix")
 
 def install_model(
     model: AIResourceModel,
-    progress_info: dict,
-    progress_callback: typing.Callable[[str, float, str], None] | None = None,
+    flow_name: str,
+    progress_for_model: float,
+    progress_callback: typing.Callable[[str, float, str, bool], bool] | None = None,
     hf_auth_token: str = "",
 ) -> bool:
     model.hash = model.hash.lower()
@@ -53,21 +54,17 @@ def install_model(
                 break
 
     if check_result is True:
-        if progress_callback is not None:
-            progress_info["current"] += progress_info["progress_for_model"]
-            progress_info["current"] = math.floor(progress_info["current"] * 10) / 10
-            progress_callback(progress_info["name"], progress_info["current"], "")
-        return True
+        if progress_callback is None:
+            return True
+        return progress_callback(flow_name, progress_for_model, "", True)
 
     os.makedirs(save_path.parent, exist_ok=True)
     for _ in range(DOWNLOAD_RETRY_COUNT):
         LOGGER.info("Downloading `%s`..", model.name)
-        if download_model(model, save_path, progress_info, progress_callback, hf_auth_token):
-            if progress_callback is not None:
-                progress_info["current"] += progress_info["progress_for_model"]
+        if download_model(model, save_path, flow_name, progress_for_model, progress_callback, hf_auth_token):
             return True
     if progress_callback is not None:
-        progress_callback(progress_info["name"], 0.0, f"Can not install model from '{model.url}'")
+        progress_callback(flow_name, 0.0, f"Can not install model from '{model.url}'", False)
         return False
     raise RuntimeError(f"Can not install model from '{model.url}'") from None
 
@@ -75,8 +72,9 @@ def install_model(
 def download_model(
     model: AIResourceModel,
     save_path: Path,
-    progress_info: dict,
-    progress_callback: typing.Callable[[str, float, str], None] | None = None,
+    flow_name: str,
+    progress_for_model: float,
+    progress_callback: typing.Callable[[str, float, str, bool], bool] | None = None,
     hf_auth_token: str = "",
 ) -> bool:
     if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
@@ -107,19 +105,16 @@ def download_model(
                 if model.gated and response.status_code == status.HTTP_401_UNAUTHORIZED:
                     exc_msg += " Model has gated flag. Is the AccessToken valid?"
                 raise RuntimeError(exc_msg)
-            downloaded_size = 0
             total_size = int(response.headers.get("Content-Length"))
+            progress_value = 0
             with builtins.open(save_path, "wb") as file:
-                if progress_callback is not None:
-                    last_progress_value = math.floor(progress_info["current"] * 10) / 10
                 for chunk in response.iter_bytes(10 * 1024 * 1024):
-                    downloaded_size += file.write(chunk)
+                    downloaded_size = file.write(chunk)
                     if progress_callback is not None:
-                        v = progress_info["progress_for_model"] * downloaded_size / total_size
-                        new_progress_value = math.floor((progress_info["current"] + v) * 10) / 10
-                        if last_progress_value != new_progress_value:
-                            progress_callback(progress_info["name"], new_progress_value, "")
-                            last_progress_value = new_progress_value
+                        progress_value += progress_for_model * downloaded_size / total_size
+                        if math.floor(progress_value * 10) / 10 >= 0.1:
+                            progress_callback(flow_name, progress_value, "", True)
+                            progress_value = 0
                 if not check_hash(model.hash, save_path):
                     raise RuntimeError(f"Incomplete download of '{model.url}'.")
             if model.url.endswith(".zip"):

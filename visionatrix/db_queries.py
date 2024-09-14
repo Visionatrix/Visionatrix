@@ -202,22 +202,106 @@ def add_flow_progress_install(name: str, flow_comfy: dict) -> None:
         session.close()
 
 
-def update_flow_progress_install(name: str, progress: float, error: str) -> bool:
+def update_flow_progress_install(name: str, progress: float, relative_progress: bool) -> bool:
     session = database.SESSION()
     try:
+        # Ensure we only update if there is no error already set
+        if relative_progress:
+            stmt = (
+                update(database.FlowsInstallStatus)
+                .where(database.FlowsInstallStatus.name == name)
+                .where(database.FlowsInstallStatus.error == "")
+                .values(
+                    progress=database.FlowsInstallStatus.progress + progress,  # Increment progress
+                    updated_at=datetime.now(timezone.utc),
+                )
+            )
+        else:
+            stmt = (
+                update(database.FlowsInstallStatus)
+                .where(database.FlowsInstallStatus.name == name)
+                .where(database.FlowsInstallStatus.error == "")
+                .values(
+                    progress=progress,
+                    updated_at=datetime.now(timezone.utc),
+                )
+            )
+        result = session.execute(stmt)
+        session.commit()
+
+        # If no rows were updated, this means an error was already set
+        if result.rowcount == 0:
+            LOGGER.warning(
+                "Flow installation for `%s` already encountered an error, skipping progress update: %s",
+                name,
+                progress,
+            )
+            return False
+        return True
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to update flow installation progress for `%s`", name)
+        raise
+    finally:
+        session.close()
+
+
+def set_flow_progress_install_error(name: str, error: str) -> bool:
+    session = database.SESSION()
+    try:
+        # Ensure we only update if there is no error already set
         stmt = (
             update(database.FlowsInstallStatus)
             .where(database.FlowsInstallStatus.name == name)
+            .where(database.FlowsInstallStatus.error == "")
             .values(
-                progress=progress,
                 error=error,
                 updated_at=datetime.now(timezone.utc),
-                finished_at=datetime.now(timezone.utc) if progress == 100.0 or error else None,
             )
         )
         result = session.execute(stmt)
         session.commit()
-        return result.rowcount > 0
+
+        # If no rows were updated, this means an error was already set
+        if result.rowcount == 0:
+            LOGGER.warning(
+                "Flow installation for `%s` already encountered an error, skipping setting error: %s",
+                name,
+                error,
+            )
+            return False
+        return True
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to update flow installation progress for `%s`", name)
+        raise
+    finally:
+        session.close()
+
+
+def finish_flow_progress_install(name: str) -> bool:
+    session = database.SESSION()
+    try:
+        # Ensure we only update if there is no error already set
+        stmt = (
+            update(database.FlowsInstallStatus)
+            .where(database.FlowsInstallStatus.name == name)
+            .where(database.FlowsInstallStatus.error == "")
+            .values(
+                progress=100.0,
+                finished_at=datetime.now(timezone.utc),
+            )
+        )
+        result = session.execute(stmt)
+        session.commit()
+        # If no rows were updated, this means an error was already set
+        if result.rowcount == 0:
+            LOGGER.warning(
+                "Flow installation for `%s` already encountered an error, skipping finalizing install.",
+                name,
+            )
+            return False
+        return True
     except Exception:
         session.rollback()
         LOGGER.exception("Failed to update flow installation progress for `%s`", name)

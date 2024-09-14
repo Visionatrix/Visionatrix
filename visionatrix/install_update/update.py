@@ -8,15 +8,9 @@ from packaging.version import Version
 
 from .. import _version, comfyui, options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
+from . import flow_install_callback
 from .custom_nodes import update_base_custom_nodes
 from .install import create_missing_models_dirs
-
-
-def __progress_callback(name: str, progress: float, error: str) -> None:
-    if not error:
-        logging.info("`%s` installation: %s", name, progress)
-    else:
-        logging.error("`%s` installation failed: %s", name, error)
 
 
 def update() -> None:
@@ -56,6 +50,7 @@ def update() -> None:
     for i in get_installed_flows():
         if i.name in avail_flows_names:
             v = avail_flows_names.index(i.name)
-            install_custom_flow(avail_flows[v], avail_flows_comfy[v], __progress_callback)
+            flow_install_callback.progress_callback(avail_flows[v].name, 0.0, "", False)
+            install_custom_flow(avail_flows[v], avail_flows_comfy[v], flow_install_callback.progress_callback)
         else:
             logging.warning("`%s` flow not found in repository, skipping update of it.", i.name)
