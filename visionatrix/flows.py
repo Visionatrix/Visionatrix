@@ -1,4 +1,5 @@
 import builtins
+import concurrent.futures
 import contextlib
 import io
 import json
@@ -146,16 +147,12 @@ def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | No
 def install_custom_flow(
     flow: Flow,
     flow_comfy: dict,
-    progress_callback: typing.Callable[[str, float, str], None] | None = None,
-) -> None:
+    progress_callback: typing.Callable[[str, float, str, bool], bool] | None = None,
+) -> bool:
     uninstall_flow(flow.name)
-    progress_info = {
-        "name": flow.name,
-        "current": 1.0,
-        "progress_for_model": 97 / max(len(flow.models), 1),
-    }
-    if progress_callback is not None:
-        progress_callback(flow.name, progress_info["current"], "")
+    progress_for_model = 97 / max(len(flow.models), 1)
+    if progress_callback is not None and not progress_callback(flow.name, 1.0, "", False):
+        return False
     hf_auth_token = ""
     gated_models = [i for i in flow.models if i.gated]
     if gated_models and options.VIX_MODE != "SERVER":
@@ -174,19 +171,28 @@ def install_custom_flow(
                 hf_auth_token = r.text
         if not hf_auth_token:
             LOGGER.warning("Flow has gated model(s): %s; AccessToken was not found.", [i.name for i in gated_models])
-    for model in flow.models:
-        if not install_model(model, progress_info, progress_callback, hf_auth_token):
-            return
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=options.MAX_PARALLEL_DOWNLOADS) as executor:
+        futures = [
+            executor.submit(install_model, model, flow.name, progress_for_model, progress_callback, hf_auth_token)
+            for model in flow.models
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                LOGGER.exception("Error during model installation: %s", e)
+                return False
+
     local_flow_path = os.path.join(options.FLOWS_DIR, f"{flow.name}.json")
-    progress_info["current"] = 99.0
-    if progress_callback is not None:
-        progress_callback(flow.name, progress_info["current"], "")
+    if progress_callback is not None and not progress_callback(flow.name, 99.0, "", False):
+        return False
     with builtins.open(local_flow_path, mode="w", encoding="utf-8") as fp:
         json.dump(flow_comfy, fp, indent=2)
-    progress_info["current"] = 100.0
     CACHE_INSTALLED_FLOWS["update_time"] = 0
-    if progress_callback is not None:
-        progress_callback(flow.name, progress_info["current"], "")
+    if progress_callback is None:
+        return True
+    return progress_callback(flow.name, 100.0, "", False)
 
 
 def uninstall_flow(flow_name: str) -> None:

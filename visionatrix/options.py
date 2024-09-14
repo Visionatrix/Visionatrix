@@ -81,6 +81,11 @@ Example:
 This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
+MAX_PARALLEL_DOWNLOADS = int(environ.get("MAX_PARALLEL_DOWNLOADS", "2"))
+"""Maximum number of parallel downloads allowed during flow installation.
+Defaults to ``2`` if the environment variable is not set.
+"""
+
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
     global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR

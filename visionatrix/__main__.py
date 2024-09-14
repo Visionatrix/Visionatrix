@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import comfyui, database, install, options, run_vix, update
 from .flows import get_available_flows, get_vix_flow, install_custom_flow
+from .install_update import flow_install_callback
 from .orphan_models import process_orphan_models
 
 
@@ -33,13 +34,6 @@ def get_higher_log_level(current_level):
         logging.CRITICAL: logging.CRITICAL,
     }
     return level_mapping.get(current_level, logging.WARNING)
-
-
-def __progress_callback(name: str, progress: float, error: str) -> None:
-    if not error:
-        logging.info("`%s` installation: %s", name, progress)
-    else:
-        logging.error("`%s` installation failed: %s", name, error)
 
 
 if __name__ == "__main__":
@@ -170,7 +164,9 @@ if __name__ == "__main__":
             if not install_flow:
                 logging.getLogger("visionatrix").error("Can not find the specific flow: %s", args.name)
                 sys.exit(2)
-        install_custom_flow(flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=__progress_callback)
+        install_custom_flow(
+            flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=flow_install_callback.progress_callback
+        )
     elif args.command == "orphan-models":
         comfyui.load(None)
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)

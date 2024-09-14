@@ -20,8 +20,10 @@ from .. import options
 from ..db_queries import (
     add_flow_progress_install,
     delete_flows_progress_install,
+    finish_flow_progress_install,
     flows_installation_in_progress,
     get_flows_progress_install,
+    set_flow_progress_install_error,
     update_flow_progress_install,
 )
 from ..db_queries_async import (
@@ -291,6 +293,13 @@ async def delete(request: Request, name: str = Query(..., description="Name of t
     uninstall_flow(name)
 
 
-def __progress_install_callback(name: str, progress: float, error: str) -> None:
-    if not update_flow_progress_install(name, progress, error):
-        raise RuntimeError(f"Installation of the `{name}` was cancelled.")
+def __progress_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
+    """Returns `True` if no errors occurred."""
+
+    if error:
+        set_flow_progress_install_error(name, error)
+        return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
+    if progress == 100.0:
+        LOGGER.debug("Installation of %s flow completed", name)
+        return finish_flow_progress_install(name)
+    return update_flow_progress_install(name, progress, relative_progress)
