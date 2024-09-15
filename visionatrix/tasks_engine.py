@@ -910,7 +910,7 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
             data["exception_message"],
             data["traceback"],
         )
-    elif event == "execution_cached":
+    elif event == "execution_cached" and len(data["nodes"]) > 1:
         increase_current_task_progress((len(data["nodes"]) - 1) * node_percent)
     elif event == "execution_interrupted":
         ACTIVE_TASK["interrupted"] = True
