@@ -32,8 +32,15 @@ def install_base_custom_node(node_name: str, node_details: dict) -> None:
     clone_command = "git clone "
     what_clone = f"{os.path.join(custom_nodes_dir, node_name)}"
     clone_command += f"{github_url} {git_flags} {what_clone}"
-    print("Executing: ", clone_command)
-    run(clone_command.split(), check=True)
+    LOGGER.info("Executing: %s", clone_command)
+    for i in range(options.MAX_GIT_CLONE_ATTEMPTS):
+        try:
+            run(clone_command.split(), check=True)
+            break
+        except CalledProcessError as e:
+            LOGGER.warning("Cloning failed(attempts left(%s)", options.MAX_GIT_CLONE_ATTEMPTS - i - 1)
+            if i == options.MAX_GIT_CLONE_ATTEMPTS - 1:
+                raise e
     if not Version(_version.__version__).is_devrelease:
         clone_env = os.environ.copy()
         clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
