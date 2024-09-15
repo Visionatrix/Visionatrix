@@ -72,6 +72,7 @@ class VixAuthMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     register_heif_opener()
+    logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
     tasks.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
     await start_tasks_engine(comfy_queue, EXIT_EVENT)
     if options.UI_DIR:

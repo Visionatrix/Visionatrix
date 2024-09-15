@@ -8,33 +8,10 @@ import sys
 from pathlib import Path
 
 from . import comfyui, database, install, options, run_vix, update
+from .etc import get_higher_log_level, get_log_level
 from .flows import get_available_flows, get_vix_flow, install_custom_flow
 from .install_update import flow_install_callback
 from .orphan_models import process_orphan_models
-
-
-def get_log_level(log_level_str):
-    """Convert log level string to logging module log level."""
-    log_levels = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL,
-    }
-    return log_levels.get(log_level_str.upper(), logging.INFO)
-
-
-def get_higher_log_level(current_level):
-    level_mapping = {
-        logging.DEBUG: logging.INFO,
-        logging.INFO: logging.WARNING,
-        logging.WARNING: logging.ERROR,
-        logging.ERROR: logging.CRITICAL,
-        logging.CRITICAL: logging.CRITICAL,
-    }
-    return level_mapping.get(current_level, logging.WARNING)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

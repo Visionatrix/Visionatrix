@@ -81,7 +81,12 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 
     LOGGER.debug("command line arguments: %s", sys.argv)
 
+    original_logging_lvl = logging.getLogger().getEffectiveLevel()  # ComfyUI resets loglvl of "root" logger
+
     import main  # noqa # isort: skip
+
+    logging.getLogger().setLevel(original_logging_lvl)
+
     import execution  # noqa # isort: skip
     import folder_paths  # noqa # isort: skip
     import nodes  # noqa # isort: skip
