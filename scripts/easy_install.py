@@ -13,6 +13,7 @@ VENV_NAME = ".venv" if PARENT_DIR.parent.joinpath(".venv").exists() else "venv"
 PYTHON_EMBEDED = os.path.split(os.path.split(sys.executable)[0])[1] == "python_embeded"
 COMPUTE_DEVICE = os.environ.get("COMPUTE_DEVICE", "")
 GH_BUILD_RELEASE = os.environ.get("BUILD_RELEASE", "0") == "1"
+FORCE_DEV_VERSION = os.environ.get("DEV_VERSION", "0") == "1"
 
 
 def main_entry():
@@ -192,7 +193,12 @@ def install_all_flows():
 
 def clone_vix_repository() -> None:
     try:
-        q = "R" if GH_BUILD_RELEASE else input("Are we installing the release version or the latest? (R/L) ")
+        if FORCE_DEV_VERSION:
+            q = "L"
+        elif GH_BUILD_RELEASE:
+            q = "R"
+        else:
+            q = input("Are we installing the release version or the latest? (R/L) ")
         release_channel = q.lower() == "r"
         clone_command = ["git", "clone", "https://github.com/Visionatrix/Visionatrix.git"]
         print("Cloning Visionatrix repository...")
