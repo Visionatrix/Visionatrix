@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.2.0"
+    "version": "1.3.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -2871,6 +2871,12 @@
             "title": "Worker Version",
             "description": "Version of the worker"
           },
+          "pytorch_version": {
+            "type": "string",
+            "title": "Pytorch Version",
+            "description": "Torch version used by the worker",
+            "default": ""
+          },
           "system": {
             "$ref": "#/components/schemas/WorkerDetailsSystemRequest"
           },
@@ -2898,7 +2904,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-10T16:41:38.627877Z"
+            "default": "2024-09-17T20:25:18.705887Z"
           }
         },
         "type": "object",
