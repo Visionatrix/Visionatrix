@@ -14,6 +14,21 @@ help:
 	@echo "  build-client       build frontend client"
 	@echo " "
 
+.PHONY: run
+run:
+	@if [ -x ./.venv/bin/python ]; then \
+		./.venv/bin/python -m visionatrix run --ui; \
+	elif [ -x ./venv/bin/python ]; then \
+		./venv/bin/python -m visionatrix run --ui; \
+	elif [ -x ./.venv/Scripts/python.exe ]; then \
+		./.venv/Scripts/python.exe -m visionatrix run --ui; \
+	elif [ -x ./venv/Scripts/python.exe ]; then \
+		./venv/Scripts/python.exe -m visionatrix run --ui; \
+	else \
+		echo "No virtual environment found."; \
+		exit 1; \
+	fi
+
 .PHONY: openapi
 openapi:
 	@echo "Building OpenAPI.json.."
