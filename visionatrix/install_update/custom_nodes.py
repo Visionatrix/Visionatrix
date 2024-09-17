@@ -105,7 +105,10 @@ def _before_install(node_name: str, node_details: dict) -> None:
 
 def _install_requirements(custom_nodes_dir: str | Path, node_name: str, node_details: dict) -> None:
     if "requirements" in node_details:
-        for requirement in node_details["requirements"]:
+        for requirement, install_options in node_details["requirements"].items():
+            if "platform" in install_options and sys.platform.lower() not in install_options["platform"]:
+                LOGGER.info("Skipping installation of requirement `%s` (platform not supported)", requirement)
+                continue
             run([sys.executable, "-m", "pip", "install", requirement], check=True)
         return
     requirements = Path(custom_nodes_dir).joinpath(node_name, "requirements.txt")

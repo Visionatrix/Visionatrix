@@ -11,6 +11,7 @@ BASIC_NODE_LIST = {
         "requirements": {
             "insightface": {},
             "onnxruntime": {},
+            "onnxruntime-gpu": {"platform": ["linux", "win32"]},
         },
         "models": [
             AIResourceModel(
@@ -84,6 +85,7 @@ BASIC_NODE_LIST = {
             "facexlib": {},
             "insightface": {},
             "onnxruntime": {},
+            "onnxruntime-gpu": {"platform": ["linux", "win32"]},
             "ftfy": {},
             "timm": {},
         },
