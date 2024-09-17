@@ -20,6 +20,9 @@ vix_models:
   clip: vix_models_root/clip
   clip_vision: vix_models_root/clip_vision
   controlnet: vix_models_root/controlnet
+  diffusion_models: |
+    vix_models_root/diffusion_models
+    vix_models_root/unet
   diffusers: vix_models_root/diffusers
   ipadapter: vix_models_root/ipadapter
   instantid: vix_models_root/instantid
