@@ -86,6 +86,7 @@ class Worker(Base):
     user_id = Column(String, nullable=False, index=True)
     worker_id = Column(String, comment="user_id:hostname:device_name:device_index", unique=True, nullable=False)
     worker_version = Column(String, default="")
+    pytorch_version = Column(String, default="")
     last_seen = Column(DateTime, default=datetime.now(timezone.utc), index=True, nullable=False)
     tasks_to_give = Column(JSON, default=[])
 

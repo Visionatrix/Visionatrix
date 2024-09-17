@@ -16,6 +16,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from socket import gethostname
 
+import torch
 from psutil import virtual_memory
 
 from . import _version, options
@@ -28,6 +29,13 @@ SYSTEM_DETAILS = {
     "version": sys.version,
     "embedded_python": options.PYTHON_EMBEDED,
 }
+
+if torch.version.cuda is not None:
+    TORCH_VERSION = f"{torch.__version__} (CUDA {torch.version.cuda})"
+elif torch.version.hip is not None:
+    TORCH_VERSION = f"{torch.__version__} (ROCm {torch.version.hip})"
+else:
+    TORCH_VERSION = torch.__version__
 
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
@@ -201,6 +209,7 @@ def torch_device_info() -> dict:
 def get_worker_details() -> dict:
     return {
         "worker_version": _version.__version__,
+        "pytorch_version": TORCH_VERSION,
         "system": SYSTEM_DETAILS,
         "ram_total": virtual_memory().total,
         "ram_free": virtual_memory().available,

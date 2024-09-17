@@ -194,6 +194,7 @@ class WorkerDetailsRequest(BaseModel):
     """Consolidates information relevant to a worker handling AI tasks."""
 
     worker_version: str = Field(..., description="Version of the worker")
+    pytorch_version: str = Field("", description="Torch version used by the worker")
     system: WorkerDetailsSystemRequest = Field(...)
     devices: list[WorkerDetailsDeviceRequest] = Field(...)
     ram_total: int = Field(0, description="Total RAM on the worker in bytes")

@@ -128,6 +128,7 @@ def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDeta
         worker_device.name,
         {
             "worker_version": worker_details.worker_version,
+            "pytorch_version": worker_details.pytorch_version,
             "os": worker_details.system.os,
             "version": worker_details.system.version,
             "embedded_python": worker_details.system.embedded_python,
