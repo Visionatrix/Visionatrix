@@ -98,8 +98,12 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 
     import cuda_malloc  # noqa
 
-    main.cleanup_temp()
-    main.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
+    try:
+        main.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
+    except AttributeError:  # September 17: remove this in ~3 months
+        import utils.extra_config
+
+        utils.extra_config.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
@@ -116,8 +120,10 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     folder_paths.add_model_folder_path(
         "diffusion_models", os.path.join(folder_paths.get_output_directory(), "diffusion_models")
     )
+    folder_paths.add_model_folder_path("loras", os.path.join(folder_paths.get_output_directory(), "loras"))
     folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
 
+    main.cleanup_temp()
     return execution.validate_prompt, get_comfy_prompt_executor(comfy_server, task_progress_callback)
 
 
