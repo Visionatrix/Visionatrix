@@ -1,15 +1,9 @@
 .DEFAULT_GOAL := help
 
-.PHONY: docs
-.PHONY: html
-docs html:
-	rm -rf docs/_build
-	$(MAKE) -C docs html
-
 .PHONY: help
 help:
 	@echo "Welcome to Visionatrix development. Please use \`make <target>\` where <target> is one of"
-	@echo "  docs               make HTML docs"
+	@echo "  run                run the installed Visionatrix"
 	@echo "  openapi       		build openapi.json"
 	@echo "  build-client       build frontend client"
 	@echo " "
@@ -20,10 +14,6 @@ run:
 		./.venv/bin/python -m visionatrix run --ui; \
 	elif [ -x ./venv/bin/python ]; then \
 		./venv/bin/python -m visionatrix run --ui; \
-	elif [ -x ./.venv/Scripts/python.exe ]; then \
-		./.venv/Scripts/python.exe -m visionatrix run --ui; \
-	elif [ -x ./venv/Scripts/python.exe ]; then \
-		./venv/Scripts/python.exe -m visionatrix run --ui; \
 	else \
 		echo "No virtual environment found."; \
 		exit 1; \
