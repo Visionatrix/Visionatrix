@@ -7,6 +7,7 @@ https://github.com/comfyanonymous/ComfyUI
 # pylint: skip-file
 
 import contextlib
+import inspect
 import logging
 import os
 import re
@@ -90,9 +91,19 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     LOGGER.debug("command line arguments: %s", sys.argv)
 
     original_logging_lvl = logging.getLogger().getEffectiveLevel()  # ComfyUI resets loglvl of "root" logger
+    original_add_handler = logging.Logger.addHandler
+
+    def out_add_handler(self, hdlr):
+        stack = inspect.stack()  # Get the current stack frames
+        if any(frame.function == "setup_logger" for frame in stack):
+            return  # Skip adding handler (prevent duplicate logs)
+        original_add_handler(self, hdlr)  # Call the original addHandler method
+
+    logging.Logger.addHandler = out_add_handler
 
     import main  # noqa # isort: skip
 
+    logging.Logger.addHandler = original_add_handler
     logging.getLogger().setLevel(original_logging_lvl)
 
     import execution  # noqa # isort: skip
