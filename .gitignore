@@ -103,4 +103,3 @@ scripts/visionatrix
 tasks_history.db
 temp_repo_clones
 /flows.zip
-/alembic.ini
