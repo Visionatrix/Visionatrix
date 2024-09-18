@@ -89,6 +89,9 @@ Defaults to ``2`` if the environment variable is not set.
 MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform `git clone` during the first installation."""
 
+NODES_TIMING = int(environ.get("NODES_TIMING", "0")) == 1
+"""If set to ``1``, the execution time of each node will be logged."""
+
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
     global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR

@@ -10,11 +10,10 @@ import typing
 from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy import Row, and_, delete, desc, or_, select, update
+from sqlalchemy import and_, delete, desc, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
-from ._tasks_enigne_helpers import init_new_task_details
 from .comfyui import (
     cleanup_models,
     get_worker_details,
@@ -29,119 +28,19 @@ from .pydantic_models import (
     UserInfo,
     WorkerDetailsRequest,
 )
+from .tasks_engine_etc import (
+    TASK_DETAILS_COLUMNS,
+    TASK_DETAILS_COLUMNS_SHORT,
+    init_new_task_details,
+    prepare_worker_info_update,
+    task_details_from_dict,
+    task_details_short_to_dict,
+    task_details_to_dict,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 
 ACTIVE_TASK: dict = {}
-
-TASK_DETAILS_COLUMNS_SHORT = [
-    database.TaskDetails.task_id,
-    database.TaskDetails.name,
-    database.TaskDetails.progress,
-    database.TaskDetails.error,
-    database.TaskDetails.execution_time,
-    database.TaskDetails.group_scope,
-    database.TaskDetails.input_params,
-    database.TaskDetails.input_files,
-    database.TaskDetails.outputs,
-    database.TaskLock.locked_at,
-    database.TaskDetails.worker_id,
-    database.TaskDetails.parent_task_id,
-    database.TaskDetails.parent_task_node_id,
-]
-
-TASK_DETAILS_COLUMNS = [
-    *TASK_DETAILS_COLUMNS_SHORT,
-    database.TaskDetails.flow_comfy,
-    database.TaskDetails.user_id,
-    database.TaskDetails.created_at,
-    database.TaskDetails.updated_at,
-    database.TaskDetails.finished_at,
-    database.TaskDetails.webhook_url,
-    database.TaskDetails.webhook_headers,
-]
-
-
-def __task_details_from_dict(task_details: dict) -> database.TaskDetails:
-    return database.TaskDetails(
-        task_id=task_details["task_id"],
-        name=task_details["name"],
-        input_params=task_details["input_params"],
-        progress=task_details["progress"],
-        error=task_details["error"],
-        outputs=task_details["outputs"],
-        input_files=task_details["input_files"],
-        flow_comfy=task_details["flow_comfy"],
-        user_id=task_details["user_id"],
-        created_at=task_details.get("created_at"),
-        updated_at=task_details.get("updated_at"),
-        finished_at=task_details.get("finished_at"),
-        execution_time=task_details["execution_time"],
-        group_scope=task_details["group_scope"],
-        webhook_url=task_details.get("webhook_url"),
-        webhook_headers=task_details.get("webhook_headers"),
-        parent_task_id=task_details.get("parent_task_id"),
-        parent_task_node_id=task_details.get("parent_task_node_id"),
-    )
-
-
-def __task_details_to_dict(task_details: Row) -> dict:
-    r = __task_details_short_to_dict(task_details)
-    r.update(
-        {
-            "task_id": task_details.task_id,
-            "flow_comfy": task_details.flow_comfy,
-            "user_id": task_details.user_id,
-            "created_at": task_details.created_at,
-            "updated_at": task_details.updated_at,
-            "finished_at": task_details.finished_at,
-            "webhook_url": task_details.webhook_url,
-            "webhook_headers": task_details.webhook_headers,
-        }
-    )
-    return r
-
-
-def __task_details_short_to_dict(task_details: Row) -> dict:
-    return {
-        "task_id": task_details.task_id,
-        "progress": task_details.progress,
-        "error": task_details.error,
-        "name": task_details.name,
-        "input_params": task_details.input_params,
-        "outputs": task_details.outputs,
-        "input_files": task_details.input_files,
-        "execution_time": task_details.execution_time,
-        "group_scope": task_details.group_scope,
-        "locked_at": task_details.locked_at,
-        "worker_id": task_details.worker_id,
-        "parent_task_id": task_details.parent_task_id,
-        "parent_task_node_id": task_details.parent_task_node_id,
-        "child_tasks": [],
-    }
-
-
-def __prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetailsRequest) -> tuple[str, str, dict]:
-    worker_device = worker_details.devices[0]
-    return (
-        f"{worker_user_id}:{worker_details.system.hostname}:[{worker_device.name}]:{worker_device.index}",
-        worker_device.name,
-        {
-            "worker_version": worker_details.worker_version,
-            "pytorch_version": worker_details.pytorch_version,
-            "os": worker_details.system.os,
-            "version": worker_details.system.version,
-            "embedded_python": worker_details.system.embedded_python,
-            "device_type": worker_device.type,
-            "vram_total": worker_device.vram_total,
-            "vram_free": worker_device.vram_free,
-            "torch_vram_total": worker_device.torch_vram_total,
-            "torch_vram_free": worker_device.torch_vram_free,
-            "ram_total": worker_details.ram_total,
-            "ram_free": worker_details.ram_free,
-            "last_seen": datetime.now(timezone.utc),
-        },
-    )
 
 
 def create_new_task(name: str, input_params: dict, user_info: UserInfo) -> dict:
@@ -162,7 +61,7 @@ def put_task_in_queue(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
     with database.SESSION() as session:
         try:
-            session.add(__task_details_from_dict(task_details))
+            session.add(task_details_from_dict(task_details))
             session.commit()
         except Exception:
             session.rollback()
@@ -206,7 +105,7 @@ def fetch_child_tasks(session, parent_task_ids: list[int]) -> dict[int, list[Tas
 
     parent_to_children = {}
     for task in child_tasks:
-        task_details = __task_details_short_to_dict(task)
+        task_details = task_details_short_to_dict(task)
         parent_to_children.setdefault(task.parent_task_id, []).append(task_details)
 
     next_level_parent_ids = [task.task_id for task in child_tasks]
@@ -223,7 +122,7 @@ def get_task(task_id: int, user_id: str | None = None, fetch_child: bool = False
             query = __get_task_query(task_id, user_id)
             task = session.execute(query).one_or_none()
             if task:
-                task_dict = __task_details_to_dict(task)
+                task_dict = task_details_to_dict(task)
                 if fetch_child:
                     child_tasks = fetch_child_tasks(session, [task.task_id])
                     task_dict["child_tasks"] = child_tasks.get(task.task_id, [])
@@ -351,7 +250,7 @@ def get_incomplete_task_without_error_database(
         return {}
     session = database.SESSION()
     try:
-        worker_id, worker_device_name, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
+        worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
         result = session.execute(
             update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
         )
@@ -456,7 +355,7 @@ def get_tasks(
             task_ids = [task.task_id for task in results]
             child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
             for task in results:
-                task_details = __task_details_to_dict(task)
+                task_details = task_details_to_dict(task)
                 task_details["child_tasks"] = child_tasks.get(task.task_id, [])
                 tasks[task.task_id] = TaskDetails.model_validate(task_details)
             return tasks
@@ -481,7 +380,7 @@ def get_tasks_short(
             task_ids = [task.task_id for task in results]
             child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
             for task in results:
-                task_details = __task_details_short_to_dict(task)
+                task_details = task_details_short_to_dict(task)
                 task_details["child_tasks"] = child_tasks.get(task.task_id, [])
                 tasks[task.task_id] = TaskDetailsShort.model_validate(task_details)
             return tasks
@@ -695,7 +594,7 @@ def update_task_progress_database(
 ) -> bool:
     with database.SESSION() as session:
         try:
-            worker_id, _, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
+            worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
             update_values = {
                 "progress": progress,
                 "error": error,
@@ -896,6 +795,19 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
     node_percent = 99 / ACTIVE_TASK["nodes_count"]
 
     if event == "executing":
+        if options.NODES_TIMING:
+            last_node_id_timing = ACTIVE_TASK.get("timing_last_node_id", 0)
+            current_time = time.perf_counter()
+            if last_node_id_timing and last_node_id_timing != data["node"]:
+                LOGGER.log(
+                    LOGGER.getEffectiveLevel(),
+                    "Flow %s, node %s execution time: %s",
+                    ACTIVE_TASK["task_id"],
+                    data["node"],
+                    current_time - ACTIVE_TASK["timing_last_time"],
+                )
+            ACTIVE_TASK["timing_last_node_id"] = data["node"]
+            ACTIVE_TASK["timing_last_time"] = current_time
         if not ACTIVE_TASK["current_node"]:
             ACTIVE_TASK["current_node"] = data["node"]
         if ACTIVE_TASK["current_node"] != data["node"]:

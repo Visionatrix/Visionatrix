@@ -8,7 +8,6 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
-from ._tasks_enigne_helpers import init_new_task_details
 from .comfyui import interrupt_processing
 from .pydantic_models import (
     TaskDetails,
@@ -17,17 +16,20 @@ from .pydantic_models import (
     WorkerDetailsRequest,
 )
 from .tasks_engine import (
-    TASK_DETAILS_COLUMNS_SHORT,
     __get_get_incomplete_task_without_error_query,
     __get_task_query,
     __get_tasks_query,
     __lock_task_and_return_details,
-    __prepare_worker_info_update,
-    __task_details_from_dict,
-    __task_details_short_to_dict,
-    __task_details_to_dict,
     background_prompt_executor,
     remove_task_files,
+)
+from .tasks_engine_etc import (
+    TASK_DETAILS_COLUMNS_SHORT,
+    init_new_task_details,
+    prepare_worker_info_update,
+    task_details_from_dict,
+    task_details_short_to_dict,
+    task_details_to_dict,
 )
 
 LOGGER = logging.getLogger("visionatrix")
@@ -51,7 +53,7 @@ async def put_task_in_queue_async(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
     async with database.SESSION_ASYNC() as session:
         try:
-            session.add(__task_details_from_dict(task_details))
+            session.add(task_details_from_dict(task_details))
             await session.commit()
         except Exception:
             await session.rollback()
@@ -73,7 +75,7 @@ async def fetch_child_tasks_async(session, parent_task_ids: list[int]) -> dict[i
 
     parent_to_children = {}
     for task in child_tasks:
-        task_details = __task_details_short_to_dict(task)
+        task_details = task_details_short_to_dict(task)
         parent_to_children.setdefault(task.parent_task_id, []).append(task_details)
 
     next_level_parent_ids = [task.task_id for task in child_tasks]
@@ -90,7 +92,7 @@ async def get_task_async(task_id: int, user_id: str | None = None, fetch_child: 
             query = __get_task_query(task_id, user_id)
             task = (await session.execute(query)).one_or_none()
             if task:
-                task_dict = __task_details_to_dict(task)
+                task_dict = task_details_to_dict(task)
                 if fetch_child:
                     child_tasks = await fetch_child_tasks_async(session, [task.task_id])
                     task_dict["child_tasks"] = child_tasks.get(task.task_id, [])
@@ -117,7 +119,7 @@ async def get_tasks_async(
             task_ids = [task.task_id for task in results]
             child_tasks = await fetch_child_tasks_async(session, task_ids) if fetch_child else {}
             for task in results:
-                task_details = __task_details_to_dict(task)
+                task_details = task_details_to_dict(task)
                 task_details["child_tasks"] = child_tasks.get(task.task_id, [])
                 tasks[task.task_id] = TaskDetails.model_validate(task_details)
             return tasks
@@ -142,7 +144,7 @@ async def get_tasks_short_async(
             task_ids = [task.task_id for task in results]
             child_tasks = await fetch_child_tasks_async(session, task_ids) if fetch_child else {}
             for task in results:
-                task_details = __task_details_short_to_dict(task)
+                task_details = task_details_short_to_dict(task)
                 task_details["child_tasks"] = child_tasks.get(task.task_id, [])
                 tasks[task.task_id] = TaskDetailsShort.model_validate(task_details)
             return tasks
@@ -178,7 +180,7 @@ async def get_incomplete_task_without_error_database_async(
         return {}
     async with database.SESSION_ASYNC() as session:
         try:
-            worker_id, worker_device_name, worker_info_values = __prepare_worker_info_update(
+            worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(
                 worker_user_id, worker_details
             )
             result = await session.execute(
@@ -231,7 +233,7 @@ async def update_task_progress_database_async(
 ) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
-            worker_id, _, worker_info_values = __prepare_worker_info_update(worker_user_id, worker_details)
+            worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
             update_values = {
                 "progress": progress,
                 "error": error,
