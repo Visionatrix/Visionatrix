@@ -1475,13 +1475,8 @@
           "content": {
             "application/json": {
               "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/TaskUpdateRequest"
-                  }
-                ],
-                "description": "Fields to update",
-                "title": "Update Data"
+                "$ref": "#/components/schemas/TaskUpdateRequest",
+                "description": "Fields to update"
               }
             }
           }
@@ -3037,7 +3032,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-20T12:40:00.792945Z"
+            "default": "2024-09-20T12:54:36.142218Z"
           }
         },
         "type": "object",
