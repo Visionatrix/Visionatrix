@@ -1449,6 +1449,97 @@
         }
       }
     },
+    "/api/tasks/update": {
+      "put": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Update Task Info",
+        "description": "Updates the information of a task specified by `task_id`. Only tasks that have not yet started (progress == 0.0)\ncan be updated. Currently, only the `priority` field can be updated.\n\nThe `priority` parameter must not exceed 15.\n\nAccess is restricted to the task owner or an administrator.",
+        "operationId": "update_task_info",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "ID of the task to update",
+              "title": "Task Id"
+            },
+            "description": "ID of the task to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TaskUpdateRequest"
+                  }
+                ],
+                "description": "Fields to update",
+                "title": "Update Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successfully updated the task"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Task started": {
+                    "summary": "Task already started",
+                    "value": {
+                      "detail": "Task `{task_id}` cannot be updated because it has already started."
+                    }
+                  },
+                  "Invalid priority": {
+                    "summary": "Invalid priority",
+                    "value": {
+                      "detail": "Priority cannot be greater than 15."
+                    }
+                  },
+                  "No fields": {
+                    "summary": "No fields to update",
+                    "value": {
+                      "detail": "No valid fields to update."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `{task_id}` was not found."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workers/info": {
       "get": {
         "tags": [
@@ -1744,6 +1835,12 @@
             "title": "Group Scope",
             "description": "Group number to which task should be assigned",
             "default": 1
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "description": "Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
+            "default": 0
           },
           "files": {
             "items": {
@@ -2186,6 +2283,12 @@
             "title": "Task Id",
             "description": "Unique identifier of the task."
           },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "description": "Global task priority. Default is 0.",
+            "default": 0
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2436,6 +2539,12 @@
             "title": "Task Id",
             "description": "Unique identifier of the task."
           },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "description": "Global task priority. Default is 0.",
+            "default": 0
+          },
           "progress": {
             "type": "number",
             "title": "Progress",
@@ -2572,6 +2681,30 @@
           "tasks_ids"
         ],
         "title": "TaskRunResults"
+      },
+      "TaskUpdateRequest": {
+        "properties": {
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 15.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority",
+            "description": "New priority level for task. Higher numbers indicate higher priority. Maximum value is 15."
+          }
+        },
+        "type": "object",
+        "required": [
+          "priority"
+        ],
+        "title": "TaskUpdateRequest",
+        "description": "Represents the fields that can be updated for a task that has not yet started execution.\n\nThis model allows clients to specify new values for task properties that are editable\nbefore the task begins processing."
       },
       "UserInfo": {
         "properties": {
@@ -2904,7 +3037,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-17T20:25:18.705887Z"
+            "default": "2024-09-20T12:40:00.792945Z"
           }
         },
         "type": "object",

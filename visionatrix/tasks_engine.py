@@ -10,7 +10,7 @@ import typing
 from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy import and_, delete, desc, or_, select, update
+from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
@@ -31,6 +31,7 @@ from .pydantic_models import (
 from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS,
     TASK_DETAILS_COLUMNS_SHORT,
+    get_get_incomplete_task_without_error_query,
     init_new_task_details,
     prepare_worker_info_update,
     task_details_from_dict,
@@ -215,30 +216,6 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
     return {}
 
 
-def __get_get_incomplete_task_without_error_query(
-    tasks_to_ask: list[str],
-    tasks_to_give: list[str],
-    last_task_name: str,
-    user_id: str | None = None,
-):
-    query = select(database.TaskDetails).outerjoin(
-        database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
-    )
-    query = query.filter(
-        database.TaskDetails.error == "",
-        database.TaskDetails.progress != 100.0,
-        database.TaskLock.id.is_(None),
-        database.TaskDetails.name.in_(tasks_to_ask),
-    )
-    if tasks_to_give:
-        query = query.filter(database.TaskDetails.name.in_(tasks_to_give))
-    if user_id is not None:
-        query = query.filter(database.TaskDetails.user_id == user_id)
-    if last_task_name and last_task_name in tasks_to_ask:
-        query = query.order_by(desc(database.TaskDetails.name == last_task_name))
-    return query
-
-
 def get_incomplete_task_without_error_database(
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
@@ -267,7 +244,7 @@ def get_incomplete_task_without_error_database(
         else:
             query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
             tasks_to_give = session.execute(query).scalar().tasks_to_give
-        query = __get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+        query = get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
         task = session.execute(query).scalar()
         if not task:
             session.commit()
@@ -906,3 +883,19 @@ def update_task_progress_thread(active_task: dict) -> None:
                 time.sleep(0.1)
     finally:
         remove_task_lock(last_info["task_id"])
+
+
+def update_task_info_database(task_id: int, update_fields: dict) -> bool:
+    with database.SESSION() as session:
+        try:
+            result = session.execute(
+                update(database.TaskDetails)
+                .where(database.TaskDetails.task_id == task_id, database.TaskDetails.progress == 0.0)
+                .values(**update_fields)
+            )
+            session.commit()
+            return result.rowcount == 1
+        except Exception as e:
+            session.rollback()
+            LOGGER.exception("Task %s: failed to update task info: %s", task_id, e)
+            return False

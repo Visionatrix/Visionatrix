@@ -50,6 +50,7 @@ class TaskDetails(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("tasks_queue.id"), nullable=False, unique=True)
     user_id = Column(String, nullable=False, index=True)
+    priority = Column(Integer, nullable=True, default=0, index=True)
     worker_id = Column(String, ForeignKey("workers.worker_id"), nullable=True, default=None, index=True)
     progress = Column(Float, default=0.0, index=True)
     error = Column(String, default="")

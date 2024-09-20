@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -131,6 +132,7 @@ class TaskDetailsShort(BaseModel):
     """Brief information about the Task."""
 
     task_id: int = Field(..., description="Unique identifier of the task.")
+    priority: int = Field(0, description="Global task priority. Default is 0.")
     progress: float = Field(
         ..., description="Progress from 0 to 100, task results are only available once progress reaches 100."
     )
@@ -162,7 +164,6 @@ class TaskDetails(TaskDetailsShort):
     created_at: datetime = Field(..., description="Task creation time.")
     updated_at: datetime | None = Field(None, description="Last task update time.")
     finished_at: datetime | None = Field(None, description="Finish time of the task.")
-    task_id: int = Field(..., description="Unique identifier of the task.")
     flow_comfy: dict = Field(..., description="The final generated ComfyUI workflow.")
     user_id: str = Field(..., description="User ID to whom the task belongs.")
     webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
@@ -257,3 +258,22 @@ class OrphanModel(BaseModel):
     creation_time: float = Field(..., description="The file's creation time in UNIX timestamp format.")
     res_model: AIResourceModel | None = Field(None, description="AIResourceModel describing the file, if any matches.")
     possible_flows: list[Flow] = Field([], description="List of possible flows that could potentially use this model.")
+
+
+class TaskUpdateRequest(BaseModel):
+    """
+    Represents the fields that can be updated for a task that has not yet started execution.
+
+    This model allows clients to specify new values for task properties that are editable
+    before the task begins processing.
+    """
+
+    priority: Annotated[
+        int | None,
+        Field(
+            strict=True,
+            gt=0,
+            le=15,
+            description="New priority level for task. Higher numbers indicate higher priority. Maximum value is 15.",
+        ),
+    ]
