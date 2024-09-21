@@ -1828,7 +1828,7 @@
           "group_scope": {
             "type": "integer",
             "title": "Group Scope",
-            "description": "Group number to which task should be assigned",
+            "description": "Group number to which task should be assigned. Maximum value is 255.",
             "default": 1
           },
           "priority": {
@@ -2281,7 +2281,7 @@
           "priority": {
             "type": "integer",
             "title": "Priority",
-            "description": "Global task priority. Default is 0.",
+            "description": "Local task priority, from 0 to 15. Default is 0.",
             "default": 0
           },
           "progress": {
@@ -2537,7 +2537,7 @@
           "priority": {
             "type": "integer",
             "title": "Priority",
-            "description": "Global task priority. Default is 0.",
+            "description": "Local task priority, from 0 to 15. Default is 0.",
             "default": 0
           },
           "progress": {
@@ -3032,7 +3032,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-20T12:54:36.142218Z"
+            "default": "2024-09-21T12:31:17.194948Z"
           }
         },
         "type": "object",

@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing_extensions import Self
 
 
 class TaskRunResults(BaseModel):
@@ -132,7 +133,7 @@ class TaskDetailsShort(BaseModel):
     """Brief information about the Task."""
 
     task_id: int = Field(..., description="Unique identifier of the task.")
-    priority: int = Field(0, description="Global task priority. Default is 0.")
+    priority: int = Field(0, description="Local task priority, from 0 to 15. Default is 0.")
     progress: float = Field(
         ..., description="Progress from 0 to 100, task results are only available once progress reaches 100."
     )
@@ -156,6 +157,15 @@ class TaskDetailsShort(BaseModel):
     child_tasks: list[TaskDetailsShort] = Field(
         [], description="List of child tasks of type `TaskDetailsShort` if any."
     )
+
+    @model_validator(mode="after")
+    def adjust_priority(self) -> Self:
+        """
+        The database stores a global priority which is for internal use only,
+        so we need to get the local priority only within the group, which is the last 4 bits of the number.
+        """
+        self.priority = self.priority & 0b1111
+        return self
 
 
 class TaskDetails(TaskDetailsShort):

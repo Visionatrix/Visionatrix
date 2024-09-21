@@ -116,7 +116,7 @@ async def __task_run(
         task_details["parent_task_id"] = in_files[0]["task_id"]
         task_details["parent_task_node_id"] = in_files[0]["node_id"]
     task_details["group_scope"] = group_scope
-    task_details["priority"] = priority
+    task_details["priority"] = ((group_scope - 1) << 4) + priority
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
@@ -134,7 +134,7 @@ async def create_task(
     webhook_url: str | None = Form(None, description="URL to call when task state changes"),
     webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
     child_task: int = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
-    group_scope: int = Form(1, description="Group number to which task should be assigned"),
+    group_scope: int = Form(1, description="Group number to which task should be assigned. Maximum value is 255."),
     priority: int = Form(
         0,
         description="Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
@@ -146,8 +146,10 @@ async def create_task(
     handling both file inputs and task-related parameters.
     """
 
-    if group_scope < 1:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Group number should be >= 1") from None
+    if group_scope < 1 or group_scope > 255:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Group number should from 1 to 255"
+        ) from None
 
     if priority > 15:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Priority cannot be greater than 15.")
@@ -860,6 +862,8 @@ async def update_task_info(
 
     if "priority" in update_fields and update_fields["priority"] > 15:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Priority cannot be greater than 15.")
+
+    update_fields["priority"] = ((task["group_scope"] - 1) << 4) + update_fields["priority"]
 
     if options.VIX_MODE == "SERVER":
         success = await update_task_info_database_async(task_id, update_fields)
