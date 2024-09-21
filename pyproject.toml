@@ -182,6 +182,7 @@ messages_control.disable = [
   "too-many-nested-blocks",
   "global-statement",
   "broad-exception-caught",
+  "too-many-positional-arguments",
 ]
 
 [tool.pytest.ini_options]
