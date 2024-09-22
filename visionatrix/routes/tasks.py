@@ -29,7 +29,12 @@ from ..flows import (
     get_installed_flow,
     prepare_flow_comfy,
 )
-from ..pydantic_models import TaskRunResults, UserInfo, WorkerDetailsRequest
+from ..pydantic_models import (
+    TaskRunResults,
+    TaskUpdateRequest,
+    UserInfo,
+    WorkerDetailsRequest,
+)
 from ..tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
@@ -47,6 +52,7 @@ from ..tasks_engine import (
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name_and_group,
     task_restart_database,
+    update_task_info_database,
     update_task_outputs,
     update_task_progress_database,
 )
@@ -58,6 +64,7 @@ from ..tasks_engine_async import (
     get_tasks_short_async,
     put_task_in_queue_async,
     task_restart_database_async,
+    update_task_info_database_async,
     update_task_outputs_async,
     update_task_progress_database_async,
 )
@@ -78,6 +85,7 @@ async def __task_run(
     webhook_headers: dict | None,
     child_task: bool,
     group_scope: int,
+    priority: int,
 ):
     if options.VIX_MODE == "SERVER":
         task_details = await create_new_task_async(name, input_params, user_info)
@@ -108,6 +116,7 @@ async def __task_run(
         task_details["parent_task_id"] = in_files[0]["task_id"]
         task_details["parent_task_node_id"] = in_files[0]["node_id"]
     task_details["group_scope"] = group_scope
+    task_details["priority"] = ((group_scope - 1) << 4) + priority
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
@@ -125,7 +134,11 @@ async def create_task(
     webhook_url: str | None = Form(None, description="URL to call when task state changes"),
     webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
     child_task: int = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
-    group_scope: int = Form(1, description="Group number to which task should be assigned"),
+    group_scope: int = Form(1, description="Group number to which task should be assigned. Maximum value is 255."),
+    priority: int = Form(
+        0,
+        description="Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
+    ),
     files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """
@@ -133,8 +146,13 @@ async def create_task(
     handling both file inputs and task-related parameters.
     """
 
-    if group_scope < 1:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Group number should be >= 1") from None
+    if group_scope < 1 or group_scope > 255:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Group number should from 1 to 255"
+        ) from None
+
+    if priority > 15:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Priority cannot be greater than 15.")
 
     in_files = []
     for i in files if files else []:
@@ -182,6 +200,7 @@ async def create_task(
             webhook_headers_dict,
             bool(child_task),
             group_scope,
+            priority,
         )
         tasks_ids.append(task_details["task_id"])
         if "seed" in input_params_dict:
@@ -773,3 +792,82 @@ async def remove_task_lock(
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     remove_task_lock_database(task_id)
+
+
+@ROUTER.put(
+    "/update",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Successfully updated the task"},
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "Task started": {
+                            "summary": "Task already started",
+                            "value": {"detail": "Task `{task_id}` cannot be updated because it has already started."},
+                        },
+                        "Invalid priority": {
+                            "summary": "Invalid priority",
+                            "value": {"detail": "Priority cannot be greater than 15."},
+                        },
+                        "No fields": {
+                            "summary": "No fields to update",
+                            "value": {"detail": "No valid fields to update."},
+                        },
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Task not found",
+            "content": {"application/json": {"example": {"detail": "Task `{task_id}` was not found."}}},
+        },
+    },
+)
+async def update_task_info(
+    request: Request,
+    task_id: int = Query(..., description="ID of the task to update"),
+    update_data: TaskUpdateRequest = Body(..., description="Fields to update"),
+):
+    """
+    Updates the information of a task specified by `task_id`. Only tasks that have not yet started (progress == 0.0)
+    can be updated. Currently, only the `priority` field can be updated.
+
+    The `priority` parameter must not exceed 15.
+
+    Access is restricted to the task owner or an administrator.
+    """
+    if options.VIX_MODE == "SERVER":
+        task = await get_task_async(task_id)
+    else:
+        task = get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
+
+    if task["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
+
+    if task["progress"] != 0.0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Task `{task_id}` cannot be updated because it has already started.",
+        )
+
+    update_fields = update_data.model_dump(exclude_unset=True)
+    if not update_fields:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid fields to update.")
+
+    if "priority" in update_fields and update_fields["priority"] > 15:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Priority cannot be greater than 15.")
+
+    update_fields["priority"] = ((task["group_scope"] - 1) << 4) + update_fields["priority"]
+
+    if options.VIX_MODE == "SERVER":
+        success = await update_task_info_database_async(task_id, update_fields)
+    else:
+        success = update_task_info_database(task_id, update_fields)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to update task `{task_id}`.")

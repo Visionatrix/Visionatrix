@@ -166,7 +166,7 @@ design.max-attributes = 10
 design.max-locals = 28
 design.max-branches = 24
 design.max-returns = 8
-design.max-args = 10
+design.max-args = 12
 design.max-statements = 90
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
@@ -182,6 +182,7 @@ messages_control.disable = [
   "too-many-nested-blocks",
   "global-statement",
   "broad-exception-caught",
+  "too-many-positional-arguments",
 ]
 
 [tool.pytest.ini_options]

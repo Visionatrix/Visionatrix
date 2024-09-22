@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Row
+from sqlalchemy import Row, desc, select
 
 from . import database
 from .pydantic_models import UserInfo, WorkerDetailsRequest
@@ -8,6 +8,7 @@ from .pydantic_models import UserInfo, WorkerDetailsRequest
 TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.task_id,
     database.TaskDetails.name,
+    database.TaskDetails.priority,
     database.TaskDetails.progress,
     database.TaskDetails.error,
     database.TaskDetails.execution_time,
@@ -53,6 +54,7 @@ def task_details_from_dict(task_details: dict) -> database.TaskDetails:
         task_id=task_details["task_id"],
         name=task_details["name"],
         input_params=task_details["input_params"],
+        priority=task_details["priority"],
         progress=task_details["progress"],
         error=task_details["error"],
         outputs=task_details["outputs"],
@@ -91,6 +93,7 @@ def task_details_to_dict(task_details: Row) -> dict:
 def task_details_short_to_dict(task_details: Row) -> dict:
     return {
         "task_id": task_details.task_id,
+        "priority": task_details.priority,
         "progress": task_details.progress,
         "error": task_details.error,
         "name": task_details.name,
@@ -128,3 +131,29 @@ def prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetail
             "last_seen": datetime.now(timezone.utc),
         },
     )
+
+
+def get_get_incomplete_task_without_error_query(
+    tasks_to_ask: list[str],
+    tasks_to_give: list[str],
+    last_task_name: str,
+    user_id: str | None = None,
+):
+    query = select(database.TaskDetails).outerjoin(
+        database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
+    )
+    query = query.filter(
+        database.TaskDetails.error == "",
+        database.TaskDetails.progress != 100.0,
+        database.TaskLock.id.is_(None),
+        database.TaskDetails.name.in_(tasks_to_ask),
+    )
+    if tasks_to_give:
+        query = query.filter(database.TaskDetails.name.in_(tasks_to_give))
+    if user_id is not None:
+        query = query.filter(database.TaskDetails.user_id == user_id)
+    if last_task_name and last_task_name in tasks_to_ask:
+        query = query.order_by(desc(database.TaskDetails.priority), desc(database.TaskDetails.name == last_task_name))
+    else:
+        query = query.order_by(desc(database.TaskDetails.priority))
+    return query

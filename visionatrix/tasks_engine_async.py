@@ -16,7 +16,6 @@ from .pydantic_models import (
     WorkerDetailsRequest,
 )
 from .tasks_engine import (
-    __get_get_incomplete_task_without_error_query,
     __get_task_query,
     __get_tasks_query,
     __lock_task_and_return_details,
@@ -25,6 +24,7 @@ from .tasks_engine import (
 )
 from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS_SHORT,
+    get_get_incomplete_task_without_error_query,
     init_new_task_details,
     prepare_worker_info_update,
     task_details_from_dict,
@@ -199,7 +199,7 @@ async def get_incomplete_task_without_error_database_async(
             else:
                 query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
                 tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
-            query = __get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+            query = get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
             task = (await session.execute(query)).scalar()
             if not task:
                 await session.commit()
@@ -289,3 +289,19 @@ async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Even
     database.init_database_engine()
     if options.VIX_MODE != "SERVER":
         _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
+
+
+async def update_task_info_database_async(task_id: int, update_fields: dict) -> bool:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            result = await session.execute(
+                update(database.TaskDetails)
+                .where(database.TaskDetails.task_id == task_id, database.TaskDetails.progress == 0.0)
+                .values(**update_fields)
+            )
+            await session.commit()
+            return result.rowcount == 1
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Task %s: failed to update task info: %s", task_id, e)
+            return False

@@ -16,7 +16,14 @@ openapi_schema = APP.openapi()
 openapi_schema["info"]["title"] = "visionatrix"
 openapi_schema["info"]["version"] = _version.__version__
 
+# Write the JSON file with the OpenAPI schema
 with builtins.open("openapi.json", "w", encoding="UTF-8") as f:
     json.dump(openapi_schema, f, indent=2)
+
+# Ensure the file ends with a newline
+with builtins.open("openapi.json", "r+", encoding="UTF-8") as f:
+    content = f.read()
+    if not content.endswith("\n"):
+        f.write("\n")
 
 print("OpenAPI schema has been generated and saved to openapi.json")
