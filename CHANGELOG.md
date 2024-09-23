@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0 - 2024-09-24]
+
+Release with bug fixes and minor features found after testing in production environment.
+
+### Added
+
+- New `MAX_PARALLEL_DOWNLOADS` environment option for parallel models downloading. #159
+- New `NODES_TIMING` environment option to print execution time of each node(for debug). #172
+- Tasks' `priority` feature(backend part only). #173
+
+### Fix
+
+- Perform several attempts to clone repos, before failing. #162
+- Ignore ComfyUI `execution_cached` event without nodes cached(fixes rare negative progress value). #163
+- Stop duplicating logs twice. #164
+- NodeJS packages update. #169
+
 ## [1.2.0 - 2024-09-10]
 
 ### Added
