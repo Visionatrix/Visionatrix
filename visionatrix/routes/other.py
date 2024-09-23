@@ -3,11 +3,13 @@ import os
 import signal
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Request, responses, status
+from fastapi import APIRouter, BackgroundTasks, Request, responses, status, HTTPException
 
 from .. import comfyui, options
-from ..pydantic_models import UserInfo
+from ..pydantic_models import UserInfo, TranslatePromptRequest, TranslatePromptResponse
 from .helpers import require_admin
+from ..prompt_translation import translate_prompt_with_gemini, translate_prompt_with_ollama
+from .settings import get_setting
 
 LOGGER = logging.getLogger("visionatrix")
 ROUTER = APIRouter(prefix="/other", tags=["other"])
@@ -70,3 +72,52 @@ async def shutdown_server(request: Request, b_tasks: BackgroundTasks):
 async def whoami(request: Request) -> UserInfo:
     """Returns information about the currently authenticated user."""
     return request.scope["user_info"]
+
+
+@ROUTER.post(
+    "/translate-prompt",
+    responses={
+        200: {
+            "description": "Translation successful",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "prompt": "Dornröschen",
+                        "result": "Sleeping Beauty",
+                        "done_reason": "stop"
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Translation service error",
+            "content": {"application/json": {"example": {"detail": "Translation service error"}}},
+        },
+    },
+)
+def translate_prompt(request: Request, data: TranslatePromptRequest) -> TranslatePromptResponse:
+    """
+    Translates an image generation prompt from another language into English.
+
+    This endpoint accepts a prompt in any language and translates it into English.
+    It returns the original prompt, the translated result, and the reason the generation was completed.
+
+    Accessible to all authenticated users.
+
+    Raises:
+        HTTPException: If there is an error during the translation process.
+    """
+    user_id = request.scope["user_info"].user_id
+    is_admin = request.scope["user_info"].is_admin
+    try:
+        translations_provider = get_setting(user_id, "translations_provider", is_admin)
+        if translations_provider == "gemini":
+            return translate_prompt_with_gemini(user_id, is_admin, data)
+        else:
+            return translate_prompt_with_ollama(user_id, is_admin, data)
+    except Exception as e:
+        LOGGER.exception("Error during prompt translation: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Translation service error",
+        ) from e

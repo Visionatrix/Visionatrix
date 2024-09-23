@@ -48,6 +48,8 @@ dependencies = [
   "bcrypt==4.0.1",
   "fastapi>=0.109.2",
   "httpx>=0.25.2",
+  "ollama",
+  "google-generativeai",
   "packaging",
   "passlib[bcrypt]",
   "pillow-heif",

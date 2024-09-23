@@ -178,6 +178,9 @@ class TaskDetails(TaskDetailsShort):
     user_id: str = Field(..., description="User ID to whom the task belongs.")
     webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
     webhook_headers: dict | None = Field(None, description="Headers to send to webhook.")
+    translated_prompt: str = Field(
+        None, description="If auto-translation is enabled, contains a translation of the prompt for supported flows."
+    )
 
 
 class WorkerDetailsSystemRequest(BaseModel):
@@ -287,3 +290,22 @@ class TaskUpdateRequest(BaseModel):
             description="New priority level for task. Higher numbers indicate higher priority. Maximum value is 15.",
         ),
     ]
+
+
+class TranslatePromptRequest(BaseModel):
+    """Represents the request data for translating an image generation prompt."""
+
+    prompt: str = Field(..., description="The image generation prompt to translate.")
+
+
+class TranslatePromptResponse(BaseModel):
+    """
+    Represents the response data after translating an image generation prompt.
+
+    Contains the original prompt provided by the user, the translated prompt in English,
+    and the reason the translation process completed.
+    """
+
+    prompt: str = Field(..., description="The original prompt provided in the request.")
+    result: str = Field(..., description="The translated prompt in English.")
+    done_reason: str = Field(..., description="The reason the translation generation was completed.")

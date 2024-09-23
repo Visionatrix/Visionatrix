@@ -31,6 +31,7 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.finished_at,
     database.TaskDetails.webhook_url,
     database.TaskDetails.webhook_headers,
+    database.TaskDetails.translated_prompt,
 ]
 
 

@@ -69,6 +69,7 @@ class TaskDetails(Base):
     webhook_headers = Column(JSON, nullable=True)
     parent_task_id = Column(Integer, nullable=True, index=True)
     parent_task_node_id = Column(Integer, nullable=True)
+    translated_prompt = Column(String, default="")
 
     __table_args__ = (Index("ix_parent_task", "parent_task_id", "parent_task_node_id"),)
 
