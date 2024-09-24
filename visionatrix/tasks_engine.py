@@ -812,12 +812,11 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
     last_task_name = ""
     last_gc_collect = 0
     need_gc = False
-    gc_collect_interval = 10.0
 
     while True:
         if need_gc:
             current_time = time.perf_counter()
-            if (current_time - last_gc_collect) > gc_collect_interval:
+            if (current_time - last_gc_collect) > options.GC_COLLECT_INTERVAL:
                 LOGGER.debug("cleanup_models")
                 cleanup_models()
                 LOGGER.debug("gc.collect")
