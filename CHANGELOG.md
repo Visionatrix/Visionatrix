@@ -14,6 +14,7 @@ Release with bug fixes and minor features found after testing in production envi
 
 ### Fix
 
+- Fixed GPU memory being freed at certain times (for rare cases). Enable memory freeing on AMD GPUs. #175
 - Perform several attempts to clone repos, before failing. #162
 - Ignore ComfyUI `execution_cached` event without nodes cached(fixes rare negative progress value). #163
 - Stop duplicating logs twice. #164

@@ -192,10 +192,10 @@ def cleanup_models() -> None:
     comfy.model_management.cleanup_models()
 
 
-def soft_empty_cache() -> None:
+def soft_empty_cache(force: bool = False) -> None:
     import comfy  # noqa
 
-    comfy.model_management.soft_empty_cache()
+    comfy.model_management.soft_empty_cache(force)
 
 
 def torch_device_info() -> dict:
