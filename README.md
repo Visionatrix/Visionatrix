@@ -106,7 +106,7 @@ Currently, only versions for CUDA/CPU is build, if there will be request we can 
 
 ### Manual Installation
 
-If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/VixFlowsDocs/Installation.html) how to do that.
+If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/installation/) how to do that.
 
 ## Update process (Linux/macOS)
 

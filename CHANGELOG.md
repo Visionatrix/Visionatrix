@@ -12,7 +12,7 @@ Release with bug fixes and minor features found after testing in production envi
 - New `NODES_TIMING` environment option to print execution time of each node(for debug). #172
 - Tasks' `priority` feature(backend part only). #173
 
-### Fix
+### Fixed
 
 - Fixed GPU memory being freed at certain times (for rare cases). Enable memory freeing on AMD GPUs. [#74bb44d](https://github.com/Visionatrix/Visionatrix/commit/74bb44d69e9e2829673118cc8eadb958e684e194)
 - Perform several attempts to clone repos, before failing. #162
@@ -32,7 +32,7 @@ Release with bug fixes and minor features found after testing in production envi
 
 - Reworked and finalized the `Inpaint` feature. Now optional `context area` can be passed for the Inpainting. #155
 
-### Fix
+### Fixed
 
 - Different UI fixes and adjustments. #155
 
