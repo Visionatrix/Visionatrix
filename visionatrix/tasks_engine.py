@@ -812,9 +812,20 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
     last_task_name = ""
     last_gc_collect = 0
     need_gc = False
-    gc_collect_interval = 10.0
 
     while True:
+        if need_gc:
+            current_time = time.perf_counter()
+            if (current_time - last_gc_collect) > options.GC_COLLECT_INTERVAL:
+                LOGGER.debug("cleanup_models")
+                cleanup_models()
+                LOGGER.debug("gc.collect")
+                gc.collect()
+                LOGGER.debug("soft_empty_cache")
+                soft_empty_cache(True)
+                last_gc_collect = current_time
+                need_gc = False
+
         if exit_event.wait(
             min(
                 options.MIN_PAUSE_INTERVAL + reply_count_no_tasks * options.MAX_PAUSE_INTERVAL / 10,
@@ -822,16 +833,6 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
             ),
         ):
             break
-        if need_gc:
-            current_time = time.perf_counter()
-            if (current_time - last_gc_collect) > gc_collect_interval:
-                LOGGER.debug("cleanup_models")
-                cleanup_models()
-                LOGGER.debug("gc.collect")
-                gc.collect()
-                soft_empty_cache()
-                last_gc_collect = current_time
-                need_gc = False
 
         ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names(), last_task_name)
         if not ACTIVE_TASK:

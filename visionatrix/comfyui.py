@@ -143,7 +143,8 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
 
     main.cleanup_temp()
-    return execution.validate_prompt, get_comfy_prompt_executor(comfy_server, task_progress_callback)
+    prompt_executor = get_comfy_prompt_executor(comfy_server, task_progress_callback, main.args.cache_lru)
+    return execution.validate_prompt, prompt_executor
 
 
 def get_comfy_server_class(task_progress_callback):
@@ -163,7 +164,7 @@ def get_comfy_server_class(task_progress_callback):
     return ComfyServer(None)
 
 
-def get_comfy_prompt_executor(comfy_server, task_progress_callback):
+def get_comfy_prompt_executor(comfy_server, task_progress_callback, nodes_cache_args):
     import execution  # noqa
 
     class ComfyPromptExecutor(execution.PromptExecutor):
@@ -171,7 +172,7 @@ def get_comfy_prompt_executor(comfy_server, task_progress_callback):
         def add_message(self, event, data, broadcast: bool):  # noqa
             task_progress_callback(event, data, broadcast)
 
-    return ComfyPromptExecutor(comfy_server)
+    return ComfyPromptExecutor(comfy_server, lru_size=nodes_cache_args)
 
 
 def get_node_class_mappings() -> dict[str, object]:
@@ -192,10 +193,10 @@ def cleanup_models() -> None:
     comfy.model_management.cleanup_models()
 
 
-def soft_empty_cache() -> None:
+def soft_empty_cache(force: bool = False) -> None:
     import comfy  # noqa
 
-    comfy.model_management.soft_empty_cache()
+    comfy.model_management.soft_empty_cache(force)
 
 
 def torch_device_info() -> dict:

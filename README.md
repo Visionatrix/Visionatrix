@@ -106,7 +106,7 @@ Currently, only versions for CUDA/CPU is build, if there will be request we can 
 
 ### Manual Installation
 
-If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/VixFlowsDocs/Installation.html) how to do that.
+If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/installation/) how to do that.
 
 ## Update process (Linux/macOS)
 
@@ -123,14 +123,18 @@ Run `easy_install` script and select "**Update**" option.
 If you have any questions, we will try to answer them, do not hesitate to create [Discussion](https://github.com/Visionatrix/Visionatrix/discussions/new/choose) and ask.
 
 - [Documentation](https://visionatrix.github.io/VixFlowsDocs/)
-  - [Available Flows](https://visionatrix.github.io/VixFlowsDocs/Flows/index.html)
-  - [Manual Installation](https://visionatrix.github.io/VixFlowsDocs/installation/)
-  - [Command Line Options](https://visionatrix.github.io/VixFlowsDocs/command_line_options/)
-  - [Working modes](https://visionatrix.github.io/VixFlowsDocs/working_modes/)
-  - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/vix_workflows/)
-  - [Creating Workflows](https://visionatrix.github.io/VixFlowsDocs/comfyui_vix_migration/)
-  - [Technical information](https://visionatrix.github.io/VixFlowsDocs/technical_information/)
-  - [FAQ](https://visionatrix.github.io/VixFlowsDocs/faq/)
-  - [Hardware FAQ](https://visionatrix.github.io/VixFlowsDocs/hardware_faq/)
-  - [Hardware Results](https://visionatrix.github.io/VixFlowsDocs/hardware_results/)
-  - [OpenAPI](https://visionatrix.github.io/VixFlowsDocs/swagger.html)
+  - [Available Flows](https://visionatrix.github.io/VixFlowsDocs/Flows/)
+  - Admin Manual:
+    - [Installation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/installation/)
+    - [Working Modes](https://visionatrix.github.io/VixFlowsDocs/AdminManual/WorkingModes/working_modes/)
+    - [Command Line Options](https://visionatrix.github.io/VixFlowsDocs/AdminManual/command_line_options/)
+  - Flows Developing:
+    - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/vix_workflows/)
+    - [Technical information](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/)
+    - [Gated Models](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/)
+    - [Creating Workflows](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/comfyui_vix_migration/)
+  - Common information:
+    - [FAQ](https://visionatrix.github.io/VixFlowsDocs/faq/)
+    - [Hardware FAQ](https://visionatrix.github.io/VixFlowsDocs/hardware_faq/)
+    - [Hardware Results](https://visionatrix.github.io/VixFlowsDocs/hardware_results/)
+    - [OpenAPI](https://visionatrix.github.io/VixFlowsDocs/swagger.html)

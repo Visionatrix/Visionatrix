@@ -71,6 +71,12 @@ For example if there is no tasks, worker first time will wait ``min_interval``, 
 ``min(min_interval + max_interval / 10, max_interval)`` - this will make load on the server lower when nothing to do.
 """
 
+GC_COLLECT_INTERVAL = float(environ.get("GC_COLLECT_INTERVAL", "10.0"))
+"""Internal variable. Interval in seconds (float) that determines how long
+after the task is executed the GPU memory release and garbage collection procedure will be called.
+In ComfyUI this interval is not configurable, we also do not recommend changing it if you do not know what it does.
+"""
+
 USER_BACKENDS = [backend.strip() for backend in environ.get("USER_BACKENDS", "vix_db").split(";") if backend.strip()]
 """List of user backends to enable.
 Each backend supports its own environment variables for configuration.
