@@ -172,6 +172,7 @@ def install_custom_flow(
         if not hf_auth_token:
             LOGGER.warning("Flow has gated model(s): %s; AccessToken was not found.", [i.name for i in gated_models])
 
+    install_models_results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=options.MAX_PARALLEL_DOWNLOADS) as executor:
         futures = [
             executor.submit(install_model, model, flow.name, progress_for_model, progress_callback, hf_auth_token)
@@ -179,10 +180,15 @@ def install_custom_flow(
         ]
         for future in concurrent.futures.as_completed(futures):
             try:
-                future.result()
+                install_models_result = future.result()
+                install_models_results.append(install_models_result)
             except Exception as e:
-                LOGGER.exception("Error during model installation: %s", e)
+                LOGGER.exception("Error during models installation: %s", e)
                 return False
+
+    if not all(install_models_results):
+        LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
+        return False
 
     local_flow_path = os.path.join(options.FLOWS_DIR, f"{flow.name}.json")
     if progress_callback is not None and not progress_callback(flow.name, 99.0, "", False):

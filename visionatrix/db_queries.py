@@ -232,8 +232,9 @@ def update_flow_progress_install(name: str, progress: float, relative_progress: 
         # If no rows were updated, this means an error was already set
         if result.rowcount == 0:
             LOGGER.warning(
-                "Flow installation for `%s` already encountered an error, skipping progress update: %s",
+                "Flow installation for `%s` already encountered an error, skipping progress update: %s%s",
                 name,
+                "+" if relative_progress else "",
                 progress,
             )
             return False
