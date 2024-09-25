@@ -1,7 +1,6 @@
 import builtins
 import hashlib
 import logging
-import math
 import os
 import typing
 import zipfile
@@ -97,91 +96,86 @@ def download_model(
     if save_path.exists():
         existing_file_size = save_path.stat().st_size
         if existing_file_size > 0:
-            headers['Range'] = f'bytes={existing_file_size}-'
+            headers["Range"] = f"bytes={existing_file_size}-"
             LOGGER.info("Resuming download from byte %d", existing_file_size)
 
     retry = True
     while retry:
         retry = False
-        with httpx.stream("GET", model.url, headers=headers, follow_redirects=True, timeout=10.0) as response:
+        with httpx.stream("GET", model.url, headers=headers, follow_redirects=True, timeout=15.0) as response:
             if response.status_code == status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE or (
                 existing_file_size > 0 and response.status_code == status.HTTP_404_NOT_FOUND
             ):
                 # Cannot resume, restart from beginning
                 LOGGER.warning("Cannot resume download; restarting from the beginning.")
                 existing_file_size = 0
-                headers.pop('Range', None)
+                headers.pop("Range", None)
                 save_path.unlink(missing_ok=True)  # Delete the incomplete file
                 retry = True
                 continue
-            elif response.status_code == status.HTTP_404_NOT_FOUND:
-                raise RuntimeError("Resource not found at `%s`", model.url)
-            elif response.status_code == status.HTTP_200_OK and 'Range' in headers:
+            if response.status_code == status.HTTP_404_NOT_FOUND:
+                raise RuntimeError(f"Resource not found at {model.url}")
+            if response.status_code == status.HTTP_200_OK and "Range" in headers:
                 # Server does not support resuming
                 LOGGER.warning("Server does not support resuming; starting download from scratch.")
                 existing_file_size = 0
-                headers.pop('Range', None)
+                headers.pop("Range", None)
                 save_path.unlink(missing_ok=True)  # Delete the incomplete file
                 retry = True
                 continue
-            elif httpx.codes.is_error(response.status_code):
+            if httpx.codes.is_error(response.status_code):
                 if response.status_code == status.HTTP_401_UNAUTHORIZED and model.gated:
                     raise RuntimeError(f"Denied access for gated model at {model.url} with token={hf_auth_token}")
-                raise RuntimeError("Download request failed with status: %s", response.status_code)
+                raise RuntimeError(f"Download request failed with status: {response.status_code}")
+
+            # Actual downloading logic starts here
+            if response.status_code == status.HTTP_206_PARTIAL_CONTENT:
+                content_range = response.headers.get("Content-Range")
+                if content_range is None:
+                    raise RuntimeError("Server did not provide 'Content-Range' header for partial content.")
+                total_size = int(content_range.split("/")[-1])
             else:
-                if response.status_code == status.HTTP_206_PARTIAL_CONTENT:
-                    content_range = response.headers.get('Content-Range')
-                    if content_range is None:
-                        raise RuntimeError("Server did not provide 'Content-Range' header for partial content.")
-                    total_size = int(content_range.split('/')[-1])
-                else:
-                    total_size = int(response.headers.get("Content-Length", 0))
+                total_size = int(response.headers.get("Content-Length", 0))
 
-    linked_etag = ""
-    for each_history in response.history:
-        linked_etag = each_history.headers.get("X-Linked-ETag", "")
-        if linked_etag:
-            break
-    if not linked_etag:
-        linked_etag = response.headers.get("X-Linked-ETag", response.headers.get("ETag", ""))
-    linked_etag = linked_etag.strip('"').lower()
-    if linked_etag != model.hash and model.url.find("civitai.com/") == -1:
-        raise RuntimeError(f"Model hash mismatch: {linked_etag} != {model.hash}, please report this.")
+            check_etag(response, model)
 
-    if existing_file_size > 0:
-        total_added_progress = progress_for_model * existing_file_size / total_size
-        if progress_callback is not None:
-            progress_callback(flow_name, total_added_progress, "", True)
-    else:
-        total_added_progress = 0.0
-    progress_value = 0.0
+            if existing_file_size > 0:
+                total_added_progress = progress_for_model * existing_file_size / total_size
+                if progress_callback is not None:
+                    progress_callback(flow_name, total_added_progress, "", True)
+            else:
+                total_added_progress = 0.0
+            progress_value = 0.0
 
-    try:
-        mode = 'ab' if existing_file_size > 0 else 'wb'
-        with builtins.open(save_path, mode) as file:
-            for chunk in response.iter_bytes(10 * 1024 * 1024):
-                if chunk:
-                    downloaded_size = file.write(chunk)
-                    if progress_callback is not None:
-                        progress_value += progress_for_model * downloaded_size / total_size
-                        if math.floor(progress_value * 10) / 10 >= 0.1:
-                            if progress_callback(flow_name, progress_value, "", True) is False:
-                                save_path.unlink(missing_ok=True)
-                                LOGGER.warning("Download of '%s' was interrupted.", model.url)
-                                return False
-                            total_added_progress += progress_value
-                            progress_value = 0.0
-        if not check_hash(model.hash, save_path):
-            raise RuntimeError("Downloaded file hash does not match the expected hash.")
-    except (httpx.HTTPError, RuntimeError):
-        if progress_callback is not None:
-            progress_callback(flow_name, -total_added_progress, "", True)
-        raise
-    if model.url.endswith(".zip"):
-        with zipfile.ZipFile(save_path) as zip_file:
-            zip_file.extractall(save_path.parent)
-        os.unlink(save_path)
-    return True
+            try:
+                mode = "ab" if existing_file_size > 0 else "wb"
+                with builtins.open(save_path, mode) as file:
+                    for chunk in response.iter_bytes(10 * 1024 * 1024):
+                        if chunk:
+                            bytes_written = file.write(chunk)
+                            if progress_callback is not None:
+                                increment = progress_for_model * bytes_written / total_size
+                                progress_value += increment
+                                if progress_value >= 0.1:
+                                    if not progress_callback(flow_name, progress_value, "", True):
+                                        LOGGER.warning("Download of '%s' was interrupted.", model.url)
+                                        return False
+                                    total_added_progress += progress_value
+                                    progress_value = 0.0
+                if not check_hash(model.hash, save_path):
+                    save_path.unlink(missing_ok=True)
+                    raise RuntimeError("Downloaded file hash does not match the expected hash.")
+            except (httpx.HTTPError, RuntimeError):
+                if progress_callback is not None:
+                    progress_callback(flow_name, -total_added_progress, "", True)
+                raise
+            if model.url.endswith(".zip"):
+                with zipfile.ZipFile(save_path) as zip_file:
+                    zip_file.extractall(save_path.parent)
+                os.unlink(save_path)
+            return True
+    save_path.unlink(missing_ok=True)
+    raise RuntimeError("Failed to download model after retries")
 
 
 def check_hash(etag: str, model_path: str | Path) -> bool:
@@ -192,3 +186,16 @@ def check_hash(etag: str, model_path: str | Path) -> bool:
         for byte_block in iter(lambda: file.read(4096), b""):
             sha256_hash.update(byte_block)
         return f"{sha256_hash.hexdigest()}" == etag
+
+
+def check_etag(response: httpx.Response, model: AIResourceModel) -> None:
+    linked_etag = ""
+    for each_history in response.history:
+        linked_etag = each_history.headers.get("X-Linked-ETag", "")
+        if linked_etag:
+            break
+    if not linked_etag:
+        linked_etag = response.headers.get("X-Linked-ETag", response.headers.get("ETag", ""))
+    linked_etag = linked_etag.strip('"').lower()
+    if linked_etag != model.hash and model.url.find("civitai.com/") == -1:
+        raise RuntimeError(f"Model hash mismatch: {linked_etag} != {model.hash}, please report this.")
