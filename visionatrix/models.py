@@ -115,19 +115,25 @@ def download_model(
             raise RuntimeError(exc_msg)
         total_size = int(response.headers.get("Content-Length"))
         progress_value = 0
-        with builtins.open(save_path, "wb") as file:
-            for chunk in response.iter_bytes(10 * 1024 * 1024):
-                downloaded_size = file.write(chunk)
-                if progress_callback is not None:
-                    progress_value += progress_for_model * downloaded_size / total_size
-                    if math.floor(progress_value * 10) / 10 >= 0.1:
-                        if progress_callback(flow_name, progress_value, "", True) is False:
-                            save_path.unlink(missing_ok=True)
-                            LOGGER.warning("Download of '%s' was interrupted.", {model.url})
-                            return False
-                        progress_value = 0
-            if not check_hash(model.hash, save_path):
-                raise RuntimeError(f"Incomplete download of '{model.url}'.")
+        total_added_progress = 0
+        try:
+            with builtins.open(save_path, "wb") as file:
+                for chunk in response.iter_bytes(10 * 1024 * 1024):
+                    downloaded_size = file.write(chunk)
+                    if progress_callback is not None:
+                        progress_value += progress_for_model * downloaded_size / total_size
+                        if math.floor(progress_value * 10) / 10 >= 0.1:
+                            if progress_callback(flow_name, progress_value, "", True) is False:
+                                save_path.unlink(missing_ok=True)
+                                LOGGER.warning("Download of '%s' was interrupted.", {model.url})
+                                return False
+                            total_added_progress += progress_value
+                            progress_value = 0
+                if not check_hash(model.hash, save_path):
+                    raise RuntimeError(f"Incomplete download of '{model.url}'.")
+        except (httpx.HTTPError, RuntimeError):
+            progress_callback(flow_name, -total_added_progress, "", True)
+            raise
         if model.url.endswith(".zip"):
             with zipfile.ZipFile(save_path) as zip_file:
                 zip_file.extractall(save_path.parent)
