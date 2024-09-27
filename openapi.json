@@ -2525,7 +2525,14 @@
             "description": "Headers to send to webhook."
           },
           "translated_input_params": {
-            "type": "object",
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Translated Input Params",
             "description": "If auto-translation feature is enabled, contains translations for input values."
           }
@@ -3153,7 +3160,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-27T19:27:29.937573Z"
+            "default": "2024-09-27T19:59:07.401146Z"
           }
         },
         "type": "object",

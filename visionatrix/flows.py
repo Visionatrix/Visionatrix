@@ -520,7 +520,8 @@ def get_nodes_for_translate(input_params: dict[str, typing.Any], flow_comfy: dic
                     node_info = node_value
                     break
             if not node_info:
-                LOGGER.warning("Can not find node for `%s` input param.", input_param)
+                if input_param != "seed":
+                    LOGGER.warning("Can not find node for `%s` input param.", input_param)
                 continue
         if node_info.get("inputs", {}).get("translatable", False) and not is_english(input_param_value):
             r.append(

@@ -100,7 +100,7 @@ def translate_prompt_with_gemini(user_id: str, is_admin: bool, data: TranslatePr
             response = model.generate_content(data.prompt)
         except Exception as e:
             raise RuntimeError(str(e)) from e
-    return TranslatePromptResponse(prompt=data.prompt, result=response.text, done_reason="")
+    return TranslatePromptResponse(prompt=data.prompt, result=response.text.rstrip(" \n"), done_reason="")
 
 
 async def translate_prompt_with_gemini_async(
@@ -128,4 +128,4 @@ async def translate_prompt_with_gemini_async(
             response = await model.generate_content_async(data.prompt)
         except Exception as e:
             raise RuntimeError(str(e)) from e
-    return TranslatePromptResponse(prompt=data.prompt, result=response.text, done_reason="")
+    return TranslatePromptResponse(prompt=data.prompt, result=response.text.rstrip(" \n"), done_reason="")

@@ -171,6 +171,7 @@ async def __get_translated_input_params(
                         detail=f"Unknown translation provider: {translations_provider}",
                     )
                 translated_input_params_dict[node_to_translate["input_param_id"]] = r.result
+    return translated_input_params_dict
 
 
 @ROUTER.put("/create")

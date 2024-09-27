@@ -181,7 +181,7 @@ class TaskDetails(TaskDetailsShort):
     user_id: str = Field(..., description="User ID to whom the task belongs.")
     webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
     webhook_headers: dict | None = Field(None, description="Headers to send to webhook.")
-    translated_input_params: dict = Field(
+    translated_input_params: dict | None = Field(
         None, description="If auto-translation feature is enabled, contains translations for input values."
     )
 
