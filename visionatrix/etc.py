@@ -1,4 +1,5 @@
 import logging
+import string
 
 
 def get_log_level(log_level_str):
@@ -22,3 +23,18 @@ def get_higher_log_level(current_level):
         logging.CRITICAL: logging.CRITICAL,
     }
     return level_mapping.get(current_level, logging.WARNING)
+
+
+def is_english(input_string: str) -> bool:
+    english_letters = set(string.ascii_letters)
+    words = input_string.split()
+    if not words:
+        return True
+
+    english_word_count = 0
+    for word in words:
+        cleaned_word = "".join(char for char in word if char.isalpha())
+        if all(char in english_letters for char in cleaned_word) and cleaned_word:
+            english_word_count += 1
+
+    return english_word_count / len(words) > 0.9  # Check if more than 90% of the words are in English

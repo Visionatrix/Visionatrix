@@ -21,6 +21,7 @@ from packaging.version import Version, parse
 
 from . import _version, comfyui_class_info, db_queries, options
 from .comfyui import get_node_class_mappings
+from .etc import is_english
 from .models import install_model
 from .models_map import get_flow_models
 from .nodes_helpers import get_node_value, set_node_value
@@ -504,4 +505,29 @@ def get_google_nodes(flow_comfy: dict) -> list[str]:
     for node_id, node_details in flow_comfy.items():
         if str(node_details["class_type"]) == "Gemini_Flash":
             r.append(node_id)
+    return r
+
+
+def get_nodes_for_translate(input_params: dict[str, typing.Any], flow_comfy: dict) -> list[dict[str, typing.Any]]:
+    r = []
+    for input_param, input_param_value in input_params.items():
+        if input_param.startswith("in_param_"):
+            node_info = flow_comfy[input_param[len("in_param_") :]]
+        else:
+            node_info = None
+            for node_value in flow_comfy.values():
+                if node_value.get("inputs", {}).get("custom_id", "") == input_param:
+                    node_info = node_value
+                    break
+            if not node_info:
+                LOGGER.warning("Can not find node for `%s` input param.", input_param)
+                continue
+        if node_info.get("inputs", {}).get("translatable", False) and not is_english(input_param_value):
+            r.append(
+                {
+                    "input_param_id": input_param,
+                    "input_param_value": input_param_value,
+                    "llm_prompt": "",
+                }
+            )
     return r

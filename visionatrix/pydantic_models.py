@@ -89,6 +89,9 @@ class Flow(BaseModel):
     is_count_supported: bool = Field(
         True, description="Flag determining if 'Number of images' input will be displayed in the UI."
     )
+    is_translations_supported: bool = Field(
+        False, description="Flag that determines whether Flow supports prompt translations."
+    )
 
     def __hash__(self):
         return hash(self.name)
@@ -178,8 +181,8 @@ class TaskDetails(TaskDetailsShort):
     user_id: str = Field(..., description="User ID to whom the task belongs.")
     webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
     webhook_headers: dict | None = Field(None, description="Headers to send to webhook.")
-    translated_prompt: str = Field(
-        None, description="If auto-translation is enabled, contains a translation of the prompt for supported flows."
+    translated_input_params: dict = Field(
+        None, description="If auto-translation feature is enabled, contains translations for input values."
     )
 
 
@@ -296,6 +299,7 @@ class TranslatePromptRequest(BaseModel):
     """Represents the request data for translating an image generation prompt."""
 
     prompt: str = Field(..., description="The image generation prompt to translate.")
+    system_prompt: str = Field(None, description="System instructions that are passed to the LLM.")
 
 
 class TranslatePromptResponse(BaseModel):

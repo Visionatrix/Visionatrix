@@ -3,12 +3,22 @@ import os
 import signal
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Request, responses, status, HTTPException
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    HTTPException,
+    Request,
+    responses,
+    status,
+)
 
 from .. import comfyui, options
-from ..pydantic_models import UserInfo, TranslatePromptRequest, TranslatePromptResponse
+from ..prompt_translation import (
+    translate_prompt_with_gemini,
+    translate_prompt_with_ollama,
+)
+from ..pydantic_models import TranslatePromptRequest, TranslatePromptResponse, UserInfo
 from .helpers import require_admin
-from ..prompt_translation import translate_prompt_with_gemini, translate_prompt_with_ollama
 from .settings import get_setting
 
 LOGGER = logging.getLogger("visionatrix")
@@ -81,11 +91,7 @@ async def whoami(request: Request) -> UserInfo:
             "description": "Translation successful",
             "content": {
                 "application/json": {
-                    "example": {
-                        "prompt": "Dornröschen",
-                        "result": "Sleeping Beauty",
-                        "done_reason": "stop"
-                    }
+                    "example": {"prompt": "Dornröschen", "result": "Sleeping Beauty", "done_reason": "stop"}
                 }
             },
         },
@@ -111,10 +117,19 @@ def translate_prompt(request: Request, data: TranslatePromptRequest) -> Translat
     is_admin = request.scope["user_info"].is_admin
     try:
         translations_provider = get_setting(user_id, "translations_provider", is_admin)
+        if not translations_provider:
+            raise HTTPException(
+                status_code=status.HTTP_412_PRECONDITION_FAILED,
+                detail="Translations provider not defined",
+            )
         if translations_provider == "gemini":
             return translate_prompt_with_gemini(user_id, is_admin, data)
-        else:
+        if translations_provider == "ollama":
             return translate_prompt_with_ollama(user_id, is_admin, data)
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail=f"Unknown translation provider: {translations_provider}",
+        )
     except Exception as e:
         LOGGER.exception("Error during prompt translation: %s", e)
         raise HTTPException(

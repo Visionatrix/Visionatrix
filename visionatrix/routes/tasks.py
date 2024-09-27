@@ -23,15 +23,25 @@ from fastapi import (
 )
 
 from .. import options
+from ..db_queries import get_setting
+from ..db_queries_async import get_setting_async
 from ..flows import (
     Flow,
     flow_prepare_output_params,
     get_installed_flow,
+    get_nodes_for_translate,
     prepare_flow_comfy,
+)
+from ..prompt_translation import (
+    translate_prompt_with_gemini,
+    translate_prompt_with_gemini_async,
+    translate_prompt_with_ollama,
+    translate_prompt_with_ollama_async,
 )
 from ..pydantic_models import (
     TaskRunResults,
     TaskUpdateRequest,
+    TranslatePromptRequest,
     UserInfo,
     WorkerDetailsRequest,
 )
@@ -77,6 +87,7 @@ VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]] | None =
 async def __task_run(
     name: str,
     input_params: dict,
+    translated_input_params: dict,
     in_files: list[UploadFile | dict],
     flow: Flow,
     flow_comfy: dict,
@@ -91,8 +102,11 @@ async def __task_run(
         task_details = await create_new_task_async(name, input_params, user_info)
     else:
         task_details = create_new_task(name, input_params, user_info)
+    input_params_copy = input_params.copy()
+    for i, v in translated_input_params.items():
+        input_params_copy[i] = v
     try:
-        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params, in_files, task_details)
+        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_copy, in_files, task_details)
     except RuntimeError as e:
         remove_task_files(task_details["task_id"], ["input"])
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
@@ -117,12 +131,46 @@ async def __task_run(
         task_details["parent_task_node_id"] = in_files[0]["node_id"]
     task_details["group_scope"] = group_scope
     task_details["priority"] = ((group_scope - 1) << 4) + priority
+    if translated_input_params:
+        task_details["translated_input_params"] = translated_input_params
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
     else:
         put_task_in_queue(task_details)
     return task_details
+
+
+async def __get_translated_input_params(
+    translate: bool, flow: Flow, input_params_dict: dict, flow_comfy: dict, user_id: str, is_user_admin: bool
+):
+    translated_input_params_dict = {}
+    if translate and flow.is_translations_supported:
+        if options.VIX_MODE == "SERVER":
+            translations_provider = await get_setting_async(user_id, "translations_provider", is_user_admin)
+        else:
+            translations_provider = get_setting(user_id, "translations_provider", is_user_admin)
+        if translations_provider:
+            for node_to_translate in get_nodes_for_translate(input_params_dict, flow_comfy):
+                tr_req = TranslatePromptRequest(prompt=node_to_translate["input_param_value"])
+                if node_to_translate["llm_prompt"]:
+                    tr_req.system_prompt = node_to_translate["llm_prompt"]
+                if translations_provider == "ollama":
+                    if options.VIX_MODE == "SERVER":
+                        r = await translate_prompt_with_ollama_async(user_id, is_user_admin, tr_req)
+                    else:
+                        r = translate_prompt_with_ollama(user_id, is_user_admin, tr_req)
+                elif translations_provider == "gemini":
+                    if options.VIX_MODE == "SERVER":
+                        r = await translate_prompt_with_gemini_async(user_id, is_user_admin, tr_req)
+                    else:
+                        r = translate_prompt_with_gemini(user_id, is_user_admin, tr_req)
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                        detail=f"Unknown translation provider: {translations_provider}",
+                    )
+                translated_input_params_dict[node_to_translate["input_param_id"]] = r.result
 
 
 @ROUTER.put("/create")
@@ -155,6 +203,8 @@ async def create_task(
     if priority > 15:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Priority cannot be greater than 15.")
 
+    user_id = request.scope["user_info"].user_id
+    is_user_admin = request.scope["user_info"].is_admin
     in_files = []
     for i in files if files else []:
         if isinstance(i, str):
@@ -168,7 +218,7 @@ async def create_task(
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter"
                 ) from None
-            if not get_task(int(input_file_info["task_id"]), request.scope["user_info"].user_id):
+            if not get_task(int(input_file_info["task_id"]), user_id):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Missing task with id={input_file_info['task_id']}",
@@ -187,12 +237,17 @@ async def create_task(
     flow = get_installed_flow(name, flow_comfy)
     if not flow:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
+
+    translated_input_params_dict = await __get_translated_input_params(
+        bool(translate), flow, input_params_dict, flow_comfy, user_id, is_user_admin
+    )
     tasks_ids = []
     webhook_headers_dict = json.loads(webhook_headers) if webhook_headers else None
     for _ in range(count):
         task_details = await __task_run(
             name,
             input_params_dict,
+            translated_input_params_dict,
             in_files,
             flow,
             flow_comfy,
