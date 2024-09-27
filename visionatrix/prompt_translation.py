@@ -47,7 +47,8 @@ def translate_prompt_with_ollama(user_id: str, is_admin: bool, data: TranslatePr
 
     ollama_client = ollama.Client(host=ollama_url)
     ollama_response = ollama_client.generate(
-        ollama_llm_model, data.prompt, system=system_prompt, keep_alive=ollama_keepalive)
+        ollama_llm_model, data.prompt, system=system_prompt, keep_alive=ollama_keepalive
+    )
 
     return TranslatePromptResponse(
         prompt=data.prompt,
