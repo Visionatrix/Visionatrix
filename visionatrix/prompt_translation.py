@@ -32,6 +32,9 @@ def temporary_env_var(key: str, new_value):
 def translate_prompt_with_ollama(user_id: str, is_admin: bool, data: TranslatePromptRequest) -> TranslatePromptResponse:
     ollama_url = get_setting(user_id, "ollama_url", is_admin)
     ollama_llm_model = get_setting(user_id, "ollama_llm_model", is_admin)
+    ollama_keepalive = get_setting(user_id, "ollama_keepalive", is_admin)
+    if not ollama_keepalive:
+        ollama_keepalive = 0
 
     if not ollama_url:
         LOGGER.debug("No custom Ollama URL defined, trying default one.")
@@ -43,7 +46,8 @@ def translate_prompt_with_ollama(user_id: str, is_admin: bool, data: TranslatePr
     system_prompt = LLM_TRANSLATE_SYSTEM_PROMPT if data.system_prompt is None else data.system_prompt
 
     ollama_client = ollama.Client(host=ollama_url)
-    ollama_response = ollama_client.generate(ollama_llm_model, data.prompt, system=system_prompt, keep_alive=0)
+    ollama_response = ollama_client.generate(
+        ollama_llm_model, data.prompt, system=system_prompt, keep_alive=ollama_keepalive)
 
     return TranslatePromptResponse(
         prompt=data.prompt,
@@ -57,6 +61,9 @@ async def translate_prompt_with_ollama_async(
 ) -> TranslatePromptResponse:
     ollama_url = await get_setting_async(user_id, "ollama_url", is_admin)
     ollama_llm_model = await get_setting_async(user_id, "ollama_llm_model", is_admin)
+    ollama_keepalive = await get_setting_async(user_id, "ollama_keepalive", is_admin)
+    if not ollama_keepalive:
+        ollama_keepalive = 0
 
     if not ollama_url:
         LOGGER.debug("No custom Ollama URL defined, trying default one.")
@@ -68,7 +75,9 @@ async def translate_prompt_with_ollama_async(
     system_prompt = LLM_TRANSLATE_SYSTEM_PROMPT if data.system_prompt is None else data.system_prompt
 
     ollama_client = ollama.AsyncClient(host=ollama_url)
-    ollama_response = await ollama_client.generate(ollama_llm_model, data.prompt, system=system_prompt, keep_alive=0)
+    ollama_response = await ollama_client.generate(
+        ollama_llm_model, data.prompt, system=system_prompt, keep_alive=ollama_keepalive
+    )
 
     return TranslatePromptResponse(
         prompt=data.prompt,
