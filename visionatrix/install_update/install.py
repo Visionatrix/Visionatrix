@@ -76,6 +76,7 @@ def install(operations_mask: list[bool]) -> None:
         create_missing_models_dirs()
         with builtins.open(os.path.join(options.BACKEND_DIR, "extra_model_paths.yaml"), "w", encoding="utf-8") as fp:
             fp.write(EXTRA_MODEL_PATHS.replace("vix_models_root", options.MODELS_DIR))
+        create_nodes_stuff()
         install_base_custom_nodes()
 
 
@@ -83,3 +84,11 @@ def create_missing_models_dirs() -> None:
     for k in yaml.safe_load(EXTRA_MODEL_PATHS)["vix_models"]:
         if (v := Path(options.BACKEND_DIR).joinpath("models", k)).exists() is False:
             os.makedirs(v, exist_ok=True)
+
+
+def create_nodes_stuff() -> None:
+    """Currently we only create `skip_download_model` file in "custom_nodes" for ComfyUI-Impact-Pack"""
+
+    Path(options.BACKEND_DIR).joinpath("custom_nodes").joinpath("skip_download_model").open(
+        "a", encoding="utf-8"
+    ).close()

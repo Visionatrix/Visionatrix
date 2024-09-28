@@ -3,6 +3,15 @@ from .pydantic_models import AIResourceModel
 BASIC_NODE_LIST = {
     "ComfyUI-Impact-Pack": {
         "main_branch": "Main",
+        "models": [
+            AIResourceModel(
+                name="sam_vit_b_01ec64",
+                save_path="{root}models/sams/sam_vit_b_01ec64.pth",
+                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/sams/sam_vit_b_01ec64.pth",
+                homepage="https://github.com/facebookresearch/segment-anything",
+                hash="ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
+            ),
+        ],
     },
     "ComfyUI_UltimateSDUpscale": {
         "git_flags": "--recursive",
@@ -30,7 +39,7 @@ BASIC_NODE_LIST = {
             AIResourceModel(
                 name="RMGB-1.4",
                 save_path="{root}custom_nodes/ComfyUI-BRIA_AI-RMBG/RMBG-1.4/model.pth",
-                url="https://huggingface.co/andrey18106/vix_models/resolve/main/RMBG-1.4/model.pth",
+                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/RMBG-1.4/model.pth",
                 homepage="https://huggingface.co/briaai/RMBG-1.4",
                 hash="893c16c340b1ddafc93e78457a4d94190da9b7179149f8574284c83caebf5e8c",
             ),
