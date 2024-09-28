@@ -123,6 +123,45 @@ def set_user_setting(user_id: str, key: str, value: str) -> None:
         session.close()
 
 
+def get_all_settings(user_id: str, admin: bool) -> dict[str, str]:
+    """Retrieve all settings with user settings having higher priority over global settings."""
+    user_settings = get_user_settings(user_id)
+    global_settings = get_all_global_settings(admin)
+
+    # Merge user settings with global settings, giving priority to user settings
+    return {**global_settings, **user_settings}
+
+
+def get_all_global_settings(admin: bool) -> dict[str, str]:
+    """Retrieve all global settings as a dictionary."""
+    session = database.SESSION()
+    try:
+        query = select(database.GlobalSettings.name, database.GlobalSettings.value, database.GlobalSettings.sensitive)
+        results = session.execute(query).all()
+        return {name: value for name, value, sensitive in results if not sensitive or (sensitive and admin)}
+    except Exception:
+        LOGGER.exception("Failed to retrieve all global settings")
+        raise
+    finally:
+        session.close()
+
+
+def get_user_settings(user_id: str) -> dict[str, str]:
+    """Retrieve all settings for a specific user as a dictionary."""
+    session = database.SESSION()
+    try:
+        query = select(database.UserSettings.name, database.UserSettings.value).where(
+            database.UserSettings.user_id == user_id
+        )
+        results = session.execute(query).all()
+        return {name: value for name, value in results}  # noqa pylint: disable=unnecessary-comprehension
+    except Exception:
+        LOGGER.exception("Failed to retrieve all user settings for user `%s`", user_id)
+        raise
+    finally:
+        session.close()
+
+
 def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
     with database.SESSION() as session:
         try:
