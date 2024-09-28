@@ -101,16 +101,14 @@ def translate_prompt_with_gemini(user_id: str, is_admin: bool, data: TranslatePr
     if google_proxy:
         LOGGER.debug("Google Proxy is defined.")
         with temporary_env_var("HTTP_PROXY", google_proxy), temporary_env_var("HTTPS_PROXY", google_proxy):
-            try:
-                response = model.generate_content(data.prompt)
-            except Exception as e:
-                raise RuntimeError(str(e)) from e
+            response = model.generate_content(data.prompt, safety_settings="BLOCK_NONE")
     else:
-        try:
-            response = model.generate_content(data.prompt)
-        except Exception as e:
-            raise RuntimeError(str(e)) from e
-    return TranslatePromptResponse(prompt=data.prompt, result=response.text.rstrip(" \n"), done_reason="")
+        response = model.generate_content(data.prompt, safety_settings="BLOCK_NONE")
+    finish_reason = int(response.candidates[0].finish_reason)
+    if finish_reason in (1, 2):  # FinishReason.STOP, FinishReason.MAX_TOKENS
+        done_reason = "stop" if finish_reason == 1 else "max_tokens"
+        return TranslatePromptResponse(prompt=data.prompt, result=response.text.rstrip(" \n"), done_reason=done_reason)
+    raise ValueError(f"Gemini returned error with stop reason: {response.candidates[0].finish_reason.name}")
 
 
 async def translate_prompt_with_gemini_async(
@@ -129,13 +127,11 @@ async def translate_prompt_with_gemini_async(
     if google_proxy:
         LOGGER.debug("Google Proxy is defined.")
         with temporary_env_var("HTTP_PROXY", google_proxy), temporary_env_var("HTTPS_PROXY", google_proxy):
-            try:
-                response = await model.generate_content_async(data.prompt)
-            except Exception as e:
-                raise RuntimeError(str(e)) from e
-    else:
-        try:
             response = await model.generate_content_async(data.prompt)
-        except Exception as e:
-            raise RuntimeError(str(e)) from e
-    return TranslatePromptResponse(prompt=data.prompt, result=response.text.rstrip(" \n"), done_reason="")
+    else:
+        response = await model.generate_content_async(data.prompt)
+    finish_reason = int(response.candidates[0].finish_reason)
+    if finish_reason in (1, 2):  # FinishReason.STOP, FinishReason.MAX_TOKENS
+        done_reason = "stop" if finish_reason == 1 else "max_tokens"
+        return TranslatePromptResponse(prompt=data.prompt, result=response.text.rstrip(" \n"), done_reason=done_reason)
+    raise ValueError(f"Gemini returned error with stop reason: {response.candidates[0].finish_reason.name}")

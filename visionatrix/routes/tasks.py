@@ -146,30 +146,43 @@ async def __get_translated_input_params(
 ):
     translated_input_params_dict = {}
     if translate and flow.is_translations_supported:
+        nodes_for_translate = get_nodes_for_translate(input_params_dict, flow_comfy)
+        if not nodes_for_translate:
+            return translated_input_params_dict
         if options.VIX_MODE == "SERVER":
             translations_provider = await get_setting_async(user_id, "translations_provider", is_user_admin)
         else:
             translations_provider = get_setting(user_id, "translations_provider", is_user_admin)
         if translations_provider:
-            for node_to_translate in get_nodes_for_translate(input_params_dict, flow_comfy):
+            if translations_provider not in ("ollama", "gemini"):
+                raise HTTPException(
+                    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                    detail=f"Unknown translation provider: {translations_provider}",
+                )
+            for node_to_translate in nodes_for_translate:
                 tr_req = TranslatePromptRequest(prompt=node_to_translate["input_param_value"])
                 if node_to_translate["llm_prompt"]:
                     tr_req.system_prompt = node_to_translate["llm_prompt"]
-                if translations_provider == "ollama":
-                    if options.VIX_MODE == "SERVER":
-                        r = await translate_prompt_with_ollama_async(user_id, is_user_admin, tr_req)
+                try:
+                    if translations_provider == "ollama":
+                        if options.VIX_MODE == "SERVER":
+                            r = await translate_prompt_with_ollama_async(user_id, is_user_admin, tr_req)
+                        else:
+                            r = translate_prompt_with_ollama(user_id, is_user_admin, tr_req)
                     else:
-                        r = translate_prompt_with_ollama(user_id, is_user_admin, tr_req)
-                elif translations_provider == "gemini":
-                    if options.VIX_MODE == "SERVER":
-                        r = await translate_prompt_with_gemini_async(user_id, is_user_admin, tr_req)
-                    else:
-                        r = translate_prompt_with_gemini(user_id, is_user_admin, tr_req)
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                        detail=f"Unknown translation provider: {translations_provider}",
+                        if options.VIX_MODE == "SERVER":
+                            r = await translate_prompt_with_gemini_async(user_id, is_user_admin, tr_req)
+                        else:
+                            r = translate_prompt_with_gemini(user_id, is_user_admin, tr_req)
+                except Exception as e:
+                    LOGGER.exception(
+                        "Exception during prompt translation using `%s` for user `%s`", translations_provider, user_id
                     )
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Can't translate the prompt: provider={translations_provider}, "
+                        f"user_id={user_id}, prompt=`{tr_req.prompt}`: {e}",
+                    ) from None
                 translated_input_params_dict[node_to_translate["input_param_id"]] = r.result
     return translated_input_params_dict
 
@@ -188,7 +201,7 @@ async def create_task(
         0,
         description="Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
     ),
-    translate: int = Form(0, description="Should the prompt be translated if auto-translation option is enabled."),
+    translate: int = Form(1, description="Should the prompt be translated if auto-translation option is enabled."),
     files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """
