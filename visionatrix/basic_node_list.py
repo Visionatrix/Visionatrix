@@ -8,11 +8,6 @@ BASIC_NODE_LIST = {
         "git_flags": "--recursive",
     },
     "ComfyUI_InstantID": {
-        "requirements": {
-            "insightface": {},
-            "onnxruntime": {},
-            "onnxruntime-gpu": {"platform": ["linux", "win32"]},
-        },
         "models": [
             AIResourceModel(
                 name="antelopev2",
@@ -80,14 +75,6 @@ BASIC_NODE_LIST = {
     "PuLID_ComfyUI": {
         "before_install": {
             "python": "-m pip install --use-pep517 facexlib",
-        },
-        "requirements": {
-            "facexlib": {},
-            "insightface": {},
-            "onnxruntime": {},
-            "onnxruntime-gpu": {"platform": ["linux", "win32"]},
-            "ftfy": {},
-            "timm": {},
         },
     },
     "ComfyUI_FizzNodes": {},
