@@ -201,7 +201,7 @@ async def create_task(
         0,
         description="Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
     ),
-    translate: int = Form(1, description="Should the prompt be translated if auto-translation option is enabled."),
+    translate: int = Form(0, description="Should the prompt be translated if auto-translation option is enabled."),
     files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """

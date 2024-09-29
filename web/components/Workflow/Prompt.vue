@@ -24,7 +24,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
 				default: input_param.default || '',
-				translatable: input_param.translatable || true, // TODO: [DEV] revert to false
+				translatable: input_param.translatable || false,
 			}
 		})
 	} else if (input_param.type === 'number') {
