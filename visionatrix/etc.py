@@ -37,4 +37,4 @@ def is_english(input_string: str) -> bool:
         if all(char in english_letters for char in cleaned_word) and cleaned_word:
             english_word_count += 1
 
-    return english_word_count / len(words) > 0.9  # Check if more than 90% of the words are in English
+    return english_word_count / len(words) > 0.95  # Check if more than 95% of the words are in English
