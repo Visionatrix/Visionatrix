@@ -407,6 +407,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             order = node_details["inputs"]["order"]
             custom_id = node_details["inputs"]["custom_id"]
             hidden_attribute = node_details["inputs"].get("hidden", False)
+            translatable = node_details["inputs"].get("translatable", False)
         elif node_details["_meta"]["title"].startswith("input;"):
             input_info = str(node_details["_meta"]["title"]).split(";")
             input_info = [i.strip() for i in input_info]
@@ -414,6 +415,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             other_attributes = tuple(s.lower() for s in input_info[2:])
             optional = bool("optional" in other_attributes)
             advanced = bool("advanced" in other_attributes)
+            translatable = bool("translatable" in other_attributes)
             order = 20 if class_type == "SDXLAspectRatioSelector" else 99
             for attribute in other_attributes:
                 if attribute.startswith("order="):
@@ -447,6 +449,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
             "order": order,
             "comfy_node_id": {node_id: input_path},
             "hidden": hidden_attribute,
+            "translatable": translatable,
         }
         if image_mask:
             for attribute in other_attributes:
