@@ -96,22 +96,6 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 	showSendToFlowModal.value = true
 }
 
-function buildResultInputParams(flowResult: FlowResult) {
-	return [
-		'#' + flowResult.task_id,
-		...Object.keys(flowResult.input_params_mapped)
-			.filter((key) => {
-				return flowResult.input_params_mapped[key].value && flowResult.input_params_mapped[key].value !== ''
-			})
-			.map((key) => {
-				return `${flowResult.input_params_mapped[key].display_name}: ${flowResult.input_params_mapped[key].value}`
-			}),
-	].join(' | ') + `${flowResult.execution_time
-		? ' | execution_time: ' + flowResult.execution_time.toFixed(2) + 's'
-		: ''
-	}`
-}
-
 function buildResultDropdownItems(flowResult: FlowResult) {
 	const taskDropdownItems: any[] = [
 		[{
@@ -294,24 +278,8 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 						</div>
 					</UCarousel>
 					<div class="text-sm text-slate-500 text-center mb-1">
-						<div class="w-5/6 mx-auto">
-							<UBadge v-for="inputParamStr in buildResultInputParams(flowResult).split('|')"
-								:key="inputParamStr"
-								class="mr-2 mb-2 last:mr-0 hover:cursor-pointer"
-								variant="soft"
-								color="gray"
-								@click="() => {
-									const clipboard = useCopyToClipboard()
-									clipboard.copy(inputParamStr.split(':')[1].trim())
-									const toast = useToast()
-									toast.add({
-										title: 'Clipboard',
-										description: `${inputParamStr.split(':')[0].trim()} copied to clipboard`,
-										timeout: 2000,
-									})
-								}">
-								{{ inputParamStr }}
-							</UBadge>
+						<div class="w-5/6 mx-auto flex flex-wrap items-center justify-center">
+							<WorkflowOutputParams :flow-result="flowResult" />
 						</div>
 					</div>
 					<div class="w-full flex justify-center items-center">

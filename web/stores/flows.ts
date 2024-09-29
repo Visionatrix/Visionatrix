@@ -214,6 +214,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 						}
 					}
 				})
+				const translated_input_params_mapped: any = {}
+				if (task?.translated_input_params) {
+					Object.keys(task.translated_input_params).forEach((key) => {
+						translated_input_params_mapped[key] = {
+							value: task.translated_input_params[key],
+							display_name: this.flows_installed.find(flow => flow.name === task.name)?.input_params.find(param => param.name === key)?.display_name,
+						}
+					})
+				}
 				if (task.progress < 100) {
 					runningFlows.push(<FlowRunning>{
 						task_id: task_id,
@@ -221,6 +230,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						progress: task.progress,
 						input_files: task.input_files || [],
 						input_params_mapped: input_params_mapped_updated || null,
+						translated_input_params_mapped: translated_input_params_mapped || null,
 						error: task?.error || null,
 						outputs: task.outputs,
 						execution_time: task.execution_time || null,
@@ -233,6 +243,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						flow_name: task.name,
 						outputs: task.outputs,
 						input_params_mapped: input_params_mapped_updated || null,
+						translated_input_params_mapped: translated_input_params_mapped || null,
 						execution_time: task.execution_time || 0,
 						child_tasks: task.child_tasks || [],
 						parent_task_id: task.parent_task_id,
@@ -910,6 +921,7 @@ export interface FlowRunning {
 	progress: number
 	input_files?: TaskInputFile
 	input_params_mapped: TaskHistoryInputParam
+	translated_input_params_mapped?: TaskHistoryInputParam
 	outputs: FlowOutputParam[]
 	error?: string
 	execution_time?: number
@@ -934,6 +946,7 @@ export interface FlowResult {
 	flow_name: string
 	outputs: FlowOutputParam[]
 	input_params_mapped: TaskHistoryInputParam
+	translated_input_params_mapped: TaskHistoryInputParam
 	execution_time: number
 	parent_task_id: number
 	parent_task_node_id: number
@@ -975,6 +988,7 @@ export interface TaskHistoryItem {
 	parent_task_node_id: number
 	progress: number
 	task_id: number
+	translated_input_params: TaskHistoryInputParam
 	updated_at: string
 	user_id: string
 	worker_id: string
