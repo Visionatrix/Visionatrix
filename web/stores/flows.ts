@@ -714,6 +714,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 								flow_name: flow.name,
 								outputs: progress[task_id].outputs,
 								input_params_mapped: runningFlow.input_params_mapped,
+								translated_input_params_mapped: runningFlow.translated_input_params_mapped,
 								execution_time: progress[task_id]?.execution_time || 0,
 								child_tasks: progress[task_id].child_tasks || [],
 								parent_task_id: progress[task_id].parent_task_id,
