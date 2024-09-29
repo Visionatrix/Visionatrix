@@ -120,9 +120,11 @@ if (flowStore.currentFlow.is_seed_supported) {
 	})
 }
 
+const settingsStore = useSettingsStore()
 const shouldTranslate = ref(false)
 const translatePrompt = ref(false)
-if (flowStore.currentFlow.is_translations_supported) {
+if (flowStore.currentFlow.is_translations_supported
+	&& settingsStore.settingsMap.translations_provider.value.trim() !== '') {
 	// init shouldTranslate value
 	shouldTranslate.value = inputParamsMap.value.some((inputParam: any) => {
 		const input_param_name = Object.keys(inputParam)[0]
