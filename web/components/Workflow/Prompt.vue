@@ -122,7 +122,6 @@ if (flowStore.currentFlow.is_seed_supported) {
 
 const settingsStore = useSettingsStore()
 const shouldTranslate = ref(false)
-const translatePrompt = ref(false)
 if (flowStore.currentFlow.is_translations_supported
 	&& settingsStore.settingsMap.translations_provider.value.trim() !== '') {
 	// init shouldTranslate value
@@ -146,6 +145,16 @@ if (flowStore.currentFlow.is_translations_supported
 		shouldTranslate.value = inputParams.some((inputParam: any) => inputParam && inputParam.value !== '' ? !isEnglish(inputParam.value) : false)
 	}, { deep: true })
 }
+const translatePrompt: Ref<boolean> = ref(shouldTranslate.value)
+onBeforeMount(() => {
+	const translatePromptLocal = localStorage.getItem('translatePrompt')
+	if (translatePromptLocal) {
+		translatePrompt.value = JSON.parse(translatePromptLocal)
+	}
+})
+watch(translatePrompt, (value) => {
+	localStorage.setItem('translatePrompt', JSON.stringify(value))
+})
 
 
 function copyPromptInputs(input_params_map: TaskHistoryInputParam) {
@@ -283,7 +292,9 @@ const requiredInputParamsValid = computed(() => {
 			</UFormGroup>
 			<UFormGroup v-if="shouldTranslate"
 				class="my-3 flex justify-end">
-				<UCheckbox v-model="translatePrompt" label="Translate prompt" />
+				<UCheckbox
+					v-model="translatePrompt"
+					label="Translate prompt" />
 			</UFormGroup>
 			<div class="flex" :class="{ 'justify-between': showResetParams, 'justify-end': !showResetParams }">
 				<UTooltip v-if="showResetParams" text="Reset input params values to defaults">
