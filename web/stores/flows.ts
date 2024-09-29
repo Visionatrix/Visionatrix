@@ -347,7 +347,14 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return response
 		},
 
-		async runFlow(flow: Flow, input_params: FlowInputParam[]|any[], count: number = 1, child_task: boolean = false, parent_task_id: number|null = null) {
+		async runFlow(
+			flow: Flow,
+			input_params: FlowInputParam[]|any[],
+			count: number = 1,
+			translate: boolean = false,
+			child_task: boolean = false,
+			parent_task_id: number|null = null
+		) {
 			const formData = new FormData()
 
 			console.debug('input_params:', input_params)
@@ -355,8 +362,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const input_params_mapped: any = {}
 			input_params.forEach(param => {
 				const paramName = Object.keys(param)[0]
-				if (!['image', 'image-mask'].includes(param[paramName].type) && param[paramName].value !== '')
+				if (!['image', 'image-mask'].includes(param[paramName].type)
+					&& param[paramName].value !== '') {
 					input_params_mapped[paramName] = param[paramName].value
+				}
 			})
 			console.debug('input_params_mapped:', input_params_mapped)
 
@@ -384,6 +393,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			if (child_task) {
 				formData.append('child_task', '1')
 			}
+			formData.append('translate', translate ? '1' : '0')
 
 			console.debug('form_data:', formData)
 
@@ -840,6 +850,7 @@ export interface Flow {
 	new_version_available?: string
 	is_seed_supported: boolean
 	is_count_supported: boolean
+	is_translations_supported: boolean
 }
 
 export interface Model {
@@ -867,6 +878,7 @@ export interface FlowInputParam {
 	source_input_name?: string
 	hidden: boolean
 	edge_size?: number
+	translatable?: boolean
 }
 
 export interface FlowOutputParam {

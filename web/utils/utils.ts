@@ -44,3 +44,28 @@ export function hasChildTaskByParentTaskNodeId(task: FlowResult|TaskHistoryItem,
 	}
 	return task.child_tasks.some((t: FlowResult|TaskHistoryItem|any) => hasChildTaskByParentTaskNodeId(t, outputIndex, parentNodeId))
 }
+
+export function isEnglish(inputString: string): boolean {
+	const englishLetters = new Set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+
+	// Split the input string into words
+	const words = inputString.trim().split(/\s+/)
+	if (words.length === 0) {
+		return true // Return true if the string is empty or only contains whitespace
+	}
+
+	let englishWordCount = 0
+
+	for (const word of words) {
+		// Remove non-alphabetic characters from the word
+		const cleanedWord = word.split('').filter(char => /^[a-zA-Z]$/.test(char)).join('')
+
+		// Check if all characters in the cleaned word are English letters and if the word is non-empty
+		if (cleanedWord && [...cleanedWord].every(char => englishLetters.has(char))) {
+			englishWordCount++
+		}
+	}
+
+	// Return true if more than 90% of the words are English
+	return englishWordCount / words.length > 0.9
+}

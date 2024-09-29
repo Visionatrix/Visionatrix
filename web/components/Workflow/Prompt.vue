@@ -24,6 +24,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
 				default: input_param.default || '',
+				translatable: input_param.translatable || true, // TODO: [DEV] revert to false
 			}
 		})
 	} else if (input_param.type === 'number') {
@@ -103,8 +104,9 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	}
 }) || [])
 
-const additionalInputParamsMap: any = ref((flowStore.currentFlow.is_seed_supported) ? [
-	{
+const additionalInputParamsMap: any = ref([])
+if (flowStore.currentFlow.is_seed_supported) {
+	additionalInputParamsMap.value.push({
 		seed: {
 			name: 'seed',
 			display_name: 'Random seed',
@@ -115,8 +117,34 @@ const additionalInputParamsMap: any = ref((flowStore.currentFlow.is_seed_support
 			min: 0,
 			max: 10000000,
 		}
-	}
-] : [])
+	})
+}
+
+const shouldTranslate = ref(false)
+const translatePrompt = ref(false)
+if (flowStore.currentFlow.is_translations_supported) {
+	// init shouldTranslate value
+	shouldTranslate.value = inputParamsMap.value.some((inputParam: any) => {
+		const input_param_name = Object.keys(inputParam)[0]
+		if (inputParam[input_param_name].type === 'text'
+			&& inputParam[input_param_name].value !== ''
+			&& inputParam[input_param_name]?.translatable) {
+			return !isEnglish(inputParam[input_param_name].value)
+		}
+		return false
+	})
+	watch(() => inputParamsMap.value.map((inputParam: any) => {
+		const input_param_name = Object.keys(inputParam)[0]
+		if (inputParam[input_param_name].type === 'text'
+			&& inputParam[input_param_name]?.translatable) {
+			return inputParam[input_param_name]
+		}
+		return null
+	}), (inputParams: any) => {
+		shouldTranslate.value = inputParams.some((inputParam: any) => inputParam && inputParam.value !== '' ? !isEnglish(inputParam.value) : false)
+	}, { deep: true })
+}
+
 
 function copyPromptInputs(input_params_map: TaskHistoryInputParam) {
 	console.debug('Copy prompt inputs', input_params_map)
@@ -153,7 +181,7 @@ inputParamsMap.value.forEach((inputParam: any) => {
 	}
 })
 
-const showResetParams: boolean = computed(() => {
+const showResetParams: ComputedRef<boolean> = computed(() => {
 	return inputParamsMap.value
 		.filter((inputParam: any) => {
 			// do not include file inputs
@@ -251,6 +279,10 @@ const requiredInputParamsValid = computed(() => {
 					label="Batch size"
 					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
+			<UFormGroup v-if="shouldTranslate"
+				class="my-3 flex justify-end">
+				<UCheckbox v-model="translatePrompt" label="Translate prompt" />
+			</UFormGroup>
 			<div class="flex" :class="{ 'justify-between': showResetParams, 'justify-end': !showResetParams }">
 				<UTooltip v-if="showResetParams" text="Reset input params values to defaults">
 					<UButton
@@ -261,26 +293,29 @@ const requiredInputParamsValid = computed(() => {
 						Reset params
 					</UButton>
 				</UTooltip>
-				<UButton icon="i-heroicons-sparkles-16-solid"
-					variant="outline"
-					:loading="running"
-					:disabled="!requiredInputParamsValid"
-					@click="() => {
-						running = true
-						flowStore.runFlow(
-							flowStore.currentFlow,
-							[...inputParamsMap, ...additionalInputParamsMap],
-							batchSize
-						).finally(() => {
-							running = false
-							const seed = additionalInputParamsMap.find((inputParam: any) => {
-								return Object.keys(inputParam)[0] === 'seed'
+				<div class="action flex items-center">
+					<UButton icon="i-heroicons-sparkles-16-solid"
+						variant="outline"
+						:loading="running"
+						:disabled="!requiredInputParamsValid"
+						@click="() => {
+							running = true
+							flowStore.runFlow(
+								flowStore.currentFlow,
+								[...inputParamsMap, ...additionalInputParamsMap],
+								batchSize,
+								shouldTranslate && translatePrompt
+							).finally(() => {
+								running = false
+								const seed = additionalInputParamsMap.find((inputParam: any) => {
+									return Object.keys(inputParam)[0] === 'seed'
+								})
+								seed.seed.value = Number(seed.seed.value) + batchSize + 1
 							})
-							seed.seed.value = Number(seed.seed.value) + batchSize + 1
-						})
-					}">
-					Run prompt
-				</UButton>
+						}">
+						Run prompt
+					</UButton>
+				</div>
 			</div>
 		</div>
 	</div>
