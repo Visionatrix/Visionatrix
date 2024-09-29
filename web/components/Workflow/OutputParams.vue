@@ -14,7 +14,9 @@ const inputParams = computed(() => {
 				return props.flowResult.input_params_mapped[key].value && props.flowResult.input_params_mapped[key].value !== ''
 			})
 			.map((key) => {
-				if (showTranslatedParams.value && props.flowResult.translated_input_params_mapped[key]) {
+				if (showTranslatedParams.value 
+					&& props.flowResult.translated_input_params_mapped
+					&& props.flowResult.translated_input_params_mapped[key]) {
 					return `${props.flowResult.input_params_mapped[key].display_name}: ${props.flowResult.translated_input_params_mapped[key].value}`
 				}
 				return `${props.flowResult.input_params_mapped[key].display_name}: ${props.flowResult.input_params_mapped[key].value}`
@@ -29,7 +31,7 @@ const showTranslatedParams = ref(false)
 
 <template>
 	<UTooltip
-		v-if="Object.keys(flowResult.translated_input_params_mapped).length > 0"
+		v-if="flowResult.translated_input_params_mapped && Object.keys(flowResult.translated_input_params_mapped).length > 0"
 		:text="!showTranslatedParams ? 'Show translated input params' : 'Hide translated input params'"
 		:popper="{ placement: 'top' }">
 		<UButton
