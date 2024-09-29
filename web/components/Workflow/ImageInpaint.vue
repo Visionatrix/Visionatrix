@@ -334,20 +334,14 @@ onBeforeUnmount(() => {
 					:width="stageConfig.width"
 					:height="stageConfig.height"
 					draggable="false"
-					:class="{ absolute: imageInpaintMask !== '' }"
-					@click="() => {
-						imagePreviewModalOpen = true
-					}" />
+					:class="{ absolute: imageInpaintMask !== '' }" />
 				<NuxtImg v-if="imageInpaintMask"
 					:src="imageInpaintMask"
 					fit="inside"
 					:width="stageConfig.width"
 					:height="stageConfig.height"
 					draggable="false"
-					class="opacity-50"
-					@click="() => {
-						imagePreviewModalOpen = true
-					}" />
+					class="opacity-50" />
 			</div>
 			<v-stage v-if="imageInpaintMask === ''"
 				ref="stageRef"
