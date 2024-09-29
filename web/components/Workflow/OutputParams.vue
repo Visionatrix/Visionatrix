@@ -28,10 +28,11 @@ const showTranslatedParams = ref(false)
 </script>
 
 <template>
-	<UTooltip :text="!showTranslatedParams ? 'Show translated input params' : 'Hide translated input params'"
+	<UTooltip
+		v-if="Object.keys(flowResult.translated_input_params_mapped).length > 0"
+		:text="!showTranslatedParams ? 'Show translated input params' : 'Hide translated input params'"
 		:popper="{ placement: 'top' }">
 		<UButton
-			v-if="Object.keys(flowResult.translated_input_params_mapped).length > 0"
 			class="mb-2 mr-2"
 			color="white"
 			size="xs"
