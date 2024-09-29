@@ -302,7 +302,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 								color="gray"
 								@click="() => {
 									const clipboard = useCopyToClipboard()
-									clipboard.copy(inputParamStr)
+									clipboard.copy(inputParamStr.split(':')[1].trim())
 									const toast = useToast()
 									toast.add({
 										title: 'Clipboard',
