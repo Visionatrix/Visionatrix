@@ -591,6 +591,93 @@
         }
       }
     },
+    "/api/settings/get_all": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get All",
+        "description": "Returns all settings for the user.\nUser settings have higher priority than global settings.",
+        "operationId": "get_all",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved all settings for the user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Get All"
+                },
+                "example": {
+                  "setting_key": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/global_all": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Global All",
+        "description": "Retrieve all global settings or an empty dictionary if none are found.",
+        "operationId": "get_global_all",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved all global settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Get Global All"
+                },
+                "example": {
+                  "global_setting_key": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/user_all": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get User All",
+        "description": "Retrieve all user settings or an empty dictionary if none are found.",
+        "operationId": "get_user_all",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved all user settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Get User All"
+                },
+                "example": {
+                  "user_setting_key": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tasks/create": {
       "put": {
         "tags": [
@@ -3160,7 +3247,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-27T19:59:07.401146Z"
+            "default": "2024-09-30T19:40:04.717954Z"
           }
         },
         "type": "object",
