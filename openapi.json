@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.3.0"
+    "version": "1.4.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -1713,6 +1713,63 @@
           }
         }
       }
+    },
+    "/api/other/translate-prompt": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Translate Prompt",
+        "description": "Translates an image generation prompt from another language into English.\n\nThis endpoint accepts a prompt in any language and translates it into English.\nIt returns the original prompt, the translated result, and the reason the generation was completed.\n\nAccessible to all authenticated users.\n\nRaises:\n    HTTPException: If there is an error during the translation process.",
+        "operationId": "translate_prompt",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslatePromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Translation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslatePromptResponse"
+                },
+                "example": {
+                  "prompt": "Dornr\u00f6schen",
+                  "result": "Sleeping Beauty",
+                  "done_reason": "stop"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Translation service error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Translation service error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1835,6 +1892,12 @@
             "type": "integer",
             "title": "Priority",
             "description": "Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
+            "default": 0
+          },
+          "translate": {
+            "type": "integer",
+            "title": "Translate",
+            "description": "Should the prompt be translated if auto-translation option is enabled.",
             "default": 0
           },
           "files": {
@@ -2139,6 +2202,12 @@
             "title": "Is Count Supported",
             "description": "Flag determining if 'Number of images' input will be displayed in the UI.",
             "default": true
+          },
+          "is_translations_supported": {
+            "type": "boolean",
+            "title": "Is Translations Supported",
+            "description": "Flag that determines whether Flow supports prompt translations.",
+            "default": false
           }
         },
         "type": "object",
@@ -2454,6 +2523,18 @@
             ],
             "title": "Webhook Headers",
             "description": "Headers to send to webhook."
+          },
+          "translated_input_params": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translated Input Params",
+            "description": "If auto-translation feature is enabled, contains translations for input values."
           }
         },
         "type": "object",
@@ -2700,6 +2781,53 @@
         ],
         "title": "TaskUpdateRequest",
         "description": "Represents the fields that can be updated for a task that has not yet started execution.\n\nThis model allows clients to specify new values for task properties that are editable\nbefore the task begins processing."
+      },
+      "TranslatePromptRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "description": "The image generation prompt to translate."
+          },
+          "system_prompt": {
+            "type": "string",
+            "title": "System Prompt",
+            "description": "System instructions that are passed to the LLM."
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "title": "TranslatePromptRequest",
+        "description": "Represents the request data for translating an image generation prompt."
+      },
+      "TranslatePromptResponse": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "description": "The original prompt provided in the request."
+          },
+          "result": {
+            "type": "string",
+            "title": "Result",
+            "description": "The translated prompt in English."
+          },
+          "done_reason": {
+            "type": "string",
+            "title": "Done Reason",
+            "description": "The reason the translation generation was completed."
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt",
+          "result",
+          "done_reason"
+        ],
+        "title": "TranslatePromptResponse",
+        "description": "Represents the response data after translating an image generation prompt.\n\nContains the original prompt provided by the user, the translated prompt in English,\nand the reason the translation process completed."
       },
       "UserInfo": {
         "properties": {
@@ -3032,7 +3160,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-23T14:08:34.587414Z"
+            "default": "2024-09-27T19:59:07.401146Z"
           }
         },
         "type": "object",

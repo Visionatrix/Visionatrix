@@ -31,6 +31,7 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.finished_at,
     database.TaskDetails.webhook_url,
     database.TaskDetails.webhook_headers,
+    database.TaskDetails.translated_input_params,
 ]
 
 
@@ -70,6 +71,7 @@ def task_details_from_dict(task_details: dict) -> database.TaskDetails:
         webhook_headers=task_details.get("webhook_headers"),
         parent_task_id=task_details.get("parent_task_id"),
         parent_task_node_id=task_details.get("parent_task_node_id"),
+        translated_input_params=task_details.get("translated_input_params"),
     )
 
 
@@ -85,6 +87,7 @@ def task_details_to_dict(task_details: Row) -> dict:
             "finished_at": task_details.finished_at,
             "webhook_url": task_details.webhook_url,
             "webhook_headers": task_details.webhook_headers,
+            "translated_input_params": task_details.translated_input_params,
         }
     )
     return r

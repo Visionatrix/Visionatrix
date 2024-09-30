@@ -26,6 +26,11 @@ const props = defineProps({
 		required: false,
 		default: false,
 	},
+	translatePrompt: {
+		type: Boolean,
+		required: false, // TODO: make required with possibility to adjust it
+		default: false,
+	},
 })
 
 const flowStore = useFlowsStore()
@@ -102,10 +107,18 @@ function sendToFlow() {
 	console.debug('[Send to flow]: input_params_map', input_params_map)
 
 	sending.value = true
-	flowStore.runFlow(targetFlow, input_params_map, 1, bindAsChildTask.value, bindAsChildTask.value ? Number(props.flowResult.task_id) : null).finally(() => {
-		sending.value = false
-		emit('update:show', false)
-	})
+	flowStore.runFlow(
+		targetFlow,
+		input_params_map,
+		1,
+		props.translatePrompt,
+		bindAsChildTask.value,
+		bindAsChildTask.value ? Number(props.flowResult.task_id) : null
+	)
+		.finally(() => {
+			sending.value = false
+			emit('update:show', false)
+		})
 }
 
 const bindAsChildTask = ref(false)

@@ -10,7 +10,7 @@ from .. import _version, comfyui, options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
 from . import flow_install_callback
 from .custom_nodes import update_base_custom_nodes
-from .install import create_missing_models_dirs
+from .install import create_missing_models_dirs, create_nodes_stuff
 
 
 def update() -> None:
@@ -40,6 +40,7 @@ def update() -> None:
             )
         os.makedirs(os.path.join(options.BACKEND_DIR, "user"), exist_ok=True)  # for multiprocessing installations
         create_missing_models_dirs()
+        create_nodes_stuff()
         logging.info("Updating custom nodes..")
         update_base_custom_nodes()
     comfyui.load(None)

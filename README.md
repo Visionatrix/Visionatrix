@@ -125,9 +125,10 @@ If you have any questions, we will try to answer them, do not hesitate to create
 - [Documentation](https://visionatrix.github.io/VixFlowsDocs/)
   - [Available Flows](https://visionatrix.github.io/VixFlowsDocs/Flows/)
   - Admin Manual:
-    - [Installation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/installation/)
+    - [Installation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/Installation/installation/)
     - [Working Modes](https://visionatrix.github.io/VixFlowsDocs/AdminManual/WorkingModes/working_modes/)
     - [Command Line Options](https://visionatrix.github.io/VixFlowsDocs/AdminManual/command_line_options/)
+    - [Environment Variables](https://visionatrix.github.io/VixFlowsDocs/AdminManual/environment_variables/)
   - Flows Developing:
     - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/vix_workflows/)
     - [Technical information](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/)
