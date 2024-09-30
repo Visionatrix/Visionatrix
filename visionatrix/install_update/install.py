@@ -89,6 +89,5 @@ def create_missing_models_dirs() -> None:
 def create_nodes_stuff() -> None:
     """Currently we only create `skip_download_model` file in "custom_nodes" for ComfyUI-Impact-Pack"""
 
-    Path(options.BACKEND_DIR).joinpath("custom_nodes").joinpath("skip_download_model").open(
-        "a", encoding="utf-8"
-    ).close()
+    with Path(options.BACKEND_DIR).joinpath("custom_nodes").joinpath("skip_download_model").open("a", encoding="utf-8"):
+        pass
