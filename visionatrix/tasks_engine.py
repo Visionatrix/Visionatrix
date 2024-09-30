@@ -20,7 +20,7 @@ from .comfyui import (
     interrupt_processing,
     soft_empty_cache,
 )
-from .db_queries import get_global_setting
+from .db_queries import get_global_setting, get_setting
 from .flows import get_google_nodes, get_installed_flows_names, get_ollama_nodes
 from .pydantic_models import (
     TaskDetails,
@@ -151,8 +151,8 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
     if ollama_nodes:
         ollama_vision_model = ""
         if [i for i in ollama_nodes if task_to_exec["flow_comfy"][i]["class_type"] == "OllamaVision"]:
-            ollama_vision_model = get_worker_value("OLLAMA_VISION_MODEL")
-        ollama_url = get_worker_value("OLLAMA_URL")
+            ollama_vision_model = get_worker_value("OLLAMA_VISION_MODEL", task_to_exec["user_id"])
+        ollama_url = get_worker_value("OLLAMA_URL", task_to_exec["user_id"])
 
         for node in ollama_nodes:
             if ollama_url:
@@ -162,8 +162,8 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
 
     google_nodes = get_google_nodes(task_to_exec["flow_comfy"])
     if google_nodes:
-        google_proxy = get_worker_value("GOOGLE_PROXY")
-        google_api_key = get_worker_value("GOOGLE_API_KEY")
+        google_proxy = get_worker_value("GOOGLE_PROXY", task_to_exec["user_id"])
+        google_api_key = get_worker_value("GOOGLE_API_KEY", task_to_exec["user_id"])
         for node in google_nodes:
             if google_api_key:
                 task_to_exec["flow_comfy"][node]["inputs"]["api_key"] = google_api_key
@@ -172,7 +172,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
     return task_to_exec
 
 
-def get_worker_value(key_name: str) -> str:
+def get_worker_value(key_name: str, user_id: str = "") -> str:
     key_value = os.environ.get(key_name.upper(), "")
     if key_value:
         return key_value
@@ -187,6 +187,8 @@ def get_worker_value(key_name: str) -> str:
             LOGGER.error("Can not fetch `%s` from the server: %s", key_name, r.status_code)
         else:
             key_value = r.text
+    elif user_id:
+        key_value = get_setting(user_id, key_name.lower(), True)
     else:
         key_value = get_global_setting(key_name.lower(), True)
     return key_value
