@@ -174,13 +174,48 @@ watch(() => flowsStore.outputMaxSize, () => {
 						label="Ollama Vision Model"
 						description="Override Ollama Vision model used in workflows by default">
 						<UInput
-							v-model="settingsStore.settingsMap['ollama_vision_model'].value"
+							v-model="settingsStore.settingsMap.ollama_vision_model.value"
 							placeholder="Ollama Vision Model"
 							class="w-full"
 							type="text"
 							size="md"
 							autocomplete="off"
 						/>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Ollama LLM Model"
+						description="Ollama LLM model used in workflows by default">
+						<UInput
+							v-model="settingsStore.settingsMap.ollama_llm_model.value"
+							placeholder="Ollama Vision Model"
+							class="w-full"
+							type="text"
+							size="md"
+							autocomplete="off"
+						/>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Translations provider"
+						description="Prompt translations provider. Empty if not enabled.">
+						<div class="flex items-center">
+							<USelect
+								v-model="settingsStore.settingsMap.translations_provider.value"
+								color="white"
+								variant="outline"
+								placeholder="Select translations provider"
+								:options="settingsStore.settingsMap.translations_provider.options" />
+							<UButton
+								v-if="settingsStore.settingsMap.translations_provider.value"
+								icon="i-heroicons-x-mark"
+								variant="outline"
+								color="white"
+								class="ml-2"
+								@click="() => settingsStore.settingsMap.translations_provider.value = ''" />
+						</div>
 					</UFormGroup>
 				</div>
 				<div v-if="userStore.isAdmin" class="upload-flow mb-5 py-4 rounded-md">

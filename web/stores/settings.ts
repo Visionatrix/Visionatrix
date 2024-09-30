@@ -37,6 +37,25 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: false,
 			},
+			translations_provider: {
+				key: 'translations_provider',
+				value: '',
+				options: ['ollama', 'gemini'],
+				sensitive: true,
+				admin: true,
+			},
+			ollama_llm_model: {
+				key: 'ollama_llm_model',
+				value: '',
+				sensitive: true,
+				admin: true,
+			},
+			ollama_keepalive: {
+				key: 'ollama_keepalive',
+				value: '',
+				sensitive: true,
+				admin: true,
+			}
 		} as VixSettingsMap,
 	}),
 
