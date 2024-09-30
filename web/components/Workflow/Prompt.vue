@@ -121,30 +121,8 @@ if (flowStore.currentFlow.is_seed_supported) {
 }
 
 const settingsStore = useSettingsStore()
-const shouldTranslate = ref(false)
-if (flowStore.currentFlow.is_translations_supported
-	&& settingsStore.settingsMap.translations_provider.value.trim() !== '') {
-	// init shouldTranslate value
-	shouldTranslate.value = inputParamsMap.value.some((inputParam: any) => {
-		const input_param_name = Object.keys(inputParam)[0]
-		if (inputParam[input_param_name].type === 'text'
-			&& inputParam[input_param_name].value !== ''
-			&& inputParam[input_param_name]?.translatable) {
-			return !isEnglish(inputParam[input_param_name].value)
-		}
-		return false
-	})
-	watch(() => inputParamsMap.value.map((inputParam: any) => {
-		const input_param_name = Object.keys(inputParam)[0]
-		if (inputParam[input_param_name].type === 'text'
-			&& inputParam[input_param_name]?.translatable) {
-			return inputParam[input_param_name]
-		}
-		return null
-	}), (inputParams: any) => {
-		shouldTranslate.value = inputParams.some((inputParam: any) => inputParam && inputParam.value !== '' ? !isEnglish(inputParam.value) : false)
-	}, { deep: true })
-}
+const shouldTranslate = ref(flowStore.currentFlow.is_translations_supported
+	&& settingsStore.settingsMap.translations_provider.value.trim() !== '')
 const translatePrompt: Ref<boolean> = ref(shouldTranslate.value)
 onBeforeMount(() => {
 	const translatePromptLocal = localStorage.getItem('translatePrompt')
