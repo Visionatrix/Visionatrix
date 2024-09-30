@@ -98,6 +98,43 @@ async def set_user_setting_async(user_id: str, key: str, value: str) -> None:
             raise
 
 
+async def get_all_settings_async(user_id: str, admin: bool) -> dict[str, str]:
+    """Retrieve all settings with user settings having higher priority over global settings."""
+    user_settings = await get_user_settings_async(user_id)
+    global_settings = await get_all_global_settings_async(admin)
+
+    # Merge user settings with global settings, giving priority to user settings
+    return {**global_settings, **user_settings}
+
+
+async def get_all_global_settings_async(admin: bool) -> dict[str, str]:
+    """Retrieve all global settings as a dictionary."""
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = select(
+                database.GlobalSettings.name, database.GlobalSettings.value, database.GlobalSettings.sensitive
+            )
+            results = (await session.execute(query)).all()
+            return {name: value for name, value, sensitive in results if not sensitive or (sensitive and admin)}
+        except Exception:
+            LOGGER.exception("Failed to retrieve all global settings")
+            raise
+
+
+async def get_user_settings_async(user_id: str) -> dict[str, str]:
+    """Retrieve all settings for a specific user as a dictionary."""
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = select(database.UserSettings.name, database.UserSettings.value).where(
+                database.UserSettings.user_id == user_id
+            )
+            results = (await session.execute(query)).all()
+            return {name: value for name, value in results}  # noqa pylint: disable=unnecessary-comprehension
+        except Exception:
+            LOGGER.exception("Failed to retrieve all user settings for user `%s`", user_id)
+            raise
+
+
 async def get_workers_details_async(
     user_id: str | None, last_seen_interval: int, worker_id: str
 ) -> list[WorkerDetails]:

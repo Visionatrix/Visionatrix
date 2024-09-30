@@ -4,16 +4,22 @@ from fastapi import APIRouter, Body, Query, Request, responses, status
 
 from .. import options
 from ..db_queries import (
+    get_all_global_settings,
+    get_all_settings,
     get_global_setting,
     get_setting,
     get_user_setting,
+    get_user_settings,
     set_global_setting,
     set_user_setting,
 )
 from ..db_queries_async import (
+    get_all_global_settings_async,
+    get_all_settings_async,
     get_global_setting_async,
     get_setting_async,
     get_user_setting_async,
+    get_user_settings_async,
     set_global_setting_async,
     set_user_setting_async,
 )
@@ -139,3 +145,67 @@ async def set_user(
         await set_user_setting_async(request.scope["user_info"].user_id, key, value)
     else:
         set_user_setting(request.scope["user_info"].user_id, key, value)
+
+
+@ROUTER.get(
+    "/get_all",
+    response_class=responses.JSONResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {
+            "description": "Successfully retrieved all settings for the user",
+            "content": {"application/json": {"example": {"setting_key": "value"}}},
+        }
+    },
+)
+async def get_all(request: Request) -> dict[str, str]:
+    """
+    Returns all settings for the user.
+    User settings have higher priority than global settings.
+    """
+    user_id = request.scope["user_info"].user_id
+    is_admin = request.scope["user_info"].is_admin
+
+    if options.VIX_MODE == "SERVER":
+        return await get_all_settings_async(user_id, is_admin)
+    return get_all_settings(user_id, is_admin)
+
+
+@ROUTER.get(
+    "/global_all",
+    response_class=responses.JSONResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {
+            "description": "Successfully retrieved all global settings",
+            "content": {"application/json": {"example": {"global_setting_key": "value"}}},
+        }
+    },
+)
+async def get_global_all(request: Request) -> dict[str, str]:
+    """Retrieve all global settings or an empty dictionary if none are found."""
+    is_admin = request.scope["user_info"].is_admin
+
+    if options.VIX_MODE == "SERVER":
+        return await get_all_global_settings_async(is_admin)
+    return get_all_global_settings(is_admin)
+
+
+@ROUTER.get(
+    "/user_all",
+    response_class=responses.JSONResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {
+            "description": "Successfully retrieved all user settings",
+            "content": {"application/json": {"example": {"user_setting_key": "value"}}},
+        }
+    },
+)
+async def get_user_all(request: Request) -> dict[str, str]:
+    """Retrieve all user settings or an empty dictionary if none are found."""
+    user_id = request.scope["user_info"].user_id
+
+    if options.VIX_MODE == "SERVER":
+        return await get_user_settings_async(user_id)
+    return get_user_settings(user_id)
