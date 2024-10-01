@@ -92,4 +92,23 @@ BASIC_NODE_LIST = {
     },
     "ComfyUI_Gemini_Flash": {},
     "ComfyUI-Inpaint-CropAndStitch": {},
+    "ComfyUI-PhotoMaker-Plus": {
+        "models": [
+            AIResourceModel(
+                name="buffalo_l",
+                save_path="{root}models/insightface/models/buffalo_l.zip",
+                url="https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/buffalo_l.zip",
+                homepage="https://github.com/deepinsight/insightface",
+                hash="80ffe37d8a5940d59a7384c201a2a38d4741f2f3c51eef46ebb28218a7b0ca2f",
+                hashes={
+                    "1k3d68.onnx": "df5c06b8a0c12e422b2ed8947b8869faa4105387f199c477af038aa01f9a45cc",
+                    "2d106det.onnx": "f001b856447c413801ef5c42091ed0cd516fcd21f2d6b79635b1e733a7109dbf",
+                    "genderage.onnx": "4fde69b1c810857b88c64a335084f1c3fe8f01246c9a191b48c7bb756d6652fb",
+                    "det_10g.onnx": "5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91",
+                    "w600k_r50.onnx": "4c06341c33c2ca1f86781dab0e829f88ad5b64be9fba56e56bc9ebdefc619e43",
+                },
+            ),
+        ],
+        "requirements": {},  # https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus/pull/41
+    },
 }

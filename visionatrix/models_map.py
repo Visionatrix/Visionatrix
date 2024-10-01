@@ -44,6 +44,9 @@ MODEL_LOAD_CLASSES = {
         "1": ["inputs", "clip_name1"],
         "2": ["inputs", "clip_name2"],
     },
+    "PhotoMakerLoaderPlus": {
+        "1": ["inputs", "photomaker_model_name"],
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
