@@ -97,7 +97,7 @@ BASIC_NODE_LIST = {
             AIResourceModel(
                 name="buffalo_l",
                 save_path="{root}models/insightface/models/buffalo_l.zip",
-                url="https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/buffalo_l.zip",
+                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/insightface/buffalo_l.zip",
                 homepage="https://github.com/deepinsight/insightface",
                 hash="80ffe37d8a5940d59a7384c201a2a38d4741f2f3c51eef46ebb28218a7b0ca2f",
                 hashes={
