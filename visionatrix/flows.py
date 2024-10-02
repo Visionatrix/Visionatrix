@@ -335,6 +335,7 @@ def flow_prepare_output_params(
             "StringFunction|pysssss",
             "Evaluate Integers",
             "ShowText|pysssss",
+            "MathExpression|pysssss",
             "PreviewImage",
         ):
             continue
