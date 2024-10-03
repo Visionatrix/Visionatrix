@@ -13,14 +13,14 @@
 
 ## 🚀 Features
 
-- **🔧 Easy Setup & Updates**: Get started quickly with a straightforward installation process and seamless updates to the latest versions.
-- **🖥️ Minimalistic UI**: Focus on your creativity with a clean, user-friendly interface designed for daily workflow usage.
+- **🔧 Easy Setup & Updates**: Quick setup with simple installation and seamless version updates.
+- **🖥️ Minimalistic UI**: Clean, user-friendly interface designed for daily workflow usage.
 - **🌐 Prompt Translation Support**: Automatically translate prompts for media generation.
-- **🛠️ Stable Workflows**: Enjoy versioned and upgradable workflows, ensuring consistent performance as you update.
+- **🛠️ Stable Workflows**: Versioned and upgradable workflows, ensuring consistent performance as you update.
 - **📈 Scalability**: Run multiple instances with simultaneous task workers for increased productivity.
-- **👥 Multi-User Support**: Configure Visionatrix for multiple users with ease and integrate different user backends.
+- **👥 Multi-User Support**: Configure for multiple users with ease and integrate different user backends.
 - **🤖 LLM Integration**: Effortlessly incorporate Ollama/Gemini as your LLM for ComfyUI workflows.
-- **🔌 Seamless Integration**: Operate Visionatrix as a service with backend endpoints and webhook support for smooth integration into your projects.
+- **🔌 Seamless Integration**: Run as a service with backend endpoints for smooth project integration.
 
 ## 🖼️ User Interface
 
