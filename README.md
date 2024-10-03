@@ -1,140 +1,144 @@
 # Visionatrix
 
 [![Analysis & Coverage](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml/badge.svg)](https://github.com/Visionatrix/Visionatrix/actions/workflows/analysis-coverage.yml)
-[![Docs](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/docs.yml/badge.svg)](https://visionatrix.github.io/VixFlowsDocs/)
+[![Documentation](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/docs.yml/badge.svg)](https://visionatrix.github.io/VixFlowsDocs/)
 [![Models Catalog](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/check-models-catalog.yml/badge.svg)](https://github.com/Visionatrix/VixFlowsDocs/actions/workflows/check-models-catalog.yml)
-
 ![PythonVersion](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
 <div align="center">
- <img alt="Visionatrix" height="200px" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/logo.png">
+  <img alt="Visionatrix Logo" height="200px" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/logo.png">
 </div>
 
-The goal of the project is to provide use of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) workflows in an easy way.
+**Simplify your AI image generation workflows with Visionatrix—an intuitive interface built on top of [ComfyUI](https://github.com/comfyanonymous/ComfyUI)**
 
-Visionatrix features:
+## 🚀 Features
 
-  * **Simplified Setup and Update**:  a simple installation and update process to new versions.
-  * **Minimalistic UI**:  designed for daily use of workflows.
-  * **Stable Workflows**:  versioning and update processes for workflows to new versions.
-  * **Scalability**:  support for multiple instances with multiple task workers running simultaneously.
-  * **Multiple User Support**:  easily configured to work with multiple users and integrate different user backends.
-  * **LLM power**:  easy integration with Ollama/Gemini for use as LLM for ComfyUI Workflows.
-  * **Seamless Integration**:  operates as a service with backend endpoints and webhook support.
+- **🔧 Easy Setup & Updates**: Get started quickly with a straightforward installation process and seamless updates to the latest versions.
+- **🖥️ Minimalistic UI**: Focus on your creativity with a clean, user-friendly interface designed for daily workflow usage.
+- **🌐 Prompt Translation Support**: Automatically translate prompts for media generation.
+- **🛠️ Stable Workflows**: Enjoy versioned and upgradable workflows, ensuring consistent performance as you update.
+- **📈 Scalability**: Run multiple instances with simultaneous task workers for increased productivity.
+- **👥 Multi-User Support**: Configure Visionatrix for multiple users with ease and integrate different user backends.
+- **🤖 LLM Integration**: Effortlessly incorporate Ollama/Gemini as your LLM for ComfyUI workflows.
+- **🔌 Seamless Integration**: Operate Visionatrix as a service with backend endpoints and webhook support for smooth integration into your projects.
 
-> [!NOTE]
-> Since we are already approaching the release of version 1.0 and all the decisions for how the project will look are completed -
-> we are welcome to the new ideas which we can implement further.
->
-> If you wish to join the development, feel free to do so.
+## 🖼️ User Interface
 
-### User Interface of **Visionatrix**
+Access the Visionatrix UI at [http://127.0.0.1:8288](http://127.0.0.1:8288) (default).
 
-By default `UI` avalaible at [http://127.0.0.1:8288](http://127.0.0.1:8288)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1_dark.jpeg">
+    <img alt="Visionatrix UI Light Mode" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1_light.jpeg">
+  </picture>
+</p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1_dark.jpeg">
-  <img alt="Visionatrix UI" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1_light.jpeg">
-</picture>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_3_dark.jpeg">
-  <img alt="Visionatrix UI" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_3_light.jpeg">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_3_dark.jpeg">
+    <img alt="Visionatrix UI Light Mode" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_3_light.jpeg">
+  </picture>
+</p>
 
 <details>
-
-  Short [video demo](https://github.com/Visionatrix/VixFlowsDocs/blob/main/screenshots/short_demo.webp)
+  <summary>📹 Click to see a short video demo</summary>
 
   ![Visionatrix Demo](https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/short_demo.webp)
 
 </details>
 
-## Easy installation for home use
+## 📥 Installation
 
-Requirements:
+### Requirements
 
-- Python `3.10`*(recommended)* or higher
-- GPU with at least minimum `10 GB` of memory *(12GB is recommended)*
+- **Python** `3.10` *(recommended)* or higher
+- **GPU** with at least `10 GB` of memory *(12GB recommended)*
 
-### Linux/macOS/WSL:
+### Quick Start (Linux/macOS/WSL)
 
 <details>
-  <summary>Installing pre-requirements(python, git,...)</summary>
+  <summary>Install prerequisites (Python, Git, etc.)</summary>
 
   For Ubuntu 22.04:
 
-  ```console
+  ```bash
   sudo apt install wget curl python3-venv python3-pip build-essential git
   ```
-  <hr>
 </details>
 
-Download and execute `easy_install.py` script:
+Download and run the `easy_install.py` script:
 
-> [!NOTE]
-> It will clone this repository into the current folder and perform the installation.
-> After installation you can always run `easy_install` from the "scripts" folder.
+> **Note:** This script will clone the Visionatrix repository into your current folder and perform the installation. After installation, you can always run `easy_install` from the "scripts" folder.
 
-With **wget**:
-```console
+Using **wget**:
+
+```bash
 wget -O easy_install.py https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py && python3 easy_install.py
 ```
 
-or with **curl**:
-```console
+Using **curl**:
+
+```bash
 curl -o easy_install.py https://raw.githubusercontent.com/Visionatrix/Visionatrix/main/scripts/easy_install.py && python3 easy_install.py
 ```
 
-After that, answer the script's questions and in most cases everything should work.
+Follow the prompts during installation. In most cases, everything should work smoothly.
 
-Command to launch Visionatrix from an activated virtual environment::
+**To launch Visionatrix** from the activated virtual environment:
 
-```console
+```bash
 python -m visionatrix run --ui
 ```
 
-### Windows
+### Quick Start (Windows)
 
-We provide a **portable version** in the form of an archive.
-This eliminates the need to have `Git` and `Visual Studio` compilers installed.
-Currently, only versions for CUDA/CPU is build, if there will be request we can add `Direct-ML` version too.
+We offer a **portable version** to simplify installation (no need for Git or Visual Studio compilers).
 
-1. Go to [Releases](https://github.com/Visionatrix/Visionatrix/releases)
-2. Download `vix_portable_cuda.7z.001` *(and `vix_portable_cuda.7z.002`, if present, then this is one archive)*.
-3. Unpack it and run `run_nvidia_gpu.bat` or `run_cpu.bat`
+Currently, we provide versions for CUDA/CPU. If there's demand, we can add a DirectML version.
+
+1. **Download**: Visit our [Releases page](https://github.com/Visionatrix/Visionatrix/releases).
+2. **Get the Portable Archive**: Download `vix_portable_cuda.7z.001` (and `vix_portable_cuda.7z.002` if present).
+3. **Unpack and Run**: Extract the archive and run `run_nvidia_gpu.bat` or `run_cpu.bat`.
 
 ### Manual Installation
 
-If you want to perform manual installation, take a look at [documentation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/installation/) how to do that.
+For manual installation steps, please refer to our [detailed documentation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/installation/).
 
-## Update process (Linux/macOS)
+## 🔄 Updating Visionatrix
 
-Run `easy_install` script and select "**Update**" option.
+### For Linux/macOS
 
-> [!NOTE]
-> For portable Windows releases update is a bit tricky:
-> 1. Unpack new portable version
-> 2. Move `vix_models`, `vix_tasks_files` and `tasks_history.db` to it from the old one
-> 3. In most cases where there were no breaking changes it will be enough
+Run the `easy_install` script and select the "**Update**" option.
 
-## More Information
+```bash
+python3 easy_install.py
+```
 
-If you have any questions, we will try to answer them, do not hesitate to create [Discussion](https://github.com/Visionatrix/Visionatrix/discussions/new/choose) and ask.
+### For Windows (Portable Version)
 
-- [Documentation](https://visionatrix.github.io/VixFlowsDocs/)
-  - [Available Flows](https://visionatrix.github.io/VixFlowsDocs/Flows/)
-  - Admin Manual:
+Updating the portable version involves:
+
+1. Unpacking the new portable version.
+2. Moving `vix_models`, `vix_tasks_files`, and `tasks_history.db` from the old version to the new one.
+3. In most cases, this should be sufficient unless there are breaking changes.
+
+## 📚 Documentation and Support
+
+If you have any questions or need assistance, we're here to help! Feel free to [start a discussion](https://github.com/Visionatrix/Visionatrix/discussions/new/choose) or explore our resources:
+
+- **[Documentation](https://visionatrix.github.io/VixFlowsDocs/)**
+  - **[Available Flows](https://visionatrix.github.io/VixFlowsDocs/Flows/)**
+  - **Admin Manual**
     - [Installation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/Installation/installation/)
     - [Working Modes](https://visionatrix.github.io/VixFlowsDocs/AdminManual/WorkingModes/working_modes/)
     - [Command Line Options](https://visionatrix.github.io/VixFlowsDocs/AdminManual/command_line_options/)
     - [Environment Variables](https://visionatrix.github.io/VixFlowsDocs/AdminManual/environment_variables/)
-  - Flows Developing:
+  - **Flows Developing**
     - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/vix_workflows/)
-    - [Technical information](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/)
+    - [Technical Information](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/)
     - [Gated Models](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/)
     - [Creating Workflows](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/comfyui_vix_migration/)
-  - Common information:
+  - **Common Information**
     - [FAQ](https://visionatrix.github.io/VixFlowsDocs/faq/)
     - [Hardware FAQ](https://visionatrix.github.io/VixFlowsDocs/hardware_faq/)
     - [Hardware Results](https://visionatrix.github.io/VixFlowsDocs/hardware_results/)
