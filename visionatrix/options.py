@@ -64,12 +64,9 @@ MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.gith
 # MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.
 
 MIN_PAUSE_INTERVAL = float(environ.get("MIN_PAUSE_INTERVAL", "0.1"))
-"""Start ``min_interval`` time value to wait between ask for a next Task to process."""
+"""Initial waiting time (in seconds) between polling for the next task to process."""
 MAX_PAUSE_INTERVAL = float(environ.get("MAX_PAUSE_INTERVAL", "1.0"))
-"""Max time to wait between ask for next Task, it will be reached starting from ``min_interval`` time in 10 steps.
-For example if there is no tasks, worker first time will wait ``min_interval``, second time it will be increased by
-``min(min_interval + max_interval / 10, max_interval)`` - this will make load on the server lower when nothing to do.
-"""
+"""Maximum wait time (in seconds) between polling for the next task. Increased in steps when no tasks are available."""
 
 GC_COLLECT_INTERVAL = float(environ.get("GC_COLLECT_INTERVAL", "10.0"))
 """Internal variable. Interval in seconds (float) that determines how long
@@ -88,15 +85,13 @@ This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
 MAX_PARALLEL_DOWNLOADS = int(environ.get("MAX_PARALLEL_DOWNLOADS", "2"))
-"""Maximum number of parallel downloads allowed during flow installation.
-Defaults to ``2`` if the environment variable is not set.
-"""
+"""Maximum number of parallel downloads allowed during workflow installation. Defaults to '2'."""
 
 MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
-"""Maximum number of attempts to perform `git clone` during the first installation."""
+"""Maximum number of attempts to perform 'git clone' operations during installation."""
 
 NODES_TIMING = int(environ.get("NODES_TIMING", "0")) == 1
-"""If set to ``1``, the execution time of each node will be logged."""
+"""If set to '1', logs the execution time of each workflow node for performance analysis."""
 
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
