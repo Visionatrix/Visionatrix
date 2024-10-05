@@ -131,16 +131,13 @@ if __name__ == "__main__":
                 install_flow_comfy = json.loads(fp.read())
             install_flow = get_vix_flow(install_flow_comfy)
         else:
-            flows_comfy = []
-            flows = get_available_flows(flows_comfy)
-            for i, flow in enumerate(flows):
-                if flow.name == args.name:
-                    install_flow = flow
-                    install_flow_comfy = flows_comfy[i]
-                    break
+            flows_comfy = {}
+            flow_name = str(args.name).lower()
+            install_flow = get_available_flows(flows_comfy).get(flow_name)
             if not install_flow:
-                logging.getLogger("visionatrix").error("Can not find the specific flow: %s", args.name)
+                logging.getLogger("visionatrix").error("Can not find the specific flow: %s", flow_name)
                 sys.exit(2)
+            install_flow_comfy = flows_comfy[flow_name]
         install_custom_flow(
             flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=flow_install_callback.progress_callback
         )

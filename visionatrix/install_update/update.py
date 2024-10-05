@@ -45,13 +45,11 @@ def update() -> None:
         update_base_custom_nodes()
     comfyui.load(None)
     logging.info("Updating flows..")
-    avail_flows_comfy = []
+    avail_flows_comfy = {}
     avail_flows = get_available_flows(avail_flows_comfy)
-    avail_flows_names = [v.name for v in avail_flows]
     for i in get_installed_flows():
-        if i.name in avail_flows_names:
-            v = avail_flows_names.index(i.name)
-            flow_install_callback.progress_callback(avail_flows[v].name, 0.0, "", False)
-            install_custom_flow(avail_flows[v], avail_flows_comfy[v], flow_install_callback.progress_callback)
+        if i in avail_flows:
+            flow_install_callback.progress_callback(avail_flows[i].name, 0.0, "", False)
+            install_custom_flow(avail_flows[i], avail_flows_comfy[i], flow_install_callback.progress_callback)
         else:
-            logging.warning("`%s` flow not found in repository, skipping update of it.", i.name)
+            logging.warning("`%s` flow not found in repository, skipping update of it.", i)

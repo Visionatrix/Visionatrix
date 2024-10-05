@@ -21,7 +21,7 @@ from .comfyui import (
     soft_empty_cache,
 )
 from .db_queries import get_global_setting, get_setting
-from .flows import get_google_nodes, get_installed_flows_names, get_ollama_nodes
+from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
     TaskDetails,
     TaskDetailsShort,
@@ -836,7 +836,7 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         ):
             break
 
-        ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names(), last_task_name)
+        ACTIVE_TASK = get_incomplete_task_without_error(list(get_installed_flows()), last_task_name)
         if not ACTIVE_TASK:
             reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
             continue

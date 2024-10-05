@@ -34,19 +34,23 @@ LOGGER = logging.getLogger("visionatrix")
 CACHE_AVAILABLE_FLOWS = {
     "update_time": time.time() - (SECONDS_TO_CACHE_AVALAIBLE_FLOWS + 1),
     "etag": "",
-    "flows": [],
-    "flows_comfy": [],
+    "flows": {},
+    "flows_comfy": {},
 }
 CACHE_INSTALLED_FLOWS = {
     "update_time": time.time() - (SECONDS_TO_CACHE_INSTALLED_FLOWS + 1),
-    "flows": [],
-    "flows_comfy": [],
+    "flows": {},
+    "flows_comfy": {},
 }
 
 
-def get_available_flows(flows_comfy: list) -> list[Flow]:
+def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+    if flows_comfy is None:
+        flows_comfy = {}
+    else:
+        flows_comfy.clear()
     if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + SECONDS_TO_CACHE_AVALAIBLE_FLOWS:
-        flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+        flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
         return CACHE_AVAILABLE_FLOWS["flows"]
 
     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
@@ -62,14 +66,14 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
             r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
         except httpx.TransportError as e:
             LOGGER.error("Request to get flows failed with: %s", str(e))
-            flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+            flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
             return CACHE_AVAILABLE_FLOWS["flows"]
         if r.status_code == 304:
-            flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+            flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
             return CACHE_AVAILABLE_FLOWS["flows"]
         if r.status_code != 200:
             LOGGER.error("Request to get flows returned: %s", r.status_code)
-            flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+            flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
             return CACHE_AVAILABLE_FLOWS["flows"]
         flows_content = r.content
         flows_content_etag = r.headers.get("etag", "")
@@ -77,72 +81,72 @@ def get_available_flows(flows_comfy: list) -> list[Flow]:
         with builtins.open(flows_storage_url, mode="rb") as flows_archive:
             flows_content = flows_archive.read()
         flows_content_etag = ""
-    r_flows = []
-    r_flows_comfy = []
+    r_flows = {}
+    r_flows_comfy = {}
     with zipfile.ZipFile(io.BytesIO(flows_content)) as zip_file:
         for flow_comfy_path in {name for name in zip_file.namelist() if name.endswith(".json")}:
             with zip_file.open(flow_comfy_path) as flow_comfy_file:
                 _flow_comfy = json.loads(flow_comfy_file.read())
-                r_flows.append(get_vix_flow(_flow_comfy))
-                r_flows_comfy.append(_flow_comfy)
+                _flow = get_vix_flow(_flow_comfy)
+                _flow_name = _flow.name.lower()
+                r_flows[_flow_name] = _flow
+                r_flows_comfy[_flow_name] = _flow_comfy
     CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy, "etag": flows_content_etag})
-    flows_comfy.extend(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+    flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
     return r_flows
 
 
-def get_not_installed_flows(flows_comfy: list | None = None) -> list[Flow]:
-    installed_flows_ids = [i.name for i in get_installed_flows()]
-    avail_flows_comfy = []
+def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+    installed_flows_ids = list(get_installed_flows())
+    avail_flows_comfy = {}
     avail_flows = get_available_flows(avail_flows_comfy)
-    r = []
-    for i, v in enumerate(avail_flows):
-        if v.name not in installed_flows_ids:
-            r.append(v)
+    flows = {}
+    for i, v in avail_flows.items():
+        if i not in installed_flows_ids:
+            flows[i] = v
             if flows_comfy is not None:
-                flows_comfy.append(avail_flows_comfy[i])
-    return r
+                flows_comfy[i] = avail_flows_comfy[i]
+    return flows
 
 
-def get_installed_flows(flows_comfy: list | None = None) -> list[Flow]:
+def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+    if flows_comfy is None:
+        flows_comfy = {}
+    else:
+        flows_comfy.clear()
     if time.time() < CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS:
-        if flows_comfy is not None:
-            flows_comfy.extend(CACHE_INSTALLED_FLOWS["flows_comfy"])
+        flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
         return CACHE_INSTALLED_FLOWS["flows"]
 
-    available_flows = get_available_flows([])
-    public_flows_names = [i.name for i in available_flows]
+    available_flows = get_available_flows({})
+    public_flows_names = list(available_flows)
     CACHE_INSTALLED_FLOWS["update_time"] = time.time()
     flows = [entry for entry in Path(options.FLOWS_DIR).iterdir() if entry.is_file() and entry.name.endswith(".json")]
-    r = []
-    r_comfy = []
+    r = {}
+    r_comfy = {}
     for flow in flows:
         _flow_comfy = json.loads(flow.read_bytes())
         _flow_vix = get_vix_flow(_flow_comfy)
         if _flow_vix.name not in public_flows_names:
             _flow_vix.private = True
-        _fresh_flow_info = [i for i in available_flows if i.name == _flow_vix.name]
-        if _fresh_flow_info and parse(_flow_vix.version) < parse(_fresh_flow_info[0].version):
-            _flow_vix.new_version_available = _fresh_flow_info[0].version
-        r.append(_flow_vix)
-        r_comfy.append(_flow_comfy)
+        _fresh_flow_info = available_flows.get(_flow_vix.name)
+        if _fresh_flow_info and parse(_flow_vix.version) < parse(_fresh_flow_info.version):
+            _flow_vix.new_version_available = _fresh_flow_info.version
+        r[_flow_vix.name] = _flow_vix
+        r_comfy[_flow_vix.name] = _flow_comfy
     CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
     if flows_comfy is not None:
-        flows_comfy.extend(r_comfy)
+        flows_comfy.update(r_comfy)
     return r
 
 
-def get_installed_flows_names() -> list[str]:
-    return [i.name for i in get_installed_flows()]
-
-
 def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | None:
-    flows_comfy = []
-    for i, flow in enumerate(get_installed_flows(flows_comfy)):
-        if flow.name == flow_name:
-            flow_comfy.clear()
-            flow_comfy.update(flows_comfy[i])
-            return flow
-    return None
+    flows_comfy = {}
+    flow = get_installed_flows(flows_comfy).get(flow_name)
+    if flow:
+        flow_comfy.clear()
+        flow_comfy.update(flows_comfy[flow_name])
+    return flow
 
 
 def install_custom_flow(
