@@ -49,8 +49,11 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 ORG_URL = "https://github.com/Visionatrix/"  # organization from which ComfyUI nodes will be installed
 
 FLOWS_URL = environ.get("FLOWS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/")
-"""URL or path that points to the location of archive files containing lists and definitions of Visionatrix workflows.
-More information: https://visionatrix.github.io/VixFlowsDocs/TechnicalInformation.html#workflows-storage
+"""URLs or file paths (separated by ';') that point to locations of archive files
+containing lists and definitions of Visionatrix workflows.
+
+Each URL or path can point to an archive containing flows, more information:
+https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/#workflows-storage
 """
 
 # For Flows development, execute command from next line to create a zip with adjusted/new flows:

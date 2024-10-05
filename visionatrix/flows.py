@@ -28,15 +28,10 @@ from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import Flow
 
 SECONDS_TO_CACHE_INSTALLED_FLOWS = 10
-SECONDS_TO_CACHE_AVALAIBLE_FLOWS = 3 * 60
+SECONDS_TO_CACHE_AVAILABLE_FLOWS = 3 * 60
 
 LOGGER = logging.getLogger("visionatrix")
-CACHE_AVAILABLE_FLOWS = {
-    "update_time": time.time() - (SECONDS_TO_CACHE_AVALAIBLE_FLOWS + 1),
-    "etag": "",
-    "flows": {},
-    "flows_comfy": {},
-}
+CACHE_AVAILABLE_FLOWS = {}
 CACHE_INSTALLED_FLOWS = {
     "update_time": time.time() - (SECONDS_TO_CACHE_INSTALLED_FLOWS + 1),
     "flows": {},
@@ -49,51 +44,155 @@ def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
         flows_comfy = {}
     else:
         flows_comfy.clear()
-    if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + SECONDS_TO_CACHE_AVALAIBLE_FLOWS:
-        flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-        return CACHE_AVAILABLE_FLOWS["flows"]
 
-    CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
-    flows_storage_url = options.FLOWS_URL
+    flows_storage_urls = [url.strip() for url in options.FLOWS_URL.split(";") if url.strip()]
+    if not flows_storage_urls:
+        flows_storage_urls = ["https://visionatrix.github.io/VixFlowsDocs/"]
+
+    combined_flows = {}
+    combined_flows_comfy = {}
+
+    for flows_storage_url in flows_storage_urls:
+        cache_entry = CACHE_AVAILABLE_FLOWS.get(flows_storage_url, {})
+        current_time = time.time()
+        cache_expired = current_time > cache_entry.get("update_time", 0) + SECONDS_TO_CACHE_AVAILABLE_FLOWS
+
+        if cache_expired or not cache_entry:
+            etag = cache_entry.get("etag", "")
+            flows, flows_comfy_single, new_etag = fetch_flows_from_url_or_path(flows_storage_url, etag)
+            if flows is not None:
+                # Update cache_entry with new data
+                cache_entry = {
+                    "update_time": current_time,
+                    "etag": new_etag,
+                    "flows": flows,
+                    "flows_comfy": flows_comfy_single,
+                }
+                CACHE_AVAILABLE_FLOWS[flows_storage_url] = cache_entry
+            else:
+                # Use existing cache_entry (even if expired)
+                flows = cache_entry.get("flows", {})
+                flows_comfy_single = cache_entry.get("flows_comfy", {})
+        else:
+            # Cache is valid, use cached data
+            flows = cache_entry.get("flows", {})
+            flows_comfy_single = cache_entry.get("flows_comfy", {})
+
+        # Merge the flows into combined_flows
+        for flow_name, flow_data in flows.items():
+            if flow_name not in combined_flows:
+                combined_flows[flow_name] = flow_data
+                combined_flows_comfy[flow_name] = flows_comfy_single[flow_name]
+            else:
+                # Handle duplicate flow names, prefer the latest version
+                existing_version = parse(combined_flows[flow_name].version)
+                new_version = parse(flow_data.version)
+                if new_version > existing_version:
+                    combined_flows[flow_name] = flow_data
+                    combined_flows_comfy[flow_name] = flows_comfy_single[flow_name]
+
+    flows_comfy.update(combined_flows_comfy)
+    return combined_flows
+
+
+def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
+    r_flows = {}
+    r_flows_comfy = {}
     if flows_storage_url.endswith("/"):
         vix_version = Version(_version.__version__)
         if vix_version.is_devrelease:
             flows_storage_url += "flows.zip"
         else:
             flows_storage_url += f"flows-{vix_version.major}.{vix_version.minor}.zip"
-    if urlparse(flows_storage_url).scheme in ("http", "https", "ftp", "ftps"):
+    parsed_url = urlparse(flows_storage_url)
+    if parsed_url.scheme in ("http", "https", "ftp", "ftps"):
         try:
-            r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
+            r = httpx.get(flows_storage_url, headers={"If-None-Match": etag}, timeout=5.0)
         except httpx.TransportError as e:
             LOGGER.error("Request to get flows failed with: %s", str(e))
-            flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-            return CACHE_AVAILABLE_FLOWS["flows"]
+            return None, None, etag
         if r.status_code == 304:
-            flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-            return CACHE_AVAILABLE_FLOWS["flows"]
+            return None, None, etag
         if r.status_code != 200:
             LOGGER.error("Request to get flows returned: %s", r.status_code)
-            flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-            return CACHE_AVAILABLE_FLOWS["flows"]
+            return None, None, etag
         flows_content = r.content
-        flows_content_etag = r.headers.get("etag", "")
+        flows_content_etag = r.headers.get("etag", etag)
     else:
-        with builtins.open(flows_storage_url, mode="rb") as flows_archive:
-            flows_content = flows_archive.read()
-        flows_content_etag = ""
-    r_flows = {}
-    r_flows_comfy = {}
-    with zipfile.ZipFile(io.BytesIO(flows_content)) as zip_file:
-        for flow_comfy_path in {name for name in zip_file.namelist() if name.endswith(".json")}:
-            with zip_file.open(flow_comfy_path) as flow_comfy_file:
-                _flow_comfy = json.loads(flow_comfy_file.read())
-                _flow = get_vix_flow(_flow_comfy)
-                _flow_name = _flow.name.lower()
-                r_flows[_flow_name] = _flow
-                r_flows_comfy[_flow_name] = _flow_comfy
-    CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy, "etag": flows_content_etag})
-    flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-    return r_flows
+        try:
+            with builtins.open(flows_storage_url, mode="rb") as flows_archive:
+                flows_content = flows_archive.read()
+            flows_content_etag = etag
+        except Exception as e:
+            LOGGER.error("Failed to read flows archive at %s: %s", flows_storage_url, str(e))
+            return None, None, etag
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(flows_content)) as zip_file:
+            for flow_comfy_path in {name for name in zip_file.namelist() if name.endswith(".json")}:
+                with zip_file.open(flow_comfy_path) as flow_comfy_file:
+                    _flow_comfy = json.loads(flow_comfy_file.read())
+                    _flow = get_vix_flow(_flow_comfy)
+                    _flow_name = _flow.name.lower()
+                    r_flows[_flow_name] = _flow
+                    r_flows_comfy[_flow_name] = _flow_comfy
+    except Exception as e:
+        LOGGER.error("Failed to parse flows from %s: %s", flows_storage_url, str(e))
+        return None, None, etag
+
+    return r_flows, r_flows_comfy, flows_content_etag
+
+
+# def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+#     if flows_comfy is None:
+#         flows_comfy = {}
+#     else:
+#         flows_comfy.clear()
+#     if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + SECONDS_TO_CACHE_AVALAIBLE_FLOWS:
+#         flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+#         return CACHE_AVAILABLE_FLOWS["flows"]
+#
+#     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
+#     flows_storage_url = options.FLOWS_URL
+#     if flows_storage_url.endswith("/"):
+#         vix_version = Version(_version.__version__)
+#         if vix_version.is_devrelease:
+#             flows_storage_url += "flows.zip"
+#         else:
+#             flows_storage_url += f"flows-{vix_version.major}.{vix_version.minor}.zip"
+#     if urlparse(flows_storage_url).scheme in ("http", "https", "ftp", "ftps"):
+#         try:
+#             r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
+#         except httpx.TransportError as e:
+#             LOGGER.error("Request to get flows failed with: %s", str(e))
+#             flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+#             return CACHE_AVAILABLE_FLOWS["flows"]
+#         if r.status_code == 304:
+#             flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+#             return CACHE_AVAILABLE_FLOWS["flows"]
+#         if r.status_code != 200:
+#             LOGGER.error("Request to get flows returned: %s", r.status_code)
+#             flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+#             return CACHE_AVAILABLE_FLOWS["flows"]
+#         flows_content = r.content
+#         flows_content_etag = r.headers.get("etag", "")
+#     else:
+#         with builtins.open(flows_storage_url, mode="rb") as flows_archive:
+#             flows_content = flows_archive.read()
+#         flows_content_etag = ""
+#     r_flows = {}
+#     r_flows_comfy = {}
+#     with zipfile.ZipFile(io.BytesIO(flows_content)) as zip_file:
+#         for flow_comfy_path in {name for name in zip_file.namelist() if name.endswith(".json")}:
+#             with zip_file.open(flow_comfy_path) as flow_comfy_file:
+#                 _flow_comfy = json.loads(flow_comfy_file.read())
+#                 _flow = get_vix_flow(_flow_comfy)
+#                 _flow_name = _flow.name.lower()
+#                 r_flows[_flow_name] = _flow
+#                 r_flows_comfy[_flow_name] = _flow_comfy
+#     CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy, "etag": flows_content_etag})
+#     flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
+#     return r_flows
 
 
 def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
