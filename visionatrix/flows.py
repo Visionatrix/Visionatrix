@@ -47,7 +47,8 @@ def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
 
     flows_storage_urls = [url.strip() for url in options.FLOWS_URL.split(";") if url.strip()]
     if not flows_storage_urls:
-        flows_storage_urls = ["https://visionatrix.github.io/VixFlowsDocs/"]
+        LOGGER.warning("'FLOWS_URL' is empty. Unable to get available flows.")
+        return {}
 
     combined_flows = {}
     combined_flows_comfy = {}
@@ -141,58 +142,6 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
         return None, None, etag
 
     return r_flows, r_flows_comfy, flows_content_etag
-
-
-# def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
-#     if flows_comfy is None:
-#         flows_comfy = {}
-#     else:
-#         flows_comfy.clear()
-#     if time.time() < CACHE_AVAILABLE_FLOWS["update_time"] + SECONDS_TO_CACHE_AVALAIBLE_FLOWS:
-#         flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-#         return CACHE_AVAILABLE_FLOWS["flows"]
-#
-#     CACHE_AVAILABLE_FLOWS["update_time"] = time.time()
-#     flows_storage_url = options.FLOWS_URL
-#     if flows_storage_url.endswith("/"):
-#         vix_version = Version(_version.__version__)
-#         if vix_version.is_devrelease:
-#             flows_storage_url += "flows.zip"
-#         else:
-#             flows_storage_url += f"flows-{vix_version.major}.{vix_version.minor}.zip"
-#     if urlparse(flows_storage_url).scheme in ("http", "https", "ftp", "ftps"):
-#         try:
-#             r = httpx.get(flows_storage_url, headers={"If-None-Match": CACHE_AVAILABLE_FLOWS["etag"]}, timeout=5.0)
-#         except httpx.TransportError as e:
-#             LOGGER.error("Request to get flows failed with: %s", str(e))
-#             flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-#             return CACHE_AVAILABLE_FLOWS["flows"]
-#         if r.status_code == 304:
-#             flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-#             return CACHE_AVAILABLE_FLOWS["flows"]
-#         if r.status_code != 200:
-#             LOGGER.error("Request to get flows returned: %s", r.status_code)
-#             flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-#             return CACHE_AVAILABLE_FLOWS["flows"]
-#         flows_content = r.content
-#         flows_content_etag = r.headers.get("etag", "")
-#     else:
-#         with builtins.open(flows_storage_url, mode="rb") as flows_archive:
-#             flows_content = flows_archive.read()
-#         flows_content_etag = ""
-#     r_flows = {}
-#     r_flows_comfy = {}
-#     with zipfile.ZipFile(io.BytesIO(flows_content)) as zip_file:
-#         for flow_comfy_path in {name for name in zip_file.namelist() if name.endswith(".json")}:
-#             with zip_file.open(flow_comfy_path) as flow_comfy_file:
-#                 _flow_comfy = json.loads(flow_comfy_file.read())
-#                 _flow = get_vix_flow(_flow_comfy)
-#                 _flow_name = _flow.name.lower()
-#                 r_flows[_flow_name] = _flow
-#                 r_flows_comfy[_flow_name] = _flow_comfy
-#     CACHE_AVAILABLE_FLOWS.update({"flows": r_flows, "flows_comfy": r_flows_comfy, "etag": flows_content_etag})
-#     flows_comfy.update(CACHE_AVAILABLE_FLOWS["flows_comfy"])
-#     return r_flows
 
 
 def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
