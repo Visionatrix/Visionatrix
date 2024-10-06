@@ -94,12 +94,23 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return state.running
 					.filter(flow => flow.flow_name === name && flow.parent_task_id === null)
 					.sort((a: FlowRunning, b: FlowRunning) => {
+						// if progress is available, sort by progress DESC
+						if (a.progress || b.progress) {
+							return Number(b.progress) - Number(a.progress)
+						}
+
 						// sort by priority DESC if available
-						// if (a.priority && b.priority) {
-						// }
-						return Number(b.priority) - Number(a.priority)
+						if (a.priority && b.priority) {
+							return Number(b.priority) - Number(a.priority)
+						}
+
+						// if only one of them has priority, it should be first
+						if (a.priority || b.priority) {
+							return a.priority ? -1 : 1
+						}
+
 						// otherwise sort ASC by task_id by default
-						// return Number(a.task_id) - Number(b.task_id)
+						return Number(a.task_id) - Number(b.task_id)
 					})
 			}
 		},
