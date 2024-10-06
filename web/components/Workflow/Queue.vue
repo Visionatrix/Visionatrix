@@ -3,6 +3,61 @@ const flowStore = useFlowsStore()
 
 const canceling = ref(false)
 const collapsed = ref(true)
+
+const priorityLoading = ref(false)
+
+function buildQueueDropdownItems(running: FlowRunning) {
+	return [
+		[{
+			label: 'Comfy flow',
+			labelClass: 'text-blue-500',
+			icon: 'i-heroicons-arrow-down-tray',
+			iconClass: 'bg-blue-500',
+			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, running.task_id),
+		}],
+		[
+			{
+				label: `Raise priority ${running.priority > 0 ? `(${running.priority})` : ''}`,
+				labelClass: 'text-gray-500',
+				icon: 'i-heroicons-arrow-up',
+				iconClass: 'bg-gray-500',
+				disabled: running.priority === 15 || running.progress > 0,
+				click: () => {
+					priorityLoading.value = true
+					flowStore.raiseQueuePriority(running).finally(() => {
+						priorityLoading.value = false
+					})
+				},
+			},
+			{
+				label: `Lower priority ${running.priority > 0 ? `(${running.priority})` : ''}`,
+				labelClass: 'text-gray-500',
+				icon: 'i-heroicons-arrow-down',
+				iconClass: 'bg-gray-500',
+				disabled: running.priority === 0 || running.progress > 0,
+				click: () => {
+					priorityLoading.value = true
+					flowStore.lowerQueuePriority(running).finally(() => {
+						priorityLoading.value = false
+					})
+				},
+			},
+			{
+				label: `Reset priority ${running.priority > 0 ? `(${running.priority})` : ''}`,
+				labelClass: 'text-gray-500',
+				icon: 'i-heroicons-arrow-path-rounded-square-solid',
+				iconClass: 'bg-gray-500',
+				disabled: running.priority === 0 || running.progress > 0,
+				click: () => {
+					priorityLoading.value = true
+					flowStore.resetQueuePriority(running).finally(() => {
+						priorityLoading.value = false
+					})
+				},
+			}
+		]
+	]
+}
 </script>
 
 <template>
@@ -45,12 +100,12 @@ const collapsed = ref(true)
 			</UButton>
 		</div>
 		<template v-if="!collapsed">
-			<div v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name).filter((running: FlowRunning) => running.parent_task_id === null)" :key="running.task_id" class="mb-5">
+			<div v-for="running in flowStore.flowsRunningByName(flowStore.currentFlow?.name)" :key="running.task_id" class="mb-5">
 				<UProgress class="mb-3" :value="running?.progress" indicator :color="!running.error ? 'green' : 'red'" />
 				<p class="text-sm mb-5 text-slate-500">
 					{{
 						[
-							'#' + running.task_id,
+							`${running?.priority && running.priority > 0 ? '[' + running.priority + '] ' : ''}#${running.task_id}`,
 							...Object.keys(running.input_params_mapped)
 								.filter((key) => {
 									return running.input_params_mapped[key].value && running.input_params_mapped[key].value !== ''
@@ -87,15 +142,7 @@ const collapsed = ref(true)
 								: 'Remove'
 						}}
 					</UButton>
-					<UDropdown :items="[
-							[{
-								label: 'Comfy flow',
-								labelClass: 'text-blue-500',
-								icon: 'i-heroicons-arrow-down-tray',
-								iconClass: 'bg-blue-500',
-								click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, running.task_id),
-							}]
-						]"
+					<UDropdown :items="buildQueueDropdownItems(running)"
 						mode="click"
 						:popper="{ placement: 'bottom-end' }">
 						<UButton color="blue" variant="outline" icon="i-heroicons-ellipsis-vertical-16-solid" />

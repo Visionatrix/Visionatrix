@@ -90,7 +90,18 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return (name: string) => state.installing.find(flow => flow.flow_name === name) ?? null
 		},
 		flowsRunningByName(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.parent_task_id === null) ?? null
+			return (name: string) => {
+				return state.running
+					.filter(flow => flow.flow_name === name && flow.parent_task_id === null)
+					.sort((a: FlowRunning, b: FlowRunning) => {
+						// sort by priority DESC if available
+						// if (a.priority && b.priority) {
+						// }
+						return Number(b.priority) - Number(a.priority)
+						// otherwise sort ASC by task_id by default
+						// return Number(a.task_id) - Number(b.task_id)
+					})
+			}
 		},
 		flowsRunningByNameWithErrors(state) {
 			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null) ?? null
@@ -214,15 +225,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 						}
 					}
 				})
-				const translated_input_params_mapped: any = {}
-				if (task?.translated_input_params) {
-					Object.keys(task.translated_input_params).forEach((key) => {
-						translated_input_params_mapped[key] = {
-							value: task.translated_input_params[key],
-							display_name: this.flows_installed.find(flow => flow.name === task.name)?.input_params.find(param => param.name === key)?.display_name,
-						}
-					})
-				}
 				if (task.progress < 100) {
 					runningFlows.push(<FlowRunning>{
 						task_id: task_id,
@@ -230,7 +232,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 						progress: task.progress,
 						input_files: task.input_files || [],
 						input_params_mapped: input_params_mapped_updated || null,
-						translated_input_params_mapped: translated_input_params_mapped || null,
 						error: task?.error || null,
 						outputs: task.outputs,
 						execution_time: task.execution_time || null,
@@ -243,7 +244,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 						flow_name: task.name,
 						outputs: task.outputs,
 						input_params_mapped: input_params_mapped_updated || null,
-						translated_input_params_mapped: translated_input_params_mapped || null,
 						execution_time: task.execution_time || 0,
 						child_tasks: task.child_tasks || [],
 						parent_task_id: task.parent_task_id,
@@ -438,6 +438,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						},
 						outputs: [], // outputs are dynamic and populated later by polling task progress
 						parent_task_id: parent_task_id,
+						priority: 0,
 					})
 				})
 				console.debug('running:', this.running)
@@ -450,6 +451,75 @@ export const useFlowsStore = defineStore('flowsStore', {
 					description: e.message,
 					timeout: 5000,
 				})
+			})
+		},
+
+		async raiseQueuePriority(running: FlowRunning) {
+			if (running.progress > 0) {
+				return
+			}
+			if (!running.priority) {
+				running.priority = 0
+			}
+			if (running.priority === 15) {
+				return
+			}
+			const previousPriority = running.priority
+			this.updateTaskData(running, ['priority'], [running.priority + 1])
+				.then(() => {
+					running.priority++
+				})
+				.catch(() => {
+					running.priority = previousPriority
+				})
+		},
+
+		async lowerQueuePriority(running: FlowRunning) {
+			if (running.progress > 0) {
+				return
+			}
+			if (running.priority && running.priority > 0) {
+				const previousPriority = running.priority
+				this.updateTaskData(running, ['priority'], [running.priority - 1])
+					.then(() => {
+						running.priority--
+					}).catch(() => {
+						running.priority = previousPriority
+					})
+			}
+		},
+
+		async resetQueuePriority(running: FlowRunning) {
+			if (running.progress > 0) {
+				return
+			}
+			if (running.priority && running.priority > 0) {
+				const previousPriority = running.priority
+				this.updateTaskData(running, ['priority'], [0])
+					.then(() => {
+						running.priority = 0
+					}).catch(() => {
+						running.priority = previousPriority
+					})
+			}
+		},
+
+		async updateTaskData(
+			task: FlowResult|TaskHistoryItem|FlowRunning,
+			fields_to_update: any[],
+			values: any[]
+		) {
+			const { $apiFetch } = useNuxtApp()
+			const update_data: any = {}
+			fields_to_update.forEach((field, index) => {
+				update_data[field] = values[index]
+			})
+			return $apiFetch(`/tasks/update?task_id=${task.task_id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: update_data,
 			})
 		},
 
@@ -688,17 +758,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (progress[task_id].input_files) {
 							runningFlow.input_files = progress[task_id].input_files
 						}
-
-						if (progress[task_id]?.translated_input_params && !runningFlow.translated_input_params_mapped) {
-							const translated_input_params_mapped: any = {}
-							Object.keys(progress[task_id].translated_input_params).forEach((key) => {
-								translated_input_params_mapped[key] = {
-									value: progress[task_id].translated_input_params[key],
-									display_name: this.flows_installed.find(flow => flow.name === progress[task_id].name)?.input_params.find(param => param.name === key)?.display_name,
-								}
-							})
-						}
-
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
 							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
@@ -714,7 +773,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 								flow_name: flow.name,
 								outputs: progress[task_id].outputs,
 								input_params_mapped: runningFlow.input_params_mapped,
-								translated_input_params_mapped: runningFlow.translated_input_params_mapped,
 								execution_time: progress[task_id]?.execution_time || 0,
 								child_tasks: progress[task_id].child_tasks || [],
 								parent_task_id: progress[task_id].parent_task_id,
@@ -933,12 +991,12 @@ export interface FlowRunning {
 	progress: number
 	input_files?: TaskInputFile
 	input_params_mapped: TaskHistoryInputParam
-	translated_input_params_mapped?: TaskHistoryInputParam
 	outputs: FlowOutputParam[]
 	error?: string
 	execution_time?: number
 	parent_task_id: number|null
 	child_tasks?: TaskHistoryItem[]
+	priority: number
 }
 
 export interface FlowProgress {
@@ -949,7 +1007,6 @@ export interface FlowProgress {
 	name: string
 	flow_comfy?: any
 	outputs: FlowOutputParam[]
-	translated_input_params?: TaskHistoryInputParam
 	parent_task_id?: number
 	execution_time?: number
 }
@@ -959,7 +1016,6 @@ export interface FlowResult {
 	flow_name: string
 	outputs: FlowOutputParam[]
 	input_params_mapped: TaskHistoryInputParam
-	translated_input_params_mapped: TaskHistoryInputParam
 	execution_time: number
 	parent_task_id: number
 	parent_task_node_id: number
@@ -1000,8 +1056,8 @@ export interface TaskHistoryItem {
 	parent_task_id: number
 	parent_task_node_id: number
 	progress: number
+	priority: number
 	task_id: number
-	translated_input_params: TaskHistoryInputParam
 	updated_at: string
 	user_id: string
 	worker_id: string
