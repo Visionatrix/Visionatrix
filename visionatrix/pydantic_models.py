@@ -288,7 +288,7 @@ class TaskUpdateRequest(BaseModel):
         int | None,
         Field(
             strict=True,
-            gt=0,
+            ge=0,
             le=15,
             description="New priority level for task. Higher numbers indicate higher priority. Maximum value is 15.",
         ),
