@@ -2852,7 +2852,7 @@
               {
                 "type": "integer",
                 "maximum": 15.0,
-                "exclusiveMinimum": 0.0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -3247,7 +3247,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-30T19:40:04.717954Z"
+            "default": "2024-10-06T22:17:50.109306Z"
           }
         },
         "type": "object",
