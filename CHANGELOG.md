@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0 - 2024-10-08]
+
+### Added
+
+- **Translations for Prompts** with help of Ollama or Gemini. #178
+- `PhotomakerPlus` node and `Photomaker 2` flow. #184
+- UI: priority toggle for tasks in queue. #188
+- Always resume download of an incomplete model, if possible. #175
+- Backend: endpoint to fetch all settings at one. #180
+- Ability to specify multiple values in `options.FLOWS_URL`. #187
+
+### Fixed
+
+- ImpactNode: separately download required models during Workflow installation. #181
+- Worker asks for User settings before Global. #182
+
 ## [1.3.0 - 2024-09-24]
 
 Release with bug fixes and minor features found after testing in production environment.
