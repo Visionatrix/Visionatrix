@@ -33,6 +33,10 @@ jobs:
       - name: Run Visionatrix install
         run: python3 -m visionatrix install
 
+      - name: Perform Tensor tests
+        run: |
+          python3 tests/rm_background_bria.py
+
   install_linux_github:
     name: GitHub Ubuntu:22
     runs-on: ubuntu-22.04
