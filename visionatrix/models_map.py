@@ -47,6 +47,9 @@ MODEL_LOAD_CLASSES = {
     "PhotoMakerLoaderPlus": {
         "1": ["inputs", "photomaker_model_name"],
     },
+    "RIFE VFI": {
+        "preset": ["inputs", "ckpt_name"],
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
