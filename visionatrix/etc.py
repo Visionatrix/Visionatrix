@@ -1,6 +1,57 @@
 import logging
 import string
 
+IMAGE_EXTENSIONS = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".webp",
+    ".svg",
+    ".ico",
+    ".heif",
+    ".heic",
+    ".hif",
+    ".raw",
+    ".psd",
+    ".eps",
+    ".avif",
+    ".jp2",
+    ".xcf",
+]
+
+
+VIDEO_EXTENSIONS = [
+    ".mp4",
+    ".avi",
+    ".mkv",
+    ".mov",
+    ".flv",
+    ".wmv",
+    ".webm",
+    ".m4v",
+    ".3gp",
+    ".3g2",
+    ".mpg",
+    ".mpeg",
+    ".vob",
+    ".rm",
+    ".rmvb",
+    ".ts",
+    ".m2ts",
+    ".mxf",
+    ".f4v",
+    ".divx",
+    ".xvid",
+    ".ogv",
+    ".mpe",
+    ".asf",
+    ".swf",
+]
+
 
 def get_log_level(log_level_str):
     """Convert log level string to logging module log level."""

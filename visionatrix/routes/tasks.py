@@ -22,7 +22,7 @@ from fastapi import (
     status,
 )
 
-from .. import options
+from .. import etc, options
 from ..db_queries import get_setting
 from ..db_queries_async import get_setting_async
 from ..flows import (
@@ -590,6 +590,19 @@ async def get_task_results(
     result_prefix = f"{task_id}_{node_id}_"
     output_files = get_task_files(task_id, "output")
     relevant_files = [file_info for file_info in output_files if file_info[0].startswith(result_prefix)]
+    output_node = None
+    for i in r["outputs"]:
+        if i["comfy_node_id"] == node_id:
+            output_node = i
+            break
+    if not output_node:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"No such node in the flow for task={task_id}."
+        )
+    if output_node["type"] == "image":
+        relevant_files = [i for i in relevant_files if any(i[0].endswith(ext) for ext in etc.IMAGE_EXTENSIONS)]
+    elif output_node["type"] == "video":
+        relevant_files = [i for i in relevant_files if any(i[0].endswith(ext) for ext in etc.VIDEO_EXTENSIONS)]
     if not relevant_files:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
