@@ -157,11 +157,8 @@ def compare_images(result_path, reference_path):
     print("Comparing images...")
     result_image = Image.open(result_path)
     reference_image = Image.open(reference_path)
-    try:
-        assert_image_similar(result_image, reference_image, epsilon=0.0)
-        print("Images are similar!")
-    except AssertionError:
-        raise Exception("Image comparison failed: images are not similar.") from None
+    assert_image_similar(result_image, reference_image, epsilon=0.0)
+    print("Test passed!")
 
 
 def main():

@@ -23,4 +23,5 @@ def assert_image_similar(a, b, epsilon=0.0):
         ch_diff = ImageMath.eval("abs(a - b)", a=ach, b=bch).convert("L")
         diff += sum(i * num for i, num in enumerate(ch_diff.histogram()))
     ave_diff = diff / (a.size[0] * a.size[1])
+    print(f"epsilon={epsilon}, ave_diff={ave_diff}")
     assert epsilon >= ave_diff
