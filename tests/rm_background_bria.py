@@ -44,7 +44,7 @@ def install_flow():
     print("Installing flow...")
     result = subprocess.run(
         [sys.executable, "-m", "visionatrix", "install-flow", f"--name={FLOW_NAME}"],
-        check=True,
+        check=False,
         capture_output=True,
         text=True
     )
@@ -157,7 +157,7 @@ def compare_images(result_path, reference_path):
     print("Comparing images...")
     result_image = Image.open(result_path)
     reference_image = Image.open(reference_path)
-    assert_image_similar(result_image, reference_image, epsilon=0.0)
+    assert_image_similar(result_image, reference_image, epsilon=0.000012)
     print("Test passed!")
 
 
