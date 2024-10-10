@@ -133,6 +133,19 @@ BASIC_NODE_LIST = {
                 },
             ),
         ],
-        "requirements": {},  # https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus/pull/41
+    },
+    "ComfyUI-VideoHelperSuite": {},
+    "ComfyUI-Frame-Interpolation": {
+        "requirements": {
+            "torch": {},
+            "numpy": {},
+            "einops": {},
+            "opencv-contrib-python": {},
+            "kornia": {},
+            "scipy": {},
+            "Pillow": {},
+            "torchvision": {},
+            "tqdm": {},
+        },
     },
 }
