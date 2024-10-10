@@ -111,4 +111,5 @@ BASIC_NODE_LIST = {
         ],
         "requirements": {},  # https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus/pull/41
     },
+    "Jovimetrix": {},
 }
