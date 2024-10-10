@@ -34,8 +34,7 @@ jobs:
         run: python3 -m visionatrix install
 
       - name: Perform Tensor tests
-        run: |
-          PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 python3 tests/rm_background_bria.py
+        run: python3 tests/rm_background_bria.py
 
   install_linux_github:
     name: GitHub Ubuntu:22
@@ -57,6 +56,9 @@ jobs:
       - name: Run Visionatrix install
         run: python3 -m visionatrix install
 
+      - name: Perform Tensor tests
+        run: python3 tests/rm_background_bria.py
+
   install_windows_github:
     name: GitHub Windows:2019
     runs-on: windows-2019
@@ -76,3 +78,6 @@ jobs:
 
       - name: Run Visionatrix install
         run: python3 -m visionatrix install
+
+      - name: Perform Tensor tests
+        run: python3 tests/rm_background_bria.py

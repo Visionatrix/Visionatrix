@@ -56,7 +56,7 @@ def install_flow():
 def run_visionatrix():
     """Start Visionatrix in the background and wait until it's ready to accept requests."""
     print("Starting Visionatrix...")
-    subprocess.Popen([sys.executable, "-m", "visionatrix", "run"])
+    subprocess.Popen([sys.executable, "-m", "visionatrix", "run", "--cpu"])
 
     # Poll the "whoami" endpoint to check if the server is ready
     wait_until_server_ready()
@@ -101,9 +101,8 @@ def create_task(image_file):
 def get_task_progress(task_id):
     """Poll the get_tasks_progress endpoint and return the task's progress and node_id."""
     print(f"Checking progress for task ID: {task_id}")
-    progress_url = f"{VISIONATRIX_HOST}{GET_TASK_PROGRESS_ENDPOINT}"
-    params = {"task_id": task_id}
-    response = httpx.get(progress_url, params=params)
+    progress_url = f"{VISIONATRIX_HOST}{GET_TASK_PROGRESS_ENDPOINT}/{task_id}"
+    response = httpx.get(progress_url)
     if response.status_code != 200:
         raise Exception(f"Failed to get task progress: {response.status_code}, {response.text}")
 
