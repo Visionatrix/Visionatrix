@@ -43,7 +43,7 @@ def install_flow():
     """Install the specified flow in Visionatrix."""
     print("Installing flow...")
     result = subprocess.run(
-        [sys.executable, "-m", "visionatrix", "install-flow", f"--name={FLOW_NAME}"],
+        [sys.executable, "-m", "visionatrix", "install-flow", f"--name={FLOW_NAME}", "--cpu"],
         check=False,
         capture_output=True,
         text=True
