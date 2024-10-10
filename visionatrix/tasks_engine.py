@@ -10,6 +10,7 @@ import typing
 from datetime import datetime, timezone
 
 import httpx
+import torch
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -847,6 +848,8 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
+        if options.GPU_MEM_TRACKING and torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
         execution_start_time = time.perf_counter()
         ACTIVE_TASK["execution_start_time"] = execution_start_time
         threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
@@ -859,6 +862,15 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         current_time = time.perf_counter()
         if ACTIVE_TASK.get("interrupted", False) is False and not ACTIVE_TASK["error"]:
             ACTIVE_TASK["execution_time"] = current_time - execution_start_time
+            if options.GPU_MEM_TRACKING and torch.cuda.is_available():
+                max_mem = torch.cuda.max_memory_allocated() / 1024**2
+                LOGGER.log(
+                    LOGGER.getEffectiveLevel(),
+                    "Flow %s with id=%s consumed a maximum of %.2f MB",
+                    ACTIVE_TASK["name"],
+                    ACTIVE_TASK["task_id"],
+                    max_mem,
+                )
             ACTIVE_TASK["progress"] = 100.0
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
