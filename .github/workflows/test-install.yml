@@ -35,7 +35,7 @@ jobs:
 
       - name: Perform Tensor tests
         run: |
-          python3 tests/rm_background_bria.py
+          PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 python3 tests/rm_background_bria.py
 
   install_linux_github:
     name: GitHub Ubuntu:22

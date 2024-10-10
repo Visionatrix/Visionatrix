@@ -99,13 +99,18 @@ def create_task(image_file):
 
 
 def get_task_progress(task_id):
-    """Poll the get_tasks_progress endpoint and return the task's progress."""
+    """Poll the get_tasks_progress endpoint and return the task's progress and node_id."""
     print(f"Checking progress for task ID: {task_id}")
-    progress_url = f"{VISIONATRIX_HOST}{GET_TASK_PROGRESS_ENDPOINT}/{task_id}"
-    response = httpx.get(progress_url)
+    progress_url = f"{VISIONATRIX_HOST}{GET_TASK_PROGRESS_ENDPOINT}"
+    params = {"task_id": task_id}
+    response = httpx.get(progress_url, params=params)
     if response.status_code != 200:
         raise Exception(f"Failed to get task progress: {response.status_code}, {response.text}")
+
     result = response.json()
+    if result.get("error"):
+        raise Exception(f"Task {task_id} failed with error: {result['error']}")
+
     progress = result["progress"]
     node_id = result["outputs"][0]["comfy_node_id"]  # Assuming the first output node is the one we need
     print(f"Task {task_id} progress: {progress}% (node_id: {node_id})")
@@ -117,12 +122,16 @@ def wait_for_task_completion(task_id):
     print(f"Waiting for task {task_id} to complete (Max wait time: {MAX_WAIT_TIME} seconds)...")
     start_time = time.time()
 
-    node_id = None
     while time.time() - start_time < MAX_WAIT_TIME:
-        progress, node_id = get_task_progress(task_id)
-        if progress >= 100:
-            print(f"Task {task_id} completed!")
-            return node_id
+        try:
+            progress, node_id = get_task_progress(task_id)
+            if progress >= 100:
+                print(f"Task {task_id} completed!")
+                return node_id
+        except Exception as e:
+            print(f"Error encountered: {e}")
+            raise e  # Raise the error after printing
+
         time.sleep(POLLING_INTERVAL)
 
     raise Exception(f"Task {task_id} did not complete within the maximum wait time of {MAX_WAIT_TIME} seconds.")
