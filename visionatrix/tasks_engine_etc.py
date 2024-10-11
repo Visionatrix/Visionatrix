@@ -20,6 +20,7 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.worker_id,
     database.TaskDetails.parent_task_id,
     database.TaskDetails.parent_task_node_id,
+    database.TaskDetails.translated_input_params,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -31,7 +32,6 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.finished_at,
     database.TaskDetails.webhook_url,
     database.TaskDetails.webhook_headers,
-    database.TaskDetails.translated_input_params,
 ]
 
 
@@ -87,7 +87,6 @@ def task_details_to_dict(task_details: Row) -> dict:
             "finished_at": task_details.finished_at,
             "webhook_url": task_details.webhook_url,
             "webhook_headers": task_details.webhook_headers,
-            "translated_input_params": task_details.translated_input_params,
         }
     )
     return r
@@ -110,6 +109,7 @@ def task_details_short_to_dict(task_details: Row) -> dict:
         "parent_task_id": task_details.parent_task_id,
         "parent_task_node_id": task_details.parent_task_node_id,
         "child_tasks": [],
+        "translated_input_params": task_details.translated_input_params,
     }
 
 
