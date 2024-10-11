@@ -3,6 +3,9 @@ from .pydantic_models import AIResourceModel
 BASIC_NODE_LIST = {
     "ComfyUI-Impact-Pack": {
         "main_branch": "Main",
+        "before_install": {
+            "python": "-m pip install ultralytics",
+        },
         "models": [
             AIResourceModel(
                 name="sam_vit_b_01ec64",
@@ -10,6 +13,27 @@ BASIC_NODE_LIST = {
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/sams/sam_vit_b_01ec64.pth",
                 homepage="https://github.com/facebookresearch/segment-anything",
                 hash="ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
+            ),
+            AIResourceModel(
+                name="face_yolov8m.pt",
+                save_path="{root}models/ultralytics/bbox/face_yolov8m.pt",
+                url="https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8m.pt",
+                homepage="https://huggingface.co/Bingsu/adetailer",
+                hash="f02b8a23e6f12bd2c1b1f6714f66f984c728fa41ed749d033e7d6dea511ef70c",
+            ),
+            AIResourceModel(
+                name="hand_yolov8s.pt",
+                save_path="{root}models/ultralytics/bbox/hand_yolov8s.pt",
+                url="https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt",
+                homepage="https://huggingface.co/Bingsu/adetailer",
+                hash="5c4faf8d17286ace2c3d3346c6d0d4a0c8d62404955263a7ae95c1dd7eb877af",
+            ),
+            AIResourceModel(
+                name="person_yolov8m-seg.pt",
+                save_path="{root}models/ultralytics/segm/person_yolov8m-seg.pt",
+                url="https://huggingface.co/Bingsu/adetailer/resolve/main/person_yolov8m-seg.pt",
+                homepage="https://huggingface.co/Bingsu/adetailer",
+                hash="9d881ec50b831f546e37977081b18f4e3bf65664aec163f97a311b0955499795",
             ),
         ],
     },
