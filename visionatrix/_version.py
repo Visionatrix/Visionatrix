@@ -1,3 +1,3 @@
 """Version of Visionatrix."""
 
-__version__ = "1.5.0.dev0"
+__version__ = "1.4.1.dev0"

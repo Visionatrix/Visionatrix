@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1 - 2024-10-11]
+
+### Fixed
+
+- UI can now display the original of translated generation prompt without reloading the page. #195
+- Installing the `ultralytics` package for ComfyUI-Impact-Pack. #194
+
 ## [1.4.0 - 2024-10-08]
 
 ### Added
