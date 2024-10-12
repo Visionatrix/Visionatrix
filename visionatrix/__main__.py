@@ -5,11 +5,12 @@ import json
 import logging
 import os
 import sys
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 from . import comfyui, database, install, options, run_vix, update
 from .etc import get_higher_log_level, get_log_level
-from .flows import get_available_flows, get_vix_flow, install_custom_flow
+from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .install_update import flow_install_callback
 from .orphan_models import process_orphan_models
 
@@ -56,8 +57,9 @@ if __name__ == "__main__":
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
-            install_flow_group.add_argument("--name", type=str, help="Name of the flow")
             install_flow_group.add_argument("--file", type=str, help="Path to `comfyui_flow.json` file")
+            install_flow_group.add_argument("--name", type=str, help="Flow name mask of the flow(s)")
+            install_flow_group.add_argument("--tag", type=str, help="Flow tags mask of the flow(s)")
 
         subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
@@ -125,22 +127,45 @@ if __name__ == "__main__":
         run_vix()
     elif args.command == "install-flow":
         comfyui.load(None)
-        install_flow = {}
         if args.file:
             with builtins.open(Path(args.file), "rb") as fp:
                 install_flow_comfy = json.loads(fp.read())
-            install_flow = get_vix_flow(install_flow_comfy)
+            install_custom_flow(
+                flow=get_vix_flow(install_flow_comfy),
+                flow_comfy=install_flow_comfy,
+                progress_callback=flow_install_callback.progress_callback,
+            )
         else:
             flows_comfy = {}
-            flow_name = str(args.name).lower()
-            install_flow = get_available_flows(flows_comfy).get(flow_name)
-            if not install_flow:
-                logging.getLogger("visionatrix").error("Can not find the specific flow: %s", flow_name)
+            not_installed_flows = get_not_installed_flows(flows_comfy)
+            if args.tag:
+                flow_install_pattern = str(args.tag)
+                flows_to_install = {}
+                for flow_name, flow in not_installed_flows.items():
+                    if any(fnmatchcase(tag, flow_install_pattern) for tag in flow.tags):
+                        flows_to_install[flow_name] = flow
+            else:
+                flow_install_pattern = str(args.name).lower()
+                flows_to_install = {
+                    name: flow for name, flow in not_installed_flows.items() if fnmatchcase(name, flow_install_pattern)
+                }
+            if not flows_to_install:
+                logging.getLogger("visionatrix").error("No flows found matching pattern: '%s'", flow_install_pattern)
                 sys.exit(2)
-            install_flow_comfy = flows_comfy[flow_name]
-        install_custom_flow(
-            flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=flow_install_callback.progress_callback
-        )
+            if len(flows_to_install) > 1:
+                logging.getLogger("visionatrix").warning("Multiple flows match pattern: '%s'", flow_install_pattern)
+                for flow_name, flow in flows_to_install.items():
+                    logging.getLogger("visionatrix").warning(" - %s (tags: %s)", flow_name, ", ".join(flow.tags))
+                confirm = input("Do you want to install all of them? (Y/N): ").lower()
+                if confirm != "y":
+                    logging.getLogger("visionatrix").info("Aborting installation.")
+                    sys.exit(0)
+            for flow_name, flow in flows_to_install.items():
+                install_custom_flow(
+                    flow=flow,
+                    flow_comfy=flows_comfy[flow_name],
+                    progress_callback=flow_install_callback.progress_callback,
+                )
     elif args.command == "orphan-models":
         comfyui.load(None)
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
