@@ -4,8 +4,7 @@ import tempfile
 import time
 import httpx
 import sys
-from PIL import Image
-from helpers import assert_image_similar
+from PIL import Image, ImageMath
 
 # URLs to download images
 IMAGE_URLS = [
@@ -183,6 +182,35 @@ def main():
         # Step 6: Download result and compare with reference
         result_path = download_result(task_id, node_id, temp_dir)
         compare_images(result_path, reference_image)
+
+
+"""Helpers functions"""
+
+
+def convert_to_comparable(a, b):
+    new_a, new_b = a, b
+    if a.mode == "P":
+        new_a = Image.new("L", a.size)
+        new_b = Image.new("L", b.size)
+        new_a.putdata(a.getdata())
+        new_b.putdata(b.getdata())
+    elif a.mode == "I;16":
+        new_a = a.convert("I")
+        new_b = b.convert("I")
+    return new_a, new_b
+
+
+def assert_image_similar(a, b, epsilon=0.0):
+    assert a.mode == b.mode
+    assert a.size == b.size
+    a, b = convert_to_comparable(a, b)
+    diff = 0
+    for ach, bch in zip(a.split(), b.split(), strict=False):
+        ch_diff = ImageMath.eval("abs(a - b)", a=ach, b=bch).convert("L")
+        diff += sum(i * num for i, num in enumerate(ch_diff.histogram()))
+    ave_diff = diff / (a.size[0] * a.size[1])
+    print(f"epsilon={epsilon}, ave_diff={ave_diff}")
+    assert epsilon >= ave_diff
 
 
 if __name__ == "__main__":
