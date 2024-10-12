@@ -39,7 +39,7 @@ def main_entry():
             elif c == "3":
                 run_visionatrix()
             elif c == "4":
-                install_all_flows()
+                venv_run("python -m visionatrix install-flow --name='*'")
             else:
                 print("exiting")
         else:
@@ -168,27 +168,6 @@ def update_visionatrix():
     venv_run("python -m pip install .")
     print("Running `python -m visionatrix update`")
     venv_run("python -m visionatrix update")
-
-
-def install_all_flows():
-    flows = [
-        "sdxl_lighting",
-        "playground_2_5_aesthetic",
-        "photomaker_1",
-        "juggernaut_lite",
-        "juggernaut_xl",
-        "colorful_xl",
-        "stable_cascade",
-        "photo_stickers",
-        "ghibli_portrait",
-        "comicu_portrait",
-        "vintage_portrait",
-        "memoji_portrait",
-        "supir_upscaler",
-    ]
-
-    for i in flows:
-        venv_run(f"python -m visionatrix install-flow --flow {i}")
 
 
 def clone_vix_repository() -> None:
