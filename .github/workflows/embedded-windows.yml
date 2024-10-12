@@ -48,7 +48,7 @@ jobs:
           cp scripts/python_embeded/run_nvidia_gpu.bat vix_portable/
           cd vix_portable
           ./python_embeded/python.exe easy_install.py
-          rm -rf Visionatrix vix_models vix_flows tasks_history.db
+          rm -rf Visionatrix tasks_history.db
           cd ..
         env:
           COMPUTE_DEVICE: "NVIDIA"
@@ -62,9 +62,7 @@ jobs:
       - name: Test Portable
         shell: bash
         run: |
-          ls -la
           cd vix_portable
-          ls -la
           ./python_embeded/python.exe ../tests/rm_background_bria.py
 
       - name: Upload to Artifacts
