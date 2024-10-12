@@ -60,8 +60,9 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--dry-run",
         "--no-confirm",
         "--include-useful-models",
-        "--name=",
         "--file=",
+        "--name=",
+        "--tag=",
         "--mode",
         "--server",
         "--disable-device-detection",
@@ -82,7 +83,9 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
             os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
-    if not no_device_detection and "--cpu" not in sys.argv and "--directml" not in sys.argv:
+    if task_progress_callback is None and "--cpu" not in sys.argv:
+        sys.argv.append("--cpu")
+    elif not no_device_detection and "--cpu" not in sys.argv and "--directml" not in sys.argv:
         if need_directml_flag():
             sys.argv.append("--directml")
         elif need_cpu_flag():

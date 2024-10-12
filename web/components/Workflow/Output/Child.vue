@@ -65,7 +65,7 @@ function buildLeftDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 				label: 'View image',
 				icon: 'i-heroicons-eye',
 				click: () => {
-					props.openImageModal(outputImgSrc({
+					props.openImageModal(outputResultSrc({
 						task_id: task.task_id,
 						node_id: task.outputs.length > 1 ? task.outputs[props.outputsIndex].comfy_node_id : task.outputs[0].comfy_node_id
 					}))
@@ -89,7 +89,7 @@ function buildRightDropdownItems(task: FlowResult|TaskHistoryItem|any) {
 				icon: 'i-heroicons-eye',
 				disabled: task.progress < 100 || task.error !== '',
 				click: () => {
-					props.openImageModal(outputImgSrc({
+					props.openImageModal(outputResultSrc({
 						task_id: task.task_id,
 						node_id: task.outputs.length > 1 ? task.outputs[props.outputsIndex].comfy_node_id : task.outputs[0].comfy_node_id
 					}))
@@ -242,11 +242,11 @@ watch(toggleOriginal, (newToggleOriginal) => {
 			draggable="false"
 			fit="cover"
 			loading="lazy"
-			:src="outputImgSrc({
+			:src="outputResultSrc({
 				task_id: rightComparisonTask.progress === 100 ? rightComparisonTask.task_id : flowResult.task_id,
 				node_id: rightComparisonTask.progress === 100 ? rightComparisonTask.outputs[0].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
 			})"
-			@click="openImageModal(outputImgSrc({
+			@click="openImageModal(outputResultSrc({
 				task_id: rightComparisonTask.task_id ?? flowResult.task_id,
 				node_id: rightComparisonTask.outputs[0].comfy_node_id ?? flowResult.outputs[outputsIndex].comfy_node_id
 			}))" />
@@ -258,7 +258,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 				:width="flowsStore.outputMaxSize"
 				fit="cover"
 				draggable="false"
-				:src="outputImgSrc({
+				:src="outputResultSrc({
 					task_id: !toggleOriginal ? leftComparisonTask.task_id : flowResult.task_id,
 					node_id: !toggleOriginal ? leftComparisonTask.parent_task_node_id !== null ? leftComparisonTask?.outputs[0].comfy_node_id : leftComparisonTask?.outputs[outputsIndex].comfy_node_id ?? leftComparisonTask?.outputs[0].comfy_node_id : flowResult.outputs[outputsIndex].comfy_node_id
 				})" />
@@ -269,7 +269,7 @@ watch(toggleOriginal, (newToggleOriginal) => {
 				:width="flowsStore.outputMaxSize"
 				fit="cover"
 				draggable="false"
-				:src="outputImgSrc({
+				:src="outputResultSrc({
 					task_id: rightComparisonTask.task_id,
 					node_id: rightComparisonTask.outputs[0].comfy_node_id
 				})" />

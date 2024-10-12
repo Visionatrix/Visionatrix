@@ -780,14 +780,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (progress[task_id].input_files) {
 							runningFlow.input_files = progress[task_id].input_files
 						}
-						if (progress[task_id]?.translated_input_params && !runningFlow.translated_input_params_mapped) {
-							const translated_input_params_mapped: any = {}
+						const translated_input_params_mapped: any = {}
+						if (progress[task_id]?.translated_input_params) {
 							Object.keys(progress[task_id].translated_input_params).forEach((key) => {
 								translated_input_params_mapped[key] = {
 									value: progress[task_id].translated_input_params[key],
 									display_name: this.flows_installed.find(flow => flow.name === progress[task_id].name)?.input_params.find(param => param.name === key)?.display_name,
 								}
 							})
+							runningFlow.translated_input_params_mapped = translated_input_params_mapped
 						}
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
@@ -804,7 +805,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 								flow_name: flow.name,
 								outputs: progress[task_id].outputs,
 								input_params_mapped: runningFlow.input_params_mapped,
-								translated_input_params_mapped: runningFlow.translated_input_params_mapped,
+								translated_input_params_mapped: runningFlow.translated_input_params_mapped || translated_input_params_mapped,
 								execution_time: progress[task_id]?.execution_time || 0,
 								child_tasks: progress[task_id].child_tasks || [],
 								parent_task_id: progress[task_id].parent_task_id,

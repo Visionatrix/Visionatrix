@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.4.0"
+    "version": "1.4.1.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -2545,6 +2545,18 @@
             "description": "List of child tasks of type `TaskDetailsShort` if any.",
             "default": []
           },
+          "translated_input_params": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translated Input Params",
+            "description": "If auto-translation feature is enabled, contains translations for input values."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2610,18 +2622,6 @@
             ],
             "title": "Webhook Headers",
             "description": "Headers to send to webhook."
-          },
-          "translated_input_params": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Translated Input Params",
-            "description": "If auto-translation feature is enabled, contains translations for input values."
           }
         },
         "type": "object",
@@ -2812,6 +2812,18 @@
             "title": "Child Tasks",
             "description": "List of child tasks of type `TaskDetailsShort` if any.",
             "default": []
+          },
+          "translated_input_params": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translated Input Params",
+            "description": "If auto-translation feature is enabled, contains translations for input values."
           }
         },
         "type": "object",
@@ -3247,7 +3259,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-10-08T09:55:45.391251Z"
+            "default": "2024-10-11T11:27:19.761036Z"
           }
         },
         "type": "object",

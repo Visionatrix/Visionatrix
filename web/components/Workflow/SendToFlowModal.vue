@@ -139,7 +139,7 @@ onBeforeMount(() => {
 			<h2 class="text-lg text-center mb-4">Send to flow</h2>
 			<div class="flex justify-center mb-4">
 				<NuxtImg v-if="flowResultReady"
-					:src="outputImgSrc"
+					:src="outputResultSrc"
 					class="w-1/2 rounded-lg"
 					:draggable="false" />
 				<UAlert v-else

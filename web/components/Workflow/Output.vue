@@ -76,7 +76,7 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 	if (flowResult.child_tasks.length === 0
 		|| !hasChildTaskByParentTaskNodeId(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)) {
 		sendToFlowResult.value = flowResult
-		sendToImgSrc.value = outputImgSrc({
+		sendToImgSrc.value = outputResultSrc({
 			task_id: flowResult.task_id,
 			node_id: flowResult.outputs[outputIndex].comfy_node_id
 		})
@@ -86,7 +86,7 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 		const targetTask = findLatestChildTask(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)
 		sendToFlowResult.value = targetTask
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
-		sendToImgSrc.value = outputImgSrc({
+		sendToImgSrc.value = outputResultSrc({
 			task_id: targetTask.task_id,
 			node_id: targetTask.outputs[0].comfy_node_id
 		})
@@ -113,7 +113,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
 		}]
 	]
-	if (flowResult.outputs.length === 1) {
+	if (flowResult.outputs.length === 1 && flowResult.outputs.every((output) => output.type === 'image')) {
 		taskDropdownItems.splice(1, 0, [{
 			label: 'Send to flow',
 			labelClass: 'text-violet-500 text-sm',
@@ -208,75 +208,16 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:id="'task_id_' + flowResult.task_id"
 					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
-					<template v-if="flowResult.outputs.length === 1">
-						<WorkflowChildOutput
-							v-if="flowResult?.child_tasks && flowResult?.child_tasks.length > 0"
-							:flow-result="flowResult"
-							:open-image-modal="openImageModal" />
-						<NuxtImg v-else-if="flowResult.outputs.length === 1"
-							class="mb-2 mx-auto rounded-lg cursor-pointer"
-							:height="flowStore.$state.outputMaxSize"
-							:width="flowStore.$state.outputMaxSize"
-							draggable="false"
-							fit="cover"
-							loading="lazy"
-							:src="outputImgSrc({
-								task_id: flowResult.task_id,
-								node_id: flowResult.outputs[0].comfy_node_id
-							})"
-							@click="openImageModal(outputImgSrc({
-								task_id: flowResult.task_id,
-								node_id: flowResult.outputs[0].comfy_node_id
-							}))" />
-					</template>
-					<UCarousel v-else-if="flowResult.outputs.length > 1"
-						v-slot="{ item }"
-						class="mb-3 rounded-lg overflow-hidden"
-						:items="flowResult.outputs.map((result_output_param: FlowOutputParam, index: number) => {
-							return {
-								task_id: flowResult.task_id,
-								node_id: result_output_param.comfy_node_id,
-								index,
-							}
-						})"
-						:ui="{
-							item: 'basis-full md:basis-1/2',
-							indicators: {
-								wrapper: 'relative bottom-0 mt-4 md:hidden'
-							}
-						}"
-						:page="1"
-						indicators>
-						<div class="flex flex-col basis-full justify-between mx-2">
-							<WorkflowChildOutput
-								v-if="flowResult?.child_tasks
-									&& hasChildTaskByParentTaskNodeId(flowResult, item.index, item.node_id)"
-								:flow-result="flowResult"
-								:outputs-index="item.index"
-								:open-image-modal="openImageModal" />
-							<NuxtImg
-								v-else
-								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] mx-auto rounded-lg cursor-pointer`"
-								draggable="false"
-								:height="flowStore.$state.outputMaxSize"
-								:width="flowStore.$state.outputMaxSize"
-								fit="cover"
-								loading="lazy"
-								:src="outputImgSrc(item)"
-								@click="openImageModal(outputImgSrc(item))" />
-							<UButton
-								class="mt-2 w-fit mx-auto"
-								icon="i-heroicons-arrow-uturn-up-solid"
-								color="violet"
-								size="xs"
-								variant="outline"
-								@click="() => {
-									handleSendToFlow(flowResult, item.index)
-								}">
-								Send to flow
-							</UButton>
-						</div>
-					</UCarousel>
+					<WorkflowOutputImage
+						v-if="flowResult.outputs.some((output) => output.type === 'image')"
+						:flow-result="flowResult"
+						:handle-send-to-flow="handleSendToFlow"
+						:open-image-modal="openImageModal" />
+					<WorkflowOutputVideo
+						v-else-if="flowResult.outputs.some((output) => output.type === 'video')"
+						:flow-result="flowResult"
+						:handle-send-to-flow="handleSendToFlow"
+						:open-image-modal="openImageModal" />
 					<div class="text-sm text-slate-500 text-center mb-1">
 						<div class="w-5/6 mx-auto flex flex-wrap items-center justify-center">
 							<WorkflowOutputParams :flow-result="flowResult" />

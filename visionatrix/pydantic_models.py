@@ -160,6 +160,9 @@ class TaskDetailsShort(BaseModel):
     child_tasks: list[TaskDetailsShort] = Field(
         [], description="List of child tasks of type `TaskDetailsShort` if any."
     )
+    translated_input_params: dict | None = Field(
+        None, description="If auto-translation feature is enabled, contains translations for input values."
+    )
 
     @model_validator(mode="after")
     def adjust_priority(self) -> Self:
@@ -181,9 +184,6 @@ class TaskDetails(TaskDetailsShort):
     user_id: str = Field(..., description="User ID to whom the task belongs.")
     webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
     webhook_headers: dict | None = Field(None, description="Headers to send to webhook.")
-    translated_input_params: dict | None = Field(
-        None, description="If auto-translation feature is enabled, contains translations for input values."
-    )
 
 
 class WorkerDetailsSystemRequest(BaseModel):
