@@ -20,6 +20,6 @@ export function buildAuthorization() {
 	return 'Basic ' + btoa(`${config.app.authUser}:${config.app.authPassword}`)
 }
 
-export function outputImgSrc(result: any) {
+export function outputResultSrc(result: any) {
 	return `${buildBackendApiUrl()}/tasks/results?task_id=${result.task_id}&node_id=${result.node_id}`
 }
