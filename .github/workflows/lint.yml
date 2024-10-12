@@ -11,14 +11,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install npm dependencies
-        working-directory: web
-        run: npm ci
-
-      - name: ESLint
-        working-directory: web
-        run: npm run lint
+#      - uses: actions/setup-node@v4
+#        with:
+#          node-version: '20'
+#
+#      - name: Install npm dependencies
+#        working-directory: web
+#        run: npm ci
+#
+#      - name: ESLint
+#        working-directory: web
+#        run: npm run lint

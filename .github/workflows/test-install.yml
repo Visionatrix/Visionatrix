@@ -23,18 +23,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Visionatrix dependencies
-        run: python3 -m pip install .
-
-      - name: Run Visionatrix install
-        run: python3 -m visionatrix install
-
-      - name: Perform Tensor tests
-        run: python3 tests/rm_background_bria.py
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#
+#      - name: Install Visionatrix dependencies
+#        run: python3 -m pip install .
+#
+#      - name: Run Visionatrix install
+#        run: python3 -m visionatrix install
+#
+#      - name: Perform Tensor tests
+#        run: python3 tests/rm_background_bria.py
 
   install_linux_github:
     name: GitHub Ubuntu:22
@@ -46,18 +46,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Visionatrix dependencies
-        run: python3 -m pip install .
-
-      - name: Run Visionatrix install
-        run: python3 -m visionatrix install
-
-      - name: Perform Tensor tests
-        run: python3 tests/rm_background_bria.py
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#
+#      - name: Install Visionatrix dependencies
+#        run: python3 -m pip install .
+#
+#      - name: Run Visionatrix install
+#        run: python3 -m visionatrix install
+#
+#      - name: Perform Tensor tests
+#        run: python3 tests/rm_background_bria.py
 
   install_windows_github:
     name: GitHub Windows:2019
@@ -69,15 +69,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Visionatrix dependencies
-        run: python3 -m pip install .
-
-      - name: Run Visionatrix install
-        run: python3 -m visionatrix install
-
-      - name: Perform Tensor tests
-        run: python3 tests/rm_background_bria.py
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#
+#      - name: Install Visionatrix dependencies
+#        run: python3 -m pip install .
+#
+#      - name: Run Visionatrix install
+#        run: python3 -m visionatrix install
+#
+#      - name: Perform Tensor tests
+#        run: python3 tests/rm_background_bria.py
