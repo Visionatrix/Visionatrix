@@ -38,6 +38,11 @@ CACHE_INSTALLED_FLOWS = {
     "flows_comfy": {},
 }
 
+SUPPORTED_OUTPUTS = {
+    "SaveImage": "image",
+    "VHS_VideoCombine": "video",
+}
+
 
 def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
     if flows_comfy is None:
@@ -391,13 +396,19 @@ def flow_prepare_output_params(
             "PreviewImage",
         ):
             continue
-        if r_node["class_type"] != "SaveImage":
+        supported_outputs = SUPPORTED_OUTPUTS.keys()
+        if r_node["class_type"] not in supported_outputs:
             raise RuntimeError(
-                f"class_type={r_node['class_type']}: only `SaveImage` nodes are supported currently as output node"
+                f"class_type={r_node['class_type']}: only {supported_outputs} nodes are supported currently as outputs"
             )
         r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
         task_details["outputs"].append(
-            {"comfy_node_id": int(param), "type": "image", "file_size": -1, "batch_size": -1}
+            {
+                "comfy_node_id": int(param),
+                "type": SUPPORTED_OUTPUTS[r_node["class_type"]],
+                "file_size": -1,
+                "batch_size": -1,
+            }
         )
 
 

@@ -47,7 +47,7 @@ function loadTargetImageDimensions() {
 			}
 		})
 		getImageDimensions(sourceImageParam[sourceInputParamName].value)
-	} catch (err) {
+	} catch {
 		targetImageDimensions.value.width = 0
 		targetImageDimensions.value.height = 0
 	}
@@ -74,7 +74,7 @@ if (props.inputParam.type === 'range_scale') {
 	})
 }
 
-// eslint-disable-next-line
+ 
 function createObjectUrl(file?: File) {
 	return file ? URL.createObjectURL(file) : ''
 }
@@ -82,7 +82,7 @@ function createObjectUrl(file?: File) {
 function removeImagePreview() {
 	URL.revokeObjectURL(imagePreviewUrl.value)
 	imagePreviewUrl.value = ''
-	if (imageInput) {
+	if (imageInput.value) {
 		// @ts-ignore
 		imageInput.value.$refs.input.value = ''
 	}
@@ -164,14 +164,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<UFormGroup v-if="(inputParam?.advanced || false) === advanced"
+	<UFormGroup
+		v-if="(inputParam?.advanced || false) === advanced"
 		:label="formGroupLabel" class="mb-3"
 		:help="formGroupHelp">
 		<template #hint>
 			<span v-if="!inputParam.optional" class="text-red-300">required</span>
 		</template>
 		<template #default>
-			<UTextarea v-if="inputParam.type === 'text'"
+			<UTextarea
+				v-if="inputParam.type === 'text'"
 				ref="textareaInput"
 				size="md"
 				:placeholder="inputParam.display_name"
@@ -188,7 +190,8 @@ onBeforeUnmount(() => {
 			<template v-if="inputParam.type === 'number'">
 				<template v-if="inputParam.name === 'seed'">
 					<div class="flex items-center">
-						<UInput v-if="inputParam.type === 'number'"
+						<UInput
+							v-if="inputParam.type === 'number'"
 							type="number"
 							:label="inputParam.display_name"
 							:required="!inputParam.optional"
@@ -199,7 +202,8 @@ onBeforeUnmount(() => {
 								const input = event.target as HTMLInputElement
 								inputParamsMap[index][inputParam.name].value = input.value
 							}" />
-						<UButton icon="i-heroicons-arrow-path"
+						<UButton
+							icon="i-heroicons-arrow-path"
 							color="violet"
 							variant="outline"
 							size="xs"
@@ -209,7 +213,8 @@ onBeforeUnmount(() => {
 							}" />
 					</div>
 				</template>
-				<UInput v-else
+				<UInput
+					v-else
 					type="number"
 					:label="inputParam.display_name"
 					:required="!inputParam.optional"
@@ -222,9 +227,11 @@ onBeforeUnmount(() => {
 					}" />
 			</template>
 
-			<div v-if="inputParam.type === 'image'"
+			<div
+				v-if="inputParam.type === 'image'"
 				class="flex flex-row flex-grow items-center justify-between">
-				<UInput ref="imageInput"
+				<UInput
+					ref="imageInput"
 					type="file"
 					accept="image/*"
 					class="w-full"
@@ -240,22 +247,26 @@ onBeforeUnmount(() => {
 						inputParamsMap[index][inputParam.name].image_preview_url = imagePreviewUrl
 						console.debug('inputParamsMap', inputParamsMap)
 					}" />
-				<NuxtImg v-if="imagePreviewUrl !== ''"
+				<NuxtImg
+					v-if="imagePreviewUrl !== ''"
 					:src="!imageInpaintMask ? imagePreviewUrl : imageInpaintMask"
 					class="h-10 rounded-lg cursor-pointer ml-2"
 					@click="() => {
 						imagePreviewModalOpen = true
 					}" />
-				<UButton v-if="imagePreviewUrl !== ''"
+				<UButton
+					v-if="imagePreviewUrl !== ''"
 					icon="i-heroicons-x-mark"
 					variant="outline"
 					class="ml-2"
 					@click="removeImagePreview" />
 			</div>
 
-			<div v-if="inputParam.type === 'image-mask'"
+			<div
+				v-if="inputParam.type === 'image-mask'"
 				class="flex flex-row flex-grow items-center">
-				<UButton v-if="sourceImageInput"
+				<UButton
+					v-if="sourceImageInput"
 					icon="i-heroicons-paint-brush-16-solid"
 					class="mr-2"
 					color="violet"
@@ -268,25 +279,29 @@ onBeforeUnmount(() => {
 					<span class="sm:inline">{{ imageInpaintMask !== '' ? 'Edit mask' : 'Draw mask' }}</span>
 				</UButton>
 				<div class="preview-over-original relative">
-					<NuxtImg v-if="sourceImageInput && sourceImageInput?.value"
+					<NuxtImg
+						v-if="sourceImageInput && sourceImageInput?.value"
 						:src="sourceImageInput?.image_preview_url"
 						class="h-10 rounded-lg cursor-pointer"
 						:class="{ absolute: imageInpaintMask !== '' }"
 						@click="() => {
 							imagePreviewModalOpen = true
 						}" />
-					<NuxtImg v-if="imageInpaintMask"
+					<NuxtImg
+						v-if="imageInpaintMask"
 						:src="imageInpaintMask"
 						class="h-10 rounded-lg cursor-pointer opacity-50"
 						@click="() => {
 							imagePreviewModalOpen = true
 						}" />
 				</div>
-				<span v-if="!sourceImageInput || (sourceImageInput && !sourceImageInput?.value)"
+				<span
+					v-if="!sourceImageInput || (sourceImageInput && !sourceImageInput?.value)"
 					class="text-red-300 text-sm">
 					Select source image
 				</span>
-				<UButton v-if="imageInpaintMask"
+				<UButton
+					v-if="imageInpaintMask"
 					icon="i-heroicons-x-mark"
 					variant="outline"
 					color="violet"
@@ -294,15 +309,18 @@ onBeforeUnmount(() => {
 					@click="resetImageMask" />
 			</div>
 			<template v-if="inputParam.type === 'image' || inputParam.type === 'image-mask'">
-				<UModal v-model="imagePreviewModalOpen"
+				<UModal
+					v-model="imagePreviewModalOpen"
 					class="z-[90] overflow-y-auto"
 					:transition="false"
 					fullscreen>
-					<UButton class="absolute top-4 right-4 z-[100]"
+					<UButton
+						class="absolute top-4 right-4 z-[100]"
 						icon="i-heroicons-x-mark"
 						variant="ghost"
 						@click="() => imagePreviewModalOpen = false" />
-					<div v-if="inputParam.type === 'image'"
+					<div
+						v-if="inputParam.type === 'image'"
 						class="flex items-center justify-center w-full h-full p-4"
 						@click.left="() => imagePreviewModalOpen = false">
 						<NuxtImg 
@@ -310,7 +328,8 @@ onBeforeUnmount(() => {
 							fit="inside"
 							:src="imagePreviewUrl" />
 					</div>
-					<WorkflowImageInpaint v-else
+					<WorkflowPromptImageInpaint
+						v-else
 						ref="imageInpaint"
 						v-model:image-inpaint-mask="imageInpaintMask"
 						v-model:image-inpaint-mask-data="imageInpaintMaskData"
@@ -320,16 +339,19 @@ onBeforeUnmount(() => {
 			</template>
 
 			<!-- eslint-disable vue/no-parsing-error -->
-			<USelectMenu v-if="inputParam.type === 'list'"
+			<USelectMenu
+				v-if="inputParam.type === 'list'"
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:placeholder="inputParam.display_name"
 				:options="Object.keys(<object>inputParam.options)" /> <!-- eslint-disable-line vue/no-parsing-error -->
 
-			<UCheckbox v-if="inputParam.type === 'bool'"
+			<UCheckbox
+				v-if="inputParam.type === 'bool'"
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:label="inputParam?.display_name" />
 
-			<URange v-if="['range', 'range_scale'].includes(inputParam.type)"
+			<URange
+				v-if="['range', 'range_scale'].includes(inputParam.type)"
 				v-model="inputParamsMap[index][inputParam.name].value"
 				:label="inputParam.display_name"
 				size="sm"

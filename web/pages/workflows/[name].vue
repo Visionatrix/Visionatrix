@@ -84,9 +84,10 @@ const userStore = useUserStore()
 				<div class="card-wrapper w-full lg:pr-5">
 					<UCard as="div" class="w-full mb-5">
 						<template #header>
-							<h2 class="text-xl font-bold cursor-pointer select-none flex items-center" @click="() => {
-								collapsedCard = !collapsedCard
-							}">
+							<h2
+								class="text-xl font-bold cursor-pointer select-none flex items-center" @click="() => {
+									collapsedCard = !collapsedCard
+								}">
 								<UTooltip
 									v-if="flowStore.currentFlow?.private || false"
 									text="This flow is local, manually added">
@@ -94,7 +95,8 @@ const userStore = useUserStore()
 										name="i-heroicons-lock-closed"
 										class="mr-2" />
 								</UTooltip>
-								<UIcon :name="collapsedCard ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+								<UIcon
+									:name="collapsedCard ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 									class="mr-2" />
 								{{ flowStore.currentFlow?.display_name }}
 							</h2>
@@ -107,7 +109,8 @@ const userStore = useUserStore()
 							<p class="flex flex-row flex-wrap items-center text-md mb-2">
 								<UIcon name="i-heroicons-user-16-solid" class="mr-1" />
 								<b>Author:</b>&nbsp;
-								<a class="hover:underline text-md"
+								<a
+									class="hover:underline text-md"
 									:href="flowStore.currentFlow?.homepage"
 									rel="noopener"
 									target="_blank">
@@ -116,7 +119,8 @@ const userStore = useUserStore()
 							</p>
 							<p class="flex flex-row items-center text-md mb-2">
 								<UIcon name="i-heroicons-document-text" class="mr-1" />
-								<a v-if="flowStore.currentFlow?.documentation" class="hover:underline"
+								<a
+									v-if="flowStore.currentFlow?.documentation" class="hover:underline"
 									:href="flowStore.currentFlow?.documentation"
 									rel="noopener"
 									target="_blank">
@@ -148,11 +152,13 @@ const userStore = useUserStore()
 									<UBadge label="No tags" color="white" variant="solid" class="m-1" />
 								</template>
 							</p>
-							<p v-if="flowStore.currentFlow?.models?.length > 0"
+							<p
+								v-if="flowStore.currentFlow?.models?.length > 0"
 								class="flex flex-row flex-wrap items-center text-md mb-2">
 								<UIcon name="i-heroicons-arrow-down-on-square-stack" class="mr-1" />
 								<b>Models ({{ flowStore.currentFlow?.models.length }}):</b>&nbsp;
-								<UBadge v-for="model in flowStore.currentFlow?.models"
+								<UBadge
+									v-for="model in flowStore.currentFlow?.models"
 									:key="model.name"
 									class="m-1"
 									color="white"
@@ -165,17 +171,20 @@ const userStore = useUserStore()
 											name="i-heroicons-key"
 											class="mr-1" />
 									</UTooltip>
-									<a class="hover:underline underline-offset-4"
+									<a
+										class="hover:underline underline-offset-4"
 										:href="model.homepage"
 										rel="noopener" target="_blank">
 										{{ model.name }}
 									</a>
 								</UBadge>
 							</p>
-							<p v-if="flowStore.currentFlow?.requires?.length > 0"
+							<p
+								v-if="flowStore.currentFlow?.requires?.length > 0"
 								class="flex flex-row flex-wrap items-center text-md">
 								<b>Requires:</b>&nbsp;
-								<UBadge v-for="requirement in flowStore.currentFlow?.requires"
+								<UBadge
+									v-for="requirement in flowStore.currentFlow?.requires"
 									:key="requirement"
 									class="m-1"
 									color="yellow"
@@ -188,21 +197,25 @@ const userStore = useUserStore()
 						<template v-if="!collapsedCard" #footer>
 							<div v-if="userStore.isAdmin" class="flex justify-end">
 								<div class="flex flex-row items-center justify-center text-sm mr-2">
-									<UIcon :name="flowStore.isFlowInstalled(route.params.name as string) ?
+									<UIcon
+										:name="flowStore.isFlowInstalled(route.params.name as string) ?
 											'i-heroicons-check-badge'
 											: 'i-heroicons-x-mark'"
 										class="mx-1" />
-									<span :class="{
-										'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
-										'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
-									}">
+									<span
+										:class="{
+											'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
+											'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
+										}">
 										{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Installed' : 'Not installed' }}
 									</span>
 								</div>
-								<UTooltip v-if="!flowStore.isFlowInstalled(route.params.name as string)"
+								<UTooltip
+									v-if="!flowStore.isFlowInstalled(route.params.name as string)"
 									text="Setup flow dependencies and configure it in ComfyUI"
 									:popper="{ placement: 'top' }" :open-delay="500">
-									<UButton icon="i-heroicons-arrow-down-tray"
+									<UButton
+										icon="i-heroicons-arrow-down-tray"
 										class="mx-3"
 										color="primary"
 										variant="outline"
@@ -241,14 +254,16 @@ const userStore = useUserStore()
 							<div v-else>
 								<div class="text-sm flex justify-end">
 									<div class="flex flex-row items-center justify-center text-sm mr-3">
-										<UIcon :name="flowStore.isFlowInstalled(route.params.name as string) ?
+										<UIcon
+											:name="flowStore.isFlowInstalled(route.params.name as string) ?
 												'i-heroicons-check-badge'
 												: 'i-heroicons-x-mark'"
 											class="mx-1" />
-										<span :class="{
-											'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
-											'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
-										}">
+										<span
+											:class="{
+												'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
+												'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
+											}">
 											{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Installed' : 'Not installed' }}
 										</span>
 									</div>
@@ -262,12 +277,14 @@ const userStore = useUserStore()
 					</UCard>
 				</div>
 				<div class="prompt-wrapper w-full">
-					<WorkflowPrompt v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)"
+					<WorkflowPrompt
+						v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)"
 						ref="workflowPrompt" />
 				</div>
 			</div>
 			<WorkflowQueue v-if="!deleting && flowStore.isFlowInstalled(route.params.name as string)" />
-			<WorkflowOutput v-if="!deleting
+			<WorkflowOutput
+				v-if="!deleting
 					&& flowStore.isFlowInstalled(route.params.name as string) 
 					|| flowStore.flowResultsByName(route.params.name as string).length > 0"
 				@copy-prompt-inputs="(inputs: any[]) => copyPromptInputs(inputs)" />

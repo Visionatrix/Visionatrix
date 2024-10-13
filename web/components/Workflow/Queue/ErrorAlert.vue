@@ -11,7 +11,8 @@ const restarting = ref(false)
 </script>
 
 <template>
-	<UAlert class="mb-5"
+	<UAlert
+		class="mb-5"
 		icon="i-heroicons-exclamation-circle-16-solid"
 		color="red"
 		variant="soft"

@@ -11,20 +11,23 @@ const running = computed(() => flowStore.running.reduce((running, runningFlow) =
 </script>
 
 <template>
-	<div v-for="flow_name in Object.keys(running)"
+	<div
+		v-for="flow_name in Object.keys(running)"
 		:key="flow_name"
 		class="mb-3 last:mb-0">
 		<span>({{ running[flow_name].length }})</span>
 		Flow
 		<NuxtLink :to="`/workflows/${flow_name}`">
-			<UBadge class="mx-1"
+			<UBadge
+				class="mx-1"
 				color="white"
 				variant="solid">
 				{{ flowStore.flowByName(flow_name)?.display_name }}
 			</UBadge>
 		</NuxtLink>
 		is running
-		<UBadge class="mx-1"
+		<UBadge
+			class="mx-1"
 			color="white"
 			variant="solid">
 			{{ running[flow_name].filter((r: FlowRunning) => r.progress > 0)[0]?.progress.toFixed(0) || 0 }}%

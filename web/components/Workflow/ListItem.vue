@@ -23,9 +23,11 @@ const flowsStore = useFlowsStore()
 						</UTooltip>
 						{{ flow?.display_name }}
 					</h2>
-					<UTooltip v-if="flowsStore.isFlowInstalled(flow?.name)"
+					<UTooltip
+						v-if="flowsStore.isFlowInstalled(flow?.name)"
 						text="Mark flow as favorite" :popper="{ placement: 'top' }" :open-delay="500">
-						<UButton :icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
+						<UButton
+							:icon="!flowsStore.isFlowFavorite(flow.name) ? 'i-heroicons-star' : 'i-heroicons-star-16-solid'"
 							variant="outline"
 							color="yellow"
 							@click="flowsStore.markFlowFavorite(flow)" />
@@ -70,7 +72,8 @@ const flowsStore = useFlowsStore()
 			</div>
 
 			<template #footer>
-				<UButton :to="`/workflows/${flow?.name}`"
+				<UButton
+					:to="`/workflows/${flow?.name}`"
 					:icon="'i-heroicons-arrow-up-right-16-solid'"
 					class="flex justify-center dark:bg-slate-500 bg-slate-500 dark:hover:bg-slate-700 hover:bg-slate-700 dark:text-white">
 					Open

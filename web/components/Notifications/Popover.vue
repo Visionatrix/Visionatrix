@@ -6,7 +6,8 @@ const noNotifications = computed(() => flowStore.running.length === 0 && flowSto
 <template>
 	<UPopover :popper="{ placement: 'top-end' }">
 		<UChip :show="flowStore.showNotificationChip" @click="() => flowStore.showNotificationChip = false">
-			<UButton icon="i-heroicons-bell-solid"
+			<UButton
+				icon="i-heroicons-bell-solid"
 				variant="ghost"
 				color="white"
 				class="text-black dark:text-white hover:bg-transparent lg:px-3 py-2" />

@@ -1,7 +1,7 @@
 export default defineAppConfig({
 	ui: {
 		notifications: {
-			position: 'top-0 bottom-0',
+			position: 'right-0 bottom-0',
 		}
 	}
 })
