@@ -6,7 +6,7 @@ useWorkersStore().loadWorkers()
 
 <template>
 	<div class="flex flex-col w-full h-screen">
-		<NavBar />
+		<Navbar />
 		<NuxtPage class="w-full min-h-vh py-1.5 z-10" />
 	</div>
 	<UNotifications
