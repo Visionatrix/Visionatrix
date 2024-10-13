@@ -252,10 +252,10 @@ const requiredInputParamsValid = computed(() => {
 		</h2>
 
 		<div v-show="!collapsed">
-			<WorkflowInputParams :input-params-map.sync="inputParamsMap"
+			<WorkflowPromptInputParams :input-params-map.sync="inputParamsMap"
 				:additional-input-params-map.sync="additionalInputParamsMap"
 				:advanced="false" />
-			<WorkflowInputParams v-if="additionalInputParamsMap.length > 0"
+			<WorkflowPromptInputParams v-if="additionalInputParamsMap.length > 0"
 				:input-params-map.sync="inputParamsMap"
 				:additional-input-params-map.sync="additionalInputParamsMap"
 				:advanced="true" />

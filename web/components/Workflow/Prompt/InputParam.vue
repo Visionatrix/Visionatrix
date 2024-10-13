@@ -47,7 +47,7 @@ function loadTargetImageDimensions() {
 			}
 		})
 		getImageDimensions(sourceImageParam[sourceInputParamName].value)
-	} catch (err) {
+	} catch {
 		targetImageDimensions.value.width = 0
 		targetImageDimensions.value.height = 0
 	}
@@ -310,7 +310,7 @@ onBeforeUnmount(() => {
 							fit="inside"
 							:src="imagePreviewUrl" />
 					</div>
-					<WorkflowImageInpaint v-else
+					<WorkflowPromptImageInpaint v-else
 						ref="imageInpaint"
 						v-model:image-inpaint-mask="imageInpaintMask"
 						v-model:image-inpaint-mask-data="imageInpaintMaskData"

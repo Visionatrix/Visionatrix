@@ -31,13 +31,13 @@ const advancedCollapsed = ref(!props.advanced)
 		</h4>
 	</div>
 	<div v-if="advancedCollapsed">
-		<WorkflowInputParam v-for="inputParam, index in flowStore.currentFlow.input_params"
+		<WorkflowPromptInputParam v-for="inputParam, index in flowStore.currentFlow.input_params"
 			:key="index"
 			:input-params-map="inputParamsMap"
 			:index="index"
 			:input-param="inputParam"
 			:advanced="advanced" />
-		<WorkflowInputParam v-for="(inputParam, index) in additionalInputParamsMap"
+		<WorkflowPromptInputParam v-for="(inputParam, index) in additionalInputParamsMap"
 			:key="Object.keys(inputParam)[0]"
 			:input-params-map="additionalInputParamsMap"
 			:index="index"
