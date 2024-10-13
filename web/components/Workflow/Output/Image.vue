@@ -24,7 +24,8 @@ const flowStore = useFlowsStore()
 				v-if="flowResult?.child_tasks && flowResult?.child_tasks.length > 0"
 				:flow-result="flowResult"
 				:open-image-modal="openImageModal" />
-			<NuxtImg v-else-if="flowResult.outputs.length === 1"
+			<NuxtImg
+				v-else-if="flowResult.outputs.length === 1"
 				class="mb-2 mx-auto rounded-lg cursor-pointer"
 				:height="flowStore.$state.outputMaxSize"
 				:width="flowStore.$state.outputMaxSize"
@@ -40,7 +41,8 @@ const flowStore = useFlowsStore()
 					node_id: flowResult.outputs[0].comfy_node_id
 				}))" />
 		</template>
-		<UCarousel v-else-if="flowResult.outputs.length > 1"
+		<UCarousel
+			v-else-if="flowResult.outputs.length > 1"
 			v-slot="{ item }"
 			class="mb-3 rounded-lg overflow-hidden"
 			:items="flowResult.outputs.map((result_output_param: FlowOutputParam, index: number) => {

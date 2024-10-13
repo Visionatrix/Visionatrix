@@ -129,31 +129,37 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 </script>
 
 <template>
-	<div id="output-container"
+	<div
+		id="output-container"
 		ref="outputContainer"
 		class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md my-10">
-		<ScrollToTop :show="showScrollToTop"
+		<ScrollToTop
+			:show="showScrollToTop"
 			class="fixed bottom-5 right-5"
 			target="output-container" />
-		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
+		<h2
+			class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
 			@click="() => {
 				collapsed = !collapsed
 			}">
-			<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+			<UIcon
+				:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
 			Output ({{ results.filter((task: FlowResult) => task.parent_task_id === null).length }})
 		</h2>
 
 		<template v-if="!collapsed">
 			<div class="flex flex-col md:flex-row items-center justify-center mb-5 sticky top-1 z-[10]">
-				<UInput v-model="flowStore.$state.flow_results_filter"
+				<UInput
+					v-model="flowStore.$state.flow_results_filter"
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
 					class="md:mr-3"
 					:label="'Filter by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
-				<UPagination v-if="results.filter((task: FlowResult) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
+				<UPagination
+					v-if="results.filter((task: FlowResult) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.$state.resultsPage"
 					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
@@ -161,19 +167,24 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					show-first
 					show-last />
 				<div class="flex items-center justify-center">
-					<USelect v-model="flowStore.resultsPageSize"
+					<USelect
+						v-model="flowStore.resultsPageSize"
 						class="md:mx-3 w-fit mr-3"
 						:options="[5, 10, 20, 50, 100]"
 						:label="'Results per page'" />
-					<UDropdown :items="[
-						[{
-							label: 'Delete all results',
-							labelClass: 'text-red-500',
-							icon: 'i-heroicons-trash',
-							iconClass: 'dark:text-red-500 text-red-500',
-							click: () => deleteModalOpen = true,
-						}]
-					]" mode="click" label="Options" :popper="{ placement: 'bottom-end' }">
+					<UDropdown
+						:items="[
+							[{
+								label: 'Delete all results',
+								labelClass: 'text-red-500',
+								icon: 'i-heroicons-trash',
+								iconClass: 'dark:text-red-500 text-red-500',
+								click: () => deleteModalOpen = true,
+							}]
+						]"
+						mode="click"
+						label="Options"
+						:popper="{ placement: 'bottom-end' }">
 						<UButton color="white" icon="i-heroicons-ellipsis-vertical-16-solid" />
 					</UDropdown>
 				</div>
@@ -188,7 +199,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							will be deleted.
 						</p>
 						<div class="flex justify-center">
-							<UButton class="mr-2" color="red" variant="outline" :loading="deletingFlowResults"
+							<UButton
+								class="mr-2"
+								color="red"
+								variant="outline"
+								:loading="deletingFlowResults"
 								@click="() => {
 									deletingFlowResults = true
 									flowStore.deleteFlowResults(flowStore.currentFlow?.name).then(() => {
@@ -204,7 +219,8 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 				</UModal>
 			</div>
 			<div v-if="hasOutputResult" class="results overflow-auto">
-				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
+				<div
+					v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
 					:id="'task_id_' + flowResult.task_id"
 					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
@@ -233,7 +249,8 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
 							Delete
 						</UButton>
-						<UDropdown :items="buildResultDropdownItems(flowResult)"
+						<UDropdown
+							:items="buildResultDropdownItems(flowResult)"
 							mode="click"
 							:popper="{ placement: 'bottom-start' }">
 							<UButton
@@ -257,13 +274,16 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			</p>
 		</template>
 		<UModal v-model="isModalOpen" class="z-[90]" :transition="false" fullscreen>
-			<UButton class="absolute top-4 right-4"
+			<UButton
+				class="absolute top-4 right-4"
 				icon="i-heroicons-x-mark"
 				variant="ghost"
 				@click="() => isModalOpen = false" />
-			<div class="flex items-center justify-center w-full h-full p-4"
+			<div
+				class="flex items-center justify-center w-full h-full p-4"
 				@click.left="() => isModalOpen = false">
-				<NuxtImg v-if="modalImageSrc"
+				<NuxtImg
+					v-if="modalImageSrc"
 					class="lg:h-full"
 					fit="inside"
 					loading="lazy"

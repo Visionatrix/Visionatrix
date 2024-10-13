@@ -19,7 +19,8 @@ function scrollToTop() {
 </script>
 
 <template>
-	<UButton v-if="show"
+	<UButton
+		v-if="show"
 		icon="i-heroicons-arrow-small-up"
 		color="black"
 		variant="outline"

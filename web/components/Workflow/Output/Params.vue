@@ -44,7 +44,8 @@ const showTranslatedParams = ref(false)
 				showTranslatedParams = !showTranslatedParams
 			}" />
 	</UTooltip>
-	<UBadge v-for="inputParamStr in inputParams.split('|')"
+	<UBadge
+		v-for="inputParamStr in inputParams.split('|')"
 		:key="inputParamStr"
 		class="mr-2 mb-2 last:mr-0 hover:cursor-pointer"
 		variant="soft"

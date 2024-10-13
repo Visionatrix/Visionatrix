@@ -7,10 +7,12 @@ const canceling = ref(false)
 <template>
 	<div class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md mt-5 mb-10">
 		<div class="flex items-center justify-between mb-2">
-			<h2 class="text-lg font-bold cursor-pointer select-none flex items-center" @click="() => {
-				collapsed = !collapsed
-			}">
-				<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+			<h2
+				class="text-lg font-bold cursor-pointer select-none flex items-center" @click="() => {
+					collapsed = !collapsed
+				}">
+				<UIcon
+					:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 					class="mr-2" />
 				<span>
 					Queue ({{ flowStore.flowsRunningByName(flowStore.currentFlow?.name).length }})
@@ -28,7 +30,8 @@ const canceling = ref(false)
 					</span>
 				</template>
 			</h2>
-			<UButton v-if="flowStore.currentFlow?.name && flowStore.flowsRunningByName(flowStore.currentFlow?.name).length > 0"
+			<UButton
+				v-if="flowStore.currentFlow?.name && flowStore.flowsRunningByName(flowStore.currentFlow?.name).length > 0"
 				icon="i-heroicons-stop"
 				color="orange"
 				variant="outline"

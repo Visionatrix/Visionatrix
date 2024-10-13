@@ -21,6 +21,7 @@ const themingToggleIconClass = computed(() => {
 	if (colorMode.preference === 'dark') {
 		return 'i-heroicons-moon-solid'
 	}
+	return 'i-heroicons-computer-desktop-20-solid'
 })
 </script>
 
@@ -38,7 +39,8 @@ const themingToggleIconClass = computed(() => {
 
 					<NotificationsPopover />
 
-					<UButton :icon="themingToggleIconClass"
+					<UButton
+						:icon="themingToggleIconClass"
 						variant="ghost"
 						color="white"
 						class="flex lg:px-3 py-2 text-black dark:text-white hover:bg-transparent"

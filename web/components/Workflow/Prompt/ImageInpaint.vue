@@ -328,14 +328,16 @@ onBeforeUnmount(() => {
 		<div class="canvas flex flex-col items-center justify-center mb-3 w-full">
 			<p class="text-sm my-2 text-slate-500">Select the target area for image inpaint</p>
 			<div class="preview-over-original relative">
-				<NuxtImg v-if="imageSrc && imageSrc !== '' && imageInpaintMask !== ''"
+				<NuxtImg
+					v-if="imageSrc && imageSrc !== '' && imageInpaintMask !== ''"
 					:src="imageSrc"
 					fit="inside"
 					:width="stageConfig.width"
 					:height="stageConfig.height"
 					draggable="false"
 					:class="{ absolute: imageInpaintMask !== '' }" />
-				<NuxtImg v-if="imageInpaintMask"
+				<NuxtImg
+					v-if="imageInpaintMask"
 					:src="imageInpaintMask"
 					fit="inside"
 					:width="stageConfig.width"
@@ -343,7 +345,8 @@ onBeforeUnmount(() => {
 					draggable="false"
 					class="opacity-50" />
 			</div>
-			<v-stage v-if="imageInpaintMask === ''"
+			<v-stage
+				v-if="imageInpaintMask === ''"
 				ref="stageRef"
 				:config="stageConfig"
 				@mousedown="startDrawing"

@@ -18,11 +18,14 @@ const collapsed = ref(true)
 </script>
 
 <template>
-	<div v-if="$props.running && $props.running.input_files && Object.keys($props.running.input_files)?.length > 0"
+	<div
+		v-if="$props.running && $props.running.input_files && Object.keys($props.running.input_files)?.length > 0"
 		class="ml-2 mt-2 mb-5" :class="{ 'mb-10': Object.keys($props.running.input_files)?.length > 1 && !collapsed }">
-		<h4 class="mb-3 font-bold cursor-pointer select-none flex items-center text-sm"
+		<h4
+			class="mb-3 font-bold cursor-pointer select-none flex items-center text-sm"
 			@click="() => collapsed = !collapsed">
-			<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+			<UIcon
+				:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
 			<span>
 				Input files ({{ Object.keys($props.running.input_files)?.length }})
@@ -41,7 +44,8 @@ const collapsed = ref(true)
 					modalImageIndex = 0
 					isModalOpen = true
 				}" />
-			<UCarousel v-if="Object.keys($props.running.input_files)?.length > 1"
+			<UCarousel
+				v-if="Object.keys($props.running.input_files)?.length > 1"
 				v-slot="{ item }"
 				:items="Object.keys($props.running.input_files).map((value: any) => {
 					return { task_id: running.task_id, index: value as number }
@@ -69,13 +73,16 @@ const collapsed = ref(true)
 				</div>
 			</UCarousel>
 			<UModal v-model="isModalOpen" class="z-[90]" :transition="false" fullscreen>
-				<UButton class="absolute top-4 right-4"
+				<UButton
+					class="absolute top-4 right-4"
 					icon="i-heroicons-x-mark"
 					variant="ghost"
 					@click="() => isModalOpen = false" />
-				<div class="flex items-center justify-center w-full h-full p-4"
+				<div
+					class="flex items-center justify-center w-full h-full p-4"
 					@click.left="() => isModalOpen = false">
-					<NuxtImg v-if="modalImageSrc"
+					<NuxtImg
+						v-if="modalImageSrc"
 						class="lg:h-full"
 						fit="inside"
 						loading="lazy"

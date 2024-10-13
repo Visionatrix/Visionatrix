@@ -88,7 +88,8 @@ function buildQueueDropdownItems(running: FlowRunning) {
 		<WorkflowQueueInputFiles :running="running" />
 		<WorkflowQueueErrorAlert v-if="running.error" :running="running" />
 		<div class="flex justify-between">
-			<UButton :icon="running.progress >= 0
+			<UButton
+				:icon="running.progress >= 0
 					&& running.progress < 100
 					? 'i-heroicons-stop'
 					: 'i-heroicons-minus-circle'"
@@ -108,7 +109,8 @@ function buildQueueDropdownItems(running: FlowRunning) {
 						: 'Remove'
 				}}
 			</UButton>
-			<UDropdown :items="buildQueueDropdownItems(running)"
+			<UDropdown
+				:items="buildQueueDropdownItems(running)"
 				mode="click"
 				:popper="{ placement: 'bottom-end' }">
 				<UButton color="blue" variant="outline" icon="i-heroicons-ellipsis-vertical-16-solid" />

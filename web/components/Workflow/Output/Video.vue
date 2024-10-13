@@ -20,17 +20,20 @@ const flowStore = useFlowsStore()
 <template>
 	<div class="image-output">
 		<template v-if="flowResult.outputs.length === 1">
-			<video controls
+			<video
+				controls
 				class="mb-2 mx-auto rounded-lg"
 				:width="flowStore.$state.outputMaxSize"
 				:height="flowStore.$state.outputMaxSize">
-				<source :src="outputResultSrc({
-					task_id: flowResult.task_id,
-					node_id: flowResult.outputs[0].comfy_node_id
-				})">
+				<source
+					:src="outputResultSrc({
+						task_id: flowResult.task_id,
+						node_id: flowResult.outputs[0].comfy_node_id
+					})">
 			</video>
 		</template>
-		<UCarousel v-else-if="flowResult.outputs.length > 1"
+		<UCarousel
+			v-else-if="flowResult.outputs.length > 1"
 			v-slot="{ item }"
 			class="mb-3 rounded-lg overflow-hidden"
 			:items="flowResult.outputs.map((result_output_param: FlowOutputParam, index: number) => {
@@ -49,14 +52,16 @@ const flowStore = useFlowsStore()
 			:page="1"
 			indicators>
 			<div class="flex flex-col basis-full justify-between mx-2">
-				<video controls
+				<video
+					controls
 					class="mb-2 mx-auto rounded-lg"
 					:width="flowStore.$state.outputMaxSize"
 					:height="flowStore.$state.outputMaxSize">
-					<source :src="outputResultSrc({
-						task_id: flowResult.task_id,
-						node_id: flowResult.outputs[0].comfy_node_id
-					})">
+					<source
+						:src="outputResultSrc({
+							task_id: flowResult.task_id,
+							node_id: flowResult.outputs[0].comfy_node_id
+						})">
 				</video>
 				<UButton
 					class="mt-2 w-fit mx-auto"
