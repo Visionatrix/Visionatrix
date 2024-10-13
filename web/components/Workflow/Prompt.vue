@@ -265,7 +265,7 @@ const requiredInputParamsValid = computed(() => {
 				v-model:additional-input-params-map="additionalInputParamsMap"
 				:advanced="true" />
 
-			<UFormGroup v-if="flowStore.currentFlow.is_count_supported" label="Number of images">
+			<UFormGroup v-if="flowStore.currentFlow.is_count_supported" label="Number of results">
 				<UInput
 					v-model="batchSize"
 					type="number"

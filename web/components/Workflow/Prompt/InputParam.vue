@@ -192,16 +192,13 @@ onBeforeUnmount(() => {
 					<div class="flex items-center">
 						<UInput
 							v-if="inputParam.type === 'number'"
+							v-model="inputParamsMap[index][inputParam.name].value"
 							type="number"
 							:label="inputParam.display_name"
 							:required="!inputParam.optional"
-							:value="inputParamsMap[index][inputParam.name].value"
 							:max="inputParam.max || 100"
 							:min="inputParam.min || 0"
-							variant="outline" @input="(event: InputEvent) => {
-								const input = event.target as HTMLInputElement
-								inputParamsMap[index][inputParam.name].value = input.value
-							}" />
+							variant="outline" />
 						<UButton
 							icon="i-heroicons-arrow-path"
 							color="violet"
@@ -215,16 +212,13 @@ onBeforeUnmount(() => {
 				</template>
 				<UInput
 					v-else
+					v-model="inputParamsMap[index][inputParam.name].value"
 					type="number"
 					:label="inputParam.display_name"
 					:required="!inputParam.optional"
-					:value="inputParamsMap[index][inputParam.name].value"
 					:max="inputParam.max || 100"
 					:min="inputParam.min || 0"
-					variant="outline" @input="(event: InputEvent) => {
-						const input = event.target as HTMLInputElement
-						inputParamsMap[index][inputParam.name].value = input.value
-					}" />
+					variant="outline" />
 			</template>
 
 			<div
