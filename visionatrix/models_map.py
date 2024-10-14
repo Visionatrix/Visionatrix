@@ -50,6 +50,10 @@ MODEL_LOAD_CLASSES = {
     "RIFE VFI": {
         "preset": ["inputs", "ckpt_name"],
     },
+    "DWPreprocessor": {
+        "preset1": ["inputs", "bbox_detector"],
+        "preset2": ["inputs", "pose_estimator"],
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
@@ -83,7 +87,9 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
                         models_info.append(AIResourceModel(**model_details, name=model))
                     not_found = False
             if not_found:
-                LOGGER.error("Can not map model for:\n%s", node_details)
+                LOGGER.error(
+                    "Can not map model(%s) for %s(%s):\n%s", node_input_model_name, class_type, k, node_details
+                )
     return models_info
 
 
