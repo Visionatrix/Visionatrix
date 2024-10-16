@@ -148,4 +148,5 @@ BASIC_NODE_LIST = {
             "tqdm": {},
         },
     },
+    "Jovimetrix": {},
 }
