@@ -60,19 +60,79 @@ export const useSettingsStore = defineStore('settingsStore', {
 	}),
 
 	actions: {
+		async fetchAllSettings() {
+			const userStore = useUserStore()
+			userStore.fetchUserInfo().then(async () => {
+				const allSettings = await this.getAllSettings()
+				console.debug('[DEBUG] All settings:', allSettings)
+				Object.keys(allSettings).forEach((key: string) => {
+					if (this.settingsMap[key + '_user']) {
+						this.settingsMap[key + '_user'].value = allSettings[key]
+					} else if (this.settingsMap[key] && !this.settingsMap[key].admin) {
+						this.settingsMap[key].value = allSettings[key]
+					}
+				})
+			})
+		},
+
+		async fetchAllGlobalSettings() {
+			const userStore = useUserStore()
+			userStore.fetchUserInfo().then(async () => {
+				if (!userStore.isAdmin) {
+					return
+				}
+				const allGlobalSettings = await this.getAllGlobalSettings()
+				console.debug('[DEBUG] All global settings:', allGlobalSettings)
+				Object.keys(allGlobalSettings).forEach((key: string) => {
+					if (this.settingsMap[key]) {
+						this.settingsMap[key].value = allGlobalSettings[key]
+					}
+				})
+			})
+		},
+
+		async fetchAllUserSettings() {
+			const userStore = useUserStore()
+			userStore.fetchUserInfo().then(async () => {
+				const allUserSettings = await this.getAllUserSettings()
+				console.debug('[DEBUG] All user settings:', allUserSettings)
+				Object.keys(allUserSettings).forEach((key: string) => {
+					const userSettingKey = key + '_user'
+					if (this.settingsMap[userSettingKey]) {
+						this.settingsMap[userSettingKey].value = allUserSettings[key]
+					}
+				})
+			})
+		},
+
 		loadSettings() {
 			const userStore = useUserStore()
 			userStore.fetchUserInfo().then(() => {
-				return Promise.all(Object.keys(this.settingsMap).map((key) => {
-					if (this.settingsMap[key].admin && userStore.isAdmin) {
-						return this.getGlobalSetting(this.settingsMap[key].key).then((value) => {
-							this.settingsMap[key].value = value
-						})
-					}
-					return this.getUserSetting(this.settingsMap[key].key).then((value) => {
-						this.settingsMap[key].value = value
-					})
-				}))
+				return Promise.all([
+					this.fetchAllUserSettings(),
+					this.fetchAllGlobalSettings(),
+				])
+			})
+		},
+
+		getAllSettings(): Promise<SavedSetting> {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/get_all', {
+				method: 'GET',
+			})
+		},
+
+		getAllGlobalSettings(): Promise<SavedSetting> {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/global_all', {
+				method: 'GET',
+			})
+		},
+
+		getAllUserSettings(): Promise<SavedSetting> {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/user_all', {
+				method: 'GET',
 			})
 		},
 
@@ -124,4 +184,9 @@ export interface VixSetting {
 	value: any
 	sensitive: boolean
 	admin: boolean
+	options?: string[]
+}
+
+export interface SavedSetting {
+	[key: string]: any
 }
