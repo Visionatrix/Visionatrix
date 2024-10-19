@@ -570,7 +570,7 @@ def get_ollama_nodes(flow_comfy: dict) -> list[str]:
 def get_google_nodes(flow_comfy: dict) -> list[str]:
     r = []
     for node_id, node_details in flow_comfy.items():
-        if str(node_details["class_type"]) == "Gemini_Flash":
+        if str(node_details["class_type"]) == "Ask_Gemini":
             r.append(node_id)
     return r
 

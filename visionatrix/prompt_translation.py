@@ -96,7 +96,7 @@ def translate_prompt_with_gemini(user_id: str, is_admin: bool, data: TranslatePr
 
     system_prompt = LLM_TRANSLATE_SYSTEM_PROMPT if data.system_prompt is None else data.system_prompt
     genai.configure(api_key=google_api_key, transport="rest")
-    model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=system_prompt)
+    model = genai.GenerativeModel(model_name="gemini-1.5-flash-002", system_instruction=system_prompt)
 
     if google_proxy:
         LOGGER.debug("Google Proxy is defined.")
@@ -122,14 +122,14 @@ async def translate_prompt_with_gemini_async(
 
     system_prompt = LLM_TRANSLATE_SYSTEM_PROMPT if data.system_prompt is None else data.system_prompt
     genai.configure(api_key=google_api_key, transport="rest")
-    model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=system_prompt)
+    model = genai.GenerativeModel(model_name="gemini-1.5-flash-002", system_instruction=system_prompt)
 
     if google_proxy:
         LOGGER.debug("Google Proxy is defined.")
         with temporary_env_var("HTTP_PROXY", google_proxy), temporary_env_var("HTTPS_PROXY", google_proxy):
-            response = await model.generate_content_async(data.prompt)
+            response = await model.generate_content_async(data.prompt, safety_settings="BLOCK_NONE")
     else:
-        response = await model.generate_content_async(data.prompt)
+        response = await model.generate_content_async(data.prompt, safety_settings="BLOCK_NONE")
     finish_reason = int(response.candidates[0].finish_reason)
     if finish_reason in (1, 2):  # FinishReason.STOP, FinishReason.MAX_TOKENS
         done_reason = "stop" if finish_reason == 1 else "max_tokens"
