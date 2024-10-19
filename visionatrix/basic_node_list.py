@@ -114,7 +114,7 @@ BASIC_NODE_LIST = {
     "style_aligned_comfy": {
         "main_branch": "master",
     },
-    "ComfyUI_Gemini_Flash": {},
+    "ComfyUI-Gemini": {},
     "ComfyUI-Inpaint-CropAndStitch": {},
     "ComfyUI-PhotoMaker-Plus": {
         "models": [
