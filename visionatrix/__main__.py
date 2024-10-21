@@ -18,10 +18,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     default_log_level = os.environ.get("LOG_LEVEL", "INFO")
     parser.add_argument(
+        "--verbose",
+        default=default_log_level,
+        const="DEBUG",
+        nargs="?",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set the logging level",
+    )
+    parser.add_argument(
         "--loglevel",
         type=str,
-        help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-        default=default_log_level,
+        help="(Deprecated) Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+        default="_UNSET",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     )
     subparsers = parser.add_subparsers(dest="command")
     for i in [
@@ -75,13 +84,31 @@ if __name__ == "__main__":
             comfyui.add_arguments(subparser)
 
     args = parser.parse_args()
-    defined_loglvl = get_log_level(args.loglevel)
+
+    if args.verbose != default_log_level:
+        if args.loglevel != "_UNSET":
+            logging.warning(
+                "Both '--verbose' and deprecated '--loglevel' are specified. Using '--verbose'. "
+                "The '--loglevel' argument is deprecated and will be removed in future versions."
+            )
+        log_level = args.verbose
+    elif args.loglevel != "_UNSET":
+        logging.warning(
+            "The '--loglevel' argument is deprecated and will be removed in future versions. "
+            "Please use '--verbose' instead."
+        )
+        log_level = args.loglevel
+    else:
+        log_level = default_log_level
+
+    defined_loglvl = get_log_level(log_level)
     logging.basicConfig(
         level=defined_loglvl,
         format="%(asctime)s: [%(funcName)s]:%(levelname)s: %(message)s",
         datefmt="%H:%M:%S",
     )
     logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
+
     if args.command == "run":
         if args.host:
             options.VIX_HOST = args.host
