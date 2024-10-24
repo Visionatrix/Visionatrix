@@ -14,7 +14,7 @@ from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui, database, options
-from .routes import flows, other, settings, tasks, workers
+from .routes import flows, other, settings, tasks, tasks_internal, workers
 from .tasks_engine import (
     background_prompt_executor,
     remove_active_task_lock,
@@ -73,7 +73,7 @@ class VixAuthMiddleware:
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    tasks.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
+    tasks_internal.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
     await start_tasks_engine(comfy_queue, EXIT_EVENT)
     if options.UI_DIR:
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
@@ -95,6 +95,7 @@ API_ROUTER = APIRouter(prefix="/api")
 API_ROUTER.include_router(flows.ROUTER)
 API_ROUTER.include_router(settings.ROUTER)
 API_ROUTER.include_router(tasks.ROUTER)
+API_ROUTER.include_router(tasks.ROUTER_V2)
 API_ROUTER.include_router(workers.ROUTER)
 API_ROUTER.include_router(other.ROUTER)
 APP.include_router(API_ROUTER)

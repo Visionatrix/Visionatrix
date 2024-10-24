@@ -47,7 +47,7 @@ dynamic = [
 dependencies = [
   "alembic",
   "bcrypt==4.0.1",
-  "fastapi>=0.109.2",
+  "fastapi>=0.113",
   "google-generativeai",
   "httpx>=0.25.2",
   "ollama",
