@@ -5,23 +5,20 @@ import os
 import shutil
 from io import BytesIO
 from pathlib import Path
+from typing import Annotated
 from zipfile import ZipFile
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Body,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    UploadFile,
-    responses,
-    status,
-)
+from fastapi import APIRouter, BackgroundTasks, Body, Form, HTTPException
+from fastapi import Path as FastApiPath
+from fastapi import Query, Request, UploadFile, responses, status
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import etc, options
-from ..flows import get_installed_flow
+from ..flows import (
+    SUPPORTED_FILE_TYPES_INPUTS,
+    SUPPORTED_TEXT_TYPES_INPUTS,
+    get_installed_flow,
+)
 from ..pydantic_models import TaskRunResults, TaskUpdateRequest, WorkerDetailsRequest
 from ..tasks_engine import (
     TaskDetails,
@@ -51,15 +48,19 @@ from ..tasks_engine_async import (
     update_task_outputs_async,
     update_task_progress_database_async,
 )
-from .tasks_internal import get_translated_input_params, task_run, webhook_task_progress
+from .tasks_internal import (
+    get_translated_input_params,
+    task_run,
+    task_run__deprecated,
+    webhook_task_progress,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 ROUTER = APIRouter(prefix="/tasks", tags=["tasks"])
-ROUTER_V2 = APIRouter(prefix="/tasks/v2", tags=["tasks"])
 
 
 @ROUTER.put("/create", deprecated=True)
-async def create_task(
+async def create_task__deprecated(
     request: Request,
     name: str = Form(description="Name of the flow from which the task should be created"),
     count: int = Form(1, description="Number of tasks to be created"),
@@ -129,7 +130,7 @@ async def create_task(
     tasks_ids = []
     webhook_headers_dict = json.loads(webhook_headers) if webhook_headers else None
     for _ in range(count):
-        task_details = await task_run(
+        task_details = await task_run__deprecated(
             name,
             input_params_dict,
             translated_input_params_dict,
@@ -152,34 +153,31 @@ async def create_task(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
-@ROUTER_V2.put("/create")
-async def create_task_v2(
+@ROUTER.put("/create/{name}")
+async def create_task(
     request: Request,
-    name: str = Form(description="Name of the flow from which the task should be created"),
+    name: Annotated[str, FastApiPath(title="Name of the flow from which the task should be created")],
     count: int = Form(1, description="Number of tasks to be created"),
     webhook_url: str | None = Form(None, description="URL to call when task state changes"),
     webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
     child_task: int = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
-    group_scope: int = Form(1, description="Group number to which task should be assigned. Maximum value is 255."),
+    group_scope: int = Form(
+        1, description="Group number to which task should be assigned. Maximum value is 255.", ge=1, le=255
+    ),
     priority: int = Form(
-        0,
-        description="Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
-        le=15,
+        0, description="Execution priority. Higher numbers indicate higher priority. Maximum value is 15.", ge=0, le=15
     ),
     translate: int = Form(0, description="Should the prompt be translated if auto-translation option is enabled."),
-    files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
 ) -> TaskRunResults:
     """
     Endpoint to initiate the creation and execution of tasks from the flows.
 
-    **Dynamic Task Parameters:**
+    **Path Parameter:**
 
-    In addition to the parameters listed below, this endpoint accepts additional task-specific parameters
-    as separate form fields. These parameters can vary depending on the task `name`.
+    - `name`: Name of the flow from which the task should be created
 
     **Reserved Form Fields:**
 
-    - `name`: Name of the flow from which the task should be created
     - `count`: Number of tasks to be created
     - `webhook_url`: URL to call when task state changes
     - `webhook_headers`: Headers for webhook URL as an encoded JSON string
@@ -187,74 +185,95 @@ async def create_task_v2(
     - `group_scope`: Group number to which task should be assigned. Maximum value is 255
     - `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15
     - `translate`: Should the prompt be translated if auto-translation option is enabled
-    - `files`: List of input files for flow
 
-    **Note:** All other form fields will be considered as dynamic task-specific input parameters.
+    **Dynamic Task Parameters:**
+
+    All other form fields will be considered as **dynamic task-specific input parameters**.
+    These parameters vary depending on the flow specified by `name` and can be either text parameters or input files.
+
+    **Notes:**
+
+    - The request must use `multipart/form-data` as the content type.
+    - Dynamic parameters should correspond to the inputs expected by the specified flow.
+    - If a parameter is expected to be a file, include it as a file upload in the form data.
+    - If a parameter is expected to be text, include it as a regular form field.
+    - The endpoint accepts both text and file inputs as dynamic parameters.
     """
-
-    if group_scope < 1 or group_scope > 255:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Group number should from 1 to 255"
-        ) from None
 
     user_id = request.scope["user_info"].user_id
     is_user_admin = request.scope["user_info"].is_admin
-    in_files = []
-    for i in files if files else []:
-        if isinstance(i, str):
-            try:
-                input_file_info = json.loads(i)
-            except json.JSONDecodeError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid files input:{i}"
-                ) from None
-            if "task_id" not in input_file_info:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter"
-                ) from None
-            if not get_task(int(input_file_info["task_id"]), user_id):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing task with id={input_file_info['task_id']}",
-                ) from None
-            in_files.append(input_file_info)
-        else:
-            in_files.append(i)
-
-    input_params_dict = {}
-    form_data = await request.form()
-    for i, v in form_data.items():
-        if i not in (
-            "name",
-            "count",
-            "webhook_url",
-            "webhook_headers",
-            "child_task",
-            "group_scope",
-            "priority",
-            "translate",
-            "files",
-        ):
-            input_params_dict[i] = v
-    if "seed" in input_params_dict:
-        input_params_dict["seed"] = int(input_params_dict["seed"])
 
     flow_comfy = {}
     flow = get_installed_flow(name, flow_comfy)
     if not flow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
 
-    translated_input_params_dict = await get_translated_input_params(
-        bool(translate), flow, input_params_dict, flow_comfy, user_id, is_user_admin
+    form_data = await request.form()
+    reserved_fields = (
+        "name",
+        "count",
+        "webhook_url",
+        "webhook_headers",
+        "child_task",
+        "group_scope",
+        "priority",
+        "translate",
+    )
+
+    in_text_params: dict[str, int | float | str] = {}
+    in_files_params = {}
+    flow_input_params = {}
+    for input_param in flow.input_params:
+        flow_input_params[input_param["name"]] = input_param
+
+    for key in form_data:
+        if key in reserved_fields:
+            continue
+        if key not in flow_input_params:
+            LOGGER.warning("Unexpected parameter '%s' for '%s' task creation, ignoring.", key, name)
+            continue
+        value = form_data.get(key)
+        if flow_input_params[key]["type"] in SUPPORTED_TEXT_TYPES_INPUTS:
+            in_text_params[key] = value
+            continue
+        if flow_input_params[key]["type"] not in SUPPORTED_FILE_TYPES_INPUTS:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported input type '{flow_input_params[key]['type']}' for {key} parameter",
+            ) from None
+        if isinstance(value, str):
+            try:
+                input_file_info = json.loads(value)
+            except json.JSONDecodeError:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Invalid file input:{value}") from None
+            if "task_id" not in input_file_info:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter") from None
+            if not get_task(int(input_file_info["task_id"]), user_id):
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
+                ) from None
+            in_files_params[key] = input_file_info
+        elif isinstance(value, StarletteUploadFile):
+            in_files_params[key] = value
+        else:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail=f"Unsupported input file type: {type(value)}"
+            ) from None
+
+    if "seed" in in_text_params:
+        in_text_params["seed"] = int(in_text_params["seed"])
+
+    translated_in_text_params = await get_translated_input_params(
+        bool(translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
     )
     tasks_ids = []
     webhook_headers_dict = json.loads(webhook_headers) if webhook_headers else None
     for _ in range(count):
         task_details = await task_run(
             name,
-            input_params_dict,
-            translated_input_params_dict,
-            in_files,
+            in_text_params,
+            translated_in_text_params,
+            in_files_params,
             flow,
             flow_comfy,
             request.scope["user_info"],
@@ -265,12 +284,12 @@ async def create_task_v2(
             priority,
         )
         tasks_ids.append(task_details["task_id"])
-        if "seed" in input_params_dict:
-            input_params_dict["seed"] = input_params_dict["seed"] + 1
+        if "seed" in in_text_params:
+            in_text_params["seed"] = in_text_params["seed"] + 1
     try:
         return TaskRunResults.model_validate({"tasks_ids": tasks_ids})
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
 @ROUTER.get("/progress")

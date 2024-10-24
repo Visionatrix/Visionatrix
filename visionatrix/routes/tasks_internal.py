@@ -3,6 +3,7 @@ import typing
 
 import httpx
 from fastapi import HTTPException, UploadFile, status
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import options
 from ..db_queries import get_setting
@@ -12,6 +13,7 @@ from ..flows import (
     flow_prepare_output_params,
     get_nodes_for_translate,
     prepare_flow_comfy,
+    prepare_flow_comfy__deprecated,
 )
 from ..prompt_translation import (
     translate_prompt_with_gemini,
@@ -27,7 +29,7 @@ LOGGER = logging.getLogger("visionatrix")
 VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]] | None = None
 
 
-async def task_run(
+async def task_run__deprecated(
     name: str,
     input_params: dict,
     translated_input_params: dict,
@@ -49,7 +51,7 @@ async def task_run(
     for i, v in translated_input_params.items():
         input_params_copy[i] = v
     try:
-        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_copy, in_files, task_details)
+        flow_comfy = prepare_flow_comfy__deprecated(flow, flow_comfy, input_params_copy, in_files, task_details)
     except RuntimeError as e:
         remove_task_files(task_details["task_id"], ["input"])
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
@@ -72,6 +74,67 @@ async def task_run(
             ) from None
         task_details["parent_task_id"] = in_files[0]["task_id"]
         task_details["parent_task_node_id"] = in_files[0]["node_id"]
+    task_details["group_scope"] = group_scope
+    task_details["priority"] = ((group_scope - 1) << 4) + priority
+    if translated_input_params:
+        task_details["translated_input_params"] = translated_input_params
+    flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
+    if options.VIX_MODE == "SERVER":
+        await put_task_in_queue_async(task_details)
+    else:
+        put_task_in_queue(task_details)
+    return task_details
+
+
+async def task_run(
+    name: str,
+    input_params: dict,
+    translated_input_params: dict,
+    in_files: dict[str, StarletteUploadFile | dict],
+    flow: Flow,
+    flow_comfy: dict,
+    user_info: UserInfo,
+    webhook_url: str | None,
+    webhook_headers: dict | None,
+    child_task: bool,
+    group_scope: int,
+    priority: int,
+):
+    if options.VIX_MODE == "SERVER":
+        task_details = await create_new_task_async(name, input_params, user_info)
+    else:
+        task_details = create_new_task(name, input_params, user_info)
+    input_params_copy = input_params.copy()
+    for i, v in translated_input_params.items():
+        input_params_copy[i] = v
+    try:
+        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_copy, in_files, task_details)
+    except RuntimeError as e:
+        remove_task_files(task_details["task_id"], ["input"])
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
+
+    flow_validation: [bool, dict, list, list] = VALIDATE_PROMPT(flow_comfy)
+    if not flow_validation[0]:
+        remove_task_files(task_details["task_id"], ["input"])
+        LOGGER.error("Flow validation error: %s\n%s", flow_validation[1], flow_validation[3])
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Bad Flow: `{flow_validation[1]}`") from None
+    task_details["flow_comfy"] = flow_comfy
+    task_details["webhook_url"] = webhook_url
+    task_details["webhook_headers"] = webhook_headers
+    if child_task:
+        if not in_files:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="No input file provided. Use the parent task's node ID.",
+            ) from None
+        in_file = next(iter(in_files.values()))
+        if not isinstance(in_file, dict):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input file. Use the parent task's node ID.",
+            ) from None
+        task_details["parent_task_id"] = in_file["task_id"]
+        task_details["parent_task_node_id"] = in_file["node_id"]
     task_details["group_scope"] = group_scope
     task_details["priority"] = ((group_scope - 1) << 4) + priority
     if translated_input_params:
