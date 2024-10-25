@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-useSettingsStore().loadSettings()
+useSettingsStore().fetchAllSettings()
 useFlowsStore().fetchFlows()
 useWorkersStore().loadWorkers()
 </script>

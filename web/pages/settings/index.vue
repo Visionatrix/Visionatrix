@@ -93,6 +93,9 @@ watch(() => flowsStore.outputMaxSize, () => {
 	flowsStore.saveUserOptions()
 })
 
+onBeforeMount(() => {
+	settingsStore.loadAllSettings()
+})
 </script>
 
 <template>

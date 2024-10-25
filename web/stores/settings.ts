@@ -68,7 +68,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 				Object.keys(allSettings).forEach((key: string) => {
 					if (this.settingsMap[key + '_user']) {
 						this.settingsMap[key + '_user'].value = allSettings[key]
-					} else if (this.settingsMap[key] && !this.settingsMap[key].admin) {
+					} else if (this.settingsMap[key]) {
 						this.settingsMap[key].value = allSettings[key]
 					}
 				})
@@ -105,14 +105,11 @@ export const useSettingsStore = defineStore('settingsStore', {
 			})
 		},
 
-		loadSettings() {
-			const userStore = useUserStore()
-			userStore.fetchUserInfo().then(() => {
-				return Promise.all([
-					this.fetchAllUserSettings(),
-					this.fetchAllGlobalSettings(),
-				])
-			})
+		loadAllSettings() {
+			return Promise.all([
+				this.fetchAllUserSettings(),
+				this.fetchAllGlobalSettings(),
+			])
 		},
 
 		getAllSettings(): Promise<SavedSetting> {
