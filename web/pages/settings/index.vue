@@ -103,9 +103,8 @@ onBeforeMount(() => {
 		<div class="flex flex-col md:flex-row">
 			<UVerticalNavigation :links="links" class="md:w-1/5" />
 			<div class="px-5 pb-5 md:w-4/5">
-				<h2 class="mb-3 text-xl">Settings</h2>
 				<div v-if="userStore.isAdmin" class="admin-settings mb-3">
-					<h3 class="mb-3">Admin settings</h3>
+					<h3 class="mb-3 text-xl font-bold">Admin preferences (global settings)</h3>
 					<div class="flex items-center">
 						<UIcon name="i-heroicons-question-mark-circle" class="mr-2 text-amber-400" />
 						<p class="text-amber-400">
@@ -128,6 +127,8 @@ onBeforeMount(() => {
 							autocomplete="off"
 						/>
 					</UFormGroup>
+
+					<UDivider class="mt-3" label="Gemini" />
 					<UFormGroup
 						size="md"
 						class="py-3"
@@ -141,15 +142,37 @@ onBeforeMount(() => {
 							icon="i-heroicons-shield-check"
 							size="md"
 							autocomplete="off"
+							readonly="true"
 						/>
 					</UFormGroup>
 					<UFormGroup
 						size="md"
 						class="py-3"
-						label="Proxy"
+						label="Gemini model"
+						description="Choose Gemini model to use (if configured)">
+						<div class="flex items-center">
+							<USelect
+								v-model="settingsStore.settingsMap.gemini_model.value"
+								color="white"
+								variant="outline"
+								placeholder="Select Gemini model"
+								:options="settingsStore.settingsMap.gemini_model.options" />
+							<UButton
+								v-if="settingsStore.settingsMap.gemini_model.value"
+								icon="i-heroicons-x-mark"
+								variant="outline"
+								color="white"
+								class="ml-2"
+								@click="() => settingsStore.settingsMap.gemini_model.value = ''" />
+						</div>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Proxy (for Google)"
 						description="Proxy configuration string (to access Gemini)">
 						<UInput
-							v-model="settingsStore.settingsMap['google_proxy'].value"
+							v-model="settingsStore.settingsMap.google_proxy.value"
 							placeholder="Proxy"
 							class="w-full"
 							type="text"
@@ -157,13 +180,15 @@ onBeforeMount(() => {
 							autocomplete="off"
 						/>
 					</UFormGroup>
+
+					<UDivider class="mt-3" label="Ollama" />
 					<UFormGroup
 						size="md"
 						class="py-3"
 						label="Ollama URL"
 						description="URL to server where Ollama is running, required for flows using node with it">
 						<UInput
-							v-model="settingsStore.settingsMap['ollama_url'].value"
+							v-model="settingsStore.settingsMap.ollama_url.value"
 							placeholder="Ollama URL"
 							class="w-full"
 							type="text"
@@ -202,6 +227,22 @@ onBeforeMount(() => {
 					<UFormGroup
 						size="md"
 						class="py-3"
+						label="Ollama Keepalive"
+						description="Set Ollama keepalive time (e.g. 30s) for how long the model is kept in memory">
+						<UInput
+							v-model="settingsStore.settingsMap.ollama_llm_model.value"
+							placeholder="Ollama LLM Model"
+							class="w-full"
+							type="text"
+							size="md"
+							autocomplete="off"
+						/>
+					</UFormGroup>
+
+					<UDivider class="mt-3" label="Prompt translations" />
+					<UFormGroup
+						size="md"
+						class="py-3"
 						label="Translations provider"
 						description="Prompt translations provider. Empty if not enabled.">
 						<div class="flex items-center">
@@ -222,7 +263,7 @@ onBeforeMount(() => {
 					</UFormGroup>
 				</div>
 				<div v-if="userStore.isAdmin" class="upload-flow mb-5 py-4 rounded-md">
-					<h3 class="mb-3 text-xl font-bold">Upload Flow</h3>
+					<h4 class="mb-3 font-bold">Upload Flow</h4>
 					<p class="text-gray-400 text-sm mb-3">
 						Upload a Visionatrix workflow file (.json) to add it to the available flows.
 						On successful upload of the valid workflow file, the installation will start automatically.
@@ -243,22 +284,27 @@ onBeforeMount(() => {
 					</div>
 				</div>
 				<div class="user-settings mb-3">
-					<h3 class="mb-3">User settings</h3>
+					<h3 class="mb-3 text-xl font-bold">User preferences (overrides global)</h3>
 					<UFormGroup
 						size="md"
 						class="py-3"
 						label="Google API key"
 						description="Google API key, required for Flows where, e.g. ComfyUI-Gemini Node is used">
 						<UInput
-							v-model="settingsStore.settingsMap['google_api_key_user'].value"
+							v-model="settingsStore.settingsMap.google_api_key_user.value"
 							placeholder="Google API key"
 							class="w-full"
 							type="password"
 							icon="i-heroicons-shield-check"
 							size="md"
 							autocomplete="off"
+							readonly="true"
 						/>
 					</UFormGroup>
+
+					<UDivider class="mt-3" label="UI preferences" />
+					<p class="text-slate text-sm text-orange-100 text-center">Stored in browser local storage</p>
+
 					<UFormGroup
 						size="md"
 						class="py-3"
