@@ -116,7 +116,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Huggingface Auth token"
-						description="Bearer authentication token from your Huggingface account to allow downloading gated models with limited access">
+						description="Bearer authentication token from your Huggingface account to allow downloading gated models with limited access.">
 						<UInput
 							v-model="settingsStore.settingsMap['huggingface_auth_token'].value"
 							placeholder="Huggingface Auth token"
@@ -153,7 +153,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Gemini model"
-						description="Override Gemini model to use">
+						description="Override Gemini model to use.">
 						<div class="flex items-center">
 							<USelect
 								v-model="settingsStore.settingsMap.gemini_model.value"
@@ -175,7 +175,7 @@ onBeforeMount(() => {
 						class="py-3"
 						label="Proxy (for Google)">
 						<template #description>
-							Proxy to access Gemini configuration <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/AdminManual/Installation/proxy_gemini/">string</a>
+							Proxy to access Gemini configuration <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/AdminManual/Installation/proxy_gemini/">string</a>.
 						</template>
 						<UInput
 							v-model="settingsStore.settingsMap.google_proxy.value"
@@ -193,7 +193,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Ollama URL"
-						description="URL to server where Ollama is running">
+						description="URL to server where Ollama is running.">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_url.value"
 							placeholder="Ollama URL"
@@ -207,7 +207,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Ollama Vision Model"
-						description="Override Ollama Vision model used by default">
+						description="Override Ollama Vision model used by default.">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_vision_model.value"
 							placeholder="Ollama Vision Model"
@@ -221,7 +221,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Ollama LLM Model"
-						description="Ollama LLM model used by default">
+						description="Override Ollama LLM model used by default.">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_llm_model.value"
 							placeholder="Ollama Vision Model"
@@ -235,7 +235,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Ollama Keepalive"
-						description="Set Ollama keepalive time (e.g. 30s) for how long the model is kept in memory">
+						description="Set Ollama keepalive time (e.g. 30s) for how long the model is kept in memory.">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_llm_model.value"
 							placeholder="Ollama LLM Model"
@@ -319,7 +319,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Outputs maximum image size"
-						description="To keep the output seamless, we limit the size of the outputs (512px by default)">
+						description="To keep the output seamless, we limit the size of the outputs (512px by default).">
 						<USelectMenu
 							v-model="flowsStore.$state.outputMaxSize"
 							:options="['512', '768', '1024', '1536', '2048']" />
