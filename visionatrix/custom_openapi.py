@@ -76,7 +76,18 @@ def create_dynamic_model(flow_definition: Flow) -> type[BaseModel]:
         elif param["type"] in SUPPORTED_TEXT_TYPES_INPUTS:
             model_field = (str, Field(d_name, description=d_name))
         elif param["type"] in SUPPORTED_FILE_TYPES_INPUTS:
-            model_field = (UploadFile | str, Field(..., description=d_name))
+            if param["type"] in ("image", "image-mask"):
+                model_field = (
+                    UploadFile | str,
+                    Field(default, description=d_name, json_schema_extra={"contentMediaType": "image/*"}),
+                )
+            elif param["type"] == "video":
+                model_field = (
+                    UploadFile | str,
+                    Field(default, description=d_name, json_schema_extra={"contentMediaType": "video/*"}),
+                )
+            else:
+                model_field = (UploadFile | str, Field(default, description=d_name))
         else:
             raise RuntimeError(
                 f"Flow {flow_definition.name}: unsupported input type '{param['type']}' for {param['name']} parameter"
@@ -138,6 +149,8 @@ def generate_openapi(app: FastAPI, available: bool, installed: bool, only_flows:
         version=_version.__version__,
         routes=filtered_routes,
     )
+
+    openapi_schema["servers"] = [{"url": "http://localhost:8288", "description": "Default server running Visionatrix"}]
 
     for path, methods in openapi_schema["paths"].items():
         if not str(path).startswith(TASK_CREATE_ROUTE):
