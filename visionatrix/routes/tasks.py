@@ -133,6 +133,7 @@ async def create_task__deprecated(
         bool(translate), flow, input_params_dict, flow_comfy, user_id, is_user_admin
     )
     tasks_ids = []
+    outputs = None
     webhook_headers_dict = json.loads(webhook_headers) if webhook_headers else None
     for _ in range(count):
         task_details = await task_run__deprecated(
@@ -150,10 +151,12 @@ async def create_task__deprecated(
             priority,
         )
         tasks_ids.append(task_details["task_id"])
+        if outputs is None:
+            outputs = task_details["outputs"]
         if "seed" in input_params_dict:
             input_params_dict["seed"] = input_params_dict["seed"] + 1
     try:
-        return TaskRunResults.model_validate({"tasks_ids": tasks_ids})
+        return TaskRunResults.model_validate({"tasks_ids": tasks_ids, "outputs": outputs})
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
@@ -176,8 +179,8 @@ async def create_task(
     - `group_scope`: Group number to which task should be assigned. Maximum value is 255
     - `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15
     - `child_task`: Int boolean indicating whether to create a relation between tasks
-    - `webhook_url`: URL to call when task state changes
-    - `webhook_headers`: Headers for webhook URL as an encoded JSON string
+    - `webhook_url`: Optional. URL to call when task state changes
+    - `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set
     - `count`: Number of tasks to be created
     - `translate`: Should the prompt be translated if auto-translation option is enabled
 
@@ -185,6 +188,10 @@ async def create_task(
 
     All other form fields will be considered as **dynamic task-specific input parameters**.
     These parameters vary depending on the flow specified by `name` and can be either text parameters or input files.
+
+    **Response:**
+
+    - Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.
 
     **Notes:**
 
@@ -252,6 +259,7 @@ async def create_task(
         bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
     )
     tasks_ids = []
+    outputs = None
     webhook_headers_dict = json.loads(data.webhook_headers) if data.webhook_headers else None
     for _ in range(data.count):
         task_details = await task_run(
@@ -269,10 +277,12 @@ async def create_task(
             data.priority,
         )
         tasks_ids.append(task_details["task_id"])
+        if outputs is None:
+            outputs = task_details["outputs"]
         if "seed" in in_text_params:
             in_text_params["seed"] = in_text_params["seed"] + 1
     try:
-        return TaskRunResults.model_validate({"tasks_ids": tasks_ids})
+        return TaskRunResults.model_validate({"tasks_ids": tasks_ids, "outputs": outputs})
     except Exception as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 

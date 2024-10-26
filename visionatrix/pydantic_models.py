@@ -9,6 +9,7 @@ from typing_extensions import Self
 
 class TaskRunResults(BaseModel):
     tasks_ids: list[int] = Field(..., description="List of IDs representing the tasks that were created.")
+    outputs: list[TaskDetailsOutput] = Field(..., description="List of outputs for the created tasks.")
 
 
 class SubFlow(BaseModel):
@@ -336,7 +337,7 @@ class TaskCreationBasicParams(BaseModel):
 
 
 class TaskCreationCountParam(BaseModel):
-    count: int = Field(1, description="Number of tasks to be created")
+    count: int = Field(1, description="Number of tasks to be created", ge=1)
 
 
 class TaskCreationTranslateParam(BaseModel):
