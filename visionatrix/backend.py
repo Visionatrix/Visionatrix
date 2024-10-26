@@ -5,16 +5,16 @@ import threading
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, HTTPException, responses, status
+from fastapi import APIRouter, FastAPI, HTTPException, Query, responses, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from pillow_heif import register_heif_opener
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import comfyui, database, options
-from .routes import flows, other, settings, tasks, tasks_internal, workers
+from . import comfyui, custom_openapi, database, options, routes
 from .tasks_engine import (
     background_prompt_executor,
     remove_active_task_lock,
@@ -73,7 +73,7 @@ class VixAuthMiddleware:
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    tasks_internal.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
+    routes.tasks_internal.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
     await start_tasks_engine(comfy_queue, EXIT_EVENT)
     if options.UI_DIR:
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
@@ -91,12 +91,12 @@ def custom_generate_unique_id(route: APIRoute):
 
 
 APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
-API_ROUTER = APIRouter(prefix="/api")
-API_ROUTER.include_router(flows.ROUTER)
-API_ROUTER.include_router(settings.ROUTER)
-API_ROUTER.include_router(tasks.ROUTER)
-API_ROUTER.include_router(workers.ROUTER)
-API_ROUTER.include_router(other.ROUTER)
+API_ROUTER = APIRouter(prefix="/api")  # if you change the prefix, also change it in custom_openapi.py
+API_ROUTER.include_router(routes.flows.ROUTER)
+API_ROUTER.include_router(routes.settings.ROUTER)
+API_ROUTER.include_router(routes.tasks.ROUTER)
+API_ROUTER.include_router(routes.workers.ROUTER)
+API_ROUTER.include_router(routes.other.ROUTER)
 APP.include_router(API_ROUTER)
 APP.add_middleware(VixAuthMiddleware)
 if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
@@ -143,3 +143,43 @@ def run_vix(*args, **kwargs) -> None:
         except KeyboardInterrupt:
             remove_active_task_lock()
             print("Visionatrix is shutting down.")
+
+
+def generate_openapi(available: bool = False, installed: bool = False, only_flows: bool = False):
+    return custom_openapi.generate_openapi(APP, available, installed, only_flows)
+
+
+APP.openapi = generate_openapi
+
+
+@APP.get("/openapi/flows.json", include_in_schema=False)
+async def openapi_flows_json(
+    available: bool = Query(False, description="Include available flows"),
+    installed: bool = Query(False, description="Include installed flows"),
+    only_flows: bool = Query(False, description="Include only flow endpoints"),
+):
+    return custom_openapi.generate_openapi(APP, available, installed, only_flows)
+
+
+@APP.get("/docs/flows", include_in_schema=False)
+async def docs_flows(
+    available: bool = Query(False, description="Include available flows"),
+    installed: bool = Query(True, description="Include installed flows"),
+    only_flows: bool = Query(False, description="Include only flow endpoints"),
+):
+    query_params = []
+    if available:
+        query_params.append("available=true")
+    if installed:
+        query_params.append("installed=true")
+    if only_flows:
+        query_params.append("only_flows=true")
+    query_string = "&".join(query_params)
+    openapi_url = "/openapi/flows.json"
+    if query_string:
+        openapi_url += f"?{query_string}"
+    return get_swagger_ui_html(
+        openapi_url=openapi_url,
+        title="Flows Documentation",
+        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+    )

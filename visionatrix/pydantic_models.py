@@ -313,3 +313,31 @@ class TranslatePromptResponse(BaseModel):
     prompt: str = Field(..., description="The original prompt provided in the request.")
     result: str = Field(..., description="The translated prompt in English.")
     done_reason: str = Field(..., description="The reason the translation generation was completed.")
+
+
+class TaskCreationBasicParams(BaseModel):
+    group_scope: int = Field(1, description="Group number to which task should be assigned.", ge=1, le=255)
+    priority: int = Field(0, description="Execution priority. Higher numbers indicate higher priority.", ge=0, le=15)
+    child_task: int = Field(0, description="Int boolean indicating whether to create a relation between tasks")
+    webhook_url: str = Field("", description="URL to call when task state changes")
+    webhook_headers: str = Field("", description="Headers for webhook url as an encoded json string")
+
+
+class TaskCreationCountParam(BaseModel):
+    count: int = Field(1, description="Number of tasks to be created")
+
+
+class TaskCreationTranslateParam(BaseModel):
+    translate: int = Field(0, description="Should the prompt be translated if auto-translation option is enabled.")
+
+
+class TaskCreationWithTranslateParam(TaskCreationTranslateParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithCountParam(TaskCreationCountParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithFullParams(TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")

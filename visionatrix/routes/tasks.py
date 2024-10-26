@@ -19,7 +19,12 @@ from ..flows import (
     SUPPORTED_TEXT_TYPES_INPUTS,
     get_installed_flow,
 )
-from ..pydantic_models import TaskRunResults, TaskUpdateRequest, WorkerDetailsRequest
+from ..pydantic_models import (
+    TaskCreationWithFullParams,
+    TaskRunResults,
+    TaskUpdateRequest,
+    WorkerDetailsRequest,
+)
 from ..tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
@@ -56,7 +61,7 @@ from .tasks_internal import (
 )
 
 LOGGER = logging.getLogger("visionatrix")
-ROUTER = APIRouter(prefix="/tasks", tags=["tasks"])
+ROUTER = APIRouter(prefix="/tasks", tags=["tasks"])  # if you change the prefix, also change it in custom_openapi.py
 
 
 @ROUTER.put("/create", deprecated=True)
@@ -157,17 +162,7 @@ async def create_task__deprecated(
 async def create_task(
     request: Request,
     name: Annotated[str, FastApiPath(title="Name of the flow from which the task should be created")],
-    count: int = Form(1, description="Number of tasks to be created"),
-    webhook_url: str | None = Form(None, description="URL to call when task state changes"),
-    webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
-    child_task: int = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
-    group_scope: int = Form(
-        1, description="Group number to which task should be assigned. Maximum value is 255.", ge=1, le=255
-    ),
-    priority: int = Form(
-        0, description="Execution priority. Higher numbers indicate higher priority. Maximum value is 15.", ge=0, le=15
-    ),
-    translate: int = Form(0, description="Should the prompt be translated if auto-translation option is enabled."),
+    data: Annotated[TaskCreationWithFullParams, Form()],
 ) -> TaskRunResults:
     """
     Endpoint to initiate the creation and execution of tasks from the flows.
@@ -178,12 +173,12 @@ async def create_task(
 
     **Reserved Form Fields:**
 
-    - `count`: Number of tasks to be created
-    - `webhook_url`: URL to call when task state changes
-    - `webhook_headers`: Headers for webhook URL as an encoded JSON string
-    - `child_task`: Int boolean indicating whether to create a relation between tasks
     - `group_scope`: Group number to which task should be assigned. Maximum value is 255
     - `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15
+    - `child_task`: Int boolean indicating whether to create a relation between tasks
+    - `webhook_url`: URL to call when task state changes
+    - `webhook_headers`: Headers for webhook URL as an encoded JSON string
+    - `count`: Number of tasks to be created
     - `translate`: Should the prompt be translated if auto-translation option is enabled
 
     **Dynamic Task Parameters:**
@@ -209,16 +204,6 @@ async def create_task(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
 
     form_data = await request.form()
-    reserved_fields = (
-        "name",
-        "count",
-        "webhook_url",
-        "webhook_headers",
-        "child_task",
-        "group_scope",
-        "priority",
-        "translate",
-    )
 
     in_text_params: dict[str, int | float | str] = {}
     in_files_params = {}
@@ -227,7 +212,7 @@ async def create_task(
         flow_input_params[input_param["name"]] = input_param
 
     for key in form_data:
-        if key in reserved_fields:
+        if key in TaskCreationWithFullParams.model_fields:
             continue
         if key not in flow_input_params:
             LOGGER.warning("Unexpected parameter '%s' for '%s' task creation, ignoring.", key, name)
@@ -264,11 +249,11 @@ async def create_task(
         in_text_params["seed"] = int(in_text_params["seed"])
 
     translated_in_text_params = await get_translated_input_params(
-        bool(translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
+        bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
     )
     tasks_ids = []
-    webhook_headers_dict = json.loads(webhook_headers) if webhook_headers else None
-    for _ in range(count):
+    webhook_headers_dict = json.loads(data.webhook_headers) if data.webhook_headers else None
+    for _ in range(data.count):
         task_details = await task_run(
             name,
             in_text_params,
@@ -277,11 +262,11 @@ async def create_task(
             flow,
             flow_comfy,
             request.scope["user_info"],
-            webhook_url,
+            data.webhook_url if data.webhook_url else None,
             webhook_headers_dict,
-            bool(child_task),
-            group_scope,
-            priority,
+            bool(data.child_task),
+            data.group_scope,
+            data.priority,
         )
         tasks_ids.append(task_details["task_id"])
         if "seed" in in_text_params:

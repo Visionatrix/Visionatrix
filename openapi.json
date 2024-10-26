@@ -727,7 +727,7 @@
           "tasks"
         ],
         "summary": "Create Task",
-        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `count`: Number of tasks to be created\n- `webhook_url`: URL to call when task state changes\n- `webhook_headers`: Headers for webhook URL as an encoded JSON string\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
+        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: URL to call when task state changes\n- `webhook_headers`: Headers for webhook URL as an encoded JSON string\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
         "operationId": "create_task",
         "parameters": [
           {
@@ -741,10 +741,11 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
-            "application/x-www-form-urlencoded": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_task"
+                "$ref": "#/components/schemas/TaskCreationWithFullParams"
               }
             }
           }
@@ -1974,70 +1975,6 @@
         "title": "AIResourceModel",
         "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
       },
-      "Body_create_task": {
-        "properties": {
-          "count": {
-            "type": "integer",
-            "title": "Count",
-            "description": "Number of tasks to be created",
-            "default": 1
-          },
-          "webhook_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Webhook Url",
-            "description": "URL to call when task state changes"
-          },
-          "webhook_headers": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Webhook Headers",
-            "description": "Headers for webhook url as an encoded json string"
-          },
-          "child_task": {
-            "type": "integer",
-            "title": "Child Task",
-            "description": "Int boolean indicating whether to create a relation between tasks",
-            "default": 0
-          },
-          "group_scope": {
-            "type": "integer",
-            "maximum": 255.0,
-            "minimum": 1.0,
-            "title": "Group Scope",
-            "description": "Group number to which task should be assigned. Maximum value is 255.",
-            "default": 1
-          },
-          "priority": {
-            "type": "integer",
-            "maximum": 15.0,
-            "minimum": 0.0,
-            "title": "Priority",
-            "description": "Execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
-            "default": 0
-          },
-          "translate": {
-            "type": "integer",
-            "title": "Translate",
-            "description": "Should the prompt be translated if auto-translation option is enabled.",
-            "default": 0
-          }
-        },
-        "type": "object",
-        "title": "Body_create_task"
-      },
       "Body_create_task__deprecated": {
         "properties": {
           "name": {
@@ -2543,6 +2480,58 @@
         ],
         "title": "SubFlow",
         "description": "A SubFlow modifies or extends a Flow by overwriting certain parameters like display_name and input_params."
+      },
+      "TaskCreationWithFullParams": {
+        "properties": {
+          "group_scope": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Group Scope",
+            "description": "Group number to which task should be assigned.",
+            "default": 1
+          },
+          "priority": {
+            "type": "integer",
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "title": "Priority",
+            "description": "Execution priority. Higher numbers indicate higher priority.",
+            "default": 0
+          },
+          "child_task": {
+            "type": "integer",
+            "title": "Child Task",
+            "description": "Int boolean indicating whether to create a relation between tasks",
+            "default": 0
+          },
+          "webhook_url": {
+            "type": "string",
+            "title": "Webhook Url",
+            "description": "URL to call when task state changes",
+            "default": ""
+          },
+          "webhook_headers": {
+            "type": "string",
+            "title": "Webhook Headers",
+            "description": "Headers for webhook url as an encoded json string",
+            "default": ""
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of tasks to be created",
+            "default": 1
+          },
+          "translate": {
+            "type": "integer",
+            "title": "Translate",
+            "description": "Should the prompt be translated if auto-translation option is enabled.",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "TaskCreationWithFullParams"
       },
       "TaskDetails": {
         "properties": {
@@ -3376,7 +3365,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-10-24T16:39:10.610376Z"
+            "default": "2024-10-26T08:31:26.812841Z"
           }
         },
         "type": "object",

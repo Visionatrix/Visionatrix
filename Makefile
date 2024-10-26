@@ -22,7 +22,7 @@ run:
 .PHONY: openapi
 openapi:
 	@echo "Building OpenAPI.json.."
-	@python3 -m pip install . && python3 scripts/ci/openapi_generate.py
+	@python3 -m pip install . && python3 -m visionatrix --verbose=WARNING openapi
 
 .PHONY: build-client
 build-client:

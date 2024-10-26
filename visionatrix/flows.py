@@ -326,8 +326,15 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
         v = i["options"][v]
     elif i["type"] == "bool":
         if isinstance(v, str):
-            v = int(v)
-        v = bool(v)
+            v_lower = v.strip().lower()
+            if v_lower in {"true", "1", "yes", "y", "on"}:
+                v = True
+            elif v_lower in {"false", "0", "no", "n", "off"}:
+                v = False
+            else:
+                raise ValueError(f"Invalid boolean value: {v}")
+        else:
+            v = bool(v)
     return v
 
 

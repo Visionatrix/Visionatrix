@@ -66,6 +66,11 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--mode",
         "--server",
         "--disable-device-detection",
+        "^openapi$",
+        "--installed",
+        "--available",
+        "--only-flows",
+        "--indentation=",
         "visionatrix:APP",
     ]
     args_to_remove = []
