@@ -146,7 +146,6 @@ onBeforeMount(() => {
 							icon="i-heroicons-shield-check"
 							size="md"
 							autocomplete="off"
-							readonly="true"
 						/>
 					</UFormGroup>
 					<UFormGroup
@@ -308,7 +307,6 @@ onBeforeMount(() => {
 							icon="i-heroicons-shield-check"
 							size="md"
 							autocomplete="off"
-							readonly="true"
 						/>
 					</UFormGroup>
 

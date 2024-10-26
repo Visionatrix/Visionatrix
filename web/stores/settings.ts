@@ -29,7 +29,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 				key: 'gemini_model',
 				value: '',
 				options: ['gemini-1.5-flash-002', 'gemini-1.5-pro-002'],
-				sensitive: true,
+				sensitive: false,
 				admin: true,
 			},
 			ollama_url: {
@@ -41,13 +41,13 @@ export const useSettingsStore = defineStore('settingsStore', {
 			ollama_vision_model: {
 				key: 'ollama_vision_model',
 				value: '',
-				sensitive: true,
+				sensitive: false,
 				admin: true,
 			},
 			ollama_llm_model: {
 				key: 'ollama_llm_model',
 				value: '',
-				sensitive: true,
+				sensitive: false,
 				admin: true,
 			},
 			ollama_keepalive: {
@@ -60,7 +60,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 				key: 'translations_provider',
 				value: '',
 				options: ['ollama', 'gemini'],
-				sensitive: true,
+				sensitive: false,
 				admin: true,
 			},
 		} as VixSettingsMap,
