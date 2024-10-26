@@ -237,7 +237,7 @@ onBeforeMount(() => {
 						label="Ollama Keepalive"
 						description="Set Ollama keepalive time (e.g. 30s) for how long the model is kept in memory.">
 						<UInput
-							v-model="settingsStore.settingsMap.ollama_llm_model.value"
+							v-model="settingsStore.settingsMap.ollama_keepalive.value"
 							placeholder="Ollama LLM Model"
 							class="w-full"
 							type="text"
