@@ -129,11 +129,15 @@ onBeforeMount(() => {
 					</UFormGroup>
 
 					<UDivider class="mt-3" label="Gemini" />
+					<p class="text-slate text-sm text-orange-300 dark:text-orange-100 text-center">Can be used by flows and as a translation provider</p>
 					<UFormGroup
 						size="md"
 						class="py-3"
-						label="Google API key"
-						description="Global Google API key, required for Flows, e.g. where ComfyUI-Gemini Node is used">
+						label="Google API key">
+						<template #description>
+							Global Google API key, required for Flows, e.g. where ComfyUI-Gemini Node is used.
+							Instruction how to obtain key <a class="hover:underline font-bold" href="https://ai.google.dev/gemini-api/docs/api-key">here</a>.
+						</template>
 						<UInput
 							v-model="settingsStore.settingsMap['google_api_key'].value"
 							placeholder="Google API key"
@@ -149,7 +153,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Gemini model"
-						description="Choose Gemini model to use (if configured)">
+						description="Override Gemini model to use">
 						<div class="flex items-center">
 							<USelect
 								v-model="settingsStore.settingsMap.gemini_model.value"
@@ -169,8 +173,10 @@ onBeforeMount(() => {
 					<UFormGroup
 						size="md"
 						class="py-3"
-						label="Proxy (for Google)"
-						description="Proxy configuration string (to access Gemini)">
+						label="Proxy (for Google)">
+						<template #description>
+							Proxy to access Gemini configuration <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/AdminManual/Installation/proxy_gemini/">string</a>
+						</template>
 						<UInput
 							v-model="settingsStore.settingsMap.google_proxy.value"
 							placeholder="Proxy"
@@ -182,11 +188,12 @@ onBeforeMount(() => {
 					</UFormGroup>
 
 					<UDivider class="mt-3" label="Ollama" />
+					<p class="text-slate text-sm text-orange-300 dark:text-orange-100 text-center">Can be used by flows and as a translation provider</p>
 					<UFormGroup
 						size="md"
 						class="py-3"
 						label="Ollama URL"
-						description="URL to server where Ollama is running, required for flows using node with it">
+						description="URL to server where Ollama is running">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_url.value"
 							placeholder="Ollama URL"
@@ -200,7 +207,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Ollama Vision Model"
-						description="Override Ollama Vision model used in workflows by default">
+						description="Override Ollama Vision model used by default">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_vision_model.value"
 							placeholder="Ollama Vision Model"
@@ -214,7 +221,7 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Ollama LLM Model"
-						description="Ollama LLM model used in workflows by default">
+						description="Ollama LLM model used by default">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_llm_model.value"
 							placeholder="Ollama Vision Model"
@@ -288,8 +295,11 @@ onBeforeMount(() => {
 					<UFormGroup
 						size="md"
 						class="py-3"
-						label="Google API key"
-						description="Google API key, required for Flows where, e.g. ComfyUI-Gemini Node is used">
+						label="Google API key">
+						<template #description>
+							Google API key, required for Flows, e.g. where ComfyUI-Gemini Node is used.
+							Instruction how to obtain key <a class="hover:underline font-bold" href="https://ai.google.dev/gemini-api/docs/api-key">here</a>.
+						</template>
 						<UInput
 							v-model="settingsStore.settingsMap.google_api_key_user.value"
 							placeholder="Google API key"
@@ -303,7 +313,7 @@ onBeforeMount(() => {
 					</UFormGroup>
 
 					<UDivider class="mt-3" label="UI preferences" />
-					<p class="text-slate text-sm text-orange-100 text-center">Stored in browser local storage</p>
+					<p class="text-slate text-sm text-orange-300 dark:text-orange-100 text-center">Stored in browser local storage</p>
 
 					<UFormGroup
 						size="md"
