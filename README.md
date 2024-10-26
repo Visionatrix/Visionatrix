@@ -24,7 +24,7 @@
 
 ## 🖼️ User Interface
 
-Access the Visionatrix UI at [http://127.0.0.1:8288](http://127.0.0.1:8288) (default).
+Access the Visionatrix UI at [http://localhost:8288](http://localhost:8288) (default).
 
 <p align="center">
   <picture>

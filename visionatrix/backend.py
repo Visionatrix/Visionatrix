@@ -127,7 +127,7 @@ def run_vix(*args, **kwargs) -> None:
             uvicorn.run(
                 _app,
                 *args,
-                host=options.VIX_HOST if options.VIX_HOST else "127.0.0.1",
+                host=options.VIX_HOST if options.VIX_HOST else "localhost",
                 port=int(options.VIX_PORT) if options.VIX_PORT else 8288,
                 workers=int(options.VIX_SERVER_WORKERS),
                 **kwargs,
