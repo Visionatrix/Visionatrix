@@ -8,10 +8,16 @@ export const useUserStore = defineStore('userStore', {
 		isAdmin(): boolean {
 			return this.user.is_admin || false
 		},
+		isLoaded(): boolean {
+			return !!this.user.user_id
+		},
 	},
 
 	actions: {
 		async fetchUserInfo() {
+			if (this.isLoaded) {
+				return
+			}
 			const { $apiFetch } = useNuxtApp()
 			this.loading = true
 			return await $apiFetch('/other/whoami')
