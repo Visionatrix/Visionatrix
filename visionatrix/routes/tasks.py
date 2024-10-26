@@ -551,10 +551,14 @@ async def get_task_inputs(
             "description": "Successfully retrieved the result file",
             "content": {"application/octet-stream": {}},
         },
+        400: {
+            "description": "Task not completed",
+            "content": {"application/json": {"example": {"detail": "Task `task_id` is not completed yet."}}},
+        },
         404: {
             "description": "Task or result file not found",
             "content": {
-                "application/json": {"example": {"detail": "Missing result for task=task_id and node=node_id."}}
+                "application/json": {"example": {"detail": "Missing result for task=`task_id` and node=`node_id`."}}
             },
         },
     },
@@ -566,58 +570,60 @@ async def get_task_results(
     batch_index: int = Query(
         0,
         description="Optional index of the node result if the node produced more than one result. "
-        "If set to -1, all results are returned as a ZIP archive.",
+        "If set to -1, all results for the node are returned as a ZIP archive.",
     ),
 ):
     """
-    Retrieves the result file associated with a specific task and node ID. This function searches for
-    output files in the designated output directory that match the task and node identifiers.
+    Retrieves the result file associated with a specific task and node ID.
 
-    Parameters:
-    - task_id (int): ID of the task.
-    - node_id (int): ID of the node.
-    - batch_index (int, optional): Index of the node result if the node produced more than one result.
+    This function searches for output files in the designated output directory that match the task and node identifiers.
+
+    **Parameters:**
+
+    - `task_id` (int): ID of the task.
+    - `node_id` (int): ID of the node.
+    - `batch_index` (int, optional): Index of the node result if the node produced more than one result.
       - If set to 0 (default), the first result file is returned.
       - If set to a positive integer, the corresponding result file index is returned.
       - If set to -1, all results are returned as a ZIP archive.
 
-    If the specific result file is not found, or if the task does not exist, a 404 HTTP error is returned.
+    **Returns:**
 
-    Returns:
-    - FileResponse: The result file or a ZIP archive containing all result files if batch_index is -1.
-    - HTTPException: If the task or result file is not found.
+    - `FileResponse`: The result file or a ZIP archive containing all result files if `batch_index` is -1.
+    - `HTTPException`: If the task is not completed or the result file is not found.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+        task = await get_task_async(task_id, request.scope["user_info"].user_id)
     else:
-        r = get_task(task_id, request.scope["user_info"].user_id)
-    if r is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
+        task = get_task(task_id, request.scope["user_info"].user_id)
+    if task is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
+    if task["progress"] < 100.0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` is not completed yet.")
+
     result_prefix = f"{task_id}_{node_id}_"
     output_files = get_task_files(task_id, "output")
     relevant_files = [file_info for file_info in output_files if file_info[0].startswith(result_prefix)]
     output_node = None
-    for i in r["outputs"]:
-        if i["comfy_node_id"] == node_id:
-            output_node = i
+    for output in task["outputs"]:
+        if output["comfy_node_id"] == node_id:
+            output_node = output
             break
     if not output_node:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"No such node in the flow for task={task_id}."
-        )
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"No such node in the flow for task=`{task_id}`.")
     if output_node["type"] == "image":
-        relevant_files = [i for i in relevant_files if any(i[0].endswith(ext) for ext in etc.IMAGE_EXTENSIONS)]
+        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_EXTENSIONS)]
     elif output_node["type"] == "video":
-        relevant_files = [i for i in relevant_files if any(i[0].endswith(ext) for ext in etc.VIDEO_EXTENSIONS)]
+        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.VIDEO_EXTENSIONS)]
     if not relevant_files:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Missing result for task=`{task_id}` and node=`{node_id}`.",
         )
     if batch_index == -1:
         zip_buffer = BytesIO()
         with ZipFile(zip_buffer, "w") as zip_file:
-            for file_info in relevant_files:
-                file_name, file_path = file_info
+            for file_name, file_path in relevant_files:
                 with builtins.open(file_path, "rb") as f:
                     zip_file.writestr(file_name, f.read())
         zip_buffer.seek(0)
@@ -628,7 +634,8 @@ async def get_task_results(
         )
     if batch_index + 1 > len(relevant_files):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Missing result for task=`{task_id}` and node=`{node_id}`.",
         )
     base_name, extension = os.path.splitext(relevant_files[batch_index][0])
     content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension

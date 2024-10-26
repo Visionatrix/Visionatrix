@@ -727,7 +727,7 @@
           "tasks"
         ],
         "summary": "Create Task",
-        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: URL to call when task state changes\n- `webhook_headers`: Headers for webhook URL as an encoded JSON string\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
+        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
         "operationId": "create_task",
         "parameters": [
           {
@@ -1266,7 +1266,7 @@
           "tasks"
         ],
         "summary": "Get Task Results",
-        "description": "Retrieves the result file associated with a specific task and node ID. This function searches for\noutput files in the designated output directory that match the task and node identifiers.\n\nParameters:\n- task_id (int): ID of the task.\n- node_id (int): ID of the node.\n- batch_index (int, optional): Index of the node result if the node produced more than one result.\n  - If set to 0 (default), the first result file is returned.\n  - If set to a positive integer, the corresponding result file index is returned.\n  - If set to -1, all results are returned as a ZIP archive.\n\nIf the specific result file is not found, or if the task does not exist, a 404 HTTP error is returned.\n\nReturns:\n- FileResponse: The result file or a ZIP archive containing all result files if batch_index is -1.\n- HTTPException: If the task or result file is not found.",
+        "description": "Retrieves the result file associated with a specific task and node ID.\n\nThis function searches for output files in the designated output directory that match the task and node identifiers.\n\n**Parameters:**\n\n- `task_id` (int): ID of the task.\n- `node_id` (int): ID of the node.\n- `batch_index` (int, optional): Index of the node result if the node produced more than one result.\n  - If set to 0 (default), the first result file is returned.\n  - If set to a positive integer, the corresponding result file index is returned.\n  - If set to -1, all results are returned as a ZIP archive.\n\n**Returns:**\n\n- `FileResponse`: The result file or a ZIP archive containing all result files if `batch_index` is -1.\n- `HTTPException`: If the task is not completed or the result file is not found.",
         "operationId": "get_task_results",
         "parameters": [
           {
@@ -1297,11 +1297,11 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results are returned as a ZIP archive.",
+              "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results for the node are returned as a ZIP archive.",
               "default": 0,
               "title": "Batch Index"
             },
-            "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results are returned as a ZIP archive."
+            "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results for the node are returned as a ZIP archive."
           }
         ],
         "responses": {
@@ -1314,12 +1314,22 @@
               "application/octet-stream": {}
             }
           },
+          "400": {
+            "description": "Task not completed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `task_id` is not completed yet."
+                }
+              }
+            }
+          },
           "404": {
             "description": "Task or result file not found",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Missing result for task=task_id and node=node_id."
+                  "detail": "Missing result for task=`task_id` and node=`node_id`."
                 }
               }
             }
@@ -2508,17 +2518,18 @@
           "webhook_url": {
             "type": "string",
             "title": "Webhook Url",
-            "description": "URL to call when task state changes",
+            "description": "Optional. URL to call when task state changes. Leave empty if not needed or if using `/progress` or `/progress-summary` endpoints.",
             "default": ""
           },
           "webhook_headers": {
             "type": "string",
             "title": "Webhook Headers",
-            "description": "Headers for webhook url as an encoded json string",
+            "description": "Optional. Headers for webhook URL as an encoded JSON string. Used only when `webhook_url` is set.",
             "default": ""
           },
           "count": {
             "type": "integer",
+            "minimum": 1.0,
             "title": "Count",
             "description": "Number of tasks to be created",
             "default": 1
@@ -2715,7 +2726,7 @@
               }
             ],
             "title": "Webhook Url",
-            "description": "The URL that will be called when the task state changes."
+            "description": "URL that was set to be called when the task state changes."
           },
           "webhook_headers": {
             "anyOf": [
@@ -2727,7 +2738,7 @@
               }
             ],
             "title": "Webhook Headers",
-            "description": "Headers to send to webhook."
+            "description": "Headers that were set to be sent to the webhook URL."
           }
         },
         "type": "object",
@@ -2778,7 +2789,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
+            "description": "Type of the result from the ComfyUI node - can be either 'image', 'image-mask' or 'video'."
           },
           "file_size": {
             "type": "integer",
@@ -2955,11 +2966,20 @@
             "type": "array",
             "title": "Tasks Ids",
             "description": "List of IDs representing the tasks that were created."
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsOutput"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "List of outputs for the created tasks."
           }
         },
         "type": "object",
         "required": [
-          "tasks_ids"
+          "tasks_ids",
+          "outputs"
         ],
         "title": "TaskRunResults"
       },
@@ -3365,7 +3385,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-10-26T08:31:26.812841Z"
+            "default": "2024-10-26T22:52:03.869447Z"
           }
         },
         "type": "object",
@@ -3411,5 +3431,11 @@
         "description": "Provides OS and Python environment details of the worker."
       }
     }
-  }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8288",
+      "description": "Default server running Visionatrix"
+    }
+  ]
 }
