@@ -9,6 +9,7 @@ from typing_extensions import Self
 
 class TaskRunResults(BaseModel):
     tasks_ids: list[int] = Field(..., description="List of IDs representing the tasks that were created.")
+    outputs: list[TaskDetailsOutput] = Field(..., description="List of outputs for the created tasks.")
 
 
 class SubFlow(BaseModel):
@@ -126,7 +127,8 @@ class TaskDetailsOutput(BaseModel):
 
     comfy_node_id: int = Field(..., description="ID of the ComfyUI node containing the result.")
     type: str = Field(
-        ..., description="Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
+        ...,
+        description="Type of the result from the ComfyUI node - can be either 'image', 'image-mask' or 'video'.",
     )
     file_size: int = Field(-1, description="Size of file(s) in bytes.")
     batch_size: int = Field(-1, description="Count of outputs(files) produced by node.")
@@ -182,8 +184,8 @@ class TaskDetails(TaskDetailsShort):
     finished_at: datetime | None = Field(None, description="Finish time of the task.")
     flow_comfy: dict = Field(..., description="The final generated ComfyUI workflow.")
     user_id: str = Field(..., description="User ID to whom the task belongs.")
-    webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
-    webhook_headers: dict | None = Field(None, description="Headers to send to webhook.")
+    webhook_url: str | None = Field(None, description="URL that was set to be called when the task state changes.")
+    webhook_headers: dict | None = Field(None, description="Headers that were set to be sent to the webhook URL.")
 
 
 class WorkerDetailsSystemRequest(BaseModel):
@@ -313,3 +315,42 @@ class TranslatePromptResponse(BaseModel):
     prompt: str = Field(..., description="The original prompt provided in the request.")
     result: str = Field(..., description="The translated prompt in English.")
     done_reason: str = Field(..., description="The reason the translation generation was completed.")
+
+
+class TaskCreationBasicParams(BaseModel):
+    group_scope: int = Field(1, description="Group number to which task should be assigned.", ge=1, le=255)
+    priority: int = Field(0, description="Execution priority. Higher numbers indicate higher priority.", ge=0, le=15)
+    child_task: int = Field(0, description="Int boolean indicating whether to create a relation between tasks")
+    webhook_url: str = Field(
+        "",
+        description=(
+            "Optional. URL to call when task state changes."
+            " Leave empty if not needed or if using `/progress` or `/progress-summary` endpoints."
+        ),
+    )
+    webhook_headers: str = Field(
+        "",
+        description=(
+            "Optional. Headers for webhook URL as an encoded JSON string. Used only when `webhook_url` is set."
+        ),
+    )
+
+
+class TaskCreationCountParam(BaseModel):
+    count: int = Field(1, description="Number of tasks to be created", ge=1)
+
+
+class TaskCreationTranslateParam(BaseModel):
+    translate: int = Field(0, description="Should the prompt be translated if auto-translation option is enabled.")
+
+
+class TaskCreationWithTranslateParam(TaskCreationTranslateParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithCountParam(TaskCreationCountParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithFullParams(TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")

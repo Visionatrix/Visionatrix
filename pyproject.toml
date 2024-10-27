@@ -47,7 +47,7 @@ dynamic = [
 dependencies = [
   "alembic",
   "bcrypt==4.0.1",
-  "fastapi>=0.109.2",
+  "fastapi>=0.113",
   "google-generativeai",
   "httpx>=0.25.2",
   "ollama",
@@ -133,6 +133,9 @@ lint.per-file-ignores."visionatrix/__init__.py" = [
 lint.per-file-ignores."visionatrix/backend.py" = [
   "C901",
 ]
+lint.per-file-ignores."visionatrix/custom_openapi.py" = [
+  "S324",
+]
 lint.per-file-ignores."visionatrix/install_update/*.py" = [
   "S607",
 ]
@@ -141,6 +144,9 @@ lint.per-file-ignores."visionatrix/install_update/__init__.py" = [
 ]
 lint.per-file-ignores."visionatrix/routes/*.py" = [
   "B008",
+]
+lint.per-file-ignores."visionatrix/routes/__init__.py" = [
+  "F401",
 ]
 lint.extend-per-file-ignores."tests/**/*.py" = [
   "E402",

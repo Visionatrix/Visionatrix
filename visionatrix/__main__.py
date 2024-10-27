@@ -8,7 +8,7 @@ import sys
 from fnmatch import fnmatchcase
 from pathlib import Path
 
-from . import comfyui, database, install, options, run_vix, update
+from . import comfyui, database, generate_openapi, install, options, run_vix, update
 from .etc import get_higher_log_level, get_log_level
 from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .install_update import flow_install_callback
@@ -40,6 +40,7 @@ if __name__ == "__main__":
         ("install-flow", "Install flow by name or from file"),
         ("create-user", "Create new user"),
         ("orphan-models", "Remove orphan models"),
+        ("openapi", "Generate OpenAPI specs"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
         if i[0] == "create-user":
@@ -61,8 +62,25 @@ if __name__ == "__main__":
             subparser.add_argument(
                 "--include-useful-models",
                 action="store_true",
-                help="Include orphaned models that can be used in future flows for removal.",
+                help="Include orphaned models that can be used in future flows for removal",
             )
+
+        if i[0] == "openapi":
+            subparser.add_argument(
+                "--file",
+                type=str,
+                help="Filename to save",
+                default="openapi.json",
+            )
+            subparser.add_argument("--available", action="store_true", help="Include specs for 'available' flows")
+            subparser.add_argument("--installed", action="store_true", help="Include specs for 'installed' flows")
+            subparser.add_argument(
+                "--indentation",
+                type=int,
+                help="Indentation size",
+                default=2,
+            )
+            subparser.add_argument("--only-flows", action="store_true", help="Only specs for flows", default=False)
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
@@ -196,6 +214,14 @@ if __name__ == "__main__":
     elif args.command == "orphan-models":
         comfyui.load(None)
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
+    elif args.command == "openapi":
+        comfyui.load(None)
+        openapi_schema = generate_openapi(args.available, args.installed, args.only_flows)
+        with builtins.open(args.file, "w", encoding="UTF-8") as f:
+            openapi_schema_str = json.dumps(openapi_schema, indent=args.indentation)
+            if not openapi_schema_str.endswith("\n"):
+                openapi_schema_str += "\n"
+            f.write(openapi_schema_str)
     else:
         logging.getLogger("visionatrix").error("Unknown command: '%s'", args.command)
         sys.exit(2)
