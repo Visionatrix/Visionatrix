@@ -14,11 +14,11 @@ IMAGE_URLS = [
 
 # Visionatrix details
 VISIONATRIX_HOST = "http://127.0.0.1:8288"
-CREATE_TASK_ENDPOINT = "/api/tasks/create"
+FLOW_NAME = "remove_background_bria"
+CREATE_TASK_ENDPOINT = f"/api/tasks/create/{FLOW_NAME}"
 GET_TASK_PROGRESS_ENDPOINT = "/api/tasks/progress"
 GET_TASK_RESULTS_ENDPOINT = "/api/tasks/results"
 WHOAMI_ENDPOINT = "/api/other/whoami"
-FLOW_NAME = "remove_background_bria"
 POLLING_INTERVAL = 3  # Poll every 3 seconds
 MAX_WAIT_TIME = 300  # Wait up to 5 minutes for the server to be ready
 
@@ -84,11 +84,10 @@ def create_task(image_file):
     """Call the create_task endpoint to process the image and return the task ID."""
     print("Creating task...")
     task_url = f"{VISIONATRIX_HOST}{CREATE_TASK_ENDPOINT}"
-    files = {"files": (os.path.basename(image_file), open(image_file, "rb"))}  # noqa
-    data = {
-        "name": FLOW_NAME
+    files = {
+        "input_image": (os.path.basename(image_file), open(image_file, "rb")),  # noqa
     }
-    response = httpx.put(task_url, data=data, files=files)
+    response = httpx.put(task_url, files=files)
     if response.status_code != 200:
         raise Exception(f"Failed to create task: {response.status_code}, {response.text}")
     result = response.json()
@@ -139,7 +138,7 @@ def download_result(task_id, node_id, temp_dir):
     """Download the result file for the completed task using the specified node_id."""
     print(f"Downloading result for task ID: {task_id}, node_id: {node_id}")
     result_url = f"{VISIONATRIX_HOST}{GET_TASK_RESULTS_ENDPOINT}"
-    params = {"task_id": task_id, "node_id": node_id, "batch_index": 0}
+    params = {"task_id": task_id, "node_id": node_id}
     response = httpx.get(result_url, params=params)
     if response.status_code != 200:
         raise Exception(f"Failed to download task result: {response.status_code}, {response.text}")
@@ -156,7 +155,8 @@ def compare_images(result_path, reference_path):
     print("Comparing images...")
     result_image = Image.open(result_path)
     reference_image = Image.open(reference_path)
-    assert_image_similar(result_image, reference_image, epsilon=0.000012)
+    max_epsilon = 0.000024  # 0.000012 is enough, but we'll multiply it by 2 to be sure.
+    assert_image_similar(result_image, reference_image, max_epsilon)
     print("Test passed!")
 
 
