@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0 - 2024-10-31]
+
+### Added
+
+- Vide Flows: Support of flows with video as result. #192
+- First video flow: [AllYourLife](https://visionatrix.github.io/VixFlowsDocs/Flows/AllYourLife/)
+- Additional new flows: **Proteus** and **SD3.5**.
+
+### Changed
+
+- Now by default `localhost` is used instead of `127.0.0.1`
+- `--loglevel` cmd argument is deprecated, and the same argument(`--verbose`) as in ComfyUI takes it place. #201
+- `ComfyUI_Gemini_Flash` node was [replaced](https://github.com/Visionatrix/Visionatrix/commit/ce52839ee42cca6ae5cad08cc13771440930efbd) with `ComfyUI-Gemini` node with additional support for **Gemini Pro** model.
+- Devs: new endpoint for creating tasks. Much easier implementing integrations, Gradio examples for ComfyUI flows will come in `1.6` version.
+
+### Fixed
+
+- UI now fetches all settings from backend in a single request. #200
+- `install-flow` cmd command now can accept `tags` and you can use patterns with it. #198
+- **Install ALL(4)** option in `easy_install.py` script now correctly installs **all** flows using `*` pattern. #198
+- Parse of models from `CLIPLoader` and `TripleCLIPLoader` basic ComfyUI nodes. [commit](https://github.com/Visionatrix/Visionatrix/commit/63f6cbc351d98b5926e8f0d4d1f9ea1b0c07f95e)
+
 ## [1.4.1 - 2024-10-11]
 
 ### Fixed
