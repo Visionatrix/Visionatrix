@@ -84,10 +84,11 @@ def create_task(image_file):
     """Call the create_task endpoint to process the image and return the task ID."""
     print("Creating task...")
     task_url = f"{VISIONATRIX_HOST}{CREATE_TASK_ENDPOINT}"
-    files = {
-        "input_image": (os.path.basename(image_file), open(image_file, "rb")),  # noqa
-    }
-    response = httpx.put(task_url, files=files)
+    with open(image_file, "rb") as f:
+        files = {
+            "input_image": (os.path.basename(image_file), f),
+        }
+        response = httpx.put(task_url, files=files)
     if response.status_code != 200:
         raise Exception(f"Failed to create task: {response.status_code}, {response.text}")
     result = response.json()
