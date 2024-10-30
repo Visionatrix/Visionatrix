@@ -40,9 +40,15 @@ MODEL_LOAD_CLASSES = {
         "4": ["inputs", "lora_04"],
     },
     "UNETLoader": {"1": ["inputs", "unet_name"]},
+    "CLIPLoader": {"1": ["inputs", "clip_name"]},
     "DualCLIPLoader": {
         "1": ["inputs", "clip_name1"],
         "2": ["inputs", "clip_name2"],
+    },
+    "TripleCLIPLoader": {
+        "1": ["inputs", "clip_name1"],
+        "2": ["inputs", "clip_name2"],
+        "3": ["inputs", "clip_name3"],
     },
     "PhotoMakerLoaderPlus": {
         "1": ["inputs", "photomaker_model_name"],
