@@ -261,13 +261,12 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					</div>
 				</div>
 				<WorkflowSendToFlowModal
-					v-model="showSendToFlowModal"
+					v-model:show="showSendToFlowModal"
 					:flow-result="sendToFlowResult"
 					:output-img-src="sendToImgSrc"
 					:output-param-index="sendToFlowOutputParamIndex"
 					:input-params-mapped="sendToFlowInputParamsMapped"
-					:is-child-task="sendToFlowIsChildTask"
-					@update:show="(value: boolean) => showSendToFlowModal = value" />
+					:is-child-task="sendToFlowIsChildTask" />
 			</div>
 			<p v-else class="text-center text-slate-500">
 				No output results available
