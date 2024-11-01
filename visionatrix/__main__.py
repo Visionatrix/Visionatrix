@@ -84,7 +84,11 @@ if __name__ == "__main__":
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
-            install_flow_group.add_argument("--file", type=str, help="Path to `comfyui_flow.json` file")
+            install_flow_group.add_argument(
+                "--file",
+                type=str,
+                help="Path to `comfyui_flow.json` file or a directory containing flow files",
+            )
             install_flow_group.add_argument("--name", type=str, help="Flow name mask of the flow(s)")
             install_flow_group.add_argument("--tag", type=str, help="Flow tags mask of the flow(s)")
 
@@ -172,14 +176,38 @@ if __name__ == "__main__":
         run_vix()
     elif args.command == "install-flow":
         comfyui.load(None)
+        r = True
         if args.file:
-            with builtins.open(Path(args.file), "rb") as fp:
-                install_flow_comfy = json.loads(fp.read())
-            install_custom_flow(
-                flow=get_vix_flow(install_flow_comfy),
-                flow_comfy=install_flow_comfy,
-                progress_callback=flow_install_callback.progress_callback,
-            )
+            path = Path(args.file)
+            if path.is_file():
+                with path.open("rb") as fp:
+                    install_flow_comfy = json.loads(fp.read())
+                r = install_custom_flow(
+                    flow=get_vix_flow(install_flow_comfy),
+                    flow_comfy=install_flow_comfy,
+                    progress_callback=flow_install_callback.progress_callback,
+                )
+            elif path.is_dir():
+                json_files = list(path.glob("*.json"))
+                if not json_files:
+                    logging.getLogger("visionatrix").error("No JSON files found in directory: '%s'", path)
+                    sys.exit(2)
+                if len(json_files) > 1:
+                    logging.getLogger("visionatrix").info("Multiple JSON files found in directory: '%s'", path)
+
+                for json_file in json_files:
+                    logging.getLogger("visionatrix").info("Installing flow from file: '%s'", json_file)
+                    with json_file.open("rb") as fp:
+                        install_flow_comfy = json.loads(fp.read())
+                    if not install_custom_flow(
+                        flow=get_vix_flow(install_flow_comfy),
+                        flow_comfy=install_flow_comfy,
+                        progress_callback=flow_install_callback.progress_callback,
+                    ):
+                        r = False
+            else:
+                logging.getLogger("visionatrix").error("Path is neither a file nor a directory: '%s'", path)
+                sys.exit(2)
         else:
             flows_comfy = {}
             not_installed_flows = get_not_installed_flows(flows_comfy)
@@ -206,11 +234,14 @@ if __name__ == "__main__":
                     logging.getLogger("visionatrix").info("Aborting installation.")
                     sys.exit(0)
             for flow_name, flow in flows_to_install.items():
-                install_custom_flow(
+                if not install_custom_flow(
                     flow=flow,
                     flow_comfy=flows_comfy[flow_name],
                     progress_callback=flow_install_callback.progress_callback,
-                )
+                ):
+                    r = False
+        if not r:
+            sys.exit(1)
     elif args.command == "orphan-models":
         comfyui.load(None)
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
