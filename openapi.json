@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.5.0"
+    "version": "1.6.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -320,7 +320,7 @@
           "flows"
         ],
         "summary": "Get Install Progress",
-        "description": "Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint\nreturns a dictionary showing the installation status for each flow.\n\nRequires administrative privileges.",
+        "description": "Retrieves the current installation progress of all flows.\n\nRequires administrative privileges.",
         "operationId": "get_install_progress",
         "responses": {
           "200": {
@@ -3385,7 +3385,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-10-30T15:25:32.920779Z"
+            "default": "2024-11-02T08:57:35.458175Z"
           }
         },
         "type": "object",
