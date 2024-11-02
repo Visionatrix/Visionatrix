@@ -398,13 +398,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 				if (!['image', 'image-mask'].includes(param[paramName].type)
 					&& param[paramName].value !== '') {
 					input_params_mapped[paramName] = param[paramName].value
+					formData.append(paramName, param[paramName].value)
 				}
 			})
 			console.debug('input_params_mapped:', input_params_mapped)
 
-			formData.append('name', flow.name)
 			formData.append('count', count.toString())
-
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
@@ -418,10 +417,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 				file_input_params.forEach((param: any) => {
 					const paramName = Object.keys(param)[0]
 					console.debug('file:', param[paramName].value)
-					formData.append('files', param[paramName].value)
+					formData.append(paramName, param[paramName].value)
 				})
 			}
-			formData.append('input_params', JSON.stringify(input_params_mapped))
 
 			if (child_task) {
 				formData.append('child_task', '1')
@@ -438,11 +436,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					display_name: flow.input_params.find(param => param.name === key)?.display_name,
 				}
 			})
-			return await $apiFetch('/tasks/create', {
+			return await $apiFetch(`/tasks/create/${flow.name}`, {
 				method: 'PUT',
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-				},
 				body: formData,
 			}).then((res: any) => {
 				// Adding started flow to running list
@@ -991,7 +986,6 @@ export interface FlowInputParam {
 	step?: number
 	source_input_name?: string
 	hidden: boolean
-	edge_size?: number
 	translatable?: boolean
 }
 
