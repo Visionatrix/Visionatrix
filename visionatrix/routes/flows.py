@@ -239,8 +239,7 @@ def flow_update(
 @ROUTER.get("/install-progress")
 async def get_install_progress(request: Request) -> list[FlowProgressInstall]:
     """
-    Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint
-    returns a dictionary showing the installation status for each flow.
+    Retrieves the current installation progress of all flows.
 
     Requires administrative privileges.
     """
