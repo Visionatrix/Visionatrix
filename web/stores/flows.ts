@@ -73,17 +73,52 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowResultsByName(state) {
 			return (name: string) => {
 				if (state.flow_results_filter !== '') {
-					return state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter))
+					return state.flow_results
+						.filter(task => task.flow_name === name
+							&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter))
+						.sort((a: FlowResult, b: FlowResult) => {
+							if (a.finished_at && b.finished_at) {
+								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+							}
+							return Number(b.task_id) - Number(a.task_id)
+						})
 				}
-				return state.flow_results.filter(task => task.flow_name === name)
+				return state.flow_results
+					.filter(task => task.flow_name === name)
+					.sort((a: FlowResult, b: FlowResult) => {
+						if (a.finished_at && b.finished_at) {
+							return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+						}
+						return Number(b.task_id) - Number(a.task_id)
+					})
 			}
 		},
 		flowResultsByNamePaginated(state) {
 			return (name: string) => {
 				if (state.flow_results_filter !== '') {
-					return paginate(state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter) && task.parent_task_id === null).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+					return paginate(
+						state.flow_results
+							.filter(task => task.flow_name === name
+								&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
+								&& task.parent_task_id === null)
+							.sort((a: FlowResult, b: FlowResult) => {
+								if (a.finished_at && b.finished_at) {
+									return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+								}
+								return Number(b.task_id) - Number(a.task_id)
+							}), state.resultsPage, state.resultsPageSize
+					) as FlowResult[]
 				}
-				return paginate(state.flow_results.filter(task => task.flow_name === name && task.parent_task_id === null).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+				return paginate(
+					state.flow_results
+						.filter(task => task.flow_name === name && task.parent_task_id === null)
+						.sort((a: FlowResult, b: FlowResult) => {
+							if (a.finished_at && b.finished_at) {
+								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+							}
+							return Number(b.task_id) - Number(a.task_id)
+						}), state.resultsPage, state.resultsPageSize
+				) as FlowResult[]
 			}
 		},
 		flowInstallingByName(state) {
@@ -272,6 +307,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						parent_task_node_id: task.parent_task_node_id,
 						progress: task.progress,
 						error: task?.error || '',
+						finished_at: task.finished_at,
 					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
@@ -807,6 +843,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 								parent_task_node_id: progress[task_id].parent_task_node_id,
 								progress: progress[task_id].progress,
 								error: progress[task_id]?.error || '',
+								finished_at: progress[task_id].finished_at,
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -1052,6 +1089,7 @@ export interface FlowResult {
 	child_tasks: TaskHistoryItem[]
 	progress: number
 	error: string
+	finished_at: string
 }
 
 export interface TasksHistory {
