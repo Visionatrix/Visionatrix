@@ -16,7 +16,6 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import UploadFile
 from packaging.version import Version, parse
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
@@ -269,28 +268,6 @@ def uninstall_flow(flow_name: str) -> None:
     CACHE_INSTALLED_FLOWS["update_time"] = 0
 
 
-def prepare_flow_comfy__deprecated(
-    flow: Flow,
-    flow_comfy: dict,
-    in_texts_params: dict,
-    in_files_params: list[UploadFile | dict],
-    task_details: dict,
-) -> dict:
-    r = deepcopy(flow_comfy)
-    for i in [i for i in flow.input_params if i["type"] in SUPPORTED_TEXT_TYPES_INPUTS]:
-        v = prepare_flow_comfy_get_input_value(in_texts_params, i)
-        if v is None:
-            continue
-        for k, input_path in i["comfy_node_id"].items():
-            node = r.get(k, {})
-            if not node:
-                raise RuntimeError(f"Bad workflow, node with id=`{k}` can not be found.")
-            set_node_value(node, input_path, v)
-    process_seed_value(flow, in_texts_params, r)
-    prepare_flow_comfy_files_params__deprecated(flow, in_files_params, task_details["task_id"], task_details, r)
-    return r
-
-
 def prepare_flow_comfy(
     flow: Flow,
     flow_comfy: dict,
@@ -336,60 +313,6 @@ def prepare_flow_comfy_get_input_value(in_texts_params: dict, i: dict) -> typing
         else:
             v = bool(v)
     return v
-
-
-def prepare_flow_comfy_files_params__deprecated(
-    flow: Flow, in_files_params: list[UploadFile | dict], task_id: int, task_details: dict, r: dict
-) -> None:
-    files_params = [i for i in flow.input_params if i["type"] in SUPPORTED_FILE_TYPES_INPUTS]
-    min_required_files_count = len([i for i in files_params if not i.get("optional", False)])
-    if len(in_files_params) < min_required_files_count:
-        raise RuntimeError(f"{len(in_files_params)} files given, but {min_required_files_count} at least required.")
-    for i, v in enumerate(in_files_params):
-        file_name = f"{task_id}_{i}"
-        for k, input_path in files_params[i]["comfy_node_id"].items():
-            node = r.get(k, {})
-            if not node:
-                raise RuntimeError(f"Bad workflow, node with id=`{k}` can not be found.")
-            set_node_value(node, input_path, file_name)
-        result_path = os.path.join(options.TASKS_FILES_DIR, "input", file_name)
-        if isinstance(v, dict):
-            if "input_index" in v:
-                input_file = os.path.join(options.TASKS_FILES_DIR, "input", f"{v['task_id']}_{v['input_index']}")
-                if not os.path.exists(input_file):
-                    raise RuntimeError(
-                        f"Bad flow, file from task_id=`{v['task_id']}`, index=`{v['input_index']}` not found."
-                    )
-                shutil.copy(input_file, result_path)
-            elif "node_id" in v:
-                input_file = ""
-                result_prefix = f"{v['task_id']}_{v['node_id']}_"
-                output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
-                for filename in os.listdir(output_directory):
-                    if filename.startswith(result_prefix):
-                        input_file = os.path.join(output_directory, filename)
-                if not input_file or not os.path.exists(input_file):
-                    raise RuntimeError(
-                        f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found."
-                    )
-                shutil.copy(input_file, result_path)
-            else:
-                raise RuntimeError("Bad flow, `input_index` or `node_id` should be present.")
-        else:
-            with builtins.open(result_path, mode="wb") as fp:
-                v.file.seek(0)
-                start_of_file = v.file.read(30)
-                base64_index = start_of_file.find(b"base64,")
-                if base64_index != -1:
-                    v.file.seek(base64_index + len(b"base64,"))
-                    fp.write(b64decode(v.file.read()))
-                else:
-                    v.file.seek(0)
-                    shutil.copyfileobj(v.file, fp)
-        task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
-    for node_to_disconnect in files_params[len(in_files_params) :]:
-        for node_id_to_disconnect in node_to_disconnect["comfy_node_id"]:
-            disconnect_node_graph(node_id_to_disconnect, r)
 
 
 def prepare_flow_comfy_files_params(
