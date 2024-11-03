@@ -185,6 +185,7 @@ messages_control.disable = [
   "broad-exception-caught",
   "too-many-positional-arguments",
   "deprecated-argument",
+  "import-outside-toplevel",
 ]
 
 [tool.pytest.ini_options]
