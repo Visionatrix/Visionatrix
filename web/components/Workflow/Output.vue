@@ -2,7 +2,9 @@
 const flowStore  = useFlowsStore()
 
 const hasOutputResult = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).length > 0 || false)
-const results = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).reverse() || [])
+const results = computed(() => {
+	return flowStore.flowResultsByName(flowStore.currentFlow?.name) || []
+})
 const resultsPerPage = computed(() => flowStore.$state.resultsPageSize)
 
 // watch for total results length and update the page to the last one
