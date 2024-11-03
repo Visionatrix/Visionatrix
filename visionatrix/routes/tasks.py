@@ -119,6 +119,9 @@ async def create_task(
     for key in form_data:
         if key in TaskCreationWithFullParams.model_fields:
             continue
+        if flow.is_seed_supported and key == "seed":
+            in_text_params["seed"] = int(form_data.get(key))
+            continue
         if key not in flow_input_params:
             LOGGER.warning("Unexpected parameter '%s' for '%s' task creation, ignoring.", key, name)
             continue
@@ -149,9 +152,6 @@ async def create_task(
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail=f"Unsupported input file type: {type(value)}"
             ) from None
-
-    if "seed" in in_text_params:
-        in_text_params["seed"] = int(in_text_params["seed"])
 
     translated_in_text_params = await get_translated_input_params(
         bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
