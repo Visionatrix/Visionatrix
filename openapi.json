@@ -678,49 +678,6 @@
         }
       }
     },
-    "/api/tasks/create": {
-      "put": {
-        "tags": [
-          "tasks"
-        ],
-        "summary": "Create Task  Deprecated",
-        "description": "Endpoint to initiate the creation and execution of tasks within the Vix workflow environment,\nhandling both file inputs and task-related parameters.",
-        "operationId": "create_task__deprecated",
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_create_task__deprecated"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskRunResults"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
     "/api/tasks/create/{name}": {
       "put": {
         "tags": [
@@ -1984,95 +1941,6 @@
         ],
         "title": "AIResourceModel",
         "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
-      },
-      "Body_create_task__deprecated": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the flow from which the task should be created"
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count",
-            "description": "Number of tasks to be created",
-            "default": 1
-          },
-          "input_params": {
-            "type": "string",
-            "title": "Input Params",
-            "description": "List of input parameters as an encoded json string"
-          },
-          "webhook_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Webhook Url",
-            "description": "URL to call when task state changes"
-          },
-          "webhook_headers": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Webhook Headers",
-            "description": "Headers for webhook url as an encoded json string"
-          },
-          "child_task": {
-            "type": "integer",
-            "title": "Child Task",
-            "description": "Int boolean indicating whether to create a relation between tasks",
-            "default": 0
-          },
-          "group_scope": {
-            "type": "integer",
-            "title": "Group Scope",
-            "description": "Group number to which task should be assigned. Maximum value is 255.",
-            "default": 1
-          },
-          "priority": {
-            "type": "integer",
-            "title": "Priority",
-            "description": "Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
-            "default": 0
-          },
-          "translate": {
-            "type": "integer",
-            "title": "Translate",
-            "description": "Should the prompt be translated if auto-translation option is enabled.",
-            "default": 0
-          },
-          "files": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "binary"
-                },
-                {
-                  "type": "string"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Files",
-            "description": "List of input files for flow"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "Body_create_task__deprecated"
       },
       "Body_get_next_task": {
         "properties": {
@@ -3385,7 +3253,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-02T08:57:35.458175Z"
+            "default": "2024-11-03T08:25:38.275318Z"
           }
         },
         "type": "object",
