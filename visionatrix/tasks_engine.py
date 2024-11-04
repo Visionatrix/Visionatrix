@@ -10,7 +10,6 @@ import typing
 from datetime import datetime, timezone
 
 import httpx
-import torch
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -815,6 +814,8 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
     last_task_name = ""
     last_gc_collect = 0
     need_gc = False
+
+    import torch  # noqa
 
     while True:
         if need_gc:

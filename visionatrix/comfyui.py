@@ -17,7 +17,6 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from socket import gethostname
 
-import torch
 from psutil import virtual_memory
 
 from . import _version, options
@@ -30,13 +29,7 @@ SYSTEM_DETAILS = {
     "version": sys.version,
     "embedded_python": options.PYTHON_EMBEDED,
 }
-
-if torch.version.cuda is not None:
-    TORCH_VERSION = f"{torch.__version__} (CUDA {torch.version.cuda})"
-elif torch.version.hip is not None:
-    TORCH_VERSION = f"{torch.__version__} (ROCm {torch.version.hip})"
-else:
-    TORCH_VERSION = torch.__version__
+TORCH_VERSION: str | None = None
 
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
@@ -85,6 +78,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 
     if sys.platform.lower() == "darwin":
         # SUPIR node: 'aten::upsample_bicubic2d.out' is not currently implemented for the MPS device
+        # BiRefNet: torchvision::deform_conv2d
         if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
             os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
@@ -225,6 +219,18 @@ def torch_device_info() -> dict:
 
 
 def get_worker_details() -> dict:
+    global TORCH_VERSION
+
+    if not TORCH_VERSION:
+        import torch  # noqa
+
+        if torch.version.cuda is not None:
+            TORCH_VERSION = f"{torch.__version__} (CUDA {torch.version.cuda})"
+        elif torch.version.hip is not None:
+            TORCH_VERSION = f"{torch.__version__} (ROCm {torch.version.hip})"
+        else:
+            TORCH_VERSION = torch.__version__
+
     return {
         "worker_version": _version.__version__,
         "pytorch_version": TORCH_VERSION,
