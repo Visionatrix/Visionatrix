@@ -164,10 +164,13 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
     if google_nodes:
         google_proxy = get_worker_value("GOOGLE_PROXY", task_to_exec["user_id"])
         google_api_key = get_worker_value("GOOGLE_API_KEY", task_to_exec["user_id"])
+        gemini_model = get_worker_value("GEMINI_MODEL", task_to_exec["user_id"])
         for node in google_nodes:
             if google_api_key:
                 task_to_exec["flow_comfy"][node]["inputs"]["api_key"] = google_api_key
                 task_to_exec["flow_comfy"][node]["inputs"]["proxy"] = google_proxy
+                if gemini_model:
+                    task_to_exec["flow_comfy"][node]["inputs"]["model"] = gemini_model
 
     return task_to_exec
 
