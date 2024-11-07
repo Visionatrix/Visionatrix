@@ -152,13 +152,28 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
         ollama_vision_model = ""
         if [i for i in ollama_nodes if task_to_exec["flow_comfy"][i]["class_type"] == "OllamaVision"]:
             ollama_vision_model = get_worker_value("OLLAMA_VISION_MODEL", task_to_exec["user_id"])
+        ollama_llm_model = ""
+        if [
+            i
+            for i in ollama_nodes
+            if task_to_exec["flow_comfy"][i]["class_type"] in ("OllamaGenerate", "OllamaGenerateAdvance")
+        ]:
+            ollama_llm_model = get_worker_value("OLLAMA_LLM_MODEL", task_to_exec["user_id"])
         ollama_url = get_worker_value("OLLAMA_URL", task_to_exec["user_id"])
+        ollama_keepalive = get_worker_value("OLLAMA_KEEPALIVE", task_to_exec["user_id"])
 
         for node in ollama_nodes:
             if ollama_url:
                 task_to_exec["flow_comfy"][node]["inputs"]["url"] = ollama_url
+            if ollama_keepalive:
+                task_to_exec["flow_comfy"][node]["inputs"]["keep_alive"] = ollama_keepalive
             if ollama_vision_model and task_to_exec["flow_comfy"][node]["class_type"] == "OllamaVision":
                 task_to_exec["flow_comfy"][node]["inputs"]["model"] = ollama_vision_model
+            if ollama_llm_model and task_to_exec["flow_comfy"][node]["class_type"] in (
+                "OllamaGenerate",
+                "OllamaGenerateAdvance",
+            ):
+                task_to_exec["flow_comfy"][node]["inputs"]["model"] = ollama_llm_model
 
     google_nodes = get_google_nodes(task_to_exec["flow_comfy"])
     if google_nodes:
