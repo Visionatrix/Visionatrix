@@ -17,8 +17,12 @@ from .flows import (
 from .pydantic_models import (
     Flow,
     TaskCreationBasicParams,
+    TaskCreationWithCountAndSeedParams,
     TaskCreationWithCountParam,
     TaskCreationWithFullParams,
+    TaskCreationWithSeedParam,
+    TaskCreationWithTranslateAndCountParams,
+    TaskCreationWithTranslateAndSeedParams,
     TaskCreationWithTranslateParam,
     TaskRunResults,
 )
@@ -94,12 +98,24 @@ def create_dynamic_model(flow_definition: Flow) -> type[BaseModel]:
             )
         model_fields[param["name"]] = model_field
 
-    if flow_definition.is_count_supported and flow_definition.is_translations_supported:
+    if (
+        flow_definition.is_count_supported
+        and flow_definition.is_translations_supported
+        and flow_definition.is_seed_supported
+    ):
         base_model = TaskCreationWithFullParams
+    elif flow_definition.is_count_supported and flow_definition.is_seed_supported:
+        base_model = TaskCreationWithCountAndSeedParams
+    elif flow_definition.is_count_supported and flow_definition.is_translations_supported:
+        base_model = TaskCreationWithTranslateAndCountParams
+    elif flow_definition.is_translations_supported and flow_definition.is_seed_supported:
+        base_model = TaskCreationWithTranslateAndSeedParams
     elif flow_definition.is_translations_supported:
         base_model = TaskCreationWithTranslateParam
     elif flow_definition.is_count_supported:
         base_model = TaskCreationWithCountParam
+    elif flow_definition.is_seed_supported:
+        base_model = TaskCreationWithSeedParam
     else:
         base_model = TaskCreationBasicParams
 

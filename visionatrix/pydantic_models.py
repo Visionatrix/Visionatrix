@@ -337,11 +337,15 @@ class TaskCreationBasicParams(BaseModel):
 
 
 class TaskCreationCountParam(BaseModel):
-    count: int = Field(1, description="Number of tasks to be created", ge=1)
+    count: int = Field(1, description="Number of tasks to be created.", ge=1)
 
 
 class TaskCreationTranslateParam(BaseModel):
     translate: int = Field(0, description="Should the prompt be translated if auto-translation option is enabled.")
+
+
+class TaskCreationSeedParam(BaseModel):
+    seed: int = Field(1, description="The `seed` parameter for reproducing the results of workflows.")
 
 
 class TaskCreationWithTranslateParam(TaskCreationTranslateParam, TaskCreationBasicParams):
@@ -352,5 +356,27 @@ class TaskCreationWithCountParam(TaskCreationCountParam, TaskCreationBasicParams
     model_config = ConfigDict(extra="ignore")
 
 
-class TaskCreationWithFullParams(TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationBasicParams):
+class TaskCreationWithSeedParam(TaskCreationSeedParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithTranslateAndSeedParams(
+    TaskCreationTranslateParam, TaskCreationSeedParam, TaskCreationBasicParams
+):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithTranslateAndCountParams(
+    TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationBasicParams
+):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithCountAndSeedParams(TaskCreationCountParam, TaskCreationSeedParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithFullParams(
+    TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationSeedParam, TaskCreationBasicParams
+):
     model_config = ConfigDict(extra="ignore")
