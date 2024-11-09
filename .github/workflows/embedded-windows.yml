@@ -12,7 +12,7 @@ concurrency:
 
 env:
   PYTHON_MAJOR: 10
-  PYTHON_MINOR: 15
+  PYTHON_MINOR: 10
   BUILD_RELEASE: 1
 
 jobs:
