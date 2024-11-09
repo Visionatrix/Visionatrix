@@ -105,13 +105,6 @@ onBeforeMount(() => {
 			<div class="px-5 pb-5 md:w-4/5">
 				<div v-if="userStore.isAdmin" class="admin-settings mb-3">
 					<h3 class="mb-3 text-xl font-bold">Admin preferences (global settings)</h3>
-					<div class="flex items-center">
-						<UIcon name="i-heroicons-question-mark-circle" class="mr-2 text-amber-400" />
-						<p class="text-amber-400">
-							<span>Access tokens are required for&nbsp;</span>
-							<a class="hover:underline underline-offset-4" href="https://visionatrix.github.io/VixFlowsDocs/GatedModels.html" target="_blank">gated models</a>.
-						</p>
-					</div>
 					<UFormGroup
 						size="md"
 						class="py-3"
@@ -127,6 +120,17 @@ onBeforeMount(() => {
 							autocomplete="off"
 						/>
 					</UFormGroup>
+					<UAlert
+						color="blue"
+						variant="soft"
+						icon="i-heroicons-exclamation-circle"
+						title="Note">
+						<template #description>
+							Access tokens are required for gated models.
+							More information can be found <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/GatedModels.html" target="_blank">here</a>.
+						</template>
+					</UAlert>
+
 
 					<UDivider class="mt-3" label="Gemini" />
 					<p class="text-slate text-sm text-orange-300 dark:text-orange-100 text-center">Can be used by flows and as a translation provider</p>
@@ -136,7 +140,7 @@ onBeforeMount(() => {
 						label="Google API key">
 						<template #description>
 							Global Google API key, required for Flows, e.g. where ComfyUI-Gemini Node is used.
-							Instruction how to obtain key <a class="hover:underline font-bold" href="https://ai.google.dev/gemini-api/docs/api-key">here</a>.
+							Instruction how to obtain key can be found <a class="hover:underline font-bold" href="https://ai.google.dev/gemini-api/docs/api-key">here</a>.
 						</template>
 						<UInput
 							v-model="settingsStore.settingsMap['google_api_key'].value"
@@ -234,13 +238,14 @@ onBeforeMount(() => {
 						size="md"
 						class="py-3"
 						label="Ollama Keepalive"
-						description="Set Ollama keepalive time (e.g. 30s) for how long the model is kept in memory.">
+						description="Keep models in memory for specified minutes (e.g. 0.5 for 30 seconds). 0 unloads immediately; negative numbers keep indefinitely">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_keepalive.value"
-							placeholder="Ollama LLM Model"
-							class="w-full"
-							type="text"
+							placeholder="Ollama Keepalive"
+							class="w-fit"
+							type="number"
 							size="md"
+							step="0.1"
 							autocomplete="off"
 						/>
 					</UFormGroup>
@@ -268,11 +273,11 @@ onBeforeMount(() => {
 						</div>
 					</UFormGroup>
 				</div>
-				<div v-if="userStore.isAdmin" class="upload-flow mb-5 py-4 rounded-md">
+				<div v-if="userStore.isAdmin" class="mb-5 py-4">
 					<h4 class="mb-3 font-bold">Upload Flow</h4>
 					<p class="text-gray-400 text-sm mb-3">
 						Upload a Visionatrix workflow file (.json) to add it to the available flows.
-						On successful upload of the valid workflow file, the installation will start automatically.
+						Upon successful upload of a valid workflow file, the installation will start automatically.
 					</p>
 					<div class="flex items-center space-x-3">
 						<UInput
@@ -288,6 +293,20 @@ onBeforeMount(() => {
 							Upload Flow
 						</UButton>
 					</div>
+					<UAlert
+						class="mt-3"
+						color="blue"
+						variant="soft"
+						icon="i-heroicons-exclamation-circle"
+						title="Note">
+						<template #description>
+							Requires a Visionatrix-adapted ComfyUI workflow, not a standard ComfyUI workflow.
+							Instructions for adapting a ComfyUI workflow for Visionatrix are available 
+							<a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/comfyui_vix_migration/">here</a>.
+							Custom workflows may require manual installation of dependencies (e.g., custom nodes) before upload.
+						</template>
+					</UAlert>
+						
 				</div>
 				<div class="user-settings mb-3">
 					<h3 class="mb-3 text-xl font-bold">User preferences (overrides global)</h3>
