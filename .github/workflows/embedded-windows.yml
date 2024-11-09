@@ -43,15 +43,21 @@ jobs:
       - name: Install Vix
         shell: bash
         run: |
-          cp scripts/easy_install.py vix_portable/easy_install.py
+          cp scripts/easy_install.py vix_portable/
           cp scripts/python_embeded/run_cpu.bat vix_portable/
           cp scripts/python_embeded/run_nvidia_gpu.bat vix_portable/
           cd vix_portable
-          ./python_embeded/python.exe easy_install.py
+          if grep -q "\.dev" ../visionatrix/_version.py; then
+            echo "Detected development version. Running with the DEV_VERSION flag set."
+            DEV_VERSION=1 ./python_embeded/python.exe easy_install.py
+          else
+            ./python_embeded/python.exe easy_install.py
+          fi
           rm -rf Visionatrix tasks_history.db
+          ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
         env:
-          COMPUTE_DEVICE: "NVIDIA"
+          COMPUTE_DEVICE: "CPU"
 
       - name: Archive Vix
         if: ${{ github.event_name == 'workflow_dispatch' }}
