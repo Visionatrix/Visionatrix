@@ -6,13 +6,6 @@ import httpx
 import sys
 from PIL import Image, ImageMath
 
-
-a = os.path.split(sys.executable)[0]
-print("!!!! TEST(a)::", a, flush=True)
-b = os.path.split(os.path.split(sys.executable)[0])[1]
-print("!!!! TEST(b)::", b, flush=True)
-
-
 # URLs to download images
 IMAGE_URLS = [
     "https://github.com/Visionatrix/VixFlowsDocs/blob/main/tests_data/source-cube_rm_background.png?raw=true",
