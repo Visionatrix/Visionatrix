@@ -36,7 +36,43 @@ TORCH_VERSION: str | None = None
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
 
-    os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"  # disable checking if a new version of "Albumentations" is available
+    if "NO_ALBUMENTATIONS_UPDATE" not in os.environ:
+        os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"  # disable checking if new version of "Albumentations" is available
+
+    if sys.platform.lower() == "darwin":
+        # SUPIR node: 'aten::upsample_bicubic2d.out' is not currently implemented for the MPS device
+        # BiRefNet: torchvision::deform_conv2d
+        if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
+            os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
+    if options.PYTHON_EMBEDED and importlib.util.find_spec("torch") is None:
+        # we remove pytorch from the Windows standalone release, so that the archive with the release is smaller.
+        LOGGER.info("PyTorch is not installed. Installing torch, torchvision, torchaudio.")
+
+        for attempt in range(options.MAX_GIT_CLONE_ATTEMPTS):
+            try:
+                subprocess.check_call(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "torch",
+                        "torchvision",
+                        "torchaudio",
+                        "--index-url",
+                        "https://download.pytorch.org/whl/cu121",
+                        # !!! do not forget to change PyTorch version in "scripts/easy_install.py" !!!
+                    ]
+                )
+                LOGGER.info("Successfully installed PyTorch packages.")
+                break
+            except subprocess.CalledProcessError as e:
+                LOGGER.error("Attempt %d: Failed to install PyTorch packages: %s", attempt, e)
+                if attempt == options.MAX_GIT_CLONE_ATTEMPTS - 1:
+                    LOGGER.error("All installation attempts failed.")
+                    raise e
+                LOGGER.info("Retrying installation...")
 
     if sys.platform.lower() == "darwin":
         # SUPIR node: 'aten::upsample_bicubic2d.out' is not currently implemented for the MPS device
