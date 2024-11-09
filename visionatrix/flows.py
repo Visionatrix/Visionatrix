@@ -482,13 +482,12 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
         if node_details["class_type"] == "VixUiWorkflowMetadata":
             continue
 
-        custom_id = get_ui_input_attribute(node_details, "custom_id")
         input_param_data = {
+            "name": get_node_ui_name_id(node_id, node_details),
             "display_name": get_ui_input_attribute(node_details, "display_name"),
             "optional": get_ui_input_attribute(node_details, "optional"),
             "advanced": get_ui_input_attribute(node_details, "advanced"),
             "order": get_ui_input_attribute(node_details, "order"),
-            "custom_id": custom_id,
             "hidden": get_ui_input_attribute(node_details, "hidden"),
             "translatable": get_ui_input_attribute(node_details, "translatable"),
         }
@@ -510,7 +509,6 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
 
         input_param_data.update(
             {
-                "name": custom_id if custom_id else f"in_param_{node_id}",
                 "type": input_type,
                 "default": get_node_value(node_details, input_path),
                 "comfy_node_id": {node_id: input_path},
@@ -591,6 +589,11 @@ def get_ui_input_attribute(node_details: dict, attr_name: str) -> bool | str | i
     return attributes_defaults.get(attr_name)
 
 
+def get_node_ui_name_id(node_id: str, node_details: dict) -> str:
+    custom_id = get_ui_input_attribute(node_details, "custom_id")
+    return custom_id if custom_id else f"in_param_{node_id}"
+
+
 def get_ollama_nodes(flow_comfy: dict) -> list[str]:
     r = []
     for node_id, node_details in flow_comfy.items():
@@ -614,9 +617,11 @@ def get_nodes_for_translate(input_params: dict[str, typing.Any], flow_comfy: dic
             node_info = flow_comfy[input_param[len("in_param_") :]]
         else:
             node_info = None
-            for node_value in flow_comfy.values():
-                if node_value.get("inputs", {}).get("custom_id", "") == input_param:
-                    node_info = node_value
+            for node_id, node_details in flow_comfy.items():
+                if not is_node_ui_input(node_details):
+                    continue
+                if get_node_ui_name_id(node_id, node_details) == input_param:
+                    node_info = node_details
                     break
             if not node_info:
                 if input_param != "seed":
