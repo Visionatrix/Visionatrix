@@ -9,6 +9,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+a = path.split(sys.executable)[0]
+print("!!!! TEST(a)::", a, flush=True)
+b = path.split(path.split(sys.executable)[0])[1]
+print("!!!! TEST(b)::", b, flush=True)
+
 PYTHON_EMBEDED = path.split(path.split(sys.executable)[0])[1] == "python_embeded"
 BACKEND_DIR = environ.get(
     "BACKEND_DIR", str(Path("vix_backend") if PYTHON_EMBEDED else Path("./vix_backend").resolve())
