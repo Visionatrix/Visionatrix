@@ -227,7 +227,7 @@ onBeforeMount(() => {
 						description="Override Ollama LLM model used by default.">
 						<UInput
 							v-model="settingsStore.settingsMap.ollama_llm_model.value"
-							placeholder="Ollama Vision Model"
+							placeholder="Ollama LLM Model"
 							class="w-full"
 							type="text"
 							size="md"
@@ -247,6 +247,9 @@ onBeforeMount(() => {
 							size="md"
 							step="0.1"
 							autocomplete="off"
+							@change="() => {
+								settingsStore.settingsMap.ollama_keepalive.value = settingsStore.settingsMap.ollama_keepalive.value.toString()
+							}"
 						/>
 					</UFormGroup>
 
