@@ -47,7 +47,7 @@ jobs:
           cp scripts/python_embeded/run_cpu.bat vix_portable/
           cp scripts/python_embeded/run_nvidia_gpu.bat vix_portable/
           cd vix_portable
-          if grep -q "\.dev" ../_version.py; then
+          if grep -q "\.dev" ../visionatrix/_version.py; then
             echo "Detected development version. Running with FORCE_DEV_VERSION=1."
             FORCE_DEV_VERSION=1 ./python_embeded/python.exe easy_install.py
           else
