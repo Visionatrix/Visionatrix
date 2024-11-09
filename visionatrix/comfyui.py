@@ -34,6 +34,8 @@ TORCH_VERSION: str | None = None
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
 
+    os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"  # disable checking if a new version of "Albumentations" is available
+
     sys.path.append(options.BACKEND_DIR)
 
     no_device_detection = "--disable-device-detection" in sys.argv
