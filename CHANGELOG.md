@@ -12,6 +12,7 @@ This release focuses on simplifying the process of writing integrations and fixi
 
 ### Changed
 
+- Windows archive release size greatly reduced(minus 2GB) and now fits into **1** archive file. #225
 - The default `pytorch` version for new installations has been updated to `2.5.1`.
 - The old, deprecated endpoint for task creation has been removed. #209
 - The deprecated `--loglevel` command-line argument has been removed. #218
