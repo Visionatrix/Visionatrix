@@ -49,7 +49,7 @@ jobs:
           cd vix_portable
           if grep -q "\.dev" ../visionatrix/_version.py; then
             echo "Detected development version. Running with FORCE_DEV_VERSION=1."
-            FORCE_DEV_VERSION=1 ./python_embeded/python.exe easy_install.py
+            DEV_VERSION=1 ./python_embeded/python.exe easy_install.py
           else
             echo "Stable version detected. Running without FORCE_DEV_VERSION."
             ./python_embeded/python.exe easy_install.py
