@@ -476,69 +476,46 @@ def get_flow_subflows(flow_comfy: dict[str, dict]) -> list[dict[str, str | list 
 def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | dict]]:
     input_params = []
     for node_id, node_details in flow_comfy.items():
-        class_type = str(node_details["class_type"])
-        image_mask = False
-        if class_type.startswith("VixUi"):
-            if node_details["class_type"] == "VixUiWorkflowMetadata":
-                continue
-            display_name = node_details["inputs"]["display_name"]
-            other_attributes = ()
-            optional = node_details["inputs"]["optional"]
-            advanced = node_details["inputs"]["advanced"]
-            order = node_details["inputs"]["order"]
-            custom_id = node_details["inputs"]["custom_id"]
-            hidden_attribute = node_details["inputs"].get("hidden", False)
-            translatable = node_details["inputs"].get("translatable", False)
-        elif node_details["_meta"]["title"].startswith("input;"):
-            input_info = str(node_details["_meta"]["title"]).split(";")
-            input_info = [i.strip() for i in input_info]
-            display_name = input_info[1]
-            other_attributes = tuple(s.lower() for s in input_info[2:])
-            optional = bool("optional" in other_attributes)
-            advanced = bool("advanced" in other_attributes)
-            translatable = bool("translatable" in other_attributes)
-            order = 20 if class_type == "SDXLAspectRatioSelector" else 99
-            for attribute in other_attributes:
-                if attribute.startswith("order="):
-                    order = int(attribute[6:])
-                    break
-            custom_id = ""
-            for attribute in other_attributes:
-                if attribute.startswith("custom_id="):
-                    custom_id = attribute[10:]
-                    break
-            hidden_attribute = bool("hidden" in other_attributes)
-            image_mask = bool("mask" in other_attributes)
-        else:
+        if not is_node_ui_input(node_details):
             continue
+        class_type = str(node_details["class_type"])
+        if node_details["class_type"] == "VixUiWorkflowMetadata":
+            continue
+
+        custom_id = get_ui_input_attribute(node_details, "custom_id")
+        input_param_data = {
+            "display_name": get_ui_input_attribute(node_details, "display_name"),
+            "optional": get_ui_input_attribute(node_details, "optional"),
+            "advanced": get_ui_input_attribute(node_details, "advanced"),
+            "order": get_ui_input_attribute(node_details, "order"),
+            "custom_id": custom_id,
+            "hidden": get_ui_input_attribute(node_details, "hidden"),
+            "translatable": get_ui_input_attribute(node_details, "translatable"),
+        }
+        image_mask = bool(get_ui_input_attribute(node_details, "mask"))
+
         try:
             input_type, input_path = comfyui_class_info.CLASS_INFO[node_details["class_type"]]
             if image_mask is True and input_type == "image":
                 input_type = "image-mask"
+                source_input_name = get_ui_input_attribute(node_details, "source_input_name")
+                if source_input_name:
+                    input_param_data["source_input_name"] = source_input_name
+                else:
+                    raise ValueError("`source_input_name` required for mask parameter.")
         except KeyError as exc:
             raise ValueError(
                 f"Node with class_type={node_details['class_type']} is not currently supported as input"
             ) from exc
 
-        input_param_data = {
-            "name": custom_id if custom_id else f"in_param_{node_id}",
-            "display_name": display_name,
-            "type": input_type,
-            "optional": optional,
-            "advanced": advanced,
-            "default": get_node_value(node_details, input_path),
-            "order": order,
-            "comfy_node_id": {node_id: input_path},
-            "hidden": hidden_attribute,
-            "translatable": translatable,
-        }
-        if image_mask:
-            for attribute in other_attributes:
-                if attribute.startswith("source_input_name="):
-                    input_param_data["source_input_name"] = attribute[18:]
-                    break
-            if "source_input_name" not in input_param_data:
-                raise ValueError("`source_input_name` required for mask parameter.")
+        input_param_data.update(
+            {
+                "name": custom_id if custom_id else f"in_param_{node_id}",
+                "type": input_type,
+                "default": get_node_value(node_details, input_path),
+                "comfy_node_id": {node_id: input_path},
+            }
+        )
         if node_details["class_type"] in ("VixUiRangeFloat", "VixUiRangeScaleFloat", "VixUiRangeInt"):
             for ex_input in ("min", "max", "step"):
                 input_param_data[ex_input] = node_details["inputs"][ex_input]
@@ -574,6 +551,44 @@ def correct_aspect_ratio_default_options(input_param_data: dict) -> None:
     }
     input_param_data["options"] = _options
     input_param_data["default"] = [i for i in _options if i.find(input_param_data["default"]) != -1][0]  # noqa
+
+
+def is_node_ui_input(node_details: dict) -> bool:
+    if str(node_details["class_type"]).startswith("VixUi"):
+        return True
+    return str(node_details["_meta"]["title"]).startswith("input;")
+
+
+def get_ui_input_attribute(node_details: dict, attr_name: str) -> bool | str | int:
+    attributes_defaults = {
+        "optional": False,
+        "advanced": False,
+        "translatable": False,
+        "hidden": False,
+        "mask": False,
+        "order": 99,
+        "custom_id": "",
+        "source_input_name": None,
+    }
+
+    if str(node_details["class_type"]).startswith("VixUi"):
+        return node_details["inputs"].get(attr_name, attributes_defaults.get(attr_name))
+
+    input_info = str(node_details["_meta"]["title"]).split(";")
+    input_info = [i.strip() for i in input_info]
+
+    if attr_name == "display_name":
+        return input_info[1] if len(input_info) > 1 else ""
+
+    other_attributes = [s.lower() for s in input_info[2:]]
+    for attribute in other_attributes:
+        if "=" in attribute:
+            key, value = attribute.split("=", 1)
+            if key == attr_name:
+                return int(value) if attr_name == "order" else value
+        elif attribute == attr_name:
+            return True
+    return attributes_defaults.get(attr_name)
 
 
 def get_ollama_nodes(flow_comfy: dict) -> list[str]:
