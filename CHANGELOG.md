@@ -20,6 +20,7 @@ This release focuses on simplifying the process of writing integrations and fixi
 
 - **UI**: Images were not displayed during the `Send to flow` action. #205
 - **UI**: Tasks are now sorted by the `finished_at` column. #211
+- **UI**: Corrected settings descriptions, added links to docs. #224
 - The `seed` parameter was ignored in the new `task creation` endpoint. #210
 - **macOS**: The `PYTORCH_ENABLE_MPS_FALLBACK` setting is now correctly applied, and flows like `SUPIR`, `remove background`, etc., work again. #212
 - The `Gemini model` setting is now respected by the backend. #214 #217
