@@ -67,7 +67,12 @@ def create_dynamic_model(flow_definition: Flow) -> type[BaseModel]:
     model_fields = {}
     for param in flow_definition.input_params:
         d_name = param["display_name"]
-        default = param["default"] if param["optional"] else ...
+        if param.get("default"):
+            default = param["default"]
+        elif param["optional"]:
+            default = None
+        else:
+            default = ...
         if param["type"] == "bool":
             model_field = (bool, Field(default, description=d_name))
         elif param["type"] == "list":
@@ -78,7 +83,7 @@ def create_dynamic_model(flow_definition: Flow) -> type[BaseModel]:
                 Field(default, description=d_name, ge=param["min"], le=param["max"], multiple_of=param["step"]),
             )
         elif param["type"] in SUPPORTED_TEXT_TYPES_INPUTS:
-            model_field = (str, Field(d_name, description=d_name))
+            model_field = (str, Field(default, description=d_name))
         elif param["type"] in SUPPORTED_FILE_TYPES_INPUTS:
             if param["type"] in ("image", "image-mask"):
                 model_field = (
