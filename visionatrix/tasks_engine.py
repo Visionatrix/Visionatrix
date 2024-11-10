@@ -34,6 +34,7 @@ from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS_SHORT,
     get_get_incomplete_task_without_error_query,
     init_new_task_details,
+    nodes_execution_profiler,
     prepare_worker_info_update,
     task_details_from_dict,
     task_details_short_to_dict,
@@ -799,7 +800,7 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         return
     node_percent = 99 / ACTIVE_TASK["nodes_count"]
 
-    nodes_execution_profiler(event, data)
+    nodes_execution_profiler(ACTIVE_TASK, event, data)
     if event == "executing":
         if not ACTIVE_TASK["current_node"]:
             ACTIVE_TASK["current_node"] = data["node"]
@@ -820,69 +821,6 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         increase_current_task_progress((len(data["nodes"]) - 1) * node_percent)
     elif event == "execution_interrupted":
         ACTIVE_TASK["interrupted"] = True
-
-
-def nodes_execution_profiler(event: str, data: dict):
-    if not options.VIX_PROFILE_EXECUTION:
-        return
-
-    if event not in ("executing", "execution_start", "execution_success"):
-        return
-
-    if event == "execution_start":  # triggered only once for each task at the beginning
-        ACTIVE_TASK["execution_details"] = {
-            "nodes_profiling": [],
-            "max_memory_usage": 0.0,
-        }
-        return
-
-    last_active_node = ACTIVE_TASK.get("profiler_current_node")
-    current_node = data.get("node")
-
-    if event != "execution_success" and last_active_node == current_node:
-        LOGGER.debug("Node '%s' profiling was already initiated, skipping.", last_active_node)
-        return
-
-    import torch  # noqa
-
-    # here we have an "execute" event that fires at the start of each node's execution
-    if last_active_node and last_active_node != current_node:
-        execution_time = time.perf_counter() - ACTIVE_TASK["profiler_node_start_time"]
-        gpu_memory_usage = round(torch.cuda.max_memory_allocated() / 1024**2, 2) if torch.cuda.is_available() else 0.0
-
-        node_info = ACTIVE_TASK["flow_comfy"].get(last_active_node)
-        if not node_info:
-            LOGGER.warning("Node with id='%s' for profiling was not found in flow_comfy.", last_active_node)
-            return
-
-        profiling_data = {
-            "execution_time": execution_time,
-            "gpu_memory_usage": gpu_memory_usage,
-            "class_type": node_info.get("class_type", ""),
-            "title": node_info.get("_meta", {}).get("title", ""),
-            "node_id": last_active_node,
-        }
-        ACTIVE_TASK["execution_details"]["nodes_profiling"].append(profiling_data)
-
-    if event == "execution_success":
-        if ACTIVE_TASK["execution_details"]["nodes_profiling"]:
-            ACTIVE_TASK["execution_details"]["max_memory_usage"] = max(
-                i["gpu_memory_usage"] for i in ACTIVE_TASK["execution_details"]["nodes_profiling"]
-            )
-            ACTIVE_TASK["execution_details"]["nodes_execution_time"] = sum(
-                i["execution_time"] for i in ACTIVE_TASK["execution_details"]["nodes_profiling"]
-            )
-        else:
-            ACTIVE_TASK["execution_details"]["max_memory_usage"] = 0.0
-            ACTIVE_TASK["execution_details"]["nodes_execution_time"] = 0.0
-        ACTIVE_TASK.pop("profiler_current_node", None)
-        ACTIVE_TASK.pop("profiler_node_start_time", None)
-        return
-
-    if torch.cuda.is_available():
-        torch.cuda.reset_peak_memory_stats()
-    ACTIVE_TASK["profiler_current_node"] = current_node
-    ACTIVE_TASK["profiler_node_start_time"] = time.perf_counter()
 
 
 def background_prompt_executor(prompt_executor, exit_event: threading.Event):

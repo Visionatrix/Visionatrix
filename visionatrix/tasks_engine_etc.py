@@ -1,8 +1,10 @@
+import logging
+import time
 from datetime import datetime, timezone
 
 from sqlalchemy import Row, desc, select
 
-from . import database
+from . import database, options
 from .pydantic_models import UserInfo, WorkerDetailsRequest
 
 TASK_DETAILS_COLUMNS_SHORT = [
@@ -34,6 +36,8 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.webhook_headers,
     database.TaskDetails.execution_details,
 ]
+
+LOGGER = logging.getLogger("visionatrix")
 
 
 def init_new_task_details(task_id: int, name: str, input_params: dict, user_info: UserInfo) -> dict:
@@ -162,3 +166,90 @@ def get_get_incomplete_task_without_error_query(
     else:
         query = query.order_by(desc(database.TaskDetails.priority))
     return query
+
+
+def nodes_execution_profiler(active_task: dict, event: str, data: dict):
+    try:
+        __nodes_execution_profiler(active_task, event, data)
+    except Exception as e:
+        LOGGER.exception("Unexpected error in Profiler for task: %s", e)
+
+
+def __nodes_execution_profiler(active_task: dict, event: str, data: dict):
+    if not options.VIX_PROFILE_EXECUTION:
+        return
+
+    if event not in ("executing", "execution_start", "execution_success", "execution_cached"):
+        return
+
+    if event == "execution_start":  # triggered only once for each task at the beginning
+        active_task["execution_details"] = {
+            "nodes_profiling": [],
+            "max_memory_usage": 0.0,
+        }
+        return
+
+    if event == "execution_cached":
+        for node_id in data.get("nodes", []):
+            cached_node_info = active_task["flow_comfy"].get(node_id)
+            if not cached_node_info:
+                LOGGER.warning("Node with id='%s' for profiling was not found in flow_comfy.", node_id)
+                continue
+            profiling_data = {
+                "execution_time": 0.0,
+                "gpu_memory_usage": 0.0,
+                "class_type": cached_node_info.get("class_type", ""),
+                "title": cached_node_info.get("_meta", {}).get("title", ""),
+                "node_id": node_id,
+            }
+            active_task["execution_details"]["nodes_profiling"].append(profiling_data)
+
+    last_active_node = active_task.get("profiler_current_node")
+    current_node = data.get("node")
+
+    if event != "execution_success" and last_active_node == current_node:
+        LOGGER.debug("Node '%s' profiling was already initiated, skipping.", last_active_node)
+        return
+
+    import torch  # noqa
+
+    # here we have an "execute" event that fires at the start of each node's execution
+    if last_active_node and last_active_node != current_node:
+        execution_time = time.perf_counter() - active_task["profiler_node_start_time"]
+        gpu_memory_usage = round(torch.cuda.max_memory_allocated() / 1024**2, 2) if torch.cuda.is_available() else 0.0
+
+        node_info = active_task["flow_comfy"].get(last_active_node)
+        if not node_info:
+            LOGGER.warning("Node with id='%s' for profiling was not found in flow_comfy.", last_active_node)
+            return
+
+        profiling_data = {
+            "execution_time": execution_time,
+            "gpu_memory_usage": gpu_memory_usage,
+            "class_type": node_info.get("class_type", ""),
+            "title": node_info.get("_meta", {}).get("title", ""),
+            "node_id": last_active_node,
+        }
+        active_task["execution_details"]["nodes_profiling"].append(profiling_data)
+
+    if event == "execution_success":
+        if active_task["execution_details"]["nodes_profiling"]:
+            active_task["execution_details"]["max_memory_usage"] = max(
+                i["gpu_memory_usage"] for i in active_task["execution_details"]["nodes_profiling"]
+            )
+            active_task["execution_details"]["nodes_execution_time"] = sum(
+                i["execution_time"] for i in active_task["execution_details"]["nodes_profiling"]
+            )
+        else:
+            active_task["execution_details"]["max_memory_usage"] = 0.0
+            active_task["execution_details"]["nodes_execution_time"] = 0.0
+        for i in active_task["execution_details"]["nodes_profiling"]:
+            print(i)
+        active_task.pop("profiler_current_node", None)
+        active_task.pop("profiler_node_start_time", None)
+        return
+
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+    active_task["profiler_current_node"] = current_node
+    active_task["profiler_node_start_time"] = time.perf_counter()
