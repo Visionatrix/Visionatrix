@@ -2096,6 +2096,16 @@
             "title": "Error",
             "description": "Error message if any",
             "default": ""
+          },
+          "execution_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -3339,7 +3349,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-10T11:19:56.432263Z"
+            "default": "2024-11-10T13:10:47.154850Z"
           }
         },
         "type": "object",

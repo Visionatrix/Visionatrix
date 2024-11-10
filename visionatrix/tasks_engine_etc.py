@@ -243,8 +243,6 @@ def __nodes_execution_profiler(active_task: dict, event: str, data: dict):
         else:
             active_task["execution_details"]["max_memory_usage"] = 0.0
             active_task["execution_details"]["nodes_execution_time"] = 0.0
-        for i in active_task["execution_details"]["nodes_profiling"]:
-            print(i)
         active_task.pop("profiler_current_node", None)
         active_task.pop("profiler_node_start_time", None)
         return
