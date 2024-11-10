@@ -32,6 +32,7 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.finished_at,
     database.TaskDetails.webhook_url,
     database.TaskDetails.webhook_headers,
+    database.TaskDetails.execution_details,
 ]
 
 
@@ -87,6 +88,7 @@ def task_details_to_dict(task_details: Row) -> dict:
             "finished_at": task_details.finished_at,
             "webhook_url": task_details.webhook_url,
             "webhook_headers": task_details.webhook_headers,
+            "execution_details": task_details.execution_details,
         }
     )
     return r

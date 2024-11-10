@@ -20,6 +20,7 @@ from ..flows import (
     get_installed_flow,
 )
 from ..pydantic_models import (
+    ExecutionDetails,
     TaskCreationWithFullParams,
     TaskRunResults,
     TaskUpdateRequest,
@@ -646,6 +647,7 @@ async def update_task_progress(
     progress: float = Body(..., description="Progress percentage of the task"),
     execution_time: float = Body(..., description="Execution time of the task in seconds"),
     error: str = Body("", description="Error message if any"),
+    execution_details: ExecutionDetails | None = Body(None),
 ):
     """
     Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
@@ -658,15 +660,16 @@ async def update_task_progress(
         r = get_task(task_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
+    user_info = request.scope["user_info"]
+    if r["user_id"] != user_info.user_id and not user_info.is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if options.VIX_MODE == "SERVER":
         update_success = await update_task_progress_database_async(
-            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
         )
     else:
         update_success = update_task_progress_database(
-            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
         )
     if not update_success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task progress.")

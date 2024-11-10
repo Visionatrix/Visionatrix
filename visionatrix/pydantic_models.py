@@ -186,6 +186,34 @@ class TaskDetails(TaskDetailsShort):
     user_id: str = Field(..., description="User ID to whom the task belongs.")
     webhook_url: str | None = Field(None, description="URL that was set to be called when the task state changes.")
     webhook_headers: dict | None = Field(None, description="Headers that were set to be sent to the webhook URL.")
+    execution_details: ExecutionDetails | None = Field(
+        None,
+        description="Profiling information about task execution, only filled if VIX_PROFILE_EXECUTION is enabled.",
+    )
+
+
+class NodeProfiling(BaseModel):
+    """Represents profiling information for a single node in the workflow."""
+
+    execution_time: float = Field(..., description="Execution time of the node in seconds.")
+    gpu_memory_usage: float = Field(..., description="GPU memory consumed by the node in MB.")
+    class_type: str = Field(..., description="Class type of the node.")
+    title: str = Field(..., description="Title of the node.")
+    node_id: str = Field(..., description="Unique identifier of the node.")
+
+
+class ExecutionDetails(BaseModel):
+    """
+    Contains profiling information for the entire task execution.
+    """
+
+    nodes_profiling: list[NodeProfiling] = Field(
+        ..., description="Profiling information for each node in the workflow."
+    )
+    max_memory_usage: float = Field(..., description="Maximum GPU memory usage during task execution in MB.")
+    nodes_execution_time: float = Field(
+        ..., description="Execution time of all ComfyUI nodes in the workflow in seconds."
+    )
 
 
 class WorkerDetailsSystemRequest(BaseModel):

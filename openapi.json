@@ -2107,6 +2107,36 @@
         ],
         "title": "Body_update_task_progress"
       },
+      "ExecutionDetails": {
+        "properties": {
+          "nodes_profiling": {
+            "items": {
+              "$ref": "#/components/schemas/NodeProfiling"
+            },
+            "type": "array",
+            "title": "Nodes Profiling",
+            "description": "Profiling information for each node in the workflow."
+          },
+          "max_memory_usage": {
+            "type": "number",
+            "title": "Max Memory Usage",
+            "description": "Maximum GPU memory usage during task execution in MB."
+          },
+          "nodes_execution_time": {
+            "type": "number",
+            "title": "Nodes Execution Time",
+            "description": "Execution time of all ComfyUI nodes in the workflow in seconds."
+          }
+        },
+        "type": "object",
+        "required": [
+          "nodes_profiling",
+          "max_memory_usage",
+          "nodes_execution_time"
+        ],
+        "title": "ExecutionDetails",
+        "description": "Contains profiling information for the entire task execution."
+      },
       "Flow": {
         "properties": {
           "name": {
@@ -2328,6 +2358,45 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "NodeProfiling": {
+        "properties": {
+          "execution_time": {
+            "type": "number",
+            "title": "Execution Time",
+            "description": "Execution time of the node in seconds."
+          },
+          "gpu_memory_usage": {
+            "type": "number",
+            "title": "Gpu Memory Usage",
+            "description": "GPU memory consumed by the node in MB."
+          },
+          "class_type": {
+            "type": "string",
+            "title": "Class Type",
+            "description": "Class type of the node."
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Title of the node."
+          },
+          "node_id": {
+            "type": "string",
+            "title": "Node Id",
+            "description": "Unique identifier of the node."
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_time",
+          "gpu_memory_usage",
+          "class_type",
+          "title",
+          "node_id"
+        ],
+        "title": "NodeProfiling",
+        "description": "Represents profiling information for a single node in the workflow."
       },
       "SubFlow": {
         "properties": {
@@ -2613,6 +2682,17 @@
             ],
             "title": "Webhook Headers",
             "description": "Headers that were set to be sent to the webhook URL."
+          },
+          "execution_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionDetails"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Profiling information about task execution, only filled if VIX_PROFILE_EXECUTION is enabled."
           }
         },
         "type": "object",
@@ -3259,7 +3339,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-08T08:07:36.243596Z"
+            "default": "2024-11-10T11:19:56.432263Z"
           }
         },
         "type": "object",
