@@ -246,7 +246,7 @@ async def update_task_progress_database_async(
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
                 if execution_details is not None:
-                    update_values["execution_details"] = execution_details.model_dump(mode="json")
+                    update_values["execution_details"] = execution_details.model_dump(mode="json", exclude_none=True)
             result = await session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )

@@ -239,6 +239,15 @@ def soft_empty_cache(force: bool = False) -> None:
     comfy.model_management.soft_empty_cache(force)
 
 
+def get_model_management_flags() -> dict:
+    import comfy  # noqa
+
+    return {
+        "disable_smart_memory": bool(comfy.model_management.DISABLE_SMART_MEMORY),
+        "vram_state": str(comfy.model_management.vram_state.name),
+    }
+
+
 def torch_device_info() -> dict:
     """1:1 copy of code from ComfyUI server.py file."""
     import comfy  # noqa

@@ -209,13 +209,17 @@ class NodeProfiling(BaseModel):
 class ExecutionDetails(BaseModel):
     """Contains profiling information for the entire task execution."""
 
-    nodes_profiling: list[NodeProfiling] = Field(
-        ..., description="Profiling information for each node in the workflow."
+    nodes_profiling: list[NodeProfiling] | None = Field(
+        None, description="Profiling information for each node in the workflow."
     )
-    max_memory_usage: float = Field(..., description="Maximum GPU memory usage during task execution in MB.")
-    nodes_execution_time: float = Field(
-        ..., description="Execution time of all ComfyUI nodes in the workflow in seconds."
+    max_memory_usage: float | None = Field(None, description="Maximum GPU memory usage during task execution in MB.")
+    nodes_execution_time: float | None = Field(
+        None, description="Execution time of all ComfyUI nodes in the workflow in seconds."
     )
+    disable_smart_memory: bool | None = Field(
+        None, description="Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+    )
+    vram_state: str | None = Field(None, description="Current VRAM management mode used by ComfyUI.")
 
 
 class ExtraFlags(BaseModel):

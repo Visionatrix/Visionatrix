@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from . import database, options
 from .comfyui import (
     cleanup_models,
+    get_model_management_flags,
     get_worker_details,
     interrupt_processing,
     soft_empty_cache,
@@ -609,7 +610,7 @@ def update_task_progress_database(
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
                 if execution_details is not None:
-                    update_values["execution_details"] = execution_details.model_dump(mode="json")
+                    update_values["execution_details"] = execution_details.model_dump(mode="json", exclude_none=True)
             result = session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
@@ -869,6 +870,7 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
             soft_empty_cache(True)  # for AMD GPUs since ComfyUI doesn't automatically clear cache for them
 
         last_task_name = ACTIVE_TASK["name"]
+        ACTIVE_TASK["execution_details"] = get_model_management_flags()
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
