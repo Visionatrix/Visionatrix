@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from . import database, options
 from .comfyui import interrupt_processing
 from .pydantic_models import (
+    ExecutionDetails,
     TaskDetails,
     TaskDetailsShort,
     UserInfo,
@@ -230,6 +231,7 @@ async def update_task_progress_database_async(
     execution_time: float,
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
+    execution_details: ExecutionDetails | None = None,
 ) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
@@ -243,6 +245,8 @@ async def update_task_progress_database_async(
             }
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
+                if execution_details is not None:
+                    update_values["execution_details"] = execution_details.model_dump(mode="json")
             result = await session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )

@@ -20,6 +20,7 @@ from ..flows import (
     get_installed_flow,
 )
 from ..pydantic_models import (
+    ExecutionDetails,
     TaskCreationWithFullParams,
     TaskRunResults,
     TaskUpdateRequest,
@@ -87,6 +88,11 @@ async def create_task(
     All other form fields will be considered as **dynamic task-specific input parameters**.
     These parameters vary depending on the flow specified by `name` and can be either text parameters or input files.
 
+    **Custom Headers (Admin Only):**
+
+    - `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.
+    - `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.
+
     **Response:**
 
     - Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.
@@ -102,6 +108,15 @@ async def create_task(
 
     user_id = request.scope["user_info"].user_id
     is_user_admin = request.scope["user_info"].is_admin
+
+    extra_flags = {}
+    if is_user_admin:
+        if request.headers.get("X-WORKER-UNLOAD-MODELS") == "1":
+            extra_flags["unload_models"] = True
+        if request.headers.get("X-WORKER-EXECUTION-PROFILER") == "1":
+            extra_flags["profiler_execution"] = True
+    if not extra_flags:
+        extra_flags = None
 
     flow_comfy = {}
     flow = get_installed_flow(name, flow_comfy)
@@ -173,6 +188,7 @@ async def create_task(
             bool(data.child_task),
             data.group_scope,
             data.priority,
+            extra_flags,
         )
         tasks_ids.append(task_details["task_id"])
         if outputs is None:
@@ -646,6 +662,7 @@ async def update_task_progress(
     progress: float = Body(..., description="Progress percentage of the task"),
     execution_time: float = Body(..., description="Execution time of the task in seconds"),
     error: str = Body("", description="Error message if any"),
+    execution_details: ExecutionDetails | None = Body(None),
 ):
     """
     Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
@@ -658,15 +675,16 @@ async def update_task_progress(
         r = get_task(task_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
+    user_info = request.scope["user_info"]
+    if r["user_id"] != user_info.user_id and not user_info.is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if options.VIX_MODE == "SERVER":
         update_success = await update_task_progress_database_async(
-            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
         )
     else:
         update_success = update_task_progress_database(
-            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
         )
     if not update_success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task progress.")

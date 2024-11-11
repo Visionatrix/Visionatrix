@@ -684,7 +684,7 @@
           "tasks"
         ],
         "summary": "Create Task",
-        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
+        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Custom Headers (Admin Only):**\n\n- `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.\n- `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
         "operationId": "create_task",
         "parameters": [
           {
@@ -2096,6 +2096,16 @@
             "title": "Error",
             "description": "Error message if any",
             "default": ""
+          },
+          "execution_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -2106,6 +2116,55 @@
           "execution_time"
         ],
         "title": "Body_update_task_progress"
+      },
+      "ExecutionDetails": {
+        "properties": {
+          "nodes_profiling": {
+            "items": {
+              "$ref": "#/components/schemas/NodeProfiling"
+            },
+            "type": "array",
+            "title": "Nodes Profiling",
+            "description": "Profiling information for each node in the workflow."
+          },
+          "max_memory_usage": {
+            "type": "number",
+            "title": "Max Memory Usage",
+            "description": "Maximum GPU memory usage during task execution in MB."
+          },
+          "nodes_execution_time": {
+            "type": "number",
+            "title": "Nodes Execution Time",
+            "description": "Execution time of all ComfyUI nodes in the workflow in seconds."
+          }
+        },
+        "type": "object",
+        "required": [
+          "nodes_profiling",
+          "max_memory_usage",
+          "nodes_execution_time"
+        ],
+        "title": "ExecutionDetails",
+        "description": "Contains profiling information for the entire task execution."
+      },
+      "ExtraFlags": {
+        "properties": {
+          "profiler_execution": {
+            "type": "boolean",
+            "title": "Profiler Execution",
+            "description": "Enable profiling for this task execution.",
+            "default": false
+          },
+          "unload_models": {
+            "type": "boolean",
+            "title": "Unload Models",
+            "description": "Unload all models before task execution.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ExtraFlags",
+        "description": "Additional options and flags that modify how the task is executed."
       },
       "Flow": {
         "properties": {
@@ -2328,6 +2387,45 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "NodeProfiling": {
+        "properties": {
+          "execution_time": {
+            "type": "number",
+            "title": "Execution Time",
+            "description": "Execution time of the node in seconds."
+          },
+          "gpu_memory_usage": {
+            "type": "number",
+            "title": "Gpu Memory Usage",
+            "description": "GPU memory consumed by the node in MB."
+          },
+          "class_type": {
+            "type": "string",
+            "title": "Class Type",
+            "description": "Class type of the node."
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Title of the node."
+          },
+          "node_id": {
+            "type": "string",
+            "title": "Node Id",
+            "description": "Unique identifier of the node."
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_time",
+          "gpu_memory_usage",
+          "class_type",
+          "title",
+          "node_id"
+        ],
+        "title": "NodeProfiling",
+        "description": "Represents profiling information for a single node in the workflow."
       },
       "SubFlow": {
         "properties": {
@@ -2613,6 +2711,28 @@
             ],
             "title": "Webhook Headers",
             "description": "Headers that were set to be sent to the webhook URL."
+          },
+          "execution_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionDetails"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Profiling information about task execution, present only if profiling was enabled for this task."
+          },
+          "extra_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFlags"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set of additional options and flags that affect how the task is executed."
           }
         },
         "type": "object",
@@ -3259,7 +3379,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-08T08:07:36.243596Z"
+            "default": "2024-11-11T08:25:17.383968Z"
           }
         },
         "type": "object",

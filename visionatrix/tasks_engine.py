@@ -19,10 +19,12 @@ from .comfyui import (
     get_worker_details,
     interrupt_processing,
     soft_empty_cache,
+    unload_all_models,
 )
 from .db_queries import get_global_setting, get_setting
 from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
+    ExecutionDetails,
     TaskDetails,
     TaskDetailsShort,
     UserInfo,
@@ -33,6 +35,7 @@ from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS_SHORT,
     get_get_incomplete_task_without_error_query,
     init_new_task_details,
+    nodes_execution_profiler,
     prepare_worker_info_update,
     task_details_from_dict,
     task_details_short_to_dict,
@@ -292,6 +295,7 @@ def __lock_task_and_return_details(task: type[database.TaskDetails] | database.T
         "execution_time": 0.0,
         "webhook_url": task.webhook_url,
         "webhook_headers": task.webhook_headers,
+        "extra_flags": task.extra_flags,
     }
 
 
@@ -548,8 +552,9 @@ def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
 
 def update_task_progress(task_details: dict) -> bool:
     __update_temporary_execution_time(task_details)
+    execution_details = task_details.get("execution_details") if task_details["progress"] == 100.0 else None
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        return update_task_progress_server(task_details)
+        return update_task_progress_server(task_details, execution_details)
     r = update_task_progress_database(
         task_details["task_id"],
         task_details["progress"],
@@ -557,6 +562,7 @@ def update_task_progress(task_details: dict) -> bool:
         task_details["execution_time"],
         database.DEFAULT_USER.user_id,
         WorkerDetailsRequest.model_validate(get_worker_details()),
+        ExecutionDetails.model_validate(execution_details) if execution_details else None,
     )
     if r and task_details["webhook_url"]:
         try:
@@ -588,6 +594,7 @@ def update_task_progress_database(
     execution_time: float,
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
+    execution_details: ExecutionDetails | None = None,
 ) -> bool:
     with database.SESSION() as session:
         try:
@@ -601,6 +608,8 @@ def update_task_progress_database(
             }
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
+                if execution_details is not None:
+                    update_values["execution_details"] = execution_details.model_dump(mode="json")
             result = session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
@@ -640,7 +649,7 @@ def task_restart_database(task_id: int) -> bool:
     return False
 
 
-def update_task_progress_server(task_details: dict) -> bool:
+def update_task_progress_server(task_details: dict, execution_details: dict | None = None) -> bool:
     task_id = task_details["task_id"]
     request_data = {
         "worker_details": get_worker_details(),
@@ -649,6 +658,8 @@ def update_task_progress_server(task_details: dict) -> bool:
         "execution_time": task_details["execution_time"],
         "error": task_details["error"],
     }
+    if execution_details is not None:
+        request_data["execution_details"] = execution_details
     for i in range(3):
         try:
             r = httpx.put(
@@ -791,20 +802,8 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         return
     node_percent = 99 / ACTIVE_TASK["nodes_count"]
 
+    nodes_execution_profiler(ACTIVE_TASK, event, data)
     if event == "executing":
-        if options.NODES_TIMING:
-            last_node_id_timing = ACTIVE_TASK.get("timing_last_node_id", 0)
-            current_time = time.perf_counter()
-            if last_node_id_timing and last_node_id_timing != data["node"]:
-                LOGGER.log(
-                    LOGGER.getEffectiveLevel(),
-                    "Flow %s, node %s execution time: %s",
-                    ACTIVE_TASK["task_id"],
-                    data["node"],
-                    current_time - ACTIVE_TASK["timing_last_time"],
-                )
-            ACTIVE_TASK["timing_last_node_id"] = data["node"]
-            ACTIVE_TASK["timing_last_time"] = current_time
         if not ACTIVE_TASK["current_node"]:
             ACTIVE_TASK["current_node"] = data["node"]
         if ACTIVE_TASK["current_node"] != data["node"]:
@@ -832,8 +831,6 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
     last_task_name = ""
     last_gc_collect = 0
     need_gc = False
-
-    import torch  # noqa
 
     while True:
         if need_gc:
@@ -863,12 +860,18 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         if init_active_task_inputs_from_server() is False:
             ACTIVE_TASK = {}
             continue
+
+        if ACTIVE_TASK.get("extra_flags") and ACTIVE_TASK["extra_flags"].get("unload_models"):
+            LOGGER.info("unload_models=True, unloading..")
+            unload_all_models()
+            gc.collect()
+            last_gc_collect = time.perf_counter()
+            soft_empty_cache(True)  # for AMD GPUs since ComfyUI doesn't automatically clear cache for them
+
         last_task_name = ACTIVE_TASK["name"]
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
-        if options.GPU_MEM_TRACKING and torch.cuda.is_available():
-            torch.cuda.reset_peak_memory_stats()
         execution_start_time = time.perf_counter()
         ACTIVE_TASK["execution_start_time"] = execution_start_time
         threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
@@ -881,15 +884,6 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         current_time = time.perf_counter()
         if ACTIVE_TASK.get("interrupted", False) is False and not ACTIVE_TASK["error"]:
             ACTIVE_TASK["execution_time"] = current_time - execution_start_time
-            if options.GPU_MEM_TRACKING and torch.cuda.is_available():
-                max_mem = torch.cuda.max_memory_allocated() / 1024**2
-                LOGGER.log(
-                    LOGGER.getEffectiveLevel(),
-                    "Flow %s with id=%s consumed a maximum of %.2f MB",
-                    ACTIVE_TASK["name"],
-                    ACTIVE_TASK["task_id"],
-                    max_mem,
-                )
             ACTIVE_TASK["progress"] = 100.0
         ACTIVE_TASK = {}
         LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)

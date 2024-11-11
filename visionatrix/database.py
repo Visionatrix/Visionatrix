@@ -70,6 +70,8 @@ class TaskDetails(Base):
     parent_task_id = Column(Integer, nullable=True, index=True)
     parent_task_node_id = Column(Integer, nullable=True)
     translated_input_params = Column(JSON, default=None)
+    execution_details = Column(JSON, default=None, nullable=True)
+    extra_flags = Column(JSON, default=None, nullable=True)
 
     __table_args__ = (Index("ix_parent_task", "parent_task_id", "parent_task_node_id"),)
 

@@ -93,12 +93,6 @@ MAX_PARALLEL_DOWNLOADS = int(environ.get("MAX_PARALLEL_DOWNLOADS", "2"))
 MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform 'git clone' operations during installation."""
 
-NODES_TIMING = int(environ.get("NODES_TIMING", "0")) == 1
-"""If set to '1', logs the execution time of each workflow node for performance analysis."""
-
-GPU_MEM_TRACKING = int(environ.get("GPU_MEM_TRACKING", "0")) == 1
-"""If set to '1', logs the maximum GPU memory consumption for the flow."""
-
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
     global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR
