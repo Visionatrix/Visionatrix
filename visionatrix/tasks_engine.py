@@ -19,6 +19,7 @@ from .comfyui import (
     get_worker_details,
     interrupt_processing,
     soft_empty_cache,
+    unload_all_models,
 )
 from .db_queries import get_global_setting, get_setting
 from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
@@ -294,6 +295,7 @@ def __lock_task_and_return_details(task: type[database.TaskDetails] | database.T
         "execution_time": 0.0,
         "webhook_url": task.webhook_url,
         "webhook_headers": task.webhook_headers,
+        "extra_flags": task.extra_flags,
     }
 
 
@@ -858,6 +860,14 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         if init_active_task_inputs_from_server() is False:
             ACTIVE_TASK = {}
             continue
+
+        if ACTIVE_TASK.get("extra_flags") and ACTIVE_TASK["extra_flags"].get("unload_models"):
+            LOGGER.info("unload_models=True, unloading..")
+            unload_all_models()
+            gc.collect()
+            last_gc_collect = time.perf_counter()
+            soft_empty_cache(True)  # for AMD GPUs since ComfyUI doesn't automatically clear cache for them
+
         last_task_name = ACTIVE_TASK["name"]
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""

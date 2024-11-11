@@ -93,9 +93,6 @@ MAX_PARALLEL_DOWNLOADS = int(environ.get("MAX_PARALLEL_DOWNLOADS", "2"))
 MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform 'git clone' operations during installation."""
 
-VIX_PROFILE_EXECUTION = int(environ.get("VIX_PROFILE_EXECUTION", "0")) == 1
-"""If set to '1', enables logging of execution details such as node timings and GPU memory consumption."""
-
 
 def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
     global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR

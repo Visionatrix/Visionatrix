@@ -188,7 +188,11 @@ class TaskDetails(TaskDetailsShort):
     webhook_headers: dict | None = Field(None, description="Headers that were set to be sent to the webhook URL.")
     execution_details: ExecutionDetails | None = Field(
         None,
-        description="Profiling information about task execution, only filled if VIX_PROFILE_EXECUTION is enabled.",
+        description="Profiling information about task execution, present only if profiling was enabled for this task.",
+    )
+    extra_flags: ExtraFlags | None = Field(
+        None,
+        description="Set of additional options and flags that affect how the task is executed.",
     )
 
 
@@ -203,9 +207,7 @@ class NodeProfiling(BaseModel):
 
 
 class ExecutionDetails(BaseModel):
-    """
-    Contains profiling information for the entire task execution.
-    """
+    """Contains profiling information for the entire task execution."""
 
     nodes_profiling: list[NodeProfiling] = Field(
         ..., description="Profiling information for each node in the workflow."
@@ -214,6 +216,13 @@ class ExecutionDetails(BaseModel):
     nodes_execution_time: float = Field(
         ..., description="Execution time of all ComfyUI nodes in the workflow in seconds."
     )
+
+
+class ExtraFlags(BaseModel):
+    """Additional options and flags that modify how the task is executed."""
+
+    profiler_execution: bool = Field(False, description="Enable profiling for this task execution.")
+    unload_models: bool = Field(False, description="Unload all models before task execution.")
 
 
 class WorkerDetailsSystemRequest(BaseModel):

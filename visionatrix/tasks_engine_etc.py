@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import Row, desc, select
 
-from . import database, options
+from . import database
 from .pydantic_models import UserInfo, WorkerDetailsRequest
 
 TASK_DETAILS_COLUMNS_SHORT = [
@@ -35,6 +35,7 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.webhook_url,
     database.TaskDetails.webhook_headers,
     database.TaskDetails.execution_details,
+    database.TaskDetails.extra_flags,
 ]
 
 LOGGER = logging.getLogger("visionatrix")
@@ -77,6 +78,7 @@ def task_details_from_dict(task_details: dict) -> database.TaskDetails:
         parent_task_id=task_details.get("parent_task_id"),
         parent_task_node_id=task_details.get("parent_task_node_id"),
         translated_input_params=task_details.get("translated_input_params"),
+        extra_flags=task_details.get("extra_flags"),
     )
 
 
@@ -93,6 +95,7 @@ def task_details_to_dict(task_details: Row) -> dict:
             "webhook_url": task_details.webhook_url,
             "webhook_headers": task_details.webhook_headers,
             "execution_details": task_details.execution_details,
+            "extra_flags": task_details.extra_flags,
         }
     )
     return r
@@ -176,7 +179,7 @@ def nodes_execution_profiler(active_task: dict, event: str, data: dict):
 
 
 def __nodes_execution_profiler(active_task: dict, event: str, data: dict):
-    if not options.VIX_PROFILE_EXECUTION:
+    if active_task.get("extra_flags") is None or not active_task.get("extra_flags").get("profiler_execution"):
         return
 
     if event not in ("executing", "execution_start", "execution_success", "execution_cached"):

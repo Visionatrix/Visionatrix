@@ -41,6 +41,7 @@ async def task_run(
     child_task: bool,
     group_scope: int,
     priority: int,
+    extra_flags: dict | None,
 ):
     if options.VIX_MODE == "SERVER":
         task_details = await create_new_task_async(name, input_params, user_info)
@@ -81,6 +82,8 @@ async def task_run(
     task_details["priority"] = ((group_scope - 1) << 4) + priority
     if translated_input_params:
         task_details["translated_input_params"] = translated_input_params
+    if extra_flags:
+        task_details["extra_flags"] = extra_flags
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
