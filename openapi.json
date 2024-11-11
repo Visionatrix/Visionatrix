@@ -2120,30 +2120,70 @@
       "ExecutionDetails": {
         "properties": {
           "nodes_profiling": {
-            "items": {
-              "$ref": "#/components/schemas/NodeProfiling"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/NodeProfiling"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Nodes Profiling",
             "description": "Profiling information for each node in the workflow."
           },
           "max_memory_usage": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Max Memory Usage",
             "description": "Maximum GPU memory usage during task execution in MB."
           },
           "nodes_execution_time": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Nodes Execution Time",
             "description": "Execution time of all ComfyUI nodes in the workflow in seconds."
+          },
+          "disable_smart_memory": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disable Smart Memory",
+            "description": "Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+          },
+          "vram_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram State",
+            "description": "Current VRAM management mode used by ComfyUI."
           }
         },
         "type": "object",
-        "required": [
-          "nodes_profiling",
-          "max_memory_usage",
-          "nodes_execution_time"
-        ],
         "title": "ExecutionDetails",
         "description": "Contains profiling information for the entire task execution."
       },
@@ -3379,7 +3419,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-11T08:25:17.383968Z"
+            "default": "2024-11-11T17:45:22.000395Z"
           }
         },
         "type": "object",
