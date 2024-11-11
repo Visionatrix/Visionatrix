@@ -186,10 +186,12 @@ def __nodes_execution_profiler(active_task: dict, event: str, data: dict):
         return
 
     if event == "execution_start":  # triggered only once for each task at the beginning
-        active_task["execution_details"] = {
-            "nodes_profiling": [],
-            "max_memory_usage": 0.0,
-        }
+        active_task["execution_details"].update(
+            {
+                "nodes_profiling": [],
+                "max_memory_usage": 0.0,
+            }
+        )
         return
 
     if event == "execution_cached":
