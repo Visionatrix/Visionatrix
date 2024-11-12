@@ -19,7 +19,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	if (input_param.type === 'text') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as string || '',
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as string || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -30,7 +30,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -59,7 +59,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'list') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || Object.keys(input_param.options as object)[0] || '',
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as any || Object.keys(input_param.options as object)[0] || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				options: input_param.options,
@@ -70,7 +70,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'bool') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as boolean || false,
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as boolean || false,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -79,7 +79,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 		})
 	} else if (['range', 'range_scale'].includes(input_param.type)) {
 		const param: any = {
-			value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
+			value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
 			type: input_param.type,
 			optional: input_param.optional,
 			advanced: input_param.advanced || false,
