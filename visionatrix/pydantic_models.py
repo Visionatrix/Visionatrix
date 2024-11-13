@@ -194,6 +194,9 @@ class TaskDetails(TaskDetailsShort):
         None,
         description="Set of additional options and flags that affect how the task is executed.",
     )
+    custom_worker: str | None = Field(
+        None, description="ID of the worker to which the task was explicitly assigned, if specified."
+    )
 
 
 class NodeProfiling(BaseModel):
@@ -206,7 +209,16 @@ class NodeProfiling(BaseModel):
     node_id: str = Field(..., description="Unique identifier of the node.")
 
 
-class ExecutionDetails(BaseModel):
+class ComfyEngineDetails(BaseModel):
+    """Performance options that ComfyUI is running with."""
+
+    disable_smart_memory: bool | None = Field(
+        None, description="Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+    )
+    vram_state: str | None = Field(None, description="Current VRAM management mode used by ComfyUI.")
+
+
+class ExecutionDetails(ComfyEngineDetails):
     """Contains profiling information for the entire task execution."""
 
     nodes_profiling: list[NodeProfiling] | None = Field(
@@ -216,10 +228,6 @@ class ExecutionDetails(BaseModel):
     nodes_execution_time: float | None = Field(
         None, description="Execution time of all ComfyUI nodes in the workflow in seconds."
     )
-    disable_smart_memory: bool | None = Field(
-        None, description="Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
-    )
-    vram_state: str | None = Field(None, description="Current VRAM management mode used by ComfyUI.")
 
 
 class ExtraFlags(BaseModel):
@@ -260,6 +268,7 @@ class WorkerDetailsRequest(BaseModel):
     ram_total: int = Field(0, description="Total RAM on the worker in bytes")
     ram_free: int = Field(0, description="Free RAM on the worker in bytes")
     last_seen: datetime = Field(datetime.now(timezone.utc), description="Last seen time")
+    engine_details: ComfyEngineDetails = Field(...)
 
 
 class WorkerDetails(BaseModel):
@@ -292,6 +301,7 @@ class WorkerDetails(BaseModel):
     torch_vram_free: int | None = Field(None, description="Free VRAM managed by PyTorch that is currently unused.")
     ram_total: int | None = Field(None, description="Total RAM available on the worker in bytes.")
     ram_free: int | None = Field(None, description="Free RAM available on the worker in bytes.")
+    engine_details: ComfyEngineDetails | None = Field(...)
 
 
 class UserInfo(BaseModel):

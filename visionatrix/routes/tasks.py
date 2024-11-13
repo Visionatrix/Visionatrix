@@ -92,6 +92,7 @@ async def create_task(
 
     - `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.
     - `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.
+    - `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.
 
     **Response:**
 
@@ -110,11 +111,13 @@ async def create_task(
     is_user_admin = request.scope["user_info"].is_admin
 
     extra_flags = {}
+    custom_worker = None
     if is_user_admin:
         if request.headers.get("X-WORKER-UNLOAD-MODELS") == "1":
             extra_flags["unload_models"] = True
         if request.headers.get("X-WORKER-EXECUTION-PROFILER") == "1":
             extra_flags["profiler_execution"] = True
+        custom_worker = request.headers.get("X-WORKER-ID")
     if not extra_flags:
         extra_flags = None
 
@@ -189,6 +192,7 @@ async def create_task(
             data.group_scope,
             data.priority,
             extra_flags,
+            custom_worker,
         )
         tasks_ids.append(task_details["task_id"])
         if outputs is None:

@@ -2,7 +2,7 @@ import logging
 import time
 from datetime import datetime, timezone
 
-from sqlalchemy import Row, desc, select
+from sqlalchemy import Row, desc, or_, select
 
 from . import database
 from .pydantic_models import UserInfo, WorkerDetailsRequest
@@ -36,6 +36,7 @@ TASK_DETAILS_COLUMNS = [
     database.TaskDetails.webhook_headers,
     database.TaskDetails.execution_details,
     database.TaskDetails.extra_flags,
+    database.TaskDetails.custom_worker,
 ]
 
 LOGGER = logging.getLogger("visionatrix")
@@ -79,6 +80,7 @@ def task_details_from_dict(task_details: dict) -> database.TaskDetails:
         parent_task_node_id=task_details.get("parent_task_node_id"),
         translated_input_params=task_details.get("translated_input_params"),
         extra_flags=task_details.get("extra_flags"),
+        custom_worker=task_details.get("custom_worker"),
     )
 
 
@@ -96,6 +98,7 @@ def task_details_to_dict(task_details: Row) -> dict:
             "webhook_headers": task_details.webhook_headers,
             "execution_details": task_details.execution_details,
             "extra_flags": task_details.extra_flags,
+            "custom_worker": task_details.custom_worker,
         }
     )
     return r
@@ -141,6 +144,7 @@ def prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetail
             "ram_total": worker_details.ram_total,
             "ram_free": worker_details.ram_free,
             "last_seen": datetime.now(timezone.utc),
+            "engine_details": worker_details.engine_details.model_dump(mode="json"),
         },
     )
 
@@ -149,7 +153,8 @@ def get_get_incomplete_task_without_error_query(
     tasks_to_ask: list[str],
     tasks_to_give: list[str],
     last_task_name: str,
-    user_id: str | None = None,
+    worker_id: str,
+    user_id: str | None,
 ):
     query = select(database.TaskDetails).outerjoin(
         database.TaskLock, database.TaskDetails.task_id == database.TaskLock.task_id
@@ -159,6 +164,12 @@ def get_get_incomplete_task_without_error_query(
         database.TaskDetails.progress != 100.0,
         database.TaskLock.id.is_(None),
         database.TaskDetails.name.in_(tasks_to_ask),
+    )
+    query = query.filter(
+        or_(
+            database.TaskDetails.custom_worker.is_(None),
+            database.TaskDetails.custom_worker == worker_id,
+        )
     )
     if tasks_to_give:
         query = query.filter(database.TaskDetails.name.in_(tasks_to_give))

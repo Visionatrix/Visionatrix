@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from . import database, options
 from .comfyui import (
     cleanup_models,
-    get_model_management_flags,
+    get_engine_details,
     get_worker_details,
     interrupt_processing,
     soft_empty_cache,
@@ -268,7 +268,9 @@ def get_incomplete_task_without_error_database(
         else:
             query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
             tasks_to_give = session.execute(query).scalar().tasks_to_give
-        query = get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+        query = get_get_incomplete_task_without_error_query(
+            tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
+        )
         task = session.execute(query).scalar()
         if not task:
             session.commit()
@@ -870,7 +872,7 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
             soft_empty_cache(True)  # for AMD GPUs since ComfyUI doesn't automatically clear cache for them
 
         last_task_name = ACTIVE_TASK["name"]
-        ACTIVE_TASK["execution_details"] = get_model_management_flags()
+        ACTIVE_TASK["execution_details"] = get_engine_details()
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])

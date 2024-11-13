@@ -42,6 +42,7 @@ async def task_run(
     group_scope: int,
     priority: int,
     extra_flags: dict | None,
+    custom_worker: str | None,
 ):
     if options.VIX_MODE == "SERVER":
         task_details = await create_new_task_async(name, input_params, user_info)
@@ -84,6 +85,8 @@ async def task_run(
         task_details["translated_input_params"] = translated_input_params
     if extra_flags:
         task_details["extra_flags"] = extra_flags
+    if custom_worker:
+        task_details["custom_worker"] = custom_worker
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     if options.VIX_MODE == "SERVER":
         await put_task_in_queue_async(task_details)
