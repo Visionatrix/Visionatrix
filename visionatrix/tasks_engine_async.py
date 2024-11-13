@@ -200,7 +200,9 @@ async def get_incomplete_task_without_error_database_async(
             else:
                 query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
                 tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
-            query = get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+            query = get_get_incomplete_task_without_error_query(
+                tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
+            )
             task = (await session.execute(query)).scalar()
             if not task:
                 await session.commit()

@@ -239,7 +239,7 @@ def soft_empty_cache(force: bool = False) -> None:
     comfy.model_management.soft_empty_cache(force)
 
 
-def get_model_management_flags() -> dict:
+def get_engine_details() -> dict:
     import comfy  # noqa
 
     return {
@@ -287,6 +287,7 @@ def get_worker_details() -> dict:
         "ram_total": virtual_memory().total,
         "ram_free": virtual_memory().available,
         "devices": [torch_device_info()],
+        "engine_details": get_engine_details(),
     }
 
 

@@ -72,6 +72,7 @@ class TaskDetails(Base):
     translated_input_params = Column(JSON, default=None)
     execution_details = Column(JSON, default=None, nullable=True)
     extra_flags = Column(JSON, default=None, nullable=True)
+    custom_worker = Column(String, default=None, index=True)
 
     __table_args__ = (Index("ix_parent_task", "parent_task_id", "parent_task_node_id"),)
 
@@ -107,6 +108,7 @@ class Worker(Base):
     torch_vram_free = Column(BigInteger)
     ram_total = Column(BigInteger)
     ram_free = Column(BigInteger)
+    engine_details = Column(JSON, default=None, nullable=True)
 
 
 class UserInfo(Base):
