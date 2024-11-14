@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0 - 2024-11-14]
+
+This release focuses on simplifying the process of writing integrations and fixing bugs found in version `1.5`.
+
+### Added
+
+- The `install-cmd` command now accepts directories, allowing installation of all flows from a specified directory. #206
+
+### Changed
+
+- Windows archive release size greatly reduced(minus 2GB) and now fits into **1** archive file. #225
+- The default `pytorch` version for new installations has been updated to `2.5.1`.
+- The old, deprecated endpoint for task creation has been removed. #209
+- The deprecated `--loglevel` command-line argument has been removed. #218
+
+### Fixed
+
+- **UI**: Images were not displayed during the `Send to flow` action. #205
+- **UI**: Tasks are now sorted by the `finished_at` column. #211
+- **UI**: Corrected settings descriptions, added links to docs. #224
+- **UI**: Error creating flow after updating flow if parameter names changed. #229
+- The `seed` parameter was ignored in the new `task creation` endpoint. #210
+- **macOS**: The `PYTORCH_ENABLE_MPS_FALLBACK` setting is now correctly applied, and flows like `SUPIR`, `remove background`, etc., work again. #212
+- The `Gemini model` setting is now respected by the backend. #214 #217
+- The `Ollama keepalive` setting is now respected by the backend. #215
+- The `seed` parameter is now correctly included in the new `OpenAPI specs` for Flows. #216
+- Disabled automatic update checks for the "Albumentations" package. #221
+- The translations feature can now be used for non-`VixUI*` classes. #220
+
 ## [1.5.0 - 2024-10-31]
 
 ### Added
