@@ -90,5 +90,6 @@ const flowStore = useFlowsStore()
 				</UButton>
 			</div>
 		</UCarousel>
+		<WorkflowOutputInputFiles :flow-result="flowResult" />
 	</div>
 </template>

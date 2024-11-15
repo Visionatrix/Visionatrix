@@ -6,6 +6,7 @@ const props = defineProps({
 	},
 })
 
+const showTranslatedParams = ref(false)
 const inputParams = computed(() => {
 	return [
 		'#' + props.flowResult.task_id,
@@ -24,9 +25,11 @@ const inputParams = computed(() => {
 	].join(' | ') + `${props.flowResult.execution_time
 		? ' | execution_time: ' + props.flowResult.execution_time.toFixed(2) + 's'
 		: ''
+	}` + `${props.flowResult.input_files.length > 0
+		? ' | input_files: ' + props.flowResult.input_files.length
+		: ''
 	}`
 })
-const showTranslatedParams = ref(false)
 </script>
 
 <template>

@@ -1,54 +1,51 @@
 <script setup lang="ts">
 defineProps({
-	running: {
-		type: Object as PropType<FlowRunning>,
+	flowResult: {
+		type: Object as PropType<FlowResult>,
 		required: true,
 	},
 })
 
+const flowStore = useFlowsStore()
+
 const img = useImage()
-const queueImageInputSrc = function (task_id: string, index: number) {
+const outputInputFileImageSrc = (task_id: string, index: number) => {
 	return `${buildBackendApiUrl()}/tasks/inputs?task_id=${task_id}&input_index=${index}`
 }
 
 const isModalOpen = ref(false)
 const modalImageSrc = ref('')
 const modalImageIndex = ref(0)
-const collapsed = ref(true)
 </script>
 
 <template>
-	<div
-		v-if="running && running.input_files && Object.keys(running.input_files)?.length > 0"
-		class="ml-2 mt-2 mb-5" :class="{ 'mb-10': Object.keys(running.input_files)?.length > 1 && !collapsed }">
-		<h4
-			class="mb-3 font-bold cursor-pointer select-none flex items-center text-sm"
-			@click="() => collapsed = !collapsed">
-			<UIcon
-				:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
-				class="mr-2" />
-			<span>
-				Input files ({{ Object.keys(running.input_files)?.length }})
-			</span>
-		</h4>
-		<template v-if="!collapsed">
+	<UModal v-model="flowResult.showInputFiles" io>
+		<div class="w-full h-full p-4">
+			<h2 class="mb-3 font-bold select-none flex items-center justify-center text-lg w-full">
+				<UIcon name="i-heroicons-document-solid" cla ss="mr-2" />
+				<span>
+					#{{ flowResult.task_id }} Input files ({{ Object.keys(flowResult.input_files)?.length }})
+				</span>
+			</h2>
 			<NuxtImg
-				v-if="Object.keys(running.input_files)?.length === 1"
+				v-if="Object.keys(flowResult.input_files)?.length === 1"
 				class="mb-5 rounded-lg cursor-pointer"
-				fit="outside"
+				:height="flowStore.$state.outputMaxSize"
+				:width="flowStore.$state.outputMaxSize"
+				fit="cover"
 				loading="lazy"
 				:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
-				:src="queueImageInputSrc(running.task_id, 0)"
+				:src="outputInputFileImageSrc(flowResult.task_id, 0)"
 				@click="() => {
-					modalImageSrc = queueImageInputSrc(running.task_id, 0)
+					modalImageSrc = outputInputFileImageSrc(flowResult.task_id, 0)
 					modalImageIndex = 0
 					isModalOpen = true
 				}" />
 			<UCarousel
-				v-if="Object.keys(running.input_files)?.length > 1"
+				v-if="Object.keys(flowResult.input_files)?.length > 1"
 				v-slot="{ item }"
-				:items="Object.keys(running.input_files).map((value: any) => {
-					return { task_id: running.task_id, index: value as number }
+				:items="Object.keys(flowResult.input_files).map((value: any) => {
+					return { task_id: flowResult.task_id, index: value as number }
 				})"
 				:ui="{
 					item: 'basis-full md:basis-1/2',
@@ -60,13 +57,15 @@ const collapsed = ref(true)
 				indicators>
 				<div class="flex flex-col basis-full">
 					<NuxtImg
-						class="rounded-lg cursor-pointer"
-						fit="outside"
+						:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] mx-auto rounded-lg cursor-pointer`"
+						fit="cover"
 						loading="lazy"
-						:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
-						:src="queueImageInputSrc(item.task_id, item.index)"
+						draggable="false"
+						:height="flowStore.$state.outputMaxSize"
+						:width="flowStore.$state.outputMaxSize"
+						:src="outputInputFileImageSrc(item.task_id, item.index)"
 						@click="() => {
-							modalImageSrc = queueImageInputSrc(running.task_id, item.index)
+							modalImageSrc = outputInputFileImageSrc(flowResult.task_id, item.index)
 							modalImageIndex = item.index
 							isModalOpen = true
 						}" />
@@ -90,6 +89,6 @@ const collapsed = ref(true)
 						:src="modalImageSrc" />
 				</div>
 			</UModal>
-		</template>
-	</div>
+		</div>
+	</UModal>
 </template>
