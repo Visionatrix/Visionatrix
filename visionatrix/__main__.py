@@ -64,15 +64,24 @@ if __name__ == "__main__":
                 help="Filename to save",
                 default="openapi.json",
             )
-            subparser.add_argument("--available", action="store_true", help="Include specs for 'available' flows")
-            subparser.add_argument("--installed", action="store_true", help="Include specs for 'installed' flows")
             subparser.add_argument(
                 "--indentation",
                 type=int,
                 help="Indentation size",
                 default=2,
             )
-            subparser.add_argument("--only-flows", action="store_true", help="Only specs for flows", default=False)
+            subparser.add_argument(
+                "--flows",
+                type=str,
+                help="Flows to include in OpenAPI specs (comma-separated list or '*')",
+                default="",
+            )
+            subparser.add_argument(
+                "--skip-not-installed",
+                action="store_true",
+                help="Skip flows that are not installed",
+                default=True,
+            )
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
@@ -227,7 +236,9 @@ if __name__ == "__main__":
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
     elif args.command == "openapi":
         comfyui.load(None)
-        openapi_schema = generate_openapi(args.available, args.installed, args.only_flows)
+        flows_arg = args.flows.strip()
+        skip_not_installed = args.skip_not_installed
+        openapi_schema = generate_openapi(flows=flows_arg, skip_not_installed=skip_not_installed)
         with builtins.open(args.file, "w", encoding="UTF-8") as f:
             openapi_schema_str = json.dumps(openapi_schema, indent=args.indentation)
             if not openapi_schema_str.endswith("\n"):
