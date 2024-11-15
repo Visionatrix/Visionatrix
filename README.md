@@ -52,7 +52,7 @@ Access the Visionatrix UI at [http://localhost:8288](http://localhost:8288) (def
 ### Requirements
 
 - **Python** `3.10` *(recommended)* or higher
-- **GPU** with at least `10 GB` of memory *(12GB recommended)*
+- **GPU** with at least `8 GB` of memory *(12GB recommended)*
 
 ### Quick Start (Linux/macOS/WSL)
 
@@ -97,7 +97,7 @@ We offer a **portable version** to simplify installation (no need for Git or Vis
 Currently, we provide versions for CUDA/CPU. If there's demand, we can add a DirectML version.
 
 1. **Download**: Visit our [Releases page](https://github.com/Visionatrix/Visionatrix/releases).
-2. **Get the Portable Archive**: Download `vix_portable_cuda.7z.001` (and `vix_portable_cuda.7z.002` if present).
+2. **Get the Portable Archive**: Download `vix_portable_cuda.7z`.
 3. **Unpack and Run**: Extract the archive and run `run_nvidia_gpu.bat` or `run_cpu.bat`.
 
 ### Manual Installation

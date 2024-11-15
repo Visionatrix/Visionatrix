@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.6.0.dev0"
+    "version": "1.7.0.dev0"
   },
   "paths": {
     "/api/flows/installed": {
@@ -3473,7 +3473,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-13T15:40:04.564029Z"
+            "default": "2024-11-15T07:19:52.157952Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
