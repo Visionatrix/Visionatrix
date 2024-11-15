@@ -6,6 +6,8 @@ export default withNuxt(
 			semi: ['error', 'never'],
 			quotes: ['error', 'single'],
 			indent: ['error', 'tab'],
+			'no-unused-expressions': ['warn', { allowShortCircuit: true }],
+			'@typescript-eslint/no-unused-expressions': ['warn', { allowShortCircuit: true }],
 			'@typescript-eslint/no-explicit-any': 'off', // TODO: Remove later with fixes in code
 			'@typescript-eslint/ban-ts-comment': 'off',
 			'@typescript-eslint/no-empty-object-type': 'off',
