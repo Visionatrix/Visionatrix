@@ -82,6 +82,12 @@ if __name__ == "__main__":
                 help="Skip flows that are not installed",
                 default=True,
             )
+            subparser.add_argument(
+                "--exclude-base",
+                action="store_true",
+                help="Exclude base application endpoints from OpenAPI specs",
+                default=False,
+            )
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
@@ -238,7 +244,7 @@ if __name__ == "__main__":
         comfyui.load(None)
         flows_arg = args.flows.strip()
         skip_not_installed = args.skip_not_installed
-        openapi_schema = generate_openapi(flows=flows_arg, skip_not_installed=skip_not_installed)
+        openapi_schema = generate_openapi(flows_arg, skip_not_installed, args.exclude_base)
         with builtins.open(args.file, "w", encoding="UTF-8") as f:
             openapi_schema_str = json.dumps(openapi_schema, indent=args.indentation)
             if not openapi_schema_str.endswith("\n"):

@@ -136,7 +136,7 @@ def create_dynamic_route(flow_definition: Flow):
     return dynamic_route
 
 
-def generate_openapi(app: FastAPI, flows: str = "", skip_not_installed: bool = True):
+def generate_openapi(app: FastAPI, flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
     flows_definitions = {}
     if flows == "":
         # Do not include any flows
@@ -162,21 +162,20 @@ def generate_openapi(app: FastAPI, flows: str = "", skip_not_installed: bool = T
 
     update_tasks_integrations_routes(app, flows_definitions)
 
-    filtered_routes = app.routes  # By default, include all routes
-
-    # Exclude flow routes when flows == ""
-    if flows == "":
-        # Exclude flow routes
+    if exclude_base:
+        # Include only flow routes
         filtered_routes = []
         for route in app.routes:
             if isinstance(route, APIRoute):
-                if not (route.path.startswith(TASK_CREATE_ROUTE) and not route.path.endswith("{name}")):
+                if route.path.startswith(TASK_CREATE_ROUTE) and not route.path.endswith("{name}"):
                     filtered_routes.append(route)
             else:
                 filtered_routes.append(route)
+    else:
+        filtered_routes = app.routes  # Include all routes
 
     routes_signature = compute_routes_signature(filtered_routes)
-    cache_key = (routes_signature, flows, skip_not_installed)
+    cache_key = (routes_signature, flows, skip_not_installed, exclude_base)
 
     if not hasattr(app, "openapi_schemas"):
         app.openapi_schemas = {}

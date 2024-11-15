@@ -100,9 +100,9 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--server",
         "--disable-device-detection",
         "^openapi$",
-        "--installed",
-        "--available",
-        "--only-flows",
+        "--skip-not-installed",
+        "--flows",
+        "--exclude-base",
         "--indentation=",
         "visionatrix:APP",
     ]
