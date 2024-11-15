@@ -145,8 +145,8 @@ def run_vix(*args, **kwargs) -> None:
             print("Visionatrix is shutting down.")
 
 
-def generate_openapi(available: bool = False, installed: bool = False, only_flows: bool = False):
-    return custom_openapi.generate_openapi(APP, available, installed, only_flows)
+def generate_openapi(flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
+    return custom_openapi.generate_openapi(APP, flows, skip_not_installed, exclude_base)
 
 
 APP.openapi = generate_openapi
@@ -154,26 +154,22 @@ APP.openapi = generate_openapi
 
 @APP.get("/openapi/flows.json", include_in_schema=False)
 async def openapi_flows_json(
-    available: bool = Query(False, description="Include available flows"),
-    installed: bool = Query(False, description="Include installed flows"),
-    only_flows: bool = Query(False, description="Include only flow endpoints"),
+    flows: str = Query("", description="Flows to include in OpenAPI specs (comma-separated list or '*')"),
+    skip_not_installed: bool = Query(True, description="Skip flows that are not installed"),
 ):
-    return custom_openapi.generate_openapi(APP, available, installed, only_flows)
+    return custom_openapi.generate_openapi(APP, flows=flows, skip_not_installed=skip_not_installed)
 
 
 @APP.get("/docs/flows", include_in_schema=False)
 async def docs_flows(
-    available: bool = Query(False, description="Include available flows"),
-    installed: bool = Query(True, description="Include installed flows"),
-    only_flows: bool = Query(False, description="Include only flow endpoints"),
+    flows: str = Query("*", description="Flows to include in OpenAPI specs (comma-separated list or '*')"),
+    skip_not_installed: bool = Query(True, description="Skip flows that are not installed"),
 ):
     query_params = []
-    if available:
-        query_params.append("available=true")
-    if installed:
-        query_params.append("installed=true")
-    if only_flows:
-        query_params.append("only_flows=true")
+    if flows:
+        query_params.append(f"flows={flows}")
+    if not skip_not_installed:
+        query_params.append("skip_not_installed=false")
     query_string = "&".join(query_params)
     openapi_url = "/openapi/flows.json"
     if query_string:

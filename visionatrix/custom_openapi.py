@@ -136,28 +136,46 @@ def create_dynamic_route(flow_definition: Flow):
     return dynamic_route
 
 
-def generate_openapi(app: FastAPI, available: bool, installed: bool, only_flows: bool = False):
+def generate_openapi(app: FastAPI, flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
     flows_definitions = {}
-    if available:
-        flows_definitions.update(get_available_flows())
-    if installed:
+    if flows == "":
+        # Do not include any flows
+        flows_definitions = {}
+    elif flows == "*":
+        # Include all installed flows
         flows_definitions.update(get_installed_flows())
+        if not skip_not_installed:
+            flows_definitions.update(get_available_flows())
+    else:
+        # flows is a comma-separated list of flow names
+        flow_names = [name.strip() for name in flows.split(",") if name.strip()]
+        # Get installed flows matching these names
+        installed_flows = get_installed_flows()
+        selected_flows = {name: flow for name, flow in installed_flows.items() if name in flow_names}
+        if not skip_not_installed:
+            # Include not installed flows if any of the specified flows are not installed
+            available_flows = get_available_flows()
+            for name in flow_names:
+                if name not in selected_flows and name in available_flows:
+                    selected_flows[name] = available_flows[name]
+        flows_definitions.update(selected_flows)
+
     update_tasks_integrations_routes(app, flows_definitions)
 
-    if only_flows:
+    if exclude_base:
+        # Include only flow routes
         filtered_routes = []
         for route in app.routes:
-            if (
-                isinstance(route, APIRoute)
-                and route.path.startswith(TASK_CREATE_ROUTE)
-                and not route.path.endswith("{name}")
-            ):
+            if isinstance(route, APIRoute):
+                if route.path.startswith(TASK_CREATE_ROUTE) and not route.path.endswith("{name}"):
+                    filtered_routes.append(route)
+            else:
                 filtered_routes.append(route)
     else:
-        filtered_routes = app.routes
+        filtered_routes = app.routes  # Include all routes
 
     routes_signature = compute_routes_signature(filtered_routes)
-    cache_key = (routes_signature, only_flows)
+    cache_key = (routes_signature, flows, skip_not_installed, exclude_base)
 
     if not hasattr(app, "openapi_schemas"):
         app.openapi_schemas = {}
@@ -185,8 +203,6 @@ def generate_openapi(app: FastAPI, available: bool, installed: bool, only_flows:
                     content_type["multipart/form-data"] = {"schema": form_data_schema}
 
     app.openapi_schemas[cache_key] = openapi_schema
-    if not only_flows:
-        app.openapi_schema = openapi_schema
     return openapi_schema
 
 
