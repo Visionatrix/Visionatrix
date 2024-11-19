@@ -126,17 +126,6 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			},
 		}])
 	}
-	if (flowResult.input_files.length > 0) {
-		taskDropdownItems.splice(2, 0, [{
-			label: 'Show input files',
-			labelClass: 'text-green-500 text-sm',
-			icon: 'i-heroicons-document-solid',
-			iconClass: 'bg-green-500 h-4 w-4',
-			click: () => {
-				flowResult.showInputFiles = true
-			},
-		}])
-	}
 	return taskDropdownItems
 }
 </script>

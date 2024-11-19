@@ -25,9 +25,6 @@ const inputParams = computed(() => {
 	].join(' | ') + `${props.flowResult.execution_time
 		? ' | execution_time: ' + props.flowResult.execution_time.toFixed(2) + 's'
 		: ''
-	}` + `${props.flowResult.input_files.length > 0
-		? ' | input_files: ' + props.flowResult.input_files.length
-		: ''
 	}`
 })
 </script>
@@ -65,4 +62,19 @@ const inputParams = computed(() => {
 		}">
 		{{ inputParamStr }}
 	</UBadge>
+	<UBadge v-if="flowResult.input_files.length > 0"
+		class="mr-2 mb-2 last:mr-0 hover:cursor-pointer"
+		variant="subtle"
+		color="sky"
+		@click="() => {
+			flowResult.showInputFiles = !flowResult.showInputFiles
+		}">
+		<UIcon :name="flowResult.showInputFiles
+				? 'i-heroicons-chevron-down'
+				: 'i-heroicons-chevron-up'"
+			class="mr-1" />
+		<UIcon name="i-heroicons-document-solid" class="mr-1" />
+		{{ `input_files: ${flowResult.input_files.length}` }}
+	</UBadge>
+	<WorkflowOutputInputFiles :flow-result="flowResult" />
 </template>

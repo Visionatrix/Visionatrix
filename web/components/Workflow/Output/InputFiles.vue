@@ -19,76 +19,68 @@ const modalImageIndex = ref(0)
 </script>
 
 <template>
-	<UModal v-model="flowResult.showInputFiles" io>
-		<div class="w-full h-full p-4">
-			<h2 class="mb-3 font-bold select-none flex items-center justify-center text-lg w-full">
-				<UIcon name="i-heroicons-document-solid" cla ss="mr-2" />
-				<span>
-					#{{ flowResult.task_id }} Input files ({{ Object.keys(flowResult.input_files)?.length }})
-				</span>
-			</h2>
-			<NuxtImg
-				v-if="Object.keys(flowResult.input_files)?.length === 1"
-				class="mb-5 rounded-lg cursor-pointer"
-				:height="flowStore.$state.outputMaxSize"
-				:width="flowStore.$state.outputMaxSize"
-				fit="cover"
-				loading="lazy"
-				:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
-				:src="outputInputFileImageSrc(flowResult.task_id, 0)"
-				@click="() => {
-					modalImageSrc = outputInputFileImageSrc(flowResult.task_id, 0)
-					modalImageIndex = 0
-					isModalOpen = true
-				}" />
-			<UCarousel
-				v-if="Object.keys(flowResult.input_files)?.length > 1"
-				v-slot="{ item }"
-				:items="Object.keys(flowResult.input_files).map((value: any) => {
-					return { task_id: flowResult.task_id, index: value as number }
-				})"
-				:ui="{
-					item: 'basis-full md:basis-1/2',
-					indicators: {
-						wrapper: 'relative bottom-0 mt-4'
-					}
-				}"
-				:page="1"
-				indicators>
-				<div class="flex flex-col basis-full">
-					<NuxtImg
-						:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] mx-auto rounded-lg cursor-pointer`"
-						fit="cover"
-						loading="lazy"
-						draggable="false"
-						:height="flowStore.$state.outputMaxSize"
-						:width="flowStore.$state.outputMaxSize"
-						:src="outputInputFileImageSrc(item.task_id, item.index)"
-						@click="() => {
-							modalImageSrc = outputInputFileImageSrc(flowResult.task_id, item.index)
-							modalImageIndex = item.index
-							isModalOpen = true
-						}" />
-				</div>
-			</UCarousel>
-			<UModal v-model="isModalOpen" class="z-[90]" :transition="false" fullscreen>
-				<UButton
-					class="absolute top-4 right-4"
-					icon="i-heroicons-x-mark"
-					variant="ghost"
-					@click="() => isModalOpen = false" />
-				<div
-					class="flex items-center justify-center w-full h-full p-4"
-					@click.left="() => isModalOpen = false">
-					<NuxtImg
-						v-if="modalImageSrc"
-						class="lg:h-full"
-						fit="inside"
-						loading="lazy"
-						placeholder="/vix_logo.png"
-						:src="modalImageSrc" />
-				</div>
-			</UModal>
-		</div>
-	</UModal>
+	<div v-if="flowResult.showInputFiles" class="w-full h-full p-1">
+		<NuxtImg
+			v-if="Object.keys(flowResult.input_files)?.length === 1"
+			class="mb-5 mx-auto rounded-lg cursor-pointer"
+			:height="flowStore.$state.outputMaxSize"
+			:width="flowStore.$state.outputMaxSize"
+			fit="cover"
+			loading="lazy"
+			:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
+			:src="outputInputFileImageSrc(flowResult.task_id, 0)"
+			@click="() => {
+				modalImageSrc = outputInputFileImageSrc(flowResult.task_id, 0)
+				modalImageIndex = 0
+				isModalOpen = true
+			}" />
+		<UCarousel
+			v-if="Object.keys(flowResult.input_files)?.length > 1"
+			v-slot="{ item }"
+			:items="Object.keys(flowResult.input_files).map((value: any) => {
+				return { task_id: flowResult.task_id, index: value as number }
+			})"
+			:ui="{
+				item: 'basis-full md:basis-1/2',
+				indicators: {
+					wrapper: 'relative bottom-0 mt-4'
+				}
+			}"
+			:page="1"
+			indicators>
+			<div class="flex flex-col basis-full justify-between mx-2">
+				<NuxtImg
+					:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] mx-auto rounded-lg cursor-pointer`"
+					fit="cover"
+					loading="lazy"
+					draggable="false"
+					:height="flowStore.$state.outputMaxSize"
+					:width="flowStore.$state.outputMaxSize"
+					:src="outputInputFileImageSrc(item.task_id, item.index)"
+					@click="() => {
+						modalImageSrc = outputInputFileImageSrc(flowResult.task_id, item.index)
+						modalImageIndex = item.index
+						isModalOpen = true
+					}" />
+			</div>
+		</UCarousel>
+		<UModal v-model="isModalOpen" class="z-[90]" :transition="false" fullscreen>
+			<UButton
+				class="absolute top-4 right-4"
+				icon="i-heroicons-x-mark"
+				variant="ghost"
+				@click="() => isModalOpen = false" />
+			<div
+				class="flex items-center justify-center w-full h-full p-4"
+				@click.left="() => isModalOpen = false">
+				<NuxtImg
+					v-if="modalImageSrc"
+					class="lg:h-full"
+					fit="inside"
+					loading="lazy"
+					placeholder="/vix_logo.png"
+					:src="modalImageSrc" />
+			</div>
+		</UModal>
+	</div>
 </template>
