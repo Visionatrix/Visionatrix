@@ -22,10 +22,8 @@ const modalImageIndex = ref(0)
 	<div v-if="flowResult.showInputFiles" class="w-full h-full p-1">
 		<NuxtImg
 			v-if="Object.keys(flowResult.input_files)?.length === 1"
-			class="mb-5 mx-auto rounded-lg cursor-pointer"
-			:height="flowStore.$state.outputMaxSize"
-			:width="flowStore.$state.outputMaxSize"
-			fit="cover"
+			class="mb-5 mx-auto rounded-lg cursor-pointer max-h-screen"
+			fit="outside"
 			loading="lazy"
 			:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 			:src="outputInputFileImageSrc(flowResult.task_id, 0)"
@@ -51,11 +49,9 @@ const modalImageIndex = ref(0)
 			<div class="flex flex-col basis-full justify-between mx-2">
 				<NuxtImg
 					:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] mx-auto rounded-lg cursor-pointer`"
-					fit="cover"
+					fit="outside"
 					loading="lazy"
 					draggable="false"
-					:height="flowStore.$state.outputMaxSize"
-					:width="flowStore.$state.outputMaxSize"
 					:src="outputInputFileImageSrc(item.task_id, item.index)"
 					@click="() => {
 						modalImageSrc = outputInputFileImageSrc(flowResult.task_id, item.index)
