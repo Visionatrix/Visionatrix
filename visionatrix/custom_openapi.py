@@ -67,8 +67,9 @@ def create_dynamic_model(flow_definition: Flow) -> type[BaseModel]:
     model_fields = {}
     for param in flow_definition.input_params:
         d_name = param["display_name"]
-        if param.get("default"):
-            default = param["default"]
+        default_param = param.get("default")
+        if (isinstance(default_param, str) and default_param) or isinstance(default_param, float | int | bool):
+            default = default_param
         elif param["optional"]:
             default = None
         else:
