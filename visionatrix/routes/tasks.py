@@ -134,11 +134,12 @@ async def create_task(
     for input_param in flow.input_params:
         flow_input_params[input_param["name"]] = input_param
 
+    standard_params = TaskCreationWithFullParams.model_fields.keys()
     for key in form_data:
         if flow.is_seed_supported and key == "seed":
             in_text_params["seed"] = int(form_data.get(key))
             continue
-        if key in TaskCreationWithFullParams.model_fields:
+        if key in standard_params:
             continue
         if key not in flow_input_params:
             LOGGER.warning("Unexpected parameter '%s' for '%s' task creation, ignoring.", key, name)
