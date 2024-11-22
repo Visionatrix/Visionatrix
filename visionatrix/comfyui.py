@@ -215,6 +215,12 @@ def get_node_class_mappings() -> dict[str, object]:
     return nodes.NODE_CLASS_MAPPINGS
 
 
+def get_folder_names_and_paths() -> dict[str, tuple[list[str], set[str]]]:
+    import folder_paths  # noqa
+
+    return folder_paths.folder_names_and_paths
+
+
 def interrupt_processing() -> None:
     import nodes  # noqa
 

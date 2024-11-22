@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
@@ -38,7 +38,7 @@ class AIResourceModel(BaseModel):
     """
 
     name: str = Field(..., description="Unique name of the model.")
-    save_path: str = Field(..., description="Subpath where the model is stored within the local system.")
+    paths: list[str] = Field(..., description="Paths where the model can be stored within the filesystem.")
     url: str = Field(..., description="URL from which the model can be downloaded.")
     homepage: str = Field("", description="Webpage with detailed information about the model.")
     hash: str = Field(..., description="SHA256 hash of the model file for integrity verification.")
@@ -57,6 +57,13 @@ class AIResourceModel(BaseModel):
 
     def __eq__(self, other):
         return isinstance(other, AIResourceModel) and self.name == other.name
+
+    @model_validator(mode="before")
+    @classmethod
+    def validator_before(cls, data: Any) -> Any:
+        if isinstance(data, dict) and isinstance(data.get("paths", []), str):
+            data["paths"] = [data["paths"]]
+        return data
 
 
 class Flow(BaseModel):
@@ -327,6 +334,12 @@ class OrphanModel(BaseModel):
     creation_time: float = Field(..., description="The file's creation time in UNIX timestamp format.")
     res_model: AIResourceModel | None = Field(None, description="AIResourceModel describing the file, if any matches.")
     possible_flows: list[Flow] = Field([], description="List of possible flows that could potentially use this model.")
+
+    def __hash__(self):
+        return hash(self.path)
+
+    def __eq__(self, other):
+        return isinstance(other, OrphanModel) and self.path == other.path
 
 
 class TaskUpdateRequest(BaseModel):

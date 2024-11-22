@@ -14,7 +14,6 @@ BACKEND_DIR = environ.get(
     "BACKEND_DIR", str(Path("vix_backend") if PYTHON_EMBEDED else Path("./vix_backend").resolve())
 )
 FLOWS_DIR = environ.get("FLOWS_DIR", str(Path("vix_flows") if PYTHON_EMBEDED else Path("./vix_flows").resolve()))
-MODELS_DIR = environ.get("MODELS_DIR", str(Path("vix_models") if PYTHON_EMBEDED else Path("./vix_models").resolve()))
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
 
 VIX_HOST = environ.get("VIX_HOST", "")
@@ -61,10 +60,12 @@ https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information
 # And uncomment the next line to use the local version.
 # FLOWS_URL = "./flows.zip"
 
-MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog.json")
+MODELS_CATALOG_URL = environ.get(
+    "MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog_v2.json"
+)
 """URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models."""
 
-# MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.
+# MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog_v2.json"  # uncomment this to use local version for development.
 
 MIN_PAUSE_INTERVAL = float(environ.get("MIN_PAUSE_INTERVAL", "0.1"))
 """Initial waiting time (in seconds) between polling for the next task to process."""
@@ -94,14 +95,12 @@ MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform 'git clone' operations during installation."""
 
 
-def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
-    global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR
+def init_dirs_values(backend: str | None, flows: str | None, tasks_files: str | None) -> None:
+    global BACKEND_DIR, FLOWS_DIR, TASKS_FILES_DIR
     if backend:
         BACKEND_DIR = str(Path(backend).resolve())
     if flows:
         FLOWS_DIR = str(Path(flows).resolve())
-    if models:
-        MODELS_DIR = str(Path(models).resolve())
     if tasks_files:
         TASKS_FILES_DIR = str(Path(tasks_files).resolve())
 
@@ -111,7 +110,6 @@ def get_server_mode_options_as_env() -> dict[str, str]:
         "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
         "BACKEND_DIR": BACKEND_DIR,
         "FLOWS_DIR": FLOWS_DIR,
-        "MODELS_DIR": MODELS_DIR,
         "TASKS_FILES_DIR": TASKS_FILES_DIR,
         "VIX_HOST": VIX_HOST,
         "VIX_PORT": VIX_PORT,
