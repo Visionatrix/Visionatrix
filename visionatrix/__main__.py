@@ -101,7 +101,6 @@ if __name__ == "__main__":
 
         subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
         subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
-        subparser.add_argument("--models_dir", type=str, help="Directory for the models")
         if i[0] == "run":
             subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
@@ -146,16 +145,11 @@ if __name__ == "__main__":
     options.init_dirs_values(
         backend=getattr(args, "backend_dir", ""),
         flows=getattr(args, "flows_dir", ""),
-        models=getattr(args, "models_dir", ""),
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
 
     if args.command == "install":
-        operations_mask = [True, True, True]
-        if Path(options.MODELS_DIR).exists():
-            c = input("Do you want to clear models folder? (Y/N): ").lower()
-            if c != "y":
-                operations_mask[2] = False
+        operations_mask = [True, True]
         if Path(options.FLOWS_DIR).exists():
             c = input("Do you want to clear flows folder? (Y/N): ").lower()
             if c != "y":

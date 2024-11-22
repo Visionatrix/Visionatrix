@@ -150,13 +150,11 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         LOGGER.info("Set cuda device to: %s", main.args.cuda_device)
 
     import cuda_malloc  # noqa
+    import utils.extra_config  # noqa
 
-    try:
-        main.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
-    except AttributeError:  # September 17: remove this in ~3 months
-        import utils.extra_config
-
-        utils.extra_config.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
+    extra_path = Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml")
+    if extra_path.is_file():
+        utils.extra_config.load_extra_path_config(extra_path)
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
@@ -213,6 +211,12 @@ def get_node_class_mappings() -> dict[str, object]:
     import nodes  # noqa
 
     return nodes.NODE_CLASS_MAPPINGS
+
+
+def get_folder_names_and_paths() -> dict[str, tuple[list[str], set[str]]]:
+    import folder_paths  # noqa
+
+    return folder_paths.folder_names_and_paths
 
 
 def interrupt_processing() -> None:

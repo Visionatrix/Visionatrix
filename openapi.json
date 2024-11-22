@@ -1889,10 +1889,13 @@
             "title": "Name",
             "description": "Unique name of the model."
           },
-          "save_path": {
-            "type": "string",
-            "title": "Save Path",
-            "description": "Subpath where the model is stored within the local system."
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Paths",
+            "description": "Paths where the model can be stored within the filesystem."
           },
           "url": {
             "type": "string",
@@ -1935,7 +1938,7 @@
         "type": "object",
         "required": [
           "name",
-          "save_path",
+          "paths",
           "url",
           "hash"
         ],
@@ -3473,7 +3476,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-15T07:19:52.157952Z"
+            "default": "2024-11-22T20:02:38.764288Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

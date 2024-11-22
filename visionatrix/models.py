@@ -25,38 +25,39 @@ def install_model(
     hf_auth_token: str = "",
 ) -> bool:
     model.hash = model.hash.lower()
-    if str(model.save_path).find("{root}") != -1:
-        save_path = Path(options.BACKEND_DIR).joinpath(model.save_path.replace("{root}", ""))
-    else:
-        save_path = Path(options.MODELS_DIR).joinpath(model.save_path)
-    LOGGER.debug("model=%s --> save_path=%s", model.name, save_path)
     check_result = False
-    if save_path.exists() and not model.url.endswith(".zip"):
-        if check_hash(model.hash, save_path):
-            LOGGER.info("`%s` already exists.", save_path)
+
+    for model_paths in model.paths:
+        save_path = Path(model_paths)
+        LOGGER.debug("model=%s --> save_path=%s", model.name, save_path)
+
+        if save_path.exists() and not model.url.endswith(".zip"):
+            if check_hash(model.hash, save_path):
+                LOGGER.info("`%s` already exists.", save_path)
+                check_result = True
+            else:
+                LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", model.name)
+        elif save_path.suffix == ".zip":
             check_result = True
-        else:
-            LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", model.name)
-    elif save_path.suffix == ".zip":
-        check_result = True
-        if not model.hashes:
-            LOGGER.info("`%s` does not provide hashes for files in archive, skipping.", save_path)
-        else:
-            for model_name, model_hash in model.hashes.items():
-                archive_element = Path(save_path.with_suffix("")).joinpath(model_name)
-                if archive_element.exists():
-                    if check_hash(model_hash, archive_element):
-                        LOGGER.info("`%s` already exists.", archive_element)
-                        continue
-                    LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", archive_element)
-                check_result = False
-                break
+            if not model.hashes:
+                LOGGER.info("`%s` does not provide hashes for files in archive, skipping.", save_path)
+            else:
+                for model_name, model_hash in model.hashes.items():
+                    archive_element = Path(save_path.with_suffix("")).joinpath(model_name)
+                    if archive_element.exists():
+                        if check_hash(model_hash, archive_element):
+                            LOGGER.info("`%s` already exists.", archive_element)
+                            continue
+                        LOGGER.warning("Model `%s` exists but has invalid hash. Reinstalling..", archive_element)
+                    check_result = False
+                    break
 
-    if check_result is True:
-        if progress_callback is None:
-            return True
-        return progress_callback(flow_name, progress_for_model, "", True)
+        if check_result is True:
+            if progress_callback is None:
+                return True
+            return progress_callback(flow_name, progress_for_model, "", True)
 
+    save_path = Path(model.paths[0])
     os.makedirs(save_path.parent, exist_ok=True)
     for _ in range(DOWNLOAD_RETRY_COUNT):
         LOGGER.info("Downloading `%s`..", model.name)
