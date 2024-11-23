@@ -5,7 +5,7 @@
     "version": "1.7.0.dev0"
   },
   "paths": {
-    "/api/flows/installed": {
+    "/vapi/flows/installed": {
       "get": {
         "tags": [
           "flows"
@@ -31,7 +31,7 @@
         }
       }
     },
-    "/api/flows/not-installed": {
+    "/vapi/flows/not-installed": {
       "get": {
         "tags": [
           "flows"
@@ -57,7 +57,7 @@
         }
       }
     },
-    "/api/flows/subflows": {
+    "/vapi/flows/subflows": {
       "get": {
         "tags": [
           "flows"
@@ -109,7 +109,7 @@
         }
       }
     },
-    "/api/flows/flow": {
+    "/vapi/flows/flow": {
       "post": {
         "tags": [
           "flows"
@@ -246,7 +246,7 @@
         }
       }
     },
-    "/api/flows/flow-update": {
+    "/vapi/flows/flow-update": {
       "post": {
         "tags": [
           "flows"
@@ -314,7 +314,7 @@
         }
       }
     },
-    "/api/flows/install-progress": {
+    "/vapi/flows/install-progress": {
       "get": {
         "tags": [
           "flows"
@@ -386,7 +386,7 @@
         }
       }
     },
-    "/api/settings/get": {
+    "/vapi/settings/get": {
       "get": {
         "tags": [
           "settings"
@@ -429,7 +429,7 @@
         }
       }
     },
-    "/api/settings/global": {
+    "/vapi/settings/global": {
       "get": {
         "tags": [
           "settings"
@@ -515,7 +515,7 @@
         }
       }
     },
-    "/api/settings/user": {
+    "/vapi/settings/user": {
       "get": {
         "tags": [
           "settings"
@@ -591,7 +591,7 @@
         }
       }
     },
-    "/api/settings/get_all": {
+    "/vapi/settings/get_all": {
       "get": {
         "tags": [
           "settings"
@@ -620,7 +620,7 @@
         }
       }
     },
-    "/api/settings/global_all": {
+    "/vapi/settings/global_all": {
       "get": {
         "tags": [
           "settings"
@@ -649,7 +649,7 @@
         }
       }
     },
-    "/api/settings/user_all": {
+    "/vapi/settings/user_all": {
       "get": {
         "tags": [
           "settings"
@@ -678,7 +678,7 @@
         }
       }
     },
-    "/api/tasks/create/{name}": {
+    "/vapi/tasks/create/{name}": {
       "put": {
         "tags": [
           "tasks"
@@ -731,7 +731,7 @@
         }
       }
     },
-    "/api/tasks/progress": {
+    "/vapi/tasks/progress": {
       "get": {
         "tags": [
           "tasks"
@@ -857,7 +857,7 @@
         }
       }
     },
-    "/api/tasks/progress-summary": {
+    "/vapi/tasks/progress-summary": {
       "get": {
         "tags": [
           "tasks"
@@ -930,7 +930,7 @@
         }
       }
     },
-    "/api/tasks/progress/{task_id}": {
+    "/vapi/tasks/progress/{task_id}": {
       "get": {
         "tags": [
           "tasks"
@@ -973,7 +973,7 @@
         }
       }
     },
-    "/api/tasks/restart": {
+    "/vapi/tasks/restart": {
       "post": {
         "tags": [
           "tasks"
@@ -1054,7 +1054,7 @@
         }
       }
     },
-    "/api/tasks/task": {
+    "/vapi/tasks/task": {
       "delete": {
         "tags": [
           "tasks"
@@ -1102,7 +1102,7 @@
         }
       }
     },
-    "/api/tasks/clear": {
+    "/vapi/tasks/clear": {
       "delete": {
         "tags": [
           "tasks"
@@ -1152,7 +1152,7 @@
         }
       }
     },
-    "/api/tasks/inputs": {
+    "/vapi/tasks/inputs": {
       "get": {
         "tags": [
           "tasks"
@@ -1217,7 +1217,7 @@
         }
       }
     },
-    "/api/tasks/results": {
+    "/vapi/tasks/results": {
       "get": {
         "tags": [
           "tasks"
@@ -1370,7 +1370,7 @@
         }
       }
     },
-    "/api/tasks/queue": {
+    "/vapi/tasks/queue": {
       "delete": {
         "tags": [
           "tasks"
@@ -1420,7 +1420,7 @@
         }
       }
     },
-    "/api/tasks/queue/{task_id}": {
+    "/vapi/tasks/queue/{task_id}": {
       "delete": {
         "tags": [
           "tasks"
@@ -1466,7 +1466,7 @@
         }
       }
     },
-    "/api/tasks/next": {
+    "/vapi/tasks/next": {
       "post": {
         "tags": [
           "tasks"
@@ -1509,7 +1509,7 @@
         }
       }
     },
-    "/api/tasks/lock": {
+    "/vapi/tasks/lock": {
       "delete": {
         "tags": [
           "tasks"
@@ -1557,7 +1557,7 @@
         }
       }
     },
-    "/api/tasks/update": {
+    "/vapi/tasks/update": {
       "put": {
         "tags": [
           "tasks"
@@ -1643,7 +1643,7 @@
         }
       }
     },
-    "/api/workers/info": {
+    "/vapi/workers/info": {
       "get": {
         "tags": [
           "workers"
@@ -1705,7 +1705,7 @@
         }
       }
     },
-    "/api/workers/tasks": {
+    "/vapi/workers/tasks": {
       "post": {
         "tags": [
           "workers"
@@ -1750,7 +1750,7 @@
         }
       }
     },
-    "/api/other/interrupt-engine": {
+    "/vapi/other/interrupt-engine": {
       "post": {
         "tags": [
           "other"
@@ -1775,7 +1775,7 @@
         }
       }
     },
-    "/api/other/shutdown-server": {
+    "/vapi/other/shutdown-server": {
       "post": {
         "tags": [
           "other"
@@ -1800,7 +1800,7 @@
         }
       }
     },
-    "/api/other/whoami": {
+    "/vapi/other/whoami": {
       "get": {
         "tags": [
           "other"
@@ -1822,7 +1822,7 @@
         }
       }
     },
-    "/api/other/translate-prompt": {
+    "/vapi/other/translate-prompt": {
       "post": {
         "tags": [
           "other"
@@ -3476,7 +3476,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-22T20:02:38.764288Z"
+            "default": "2024-11-23T07:49:29.485081Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

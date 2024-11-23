@@ -27,7 +27,7 @@ from .pydantic_models import (
     TaskRunResults,
 )
 
-TASK_CREATE_ROUTE = "/api/tasks/create/"
+TASK_CREATE_ROUTE = "/vapi/tasks/create/"
 INTEGRATIONS_TASKS_PATTERN = re.compile(rf"^{TASK_CREATE_ROUTE}(?P<name>[\w\-]+)$")
 
 

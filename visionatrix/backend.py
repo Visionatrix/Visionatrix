@@ -91,7 +91,7 @@ def custom_generate_unique_id(route: APIRoute):
 
 
 APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
-API_ROUTER = APIRouter(prefix="/api")  # if you change the prefix, also change it in custom_openapi.py
+API_ROUTER = APIRouter(prefix="/vapi")  # if you change the prefix, also change it in custom_openapi.py
 API_ROUTER.include_router(routes.flows.ROUTER)
 API_ROUTER.include_router(routes.settings.ROUTER)
 API_ROUTER.include_router(routes.tasks.ROUTER)

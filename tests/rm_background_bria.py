@@ -15,10 +15,10 @@ IMAGE_URLS = [
 # Visionatrix details
 VISIONATRIX_HOST = "http://127.0.0.1:8288"
 FLOW_NAME = "remove_background_bria"
-CREATE_TASK_ENDPOINT = f"/api/tasks/create/{FLOW_NAME}"
-GET_TASK_PROGRESS_ENDPOINT = "/api/tasks/progress"
-GET_TASK_RESULTS_ENDPOINT = "/api/tasks/results"
-WHOAMI_ENDPOINT = "/api/other/whoami"
+CREATE_TASK_ENDPOINT = f"/vapi/tasks/create/{FLOW_NAME}"
+GET_TASK_PROGRESS_ENDPOINT = "/vapi/tasks/progress"
+GET_TASK_RESULTS_ENDPOINT = "/vapi/tasks/results"
+WHOAMI_ENDPOINT = "/vapi/other/whoami"
 POLLING_INTERVAL = 3  # Poll every 3 seconds
 MAX_WAIT_TIME = 300  # Wait up to 5 minutes for the server to be ready
 
