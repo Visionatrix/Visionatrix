@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0 - 2024-11-23]
+
+Emergency release due to update of `yolo`(Impact-Node) HuggingFace models, which broke our all new installations for all versions.
+
+### Changed
+
+- **Removed** `--models_dir` argument to rely solely on ComfyUI algorithm and support multiple directories for models. #236
+- **Backend API Breaking change**: API URL has been moved from `/api` to `/vapi`. #237
+- **Reworked** `--openapi` command to support more functionality and be easier to use. #231
+
+### Fixed
+
+- OpenAPI specs: now correctly fills the default values with `float`, `bool`, `int` input types for flows. #234
+
 ## [1.6.0 - 2024-11-14]
 
 This release focuses on simplifying the process of writing integrations and fixing bugs found in version `1.5`.
