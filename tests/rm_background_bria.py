@@ -55,7 +55,7 @@ def install_flow():
 def run_visionatrix():
     """Start Visionatrix in the background and wait until it's ready to accept requests."""
     print("Starting Visionatrix...")
-    subprocess.Popen([sys.executable, "-m", "visionatrix", "run", "--cpu"])
+    subprocess.Popen([sys.executable, "-m", "visionatrix", "--verbose=DEBUG", "run", "--cpu"])
 
     # Poll the "whoami" endpoint to check if the server is ready
     wait_until_server_ready()
