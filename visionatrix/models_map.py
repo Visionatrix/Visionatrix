@@ -79,8 +79,13 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
             models_from_nodes = nodes_with_models.get(node_module, [])
             for node_model_info in models_from_nodes:
                 if node_model_info.name not in [i.name for i in models_info]:
-                    node_model_info.paths = [str(Path(options.BACKEND_DIR).joinpath(i)) for i in node_model_info.paths]
-                    models_info.append(node_model_info)
+                    models_info.append(
+                        node_model_info.model_copy(
+                            update={
+                                "paths": [str(Path(options.BACKEND_DIR).joinpath(i)) for i in node_model_info.paths]
+                            }
+                        )
+                    )
 
         if (load_class := MODEL_LOAD_CLASSES.get(class_type)) is None:
             continue
