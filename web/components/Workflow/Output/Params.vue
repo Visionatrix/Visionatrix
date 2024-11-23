@@ -27,6 +27,10 @@ const inputParams = computed(() => {
 		: ''
 	}`
 })
+
+onUnmounted(() => {
+	props.flowResult.showInputFiles = false
+})
 </script>
 
 <template>
@@ -63,7 +67,7 @@ const inputParams = computed(() => {
 		{{ inputParamStr }}
 	</UBadge>
 	<UBadge v-if="flowResult.input_files.length > 0"
-		class="mr-2 mb-2 last:mr-0 hover:cursor-pointer"
+		class="mr-2 mb-2 last:mr-0 hover:cursor-pointer select-none"
 		variant="subtle"
 		color="sky"
 		@click="() => {
@@ -76,5 +80,4 @@ const inputParams = computed(() => {
 		<UIcon name="i-heroicons-document-solid" class="mr-1" />
 		{{ `input_files: ${flowResult.input_files.length}` }}
 	</UBadge>
-	<WorkflowOutputInputFiles :flow-result="flowResult" />
 </template>
