@@ -6,13 +6,13 @@ export function buildBackendUrl() {
 	}
 	return config.app.backendApiUrl !== ''
 		? config.app.backendApiUrl
-		: location.port 
+		: location.port
 			? `${location.protocol}//${location.hostname}:${location.port}`
 			: `${location.protocol}//${location.hostname}` + (prefix ? prefix : '')
 }
 
 export function buildBackendApiUrl() {
-	return buildBackendUrl() + '/api'
+	return buildBackendUrl() + '/vapi'
 }
 
 export function buildAuthorization() {
