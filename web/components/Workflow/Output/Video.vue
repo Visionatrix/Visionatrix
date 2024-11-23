@@ -23,6 +23,7 @@ const flowStore = useFlowsStore()
 			<video
 				controls
 				class="mb-2 mx-auto rounded-lg"
+				style="max-height: 80vh;"
 				:width="flowStore.$state.outputMaxSize"
 				:height="flowStore.$state.outputMaxSize">
 				<source

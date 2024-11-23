@@ -299,6 +299,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						task_id: task_id,
 						flow_name: task.name,
 						outputs: task.outputs,
+						input_files: task.input_files || [],
 						input_params_mapped: input_params_mapped_updated || null,
 						translated_input_params_mapped: translated_input_params_mapped || null,
 						execution_time: task.execution_time || 0,
@@ -844,6 +845,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 								progress: progress[task_id].progress,
 								error: progress[task_id]?.error || '',
 								finished_at: progress[task_id].finished_at,
+								input_files: progress[task_id].input_files || [],
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -1053,7 +1055,7 @@ export interface FlowRunning {
 	task_id: string
 	flow_name: string
 	progress: number
-	input_files?: TaskInputFile
+	input_files?: TaskInputFile[]
 	input_params_mapped: TaskHistoryInputParam
 	translated_input_params_mapped?: TaskHistoryInputParam
 	outputs: FlowOutputParam[]
@@ -1087,9 +1089,11 @@ export interface FlowResult {
 	parent_task_id: number
 	parent_task_node_id: number
 	child_tasks: TaskHistoryItem[]
+	input_files: TaskInputFile[]
 	progress: number
 	error: string
 	finished_at: string
+	showInputFiles?: boolean
 }
 
 export interface TasksHistory {
@@ -1116,7 +1120,7 @@ export interface TaskHistoryItem {
 	execution_time: number
 	finished_at: string
 	flow_comfy: any
-	input_files: TaskInputFile
+	input_files: TaskInputFile[]
 	input_params: TaskHistoryInputParam
 	locked_at: string
 	name: string

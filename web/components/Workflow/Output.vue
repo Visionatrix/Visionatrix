@@ -241,6 +241,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							<WorkflowOutputParams :flow-result="flowResult" />
 						</div>
 					</div>
+					<WorkflowOutputInputFiles :flow-result="flowResult" />
 					<div class="w-full flex justify-center items-center">
 						<UButton
 							class="mr-3"

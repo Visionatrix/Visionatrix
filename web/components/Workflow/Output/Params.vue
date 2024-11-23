@@ -6,6 +6,7 @@ const props = defineProps({
 	},
 })
 
+const showTranslatedParams = ref(false)
 const inputParams = computed(() => {
 	return [
 		'#' + props.flowResult.task_id,
@@ -26,7 +27,10 @@ const inputParams = computed(() => {
 		: ''
 	}`
 })
-const showTranslatedParams = ref(false)
+
+onUnmounted(() => {
+	props.flowResult.showInputFiles = false
+})
 </script>
 
 <template>
@@ -61,5 +65,19 @@ const showTranslatedParams = ref(false)
 			})
 		}">
 		{{ inputParamStr }}
+	</UBadge>
+	<UBadge v-if="flowResult.input_files.length > 0"
+		class="mr-2 mb-2 last:mr-0 hover:cursor-pointer select-none"
+		variant="subtle"
+		color="sky"
+		@click="() => {
+			flowResult.showInputFiles = !flowResult.showInputFiles
+		}">
+		<UIcon :name="flowResult.showInputFiles
+				? 'i-heroicons-chevron-down'
+				: 'i-heroicons-chevron-up'"
+			class="mr-1" />
+		<UIcon name="i-heroicons-document-solid" class="mr-1" />
+		{{ `input_files: ${flowResult.input_files.length}` }}
 	</UBadge>
 </template>

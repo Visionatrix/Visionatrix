@@ -26,7 +26,7 @@ const restarting = ref(false)
 				loading: restarting,
 				icon: 'i-heroicons-arrow-path', click: () => {
 					restarting = true
-					flowStore.restartFlow($props.running).finally(() => {
+					flowStore.restartFlow(running).finally(() => {
 						restarting = false
 					})
 				}

@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 Emergency release due to update of `yolo`(Impact-Node) HuggingFace models, which broke our all new installations for all versions.
 
+### Added
+
+- UI: button to show task result's input files. #233
+
 ### Changed
 
 - **Removed** `--models_dir` argument to rely solely on ComfyUI algorithm and support multiple directories for models. #236

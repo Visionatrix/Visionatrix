@@ -19,8 +19,8 @@ const collapsed = ref(true)
 
 <template>
 	<div
-		v-if="$props.running && $props.running.input_files && Object.keys($props.running.input_files)?.length > 0"
-		class="ml-2 mt-2 mb-5" :class="{ 'mb-10': Object.keys($props.running.input_files)?.length > 1 && !collapsed }">
+		v-if="running && running.input_files && Object.keys(running.input_files)?.length > 0"
+		class="ml-2 mt-2 mb-5" :class="{ 'mb-10': Object.keys(running.input_files)?.length > 1 && !collapsed }">
 		<h4
 			class="mb-3 font-bold cursor-pointer select-none flex items-center text-sm"
 			@click="() => collapsed = !collapsed">
@@ -28,26 +28,26 @@ const collapsed = ref(true)
 				:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
 			<span>
-				Input files ({{ Object.keys($props.running.input_files)?.length }})
+				Input files ({{ Object.keys(running.input_files)?.length }})
 			</span>
 		</h4>
 		<template v-if="!collapsed">
 			<NuxtImg
-				v-if="Object.keys($props.running.input_files)?.length === 1"
+				v-if="Object.keys(running.input_files)?.length === 1"
 				class="mb-5 rounded-lg cursor-pointer"
 				fit="outside"
 				loading="lazy"
-				:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
-				:src="queueImageInputSrc($props.running.task_id, 0)"
+				:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
+				:src="queueImageInputSrc(running.task_id, 0)"
 				@click="() => {
-					modalImageSrc = queueImageInputSrc($props.running.task_id, 0)
+					modalImageSrc = queueImageInputSrc(running.task_id, 0)
 					modalImageIndex = 0
 					isModalOpen = true
 				}" />
 			<UCarousel
-				v-if="Object.keys($props.running.input_files)?.length > 1"
+				v-if="Object.keys(running.input_files)?.length > 1"
 				v-slot="{ item }"
-				:items="Object.keys($props.running.input_files).map((value: any) => {
+				:items="Object.keys(running.input_files).map((value: any) => {
 					return { task_id: running.task_id, index: value as number }
 				})"
 				:ui="{
@@ -63,10 +63,10 @@ const collapsed = ref(true)
 						class="rounded-lg cursor-pointer"
 						fit="outside"
 						loading="lazy"
-						:placeholder="img(`${buildBackendApiUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
+						:placeholder="img(`${buildBackendUrl()}/vix_logo.png`, { f: 'png', blur: 3, q: 50 })"
 						:src="queueImageInputSrc(item.task_id, item.index)"
 						@click="() => {
-							modalImageSrc = queueImageInputSrc($props.running.task_id, item.index)
+							modalImageSrc = queueImageInputSrc(running.task_id, item.index)
 							modalImageIndex = item.index
 							isModalOpen = true
 						}" />
