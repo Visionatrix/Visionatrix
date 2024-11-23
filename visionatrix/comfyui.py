@@ -61,7 +61,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
                         "torchvision",
                         "torchaudio",
                         "--index-url",
-                        "https://download.pytorch.org/whl/cu121",
+                        "https://download.pytorch.org/whl/cu124",
                         # !!! do not forget to change PyTorch version in "scripts/easy_install.py" !!!
                     ]
                 )
