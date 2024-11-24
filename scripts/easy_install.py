@@ -93,6 +93,9 @@ def reinstall():
     venv_run("python -m visionatrix install")
     if GH_BUILD_RELEASE:
         return
+
+    create_extra_models_config_file()
+
     c = input("Installation finished. Run Visionatrix? (Y/N): ").lower()
     if c == "y":
         run_visionatrix()
@@ -293,6 +296,65 @@ def is_dev_version(version_str: str) -> bool:
     Returns True if it is a development version, otherwise False.
     """
     return bool(re.match(r"\d+\.\d+\.\d+\.dev\d+", version_str))
+
+
+def create_extra_models_config_file():
+    # Check if "extra_model_paths.yaml" file exists and ask if the user wants to create "extra_model_paths.yaml"
+    if Path("extra_model_paths.yaml").exists():
+        print("Skipping creation of 'extra_model_paths.yaml' as it is already exists.")
+        return
+    create_extra = input('Do you want to create an external "extra_model_paths.yaml" for models map? (Y/N): ').lower()
+    if create_extra != "y":
+        print("Skipping creation of 'extra_model_paths.yaml'.")
+        return
+
+    # Ask for the models directory path
+    models_dir = input("Enter the relative or absolute path to the models directory: ").strip()
+    if not os.path.isabs(models_dir):
+        models_dir = os.path.abspath(models_dir)
+    if not os.path.exists(models_dir):
+        create_dir = input(f"The directory '{models_dir}' does not exist. Do you want to create it? (Y/N): ").lower()
+        if create_dir == "y":
+            os.makedirs(models_dir, exist_ok=True)
+            print(f"Directory '{models_dir}' created.")
+        else:
+            print("Cannot proceed without a valid models directory. Skipping creation of 'extra_model_paths.yaml'.")
+            return
+    # Replace "vix_models_root" with the absolute path to the models directory
+    extra_model_paths_content = EXTRA_MODEL_PATHS_YAML.format(
+        vix_models_root=models_dir.replace("\\", "/")
+    )
+    with open("extra_model_paths.yaml", "w") as f:
+        f.write(extra_model_paths_content)
+    print("'extra_model_paths.yaml' has been created.")
+
+
+EXTRA_MODEL_PATHS_YAML = """
+vix_models:
+  checkpoints: {vix_models_root}/checkpoints
+  text_encoders: |
+    {vix_models_root}/text_encoders
+    {vix_models_root}/clip
+  clip_vision: {vix_models_root}/clip_vision
+  controlnet: {vix_models_root}/controlnet
+  diffusion_models: |
+    {vix_models_root}/diffusion_models
+    {vix_models_root}/unet
+  diffusers: {vix_models_root}/diffusers
+  ipadapter: {vix_models_root}/ipadapter
+  instantid: {vix_models_root}/instantid
+  loras: |
+    {vix_models_root}/loras
+    {vix_models_root}/photomaker
+  photomaker: {vix_models_root}/photomaker
+  sams: {vix_models_root}/sams
+  ultralytics: {vix_models_root}/ultralytics
+  unet: {vix_models_root}/unet
+  upscale_models: {vix_models_root}/upscale_models
+  vae: {vix_models_root}/vae
+  vae_approx: {vix_models_root}/vae_approx
+  pulid: {vix_models_root}/pulid
+"""
 
 
 if __name__ == "__main__":
