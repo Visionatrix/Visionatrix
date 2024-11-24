@@ -103,3 +103,6 @@ scripts/visionatrix
 tasks_history.db
 temp_repo_clones
 /flows.zip
+
+model_paths.yaml
+extra_model_paths.yaml

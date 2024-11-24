@@ -9,6 +9,7 @@ https://github.com/comfyanonymous/ComfyUI
 import contextlib
 import importlib.util
 import inspect
+import itertools
 import logging
 import os
 import re
@@ -152,9 +153,18 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     import cuda_malloc  # noqa
     import utils.extra_config  # noqa
 
+    default_outside_config = Path("./extra_model_paths.yaml").resolve()
+    if default_outside_config.is_file():
+        LOGGER.info("loading Visionatrix default extra model path config: %s", default_outside_config)
+        utils.extra_config.load_extra_path_config(default_outside_config)
+
     extra_path = Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml")
     if extra_path.is_file():
+        LOGGER.info("loading ComfyUI default extra model path config: %s", default_outside_config)
         utils.extra_config.load_extra_path_config(extra_path)
+    if main.args.extra_model_paths_config:
+        for config_path in itertools.chain(*main.args.extra_model_paths_config):
+            utils.extra_config.load_extra_path_config(config_path)
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
@@ -325,6 +335,15 @@ def need_cpu_flag() -> bool:
 
 
 def add_arguments(parser):
+    parser.add_argument(
+        "--extra-model-paths-config",
+        type=str,
+        default=None,
+        metavar="PATH",
+        nargs="+",
+        action="append",
+        help="Load one or more extra_model_paths.yaml files.",
+    )
     parser.add_argument(
         "--cuda-device",
         type=int,
