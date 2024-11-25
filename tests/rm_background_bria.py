@@ -47,9 +47,10 @@ def install_flow():
         capture_output=True,
         text=True
     )
+    print("Flow installation output(stdout):\n", result.stdout, flush=True)
+    print("Flow installation output(stderr):\n", result.stderr, flush=True)
     if result.returncode != 0:
-        raise Exception(f"Flow installation failed: {result.stderr}")
-    print("Flow installation output:", result.stdout, flush=True)
+        raise Exception("Flow installation failed")
 
 
 def run_visionatrix():
