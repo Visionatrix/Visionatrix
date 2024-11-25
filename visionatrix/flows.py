@@ -246,8 +246,10 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
         return False
 
+    if not __flow_install_callback(flow.name, 100.0, "", False):
+        return False
     CACHE_INSTALLED_FLOWS["update_time"] = 0
-    return __flow_install_callback(flow.name, 100.0, "", False)
+    return True
 
 
 def __flow_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
