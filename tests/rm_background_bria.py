@@ -28,7 +28,7 @@ def download_images(temp_dir):
     downloaded_files = []
     for url in IMAGE_URLS:
         file_name = os.path.join(temp_dir, url.split("/")[-1].split("?")[0])
-        print(f"Downloading {url} to {file_name}")
+        print(f"Downloading {url} to {file_name}", flush=True)
         with httpx.stream("GET", url, follow_redirects=True) as r:
             r.raise_for_status()
             with open(file_name, "wb") as f:
@@ -40,21 +40,22 @@ def download_images(temp_dir):
 
 def install_flow():
     """Install the specified flow in Visionatrix."""
-    print("Installing flow...")
+    print("Installing flow...", flush=True)
     result = subprocess.run(
         [sys.executable, "-m", "visionatrix", "install-flow", f"--name={FLOW_NAME}"],
         check=False,
         capture_output=True,
         text=True
     )
+    print("Flow installation output(stdout):\n", result.stdout, flush=True)
+    print("Flow installation output(stderr):\n", result.stderr, flush=True)
     if result.returncode != 0:
-        raise Exception(f"Flow installation failed: {result.stderr}")
-    print("Flow installation output:", result.stdout)
+        raise Exception("Flow installation failed")
 
 
 def run_visionatrix():
     """Start Visionatrix in the background and wait until it's ready to accept requests."""
-    print("Starting Visionatrix...")
+    print("Starting Visionatrix...", flush=True)
     subprocess.Popen([sys.executable, "-m", "visionatrix", "--verbose=DEBUG", "run", "--cpu"])
 
     # Poll the "whoami" endpoint to check if the server is ready
@@ -63,7 +64,7 @@ def run_visionatrix():
 
 def wait_until_server_ready():
     """Poll the whoami endpoint until the server is ready, or timeout after MAX_WAIT_TIME."""
-    print("Waiting for Visionatrix server to be ready...")
+    print("Waiting for Visionatrix server to be ready...", flush=True)
     whoami_url = f"{VISIONATRIX_HOST}{WHOAMI_ENDPOINT}"
     start_time = time.time()
 
@@ -71,7 +72,7 @@ def wait_until_server_ready():
         try:
             response = httpx.get(whoami_url)
             if response.status_code == 200:
-                print("Visionatrix server is ready!")
+                print("Visionatrix server is ready!", flush=True)
                 return
         except httpx.RequestError:
             pass  # Ignore errors and continue polling
@@ -82,7 +83,7 @@ def wait_until_server_ready():
 
 def create_task(image_file):
     """Call the create_task endpoint to process the image and return the task ID."""
-    print("Creating task...")
+    print("Creating task...", flush=True)
     task_url = f"{VISIONATRIX_HOST}{CREATE_TASK_ENDPOINT}"
     with open(image_file, "rb") as f:
         files = {
@@ -93,13 +94,13 @@ def create_task(image_file):
         raise Exception(f"Failed to create task: {response.status_code}, {response.text}")
     result = response.json()
     task_id = result["tasks_ids"][0]
-    print(f"Task created with ID: {task_id}")
+    print(f"Task created with ID: {task_id}", flush=True)
     return task_id
 
 
 def get_task_progress(task_id):
     """Poll the get_tasks_progress endpoint and return the task's progress and node_id."""
-    print(f"Checking progress for task ID: {task_id}")
+    print(f"Checking progress for task ID: {task_id}", flush=True)
     progress_url = f"{VISIONATRIX_HOST}{GET_TASK_PROGRESS_ENDPOINT}/{task_id}"
     response = httpx.get(progress_url)
     if response.status_code != 200:
@@ -111,23 +112,23 @@ def get_task_progress(task_id):
 
     progress = result["progress"]
     node_id = result["outputs"][0]["comfy_node_id"]  # Assuming the first output node is the one we need
-    print(f"Task {task_id} progress: {progress}% (node_id: {node_id})")
+    print(f"Task {task_id} progress: {progress}% (node_id: {node_id})", flush=True)
     return progress, node_id
 
 
 def wait_for_task_completion(task_id):
     """Wait until the task progress reaches 100% or timeout after MAX_WAIT_TIME. Returns node_id."""
-    print(f"Waiting for task {task_id} to complete (Max wait time: {MAX_WAIT_TIME} seconds)...")
+    print(f"Waiting for task {task_id} to complete (Max wait time: {MAX_WAIT_TIME} seconds)...", flush=True)
     start_time = time.time()
 
     while time.time() - start_time < MAX_WAIT_TIME:
         try:
             progress, node_id = get_task_progress(task_id)
             if progress >= 100:
-                print(f"Task {task_id} completed!")
+                print(f"Task {task_id} completed!", flush=True)
                 return node_id
         except Exception as e:
-            print(f"Error encountered: {e}")
+            print(f"Error encountered: {e}", flush=True)
             raise e  # Raise the error after printing
 
         time.sleep(POLLING_INTERVAL)
@@ -137,7 +138,7 @@ def wait_for_task_completion(task_id):
 
 def download_result(task_id, node_id, temp_dir):
     """Download the result file for the completed task using the specified node_id."""
-    print(f"Downloading result for task ID: {task_id}, node_id: {node_id}")
+    print(f"Downloading result for task ID: {task_id}, node_id: {node_id}", flush=True)
     result_url = f"{VISIONATRIX_HOST}{GET_TASK_RESULTS_ENDPOINT}"
     params = {"task_id": task_id, "node_id": node_id}
     response = httpx.get(result_url, params=params)
@@ -147,18 +148,18 @@ def download_result(task_id, node_id, temp_dir):
     result_path = os.path.join(temp_dir, f"result_task_{task_id}_node_{node_id}.png")
     with open(result_path, "wb") as f:
         f.write(response.content)
-    print(f"Result saved to {result_path}")
+    print(f"Result saved to {result_path}", flush=True)
     return result_path
 
 
 def compare_images(result_path, reference_path):
     """Compare the result image with the reference image."""
-    print("Comparing images...")
+    print("Comparing images...", flush=True)
     result_image = Image.open(result_path)
     reference_image = Image.open(reference_path)
     max_epsilon = 0.000024  # 0.000012 is enough, but we'll multiply it by 2 to be sure.
     assert_image_similar(result_image, reference_image, max_epsilon)
-    print("Test passed!")
+    print("Test passed!", flush=True)
 
 
 def main():
@@ -210,7 +211,7 @@ def assert_image_similar(a, b, epsilon=0.0):
         ch_diff = ImageMath.eval("abs(a - b)", a=ach, b=bch).convert("L")
         diff += sum(i * num for i, num in enumerate(ch_diff.histogram()))
     ave_diff = diff / (a.size[0] * a.size[1])
-    print(f"epsilon={epsilon}, ave_diff={ave_diff}")
+    print(f"epsilon={epsilon}, ave_diff={ave_diff}", flush=True)
     assert epsilon >= ave_diff
 
 

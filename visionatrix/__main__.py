@@ -11,7 +11,6 @@ from pathlib import Path
 from . import comfyui, database, generate_openapi, install, options, run_vix, update
 from .etc import get_higher_log_level, get_log_level
 from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
-from .install_update import flow_install_callback
 from .orphan_models import process_orphan_models
 
 if __name__ == "__main__":
@@ -100,7 +99,6 @@ if __name__ == "__main__":
             install_flow_group.add_argument("--tag", type=str, help="Flow tags mask of the flow(s)")
 
         subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
-        subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
         if i[0] == "run":
             subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
@@ -135,8 +133,7 @@ if __name__ == "__main__":
         if args.server:
             options.VIX_SERVER = args.server
 
-    if options.VIX_MODE != "WORKER" or not options.VIX_SERVER:  # Get tasks directly from the Database
-        database.init_database_engine()
+    database.init_database_engine()
 
     if args.command == "create-user":
         database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
@@ -144,21 +141,29 @@ if __name__ == "__main__":
 
     options.init_dirs_values(
         backend=getattr(args, "backend_dir", ""),
-        flows=getattr(args, "flows_dir", ""),
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
 
     if args.command == "install":
-        operations_mask = [True, True]
-        if Path(options.FLOWS_DIR).exists():
-            c = input("Do you want to clear flows folder? (Y/N): ").lower()
+        comfyui_dir = Path(options.BACKEND_DIR)
+        if comfyui_dir.exists():
+            c = input("Do you want to reinstall the ComfyUI folder? (Y/N): ").lower()
             if c != "y":
-                operations_mask[1] = False
-        if Path(options.BACKEND_DIR).exists():
-            c = input("Do you want to reinstall backend (ComfyUI) folder? (Y/N): ").lower()
-            if c != "y":
-                operations_mask[0] = False
-        install(operations_mask)
+                print("Skipping ComfyUI re-installation.")
+                sys.exit(0)
+            comfyui_models = comfyui_dir.joinpath("models")
+            comfyui_models_size = sum(file.stat().st_size for file in comfyui_models.rglob("*") if file.is_file())
+            comfyui_models_size_gb = round(comfyui_models_size / (1024**3), 1)
+            logging.getLogger("visionatrix").debug("Size of ComfyUI models dir: %s GB", comfyui_models_size_gb)
+            if comfyui_models_size_gb > 3.9:  # Threshold in GB
+                c = input(
+                    f"The ComfyUI folder is approximately {comfyui_models_size_gb} GB. "
+                    "Are you sure you want to proceed and clear this folder? (Y/N): "
+                ).lower()
+                if c != "y":
+                    print("Skipping backend re-installation.")
+                    sys.exit(0)
+        install()
     elif args.command == "update":
         update()
     elif args.command == "run":
@@ -171,11 +176,7 @@ if __name__ == "__main__":
             if path.is_file():
                 with path.open("rb") as fp:
                     install_flow_comfy = json.loads(fp.read())
-                r = install_custom_flow(
-                    flow=get_vix_flow(install_flow_comfy),
-                    flow_comfy=install_flow_comfy,
-                    progress_callback=flow_install_callback.progress_callback,
-                )
+                r = install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy)
             elif path.is_dir():
                 json_files = list(path.glob("*.json"))
                 if not json_files:
@@ -188,11 +189,7 @@ if __name__ == "__main__":
                     logging.getLogger("visionatrix").info("Installing flow from file: '%s'", json_file)
                     with json_file.open("rb") as fp:
                         install_flow_comfy = json.loads(fp.read())
-                    if not install_custom_flow(
-                        flow=get_vix_flow(install_flow_comfy),
-                        flow_comfy=install_flow_comfy,
-                        progress_callback=flow_install_callback.progress_callback,
-                    ):
+                    if not install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy):
                         r = False
             else:
                 logging.getLogger("visionatrix").error("Path is neither a file nor a directory: '%s'", path)
@@ -223,11 +220,7 @@ if __name__ == "__main__":
                     logging.getLogger("visionatrix").info("Aborting installation.")
                     sys.exit(0)
             for flow_name, flow in flows_to_install.items():
-                if not install_custom_flow(
-                    flow=flow,
-                    flow_comfy=flows_comfy[flow_name],
-                    progress_callback=flow_install_callback.progress_callback,
-                ):
+                if not install_custom_flow(flow=flow, flow_comfy=flows_comfy[flow_name]):
                     r = False
         if not r:
             sys.exit(1)

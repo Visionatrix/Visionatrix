@@ -13,7 +13,6 @@ PYTHON_EMBEDED = path.split(path.split(sys.executable)[0])[1] == "python_embeded
 BACKEND_DIR = environ.get(
     "BACKEND_DIR", str(Path("vix_backend") if PYTHON_EMBEDED else Path("./vix_backend").resolve())
 )
-FLOWS_DIR = environ.get("FLOWS_DIR", str(Path("vix_flows") if PYTHON_EMBEDED else Path("./vix_flows").resolve()))
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
 
 VIX_HOST = environ.get("VIX_HOST", "")
@@ -93,12 +92,10 @@ MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform 'git clone' operations during installation."""
 
 
-def init_dirs_values(backend: str | None, flows: str | None, tasks_files: str | None) -> None:
-    global BACKEND_DIR, FLOWS_DIR, TASKS_FILES_DIR
+def init_dirs_values(backend: str | None, tasks_files: str | None) -> None:
+    global BACKEND_DIR, TASKS_FILES_DIR
     if backend:
         BACKEND_DIR = str(Path(backend).resolve())
-    if flows:
-        FLOWS_DIR = str(Path(flows).resolve())
     if tasks_files:
         TASKS_FILES_DIR = str(Path(tasks_files).resolve())
 
@@ -107,7 +104,6 @@ def get_server_mode_options_as_env() -> dict[str, str]:
     return {
         "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
         "BACKEND_DIR": BACKEND_DIR,
-        "FLOWS_DIR": FLOWS_DIR,
         "TASKS_FILES_DIR": TASKS_FILES_DIR,
         "VIX_HOST": VIX_HOST,
         "VIX_PORT": VIX_PORT,

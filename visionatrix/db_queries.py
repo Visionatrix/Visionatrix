@@ -199,6 +199,19 @@ def set_worker_tasks_to_give(user_id: str | None, worker_id: str, tasks_to_give:
             return False
 
 
+def get_flow_progress_install(name: str) -> FlowProgressInstall | None:
+    session = database.SESSION()
+    try:
+        query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
+        result = session.execute(query).scalar_one_or_none()
+        return None if result is None else FlowProgressInstall.model_validate(result)
+    except Exception:
+        LOGGER.exception("Failed to retrieve flow progress install for name `%s`.", name)
+        raise
+    finally:
+        session.close()
+
+
 def get_flows_progress_install() -> list[FlowProgressInstall]:
     session = database.SESSION()
     try:
@@ -212,7 +225,7 @@ def get_flows_progress_install() -> list[FlowProgressInstall]:
         session.close()
 
 
-def delete_flows_progress_install(name: str) -> bool:
+def delete_flow_progress_install(name: str) -> bool:
     session = database.SESSION()
     try:
         stmt = delete(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
@@ -222,6 +235,20 @@ def delete_flows_progress_install(name: str) -> bool:
     except Exception:
         session.rollback()
         LOGGER.exception("Failed to delete flow installation progress for `%s`", name)
+        raise
+    finally:
+        session.close()
+
+
+def delete_flows_progress_install() -> None:
+    session = database.SESSION()
+    try:
+        stmt = delete(database.FlowsInstallStatus)
+        session.execute(stmt)
+        session.commit()
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to delete all flows progress install records.")
         raise
     finally:
         session.close()
@@ -359,8 +386,20 @@ def flows_installation_in_progress() -> list[str]:
         )
         return session.execute(query).scalars().all()
     except Exception:
-        session.rollback()
         LOGGER.exception("Failed to check if any flow installation is in progress")
         raise
+    finally:
+        session.close()
+
+
+def get_installed_flows() -> list[FlowProgressInstall]:
+    session = database.SESSION()
+    try:
+        query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.progress >= 100.0)
+        results = session.execute(query).scalars().all()
+        return [FlowProgressInstall.model_validate(flow) for flow in results]
+    except Exception as e:
+        LOGGER.exception("Failed to retrieve installed flows.")
+        raise e
     finally:
         session.close()

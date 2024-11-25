@@ -8,7 +8,6 @@ from packaging.version import Version
 
 from .. import _version, comfyui, options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
-from . import flow_install_callback
 from .custom_nodes import update_base_custom_nodes
 from .install import create_nodes_stuff
 
@@ -47,7 +46,6 @@ def update() -> None:
     avail_flows = get_available_flows(avail_flows_comfy)
     for i in get_installed_flows():
         if i in avail_flows:
-            flow_install_callback.progress_callback(avail_flows[i].name, 0.0, "", False)
-            install_custom_flow(avail_flows[i], avail_flows_comfy[i], flow_install_callback.progress_callback)
+            install_custom_flow(avail_flows[i], avail_flows_comfy[i])
         else:
             logging.warning("`%s` flow not found in repository, skipping update of it.", i)
