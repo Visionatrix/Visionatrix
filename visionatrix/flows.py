@@ -1,9 +1,9 @@
 import builtins
 import concurrent.futures
-import contextlib
 import io
 import json
 import logging
+import math
 import os
 import random
 import shutil
@@ -12,7 +12,6 @@ import typing
 import zipfile
 from base64 import b64decode
 from copy import deepcopy
-from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
@@ -174,22 +173,21 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
         flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
         return CACHE_INSTALLED_FLOWS["flows"]
 
+    CACHE_INSTALLED_FLOWS["update_time"] = time.time()
     available_flows = get_available_flows({})
     public_flows_names = list(available_flows)
-    CACHE_INSTALLED_FLOWS["update_time"] = time.time()
-    flows = [entry for entry in Path(options.FLOWS_DIR).iterdir() if entry.is_file() and entry.name.endswith(".json")]
+    installed_flows = db_queries.get_installed_flows()
     r = {}
     r_comfy = {}
-    for flow in flows:
-        _flow_comfy = json.loads(flow.read_bytes())
-        _flow_vix = get_vix_flow(_flow_comfy)
-        if _flow_vix.name not in public_flows_names:
-            _flow_vix.private = True
-        _fresh_flow_info = available_flows.get(_flow_vix.name)
-        if _fresh_flow_info and parse(_flow_vix.version) < parse(_fresh_flow_info.version):
-            _flow_vix.new_version_available = _fresh_flow_info.version
-        r[_flow_vix.name] = _flow_vix
-        r_comfy[_flow_vix.name] = _flow_comfy
+    for installed_flow in installed_flows:
+        installed_flow.flow = get_vix_flow(installed_flow.flow_comfy)
+        if installed_flow.name not in public_flows_names:
+            installed_flow.flow.private = True
+        _fresh_flow_info = available_flows.get(installed_flow.name)
+        if _fresh_flow_info and parse(installed_flow.flow.version) < parse(_fresh_flow_info.version):
+            installed_flow.new_version_available = _fresh_flow_info.version
+        r[installed_flow.name] = installed_flow.flow
+        r_comfy[installed_flow.name] = installed_flow.flow_comfy
     CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
     if flows_comfy is not None:
         flows_comfy.update(r_comfy)
@@ -205,23 +203,18 @@ def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | No
     return flow
 
 
-def install_custom_flow(
-    flow: Flow,
-    flow_comfy: dict,
-    progress_callback: typing.Callable[[str, float, str, bool], bool] | None = None,
-) -> bool:
-    uninstall_flow(flow.name)
+def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
+    db_queries.delete_flow_progress_install(flow.name)
+    db_queries.add_flow_progress_install(flow.name, flow_comfy)
     progress_for_model = 97 / max(len(flow.models), 1)
-    if progress_callback is not None and not progress_callback(flow.name, 1.0, "", False):
+    if not __flow_install_callback(flow.name, 1.0, "", False):
         return False
     hf_auth_token = ""
     gated_models = [i for i in flow.models if i.gated]
-    if gated_models and options.VIX_MODE != "SERVER":
+    if gated_models:
         if "HF_AUTH_TOKEN" in os.environ:
             hf_auth_token = os.environ["HF_AUTH_TOKEN"]
-        elif options.VIX_MODE == "DEFAULT":
-            hf_auth_token = db_queries.get_global_setting("huggingface_auth_token", True)
-        else:
+        elif options.VIX_MODE == "WORKER" and options.VIX_SERVER:
             r = httpx.get(
                 options.VIX_SERVER.rstrip("/") + "/setting",
                 params={"key": "huggingface_auth_token"},
@@ -230,13 +223,15 @@ def install_custom_flow(
             )
             if not httpx.codes.is_error(r.status_code):
                 hf_auth_token = r.text
+        else:
+            hf_auth_token = db_queries.get_global_setting("huggingface_auth_token", True)
         if not hf_auth_token:
             LOGGER.warning("Flow has gated model(s): %s; AccessToken was not found.", [i.name for i in gated_models])
 
     install_models_results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=options.MAX_PARALLEL_DOWNLOADS) as executor:
         futures = [
-            executor.submit(install_model, model, flow.name, progress_for_model, progress_callback, hf_auth_token)
+            executor.submit(install_model, model, flow.name, progress_for_model, __flow_install_callback, hf_auth_token)
             for model in flow.models
         ]
         for future in concurrent.futures.as_completed(futures):
@@ -251,20 +246,31 @@ def install_custom_flow(
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
         return False
 
-    local_flow_path = os.path.join(options.FLOWS_DIR, f"{flow.name}.json")
-    if progress_callback is not None and not progress_callback(flow.name, 99.0, "", False):
-        return False
-    with builtins.open(local_flow_path, mode="w", encoding="utf-8") as fp:
-        json.dump(flow_comfy, fp, indent=2)
     CACHE_INSTALLED_FLOWS["update_time"] = 0
-    if progress_callback is None:
-        return True
-    return progress_callback(flow.name, 100.0, "", False)
+    return __flow_install_callback(flow.name, 100.0, "", False)
+
+
+def __flow_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
+    """Returns `True` if no errors occurred."""
+
+    if error:
+        logging.error("`%s` installation failed: %s", name, error)
+        db_queries.set_flow_progress_install_error(name, error)
+        return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
+    if progress == 100.0:
+        LOGGER.info("Installation of %s flow completed", name)
+        return db_queries.finish_flow_progress_install(name)
+
+    current_progress_info = db_queries.get_flow_progress_install(name)
+    if not current_progress_info:
+        logging.error("Can not get installation progress info for %s", name)
+    else:
+        logging.info("`%s` installation: %s", name, math.floor((current_progress_info.progress + progress) * 10) / 10)
+    return db_queries.update_flow_progress_install(name, progress, relative_progress)
 
 
 def uninstall_flow(flow_name: str) -> None:
-    with contextlib.suppress(FileNotFoundError):
-        os.remove(os.path.join(options.FLOWS_DIR, f"{flow_name}.json"))
+    db_queries.delete_flow_progress_install(flow_name)
     CACHE_INSTALLED_FLOWS["update_time"] = 0
 
 

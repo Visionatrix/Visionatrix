@@ -18,13 +18,9 @@ from packaging.version import parse
 
 from .. import options
 from ..db_queries import (
-    add_flow_progress_install,
-    delete_flows_progress_install,
-    finish_flow_progress_install,
+    delete_flow_progress_install,
     flows_installation_in_progress,
     get_flows_progress_install,
-    set_flow_progress_install_error,
-    update_flow_progress_install,
 )
 from ..db_queries_async import (
     delete_flows_progress_install_async,
@@ -128,9 +124,7 @@ def install(
     flow = get_available_flows(flows_comfy).get(flow_name)
     if not flow:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{flow_name}` flow.")
-    delete_flows_progress_install(flow_name)
-    add_flow_progress_install(flow_name, flows_comfy[flow_name])
-    b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name], __progress_install_callback)
+    b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name])
     return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -164,9 +158,7 @@ def install_from_file(
 
     flow_comfy = json.loads(flow_file.file.read())
     flow = get_vix_flow(flow_comfy)
-    delete_flows_progress_install(flow.name)
-    add_flow_progress_install(flow.name, flow_comfy)
-    b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
+    b_tasks.add_task(install_custom_flow, flow, flow_comfy)
 
 
 @ROUTER.post(
@@ -230,9 +222,7 @@ def flow_update(
             status_code=status.HTTP_412_PRECONDITION_FAILED,
             detail=f"Flow `{flow_name}` does not have a newer version.",
         )
-    delete_flows_progress_install(flow_name)
-    add_flow_progress_install(flow_name, flows_comfy[flow_name])
-    b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name], __progress_install_callback)
+    b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name])
     return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -277,7 +267,7 @@ async def delete_install_progress(
     if options.VIX_MODE == "SERVER":
         r = await delete_flows_progress_install_async(name)
     else:
-        r = delete_flows_progress_install(name)
+        r = delete_flow_progress_install(name)
     if not r:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}`.")
 
@@ -295,15 +285,3 @@ async def delete(request: Request, name: str = Query(..., description="Name of t
     """
     require_admin(request)
     uninstall_flow(name)
-
-
-def __progress_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
-    """Returns `True` if no errors occurred."""
-
-    if error:
-        set_flow_progress_install_error(name, error)
-        return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
-    if progress == 100.0:
-        LOGGER.debug("Installation of %s flow completed", name)
-        return finish_flow_progress_install(name)
-    return update_flow_progress_install(name, progress, relative_progress)
