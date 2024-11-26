@@ -261,7 +261,7 @@ def __flow_install_callback(name: str, progress: float, error: str, relative_pro
         return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
     if progress == 100.0:
         LOGGER.info("Installation of %s flow completed", name)
-        return db_queries.finish_flow_progress_install(name)
+        return db_queries.update_flow_progress_install(name, progress, False)
 
     current_progress_info = db_queries.get_flow_progress_install(name)
     if not current_progress_info:

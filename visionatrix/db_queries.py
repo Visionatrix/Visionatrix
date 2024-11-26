@@ -346,43 +346,13 @@ def set_flow_progress_install_error(name: str, error: str) -> bool:
         session.close()
 
 
-def finish_flow_progress_install(name: str) -> bool:
-    session = database.SESSION()
-    try:
-        # Ensure we only update if there is no error already set
-        stmt = (
-            update(database.FlowsInstallStatus)
-            .where(database.FlowsInstallStatus.name == name)
-            .where(database.FlowsInstallStatus.error == "")
-            .values(
-                progress=100.0,
-                finished_at=datetime.now(timezone.utc),
-            )
-        )
-        result = session.execute(stmt)
-        session.commit()
-        # If no rows were updated, this means an error was already set
-        if result.rowcount == 0:
-            LOGGER.warning(
-                "Flow installation for `%s` already encountered an error, skipping finalizing install.",
-                name,
-            )
-            return False
-        return True
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to update flow installation progress for `%s`", name)
-        raise
-    finally:
-        session.close()
-
-
 def flows_installation_in_progress() -> list[str]:
     session = database.SESSION()
     try:
         time_threshold = datetime.now(timezone.utc) - timedelta(minutes=3)
         query = select(database.FlowsInstallStatus.name).where(
-            database.FlowsInstallStatus.finished_at.is_(None), database.FlowsInstallStatus.updated_at >= time_threshold
+            database.FlowsInstallStatus.progress < 100.0,  # Check if progress is less than 100%
+            database.FlowsInstallStatus.updated_at >= time_threshold,  # Updated recently
         )
         return session.execute(query).scalars().all()
     except Exception:

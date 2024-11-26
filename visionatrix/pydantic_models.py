@@ -119,7 +119,6 @@ class FlowProgressInstall(BaseModel):
     error: str = Field("", description="Details of any error encountered during the installation process.")
     started_at: datetime = Field(..., description="Timestamp when the installation process started.")
     updated_at: datetime | None = Field(None, description="Timestamp of the last update to the installation progress.")
-    finished_at: datetime | None = Field(None, description="Timestamp when the installation process completed.")
 
 
 class TaskDetailsInput(BaseModel):

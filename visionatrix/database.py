@@ -148,7 +148,6 @@ class FlowsInstallStatus(Base):
     error = Column(String, default="")
     started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
-    finished_at = Column(DateTime, nullable=True, default=None)
 
 
 def init_database_engine() -> None:

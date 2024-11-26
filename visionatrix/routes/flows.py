@@ -23,7 +23,7 @@ from ..db_queries import (
     get_flows_progress_install,
 )
 from ..db_queries_async import (
-    delete_flows_progress_install_async,
+    delete_flow_progress_install_async,
     get_flows_progress_install_async,
 )
 from ..flows import (
@@ -265,7 +265,7 @@ async def delete_install_progress(
     """
     require_admin(request)
     if options.VIX_MODE == "SERVER":
-        r = await delete_flows_progress_install_async(name)
+        r = await delete_flow_progress_install_async(name)
     else:
         r = delete_flow_progress_install(name)
     if not r:
