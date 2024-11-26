@@ -150,6 +150,19 @@ class FlowsInstallStatus(Base):
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
 
 
+class ModelsInstallStatus(Base):
+    __tablename__ = "models_install_status"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False, unique=True)
+    flow_name = Column(String, nullable=False)
+    progress = Column(Float, default=0.0, nullable=False)
+    error = Column(String, default="")
+    started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    file_mtime = Column(Float, nullable=True)
+
+
 def init_database_engine() -> None:
     global SESSION, SESSION_ASYNC
     if SESSION is not None:

@@ -185,7 +185,7 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
             installed_flow.flow.private = True
         _fresh_flow_info = available_flows.get(installed_flow.name)
         if _fresh_flow_info and parse(installed_flow.flow.version) < parse(_fresh_flow_info.version):
-            installed_flow.new_version_available = _fresh_flow_info.version
+            installed_flow.flow.new_version_available = _fresh_flow_info.version
         r[installed_flow.name] = installed_flow.flow
         r_comfy[installed_flow.name] = installed_flow.flow_comfy
     CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
@@ -229,7 +229,7 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
             LOGGER.warning("Flow has gated model(s): %s; AccessToken was not found.", [i.name for i in gated_models])
 
     install_models_results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=options.MAX_PARALLEL_DOWNLOADS) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         futures = [
             executor.submit(install_model, model, flow.name, progress_for_model, __flow_install_callback, hf_auth_token)
             for model in flow.models
@@ -256,18 +256,21 @@ def __flow_install_callback(name: str, progress: float, error: str, relative_pro
     """Returns `True` if no errors occurred."""
 
     if error:
-        logging.error("`%s` installation failed: %s", name, error)
+        LOGGER.error("`%s` installation failed: %s", name, error)
         db_queries.set_flow_progress_install_error(name, error)
         return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
     if progress == 100.0:
         LOGGER.info("Installation of %s flow completed", name)
         return db_queries.update_flow_progress_install(name, progress, False)
 
-    current_progress_info = db_queries.get_flow_progress_install(name)
-    if not current_progress_info:
-        logging.error("Can not get installation progress info for %s", name)
-    else:
-        logging.info("`%s` installation: %s", name, math.floor((current_progress_info.progress + progress) * 10) / 10)
+    if LOGGER.getEffectiveLevel() <= logging.INFO:
+        current_progress_info = db_queries.get_flow_progress_install(name)
+        if not current_progress_info:
+            LOGGER.warning("Can not get installation progress info for %s", name)
+        else:
+            LOGGER.info(
+                "`%s` installation: %s", name, math.floor((current_progress_info.progress + progress) * 10) / 10
+            )
     return db_queries.update_flow_progress_install(name, progress, relative_progress)
 
 

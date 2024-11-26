@@ -331,6 +331,7 @@ def create_extra_models_config_file():
 
 EXTRA_MODEL_PATHS_YAML = """
 vix_models:
+  is_default: true
   checkpoints: {vix_models_root}/checkpoints
   text_encoders: |
     {vix_models_root}/text_encoders

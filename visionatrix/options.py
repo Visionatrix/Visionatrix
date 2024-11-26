@@ -85,9 +85,6 @@ Example:
 This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
-MAX_PARALLEL_DOWNLOADS = int(environ.get("MAX_PARALLEL_DOWNLOADS", "2"))
-"""Maximum number of parallel downloads allowed during workflow installation. Defaults to '2'."""
-
 MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform 'git clone' operations during installation."""
 
