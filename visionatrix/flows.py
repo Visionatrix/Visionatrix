@@ -7,6 +7,7 @@ import math
 import os
 import random
 import shutil
+import threading
 import time
 import typing
 import zipfile
@@ -36,6 +37,8 @@ CACHE_INSTALLED_FLOWS = {
     "flows": {},
     "flows_comfy": {},
 }
+CACHE_INSTALLED_FLOWS_LOCK = threading.Lock()
+CACHE_INSTALLED_FLOWS_EVENT = threading.Condition(CACHE_INSTALLED_FLOWS_LOCK)
 
 SUPPORTED_OUTPUTS = {
     "SaveImage": "image",
@@ -169,11 +172,47 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
         flows_comfy = {}
     else:
         flows_comfy.clear()
-    if time.time() < CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS:
-        flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
-        return CACHE_INSTALLED_FLOWS["flows"]
+    current_time = time.time()
 
-    CACHE_INSTALLED_FLOWS["update_time"] = time.time()
+    # Acquire the lock
+    with CACHE_INSTALLED_FLOWS_LOCK:
+        # Check cache validity after acquiring lock
+        cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
+        if current_time < cache_expiry_time:
+            flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
+            return CACHE_INSTALLED_FLOWS["flows"]
+
+        # If another thread is updating the cache, wait
+        if CACHE_INSTALLED_FLOWS.get("updating", False):
+            while CACHE_INSTALLED_FLOWS.get("updating", False):
+                CACHE_INSTALLED_FLOWS_EVENT.wait()
+            # Re-check cache validity after being notified
+            cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
+            if current_time < cache_expiry_time:
+                flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
+                return CACHE_INSTALLED_FLOWS["flows"]
+        # Set the updating flag to indicate cache is being updated
+        CACHE_INSTALLED_FLOWS["updating"] = True
+
+    # Release the lock before performing long-running operations
+    # Perform the operations without holding the lock
+    updated_data = _update_installed_flows()
+
+    # Acquire the lock again to update the cache
+    with CACHE_INSTALLED_FLOWS_LOCK:
+        # Update the cache with new data
+        CACHE_INSTALLED_FLOWS.update(updated_data)
+        CACHE_INSTALLED_FLOWS["update_time"] = time.time()
+        CACHE_INSTALLED_FLOWS["updating"] = False  # Clear the updating flag
+        # Notify all waiting threads that the cache has been updated
+        CACHE_INSTALLED_FLOWS_EVENT.notify_all()
+
+    # Update flows_comfy with the new cache data
+    flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
+    return CACHE_INSTALLED_FLOWS["flows"]
+
+
+def _update_installed_flows():
     available_flows = get_available_flows({})
     public_flows_names = list(available_flows)
     installed_flows = db_queries.get_installed_flows()
@@ -188,10 +227,7 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
             installed_flow.flow.new_version_available = _fresh_flow_info.version
         r[installed_flow.name] = installed_flow.flow
         r_comfy[installed_flow.name] = installed_flow.flow_comfy
-    CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
-    if flows_comfy is not None:
-        flows_comfy.update(r_comfy)
-    return r
+    return {"flows": r, "flows_comfy": r_comfy}
 
 
 def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | None:
