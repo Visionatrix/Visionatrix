@@ -33,6 +33,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
   "Topic :: Multimedia :: Graphics",
@@ -46,7 +47,7 @@ dynamic = [
 dependencies = [
   "alembic",
   "bcrypt==4.0.1",
-  "fastapi>=0.109.2",
+  "fastapi>=0.113",
   "google-generativeai",
   "httpx>=0.25.2",
   "ollama",
@@ -69,14 +70,6 @@ optional-dependencies.dev = [
   "pre-commit",
   "pylint",
   "pytest",
-]
-optional-dependencies.docs = [
-  "autodoc-pydantic>=2.0.1",
-  "sphinx>=6.2",
-  "sphinx-copybutton",
-  "sphinx-inline-tabs",
-  "sphinx-issues>=3.0.1",
-  "sphinx-rtd-theme>=1",
 ]
 optional-dependencies.pgsql = [
   "greenlet",
@@ -140,6 +133,9 @@ lint.per-file-ignores."visionatrix/__init__.py" = [
 lint.per-file-ignores."visionatrix/backend.py" = [
   "C901",
 ]
+lint.per-file-ignores."visionatrix/custom_openapi.py" = [
+  "S324",
+]
 lint.per-file-ignores."visionatrix/install_update/*.py" = [
   "S607",
 ]
@@ -148,6 +144,9 @@ lint.per-file-ignores."visionatrix/install_update/__init__.py" = [
 ]
 lint.per-file-ignores."visionatrix/routes/*.py" = [
   "B008",
+]
+lint.per-file-ignores."visionatrix/routes/__init__.py" = [
+  "F401",
 ]
 lint.extend-per-file-ignores."tests/**/*.py" = [
   "E402",
@@ -167,8 +166,8 @@ master.extension-pkg-allow-list = [
 design.max-attributes = 10
 design.max-locals = 28
 design.max-branches = 25
-design.max-returns = 8
-design.max-args = 12
+design.max-returns = 10
+design.max-args = 14
 design.max-statements = 90
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
@@ -185,6 +184,8 @@ messages_control.disable = [
   "global-statement",
   "broad-exception-caught",
   "too-many-positional-arguments",
+  "deprecated-argument",
+  "import-outside-toplevel",
 ]
 
 [tool.pytest.ini_options]

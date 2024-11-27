@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
@@ -9,6 +9,7 @@ from typing_extensions import Self
 
 class TaskRunResults(BaseModel):
     tasks_ids: list[int] = Field(..., description="List of IDs representing the tasks that were created.")
+    outputs: list[TaskDetailsOutput] = Field(..., description="List of outputs for the created tasks.")
 
 
 class SubFlow(BaseModel):
@@ -37,7 +38,7 @@ class AIResourceModel(BaseModel):
     """
 
     name: str = Field(..., description="Unique name of the model.")
-    save_path: str = Field(..., description="Subpath where the model is stored within the local system.")
+    paths: list[str] = Field(..., description="Paths where the model can be stored within the filesystem.")
     url: str = Field(..., description="URL from which the model can be downloaded.")
     homepage: str = Field("", description="Webpage with detailed information about the model.")
     hash: str = Field(..., description="SHA256 hash of the model file for integrity verification.")
@@ -56,6 +57,13 @@ class AIResourceModel(BaseModel):
 
     def __eq__(self, other):
         return isinstance(other, AIResourceModel) and self.name == other.name
+
+    @model_validator(mode="before")
+    @classmethod
+    def validator_before(cls, data: Any) -> Any:
+        if isinstance(data, dict) and isinstance(data.get("paths", []), str):
+            data["paths"] = [data["paths"]]
+        return data
 
 
 class Flow(BaseModel):
@@ -110,8 +118,22 @@ class FlowProgressInstall(BaseModel):
     progress: float = Field(..., description="The current progress of the installation, ranging from 0 to 100.")
     error: str = Field("", description="Details of any error encountered during the installation process.")
     started_at: datetime = Field(..., description="Timestamp when the installation process started.")
-    updated_at: datetime | None = Field(None, description="Timestamp of the last update to the installation progress.")
-    finished_at: datetime | None = Field(None, description="Timestamp when the installation process completed.")
+    updated_at: datetime = Field(..., description="Timestamp of the last update to the installation progress.")
+
+
+class ModelProgressInstall(BaseModel):
+    """Represents the progress status of a model installation process."""
+
+    model_config = ConfigDict(from_attributes=True)
+    name: str = Field(..., description="Unique name of the model being installed.")
+    flow_name: str = Field(..., description="Name of the flow requesting the installation.")
+    progress: float = Field(..., description="The current progress of the installation, ranging from 0 to 100.")
+    error: str = Field("", description="Details of any error encountered during the installation process.")
+    started_at: datetime = Field(..., description="Timestamp when the installation process started.")
+    updated_at: datetime = Field(..., description="Timestamp of the last update to the installation record.")
+    file_mtime: float | None = Field(
+        None, description="Last modification time of the model file, as a floating-point timestamp."
+    )
 
 
 class TaskDetailsInput(BaseModel):
@@ -126,7 +148,8 @@ class TaskDetailsOutput(BaseModel):
 
     comfy_node_id: int = Field(..., description="ID of the ComfyUI node containing the result.")
     type: str = Field(
-        ..., description="Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
+        ...,
+        description="Type of the result from the ComfyUI node - can be either 'image', 'image-mask' or 'video'.",
     )
     file_size: int = Field(-1, description="Size of file(s) in bytes.")
     batch_size: int = Field(-1, description="Count of outputs(files) produced by node.")
@@ -160,6 +183,9 @@ class TaskDetailsShort(BaseModel):
     child_tasks: list[TaskDetailsShort] = Field(
         [], description="List of child tasks of type `TaskDetailsShort` if any."
     )
+    translated_input_params: dict | None = Field(
+        None, description="If auto-translation feature is enabled, contains translations for input values."
+    )
 
     @model_validator(mode="after")
     def adjust_priority(self) -> Self:
@@ -179,11 +205,57 @@ class TaskDetails(TaskDetailsShort):
     finished_at: datetime | None = Field(None, description="Finish time of the task.")
     flow_comfy: dict = Field(..., description="The final generated ComfyUI workflow.")
     user_id: str = Field(..., description="User ID to whom the task belongs.")
-    webhook_url: str | None = Field(None, description="The URL that will be called when the task state changes.")
-    webhook_headers: dict | None = Field(None, description="Headers to send to webhook.")
-    translated_input_params: dict | None = Field(
-        None, description="If auto-translation feature is enabled, contains translations for input values."
+    webhook_url: str | None = Field(None, description="URL that was set to be called when the task state changes.")
+    webhook_headers: dict | None = Field(None, description="Headers that were set to be sent to the webhook URL.")
+    execution_details: ExecutionDetails | None = Field(
+        None,
+        description="Profiling information about task execution, present only if profiling was enabled for this task.",
     )
+    extra_flags: ExtraFlags | None = Field(
+        None,
+        description="Set of additional options and flags that affect how the task is executed.",
+    )
+    custom_worker: str | None = Field(
+        None, description="ID of the worker to which the task was explicitly assigned, if specified."
+    )
+
+
+class NodeProfiling(BaseModel):
+    """Represents profiling information for a single node in the workflow."""
+
+    execution_time: float = Field(..., description="Execution time of the node in seconds.")
+    gpu_memory_usage: float = Field(..., description="GPU memory consumed by the node in MB.")
+    class_type: str = Field(..., description="Class type of the node.")
+    title: str = Field(..., description="Title of the node.")
+    node_id: str = Field(..., description="Unique identifier of the node.")
+
+
+class ComfyEngineDetails(BaseModel):
+    """Performance options that ComfyUI is running with."""
+
+    disable_smart_memory: bool | None = Field(
+        None, description="Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+    )
+    vram_state: str | None = Field(None, description="Current VRAM management mode used by ComfyUI.")
+
+
+class ExecutionDetails(ComfyEngineDetails):
+    """Contains profiling information for the entire task execution."""
+
+    nodes_profiling: list[NodeProfiling] | None = Field(
+        None, description="Profiling information for each node in the workflow."
+    )
+    max_memory_usage: float | None = Field(None, description="Maximum GPU memory usage during task execution in MB.")
+    nodes_execution_time: float | None = Field(
+        None, description="Execution time of all ComfyUI nodes in the workflow in seconds."
+    )
+
+
+class ExtraFlags(BaseModel):
+    """Additional options and flags that modify how the task is executed."""
+
+    profiler_execution: bool = Field(False, description="Enable profiling for this task execution.")
+    unload_models: bool = Field(False, description="Unload all models before task execution.")
 
 
 class WorkerDetailsSystemRequest(BaseModel):
@@ -217,6 +289,7 @@ class WorkerDetailsRequest(BaseModel):
     ram_total: int = Field(0, description="Total RAM on the worker in bytes")
     ram_free: int = Field(0, description="Free RAM on the worker in bytes")
     last_seen: datetime = Field(datetime.now(timezone.utc), description="Last seen time")
+    engine_details: ComfyEngineDetails = Field(...)
 
 
 class WorkerDetails(BaseModel):
@@ -249,6 +322,7 @@ class WorkerDetails(BaseModel):
     torch_vram_free: int | None = Field(None, description="Free VRAM managed by PyTorch that is currently unused.")
     ram_total: int | None = Field(None, description="Total RAM available on the worker in bytes.")
     ram_free: int | None = Field(None, description="Free RAM available on the worker in bytes.")
+    engine_details: ComfyEngineDetails | None = Field(...)
 
 
 class UserInfo(BaseModel):
@@ -275,6 +349,12 @@ class OrphanModel(BaseModel):
     res_model: AIResourceModel | None = Field(None, description="AIResourceModel describing the file, if any matches.")
     possible_flows: list[Flow] = Field([], description="List of possible flows that could potentially use this model.")
 
+    def __hash__(self):
+        return hash(self.path)
+
+    def __eq__(self, other):
+        return isinstance(other, OrphanModel) and self.path == other.path
+
 
 class TaskUpdateRequest(BaseModel):
     """
@@ -288,7 +368,7 @@ class TaskUpdateRequest(BaseModel):
         int | None,
         Field(
             strict=True,
-            gt=0,
+            ge=0,
             le=15,
             description="New priority level for task. Higher numbers indicate higher priority. Maximum value is 15.",
         ),
@@ -313,3 +393,68 @@ class TranslatePromptResponse(BaseModel):
     prompt: str = Field(..., description="The original prompt provided in the request.")
     result: str = Field(..., description="The translated prompt in English.")
     done_reason: str = Field(..., description="The reason the translation generation was completed.")
+
+
+class TaskCreationBasicParams(BaseModel):
+    group_scope: int = Field(1, description="Group number to which task should be assigned.", ge=1, le=255)
+    priority: int = Field(0, description="Execution priority. Higher numbers indicate higher priority.", ge=0, le=15)
+    child_task: int = Field(0, description="Int boolean indicating whether to create a relation between tasks")
+    webhook_url: str = Field(
+        "",
+        description=(
+            "Optional. URL to call when task state changes."
+            " Leave empty if not needed or if using `/progress` or `/progress-summary` endpoints."
+        ),
+    )
+    webhook_headers: str = Field(
+        "",
+        description=(
+            "Optional. Headers for webhook URL as an encoded JSON string. Used only when `webhook_url` is set."
+        ),
+    )
+
+
+class TaskCreationCountParam(BaseModel):
+    count: int = Field(1, description="Number of tasks to be created.", ge=1)
+
+
+class TaskCreationTranslateParam(BaseModel):
+    translate: int = Field(0, description="Should the prompt be translated if auto-translation option is enabled.")
+
+
+class TaskCreationSeedParam(BaseModel):
+    seed: int = Field(1, description="The `seed` parameter for reproducing the results of workflows.")
+
+
+class TaskCreationWithTranslateParam(TaskCreationTranslateParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithCountParam(TaskCreationCountParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithSeedParam(TaskCreationSeedParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithTranslateAndSeedParams(
+    TaskCreationTranslateParam, TaskCreationSeedParam, TaskCreationBasicParams
+):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithTranslateAndCountParams(
+    TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationBasicParams
+):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithCountAndSeedParams(TaskCreationCountParam, TaskCreationSeedParam, TaskCreationBasicParams):
+    model_config = ConfigDict(extra="ignore")
+
+
+class TaskCreationWithFullParams(
+    TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationSeedParam, TaskCreationBasicParams
+):
+    model_config = ConfigDict(extra="ignore")

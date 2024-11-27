@@ -36,7 +36,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 			if (state.flows_search_filter !== '') {
 				flows = flows
-					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase()) 
+					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
 			}
@@ -60,7 +60,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 			if (state.flows_search_filter !== '') {
 				flows = flows
-					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase()) 
+					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
 				console.debug('filter flows by search:', state.flows_search_filter, flows)
@@ -73,24 +73,81 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowResultsByName(state) {
 			return (name: string) => {
 				if (state.flow_results_filter !== '') {
-					return state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter))
+					return state.flow_results
+						.filter(task => task.flow_name === name
+							&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter))
+						.sort((a: FlowResult, b: FlowResult) => {
+							if (a.finished_at && b.finished_at) {
+								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+							}
+							return Number(b.task_id) - Number(a.task_id)
+						})
 				}
-				return state.flow_results.filter(task => task.flow_name === name)
+				return state.flow_results
+					.filter(task => task.flow_name === name)
+					.sort((a: FlowResult, b: FlowResult) => {
+						if (a.finished_at && b.finished_at) {
+							return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+						}
+						return Number(b.task_id) - Number(a.task_id)
+					})
 			}
 		},
 		flowResultsByNamePaginated(state) {
 			return (name: string) => {
 				if (state.flow_results_filter !== '') {
-					return paginate(state.flow_results.filter(task => task.flow_name === name && task.input_params_mapped['prompt'].value.includes(state.flow_results_filter) && task.parent_task_id === null).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+					return paginate(
+						state.flow_results
+							.filter(task => task.flow_name === name
+								&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
+								&& task.parent_task_id === null)
+							.sort((a: FlowResult, b: FlowResult) => {
+								if (a.finished_at && b.finished_at) {
+									return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+								}
+								return Number(b.task_id) - Number(a.task_id)
+							}), state.resultsPage, state.resultsPageSize
+					) as FlowResult[]
 				}
-				return paginate(state.flow_results.filter(task => task.flow_name === name && task.parent_task_id === null).reverse(), state.resultsPage, state.resultsPageSize) as FlowResult[]
+				return paginate(
+					state.flow_results
+						.filter(task => task.flow_name === name && task.parent_task_id === null)
+						.sort((a: FlowResult, b: FlowResult) => {
+							if (a.finished_at && b.finished_at) {
+								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+							}
+							return Number(b.task_id) - Number(a.task_id)
+						}), state.resultsPage, state.resultsPageSize
+				) as FlowResult[]
 			}
 		},
 		flowInstallingByName(state) {
 			return (name: string) => state.installing.find(flow => flow.flow_name === name) ?? null
 		},
 		flowsRunningByName(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.parent_task_id === null) ?? null
+			return (name: string) => {
+				return state.running
+					.filter(flow => flow.flow_name === name && flow.parent_task_id === null)
+					.sort((a: FlowRunning, b: FlowRunning) => {
+						// if progress is available, sort by progress DESC
+						if (a.progress || b.progress) {
+							return Number(b.progress) - Number(a.progress)
+						}
+
+						// sort by priority DESC if available
+						if (a.priority && b.priority) {
+							return Number(b.priority) - Number(a.priority)
+						}
+
+						// if only one of them has priority, it should be first
+						if (a.priority || b.priority) {
+							return a.priority ? -1 : 1
+						}
+
+						// otherwise sort ASC by task_id by default
+						return Number(a.task_id) - Number(b.task_id)
+					})
+			}
 		},
 		flowsRunningByNameWithErrors(state) {
 			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null) ?? null
@@ -242,6 +299,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						task_id: task_id,
 						flow_name: task.name,
 						outputs: task.outputs,
+						input_files: task.input_files || [],
 						input_params_mapped: input_params_mapped_updated || null,
 						translated_input_params_mapped: translated_input_params_mapped || null,
 						execution_time: task.execution_time || 0,
@@ -250,6 +308,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						parent_task_node_id: task.parent_task_node_id,
 						progress: task.progress,
 						error: task?.error || '',
+						finished_at: task.finished_at,
 					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
@@ -376,18 +435,17 @@ export const useFlowsStore = defineStore('flowsStore', {
 				if (!['image', 'image-mask'].includes(param[paramName].type)
 					&& param[paramName].value !== '') {
 					input_params_mapped[paramName] = param[paramName].value
+					formData.append(paramName, param[paramName].value)
 				}
 			})
 			console.debug('input_params_mapped:', input_params_mapped)
 
-			formData.append('name', flow.name)
 			formData.append('count', count.toString())
-
 
 			const file_input_params = input_params.filter(param => {
 				const paramName = Object.keys(param)[0]
 				return ['image', 'image-mask'].includes(param[paramName].type)
-					&& ((param[paramName].value instanceof File && param[paramName].value.size > 0) 
+					&& ((param[paramName].value instanceof File && param[paramName].value.size > 0)
 						|| (typeof param[paramName].value === 'string' && param[paramName].value !== ''))
 			})
 
@@ -396,10 +454,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 				file_input_params.forEach((param: any) => {
 					const paramName = Object.keys(param)[0]
 					console.debug('file:', param[paramName].value)
-					formData.append('files', param[paramName].value)
+					formData.append(paramName, param[paramName].value)
 				})
 			}
-			formData.append('input_params', JSON.stringify(input_params_mapped))
 
 			if (child_task) {
 				formData.append('child_task', '1')
@@ -416,11 +473,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					display_name: flow.input_params.find(param => param.name === key)?.display_name,
 				}
 			})
-			return await $apiFetch('/tasks/create', {
+			return await $apiFetch(`/tasks/create/${flow.name}`, {
 				method: 'PUT',
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-				},
 				body: formData,
 			}).then((res: any) => {
 				// Adding started flow to running list
@@ -438,6 +492,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						},
 						outputs: [], // outputs are dynamic and populated later by polling task progress
 						parent_task_id: parent_task_id,
+						priority: 0,
 					})
 				})
 				console.debug('running:', this.running)
@@ -450,6 +505,75 @@ export const useFlowsStore = defineStore('flowsStore', {
 					description: e.message,
 					timeout: 5000,
 				})
+			})
+		},
+
+		async raiseQueuePriority(running: FlowRunning) {
+			if (running.progress > 0) {
+				return
+			}
+			if (!running.priority) {
+				running.priority = 0
+			}
+			if (running.priority === 15) {
+				return
+			}
+			const previousPriority = running.priority
+			this.updateTaskData(running, ['priority'], [running.priority + 1])
+				.then(() => {
+					running.priority++
+				})
+				.catch(() => {
+					running.priority = previousPriority
+				})
+		},
+
+		async lowerQueuePriority(running: FlowRunning) {
+			if (running.progress > 0) {
+				return
+			}
+			if (running.priority && running.priority > 0) {
+				const previousPriority = running.priority
+				this.updateTaskData(running, ['priority'], [running.priority - 1])
+					.then(() => {
+						running.priority--
+					}).catch(() => {
+						running.priority = previousPriority
+					})
+			}
+		},
+
+		async resetQueuePriority(running: FlowRunning) {
+			if (running.progress > 0) {
+				return
+			}
+			if (running.priority && running.priority > 0) {
+				const previousPriority = running.priority
+				this.updateTaskData(running, ['priority'], [0])
+					.then(() => {
+						running.priority = 0
+					}).catch(() => {
+						running.priority = previousPriority
+					})
+			}
+		},
+
+		async updateTaskData(
+			task: FlowResult|TaskHistoryItem|FlowRunning,
+			fields_to_update: any[],
+			values: any[]
+		) {
+			const { $apiFetch } = useNuxtApp()
+			const update_data: any = {}
+			fields_to_update.forEach((field, index) => {
+				update_data[field] = values[index]
+			})
+			return $apiFetch(`/tasks/update?task_id=${task.task_id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: update_data,
 			})
 		},
 
@@ -688,17 +812,16 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (progress[task_id].input_files) {
 							runningFlow.input_files = progress[task_id].input_files
 						}
-
-						if (progress[task_id]?.translated_input_params && !runningFlow.translated_input_params_mapped) {
-							const translated_input_params_mapped: any = {}
+						const translated_input_params_mapped: any = {}
+						if (progress[task_id]?.translated_input_params) {
 							Object.keys(progress[task_id].translated_input_params).forEach((key) => {
 								translated_input_params_mapped[key] = {
 									value: progress[task_id].translated_input_params[key],
 									display_name: this.flows_installed.find(flow => flow.name === progress[task_id].name)?.input_params.find(param => param.name === key)?.display_name,
 								}
 							})
+							runningFlow.translated_input_params_mapped = translated_input_params_mapped
 						}
-
 						if (progress[task_id].progress === 100) {
 							// Remove finished flow from running list
 							this.running = this.running.filter(flow => Number(flow.task_id) !== Number(task_id))
@@ -714,13 +837,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 								flow_name: flow.name,
 								outputs: progress[task_id].outputs,
 								input_params_mapped: runningFlow.input_params_mapped,
-								translated_input_params_mapped: runningFlow.translated_input_params_mapped,
+								translated_input_params_mapped: runningFlow.translated_input_params_mapped || translated_input_params_mapped,
 								execution_time: progress[task_id]?.execution_time || 0,
 								child_tasks: progress[task_id].child_tasks || [],
 								parent_task_id: progress[task_id].parent_task_id,
 								parent_task_node_id: progress[task_id].parent_task_node_id,
 								progress: progress[task_id].progress,
 								error: progress[task_id]?.error || '',
+								finished_at: progress[task_id].finished_at,
+								input_files: progress[task_id].input_files || [],
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -900,7 +1025,6 @@ export interface FlowInputParam {
 	step?: number
 	source_input_name?: string
 	hidden: boolean
-	edge_size?: number
 	translatable?: boolean
 }
 
@@ -931,7 +1055,7 @@ export interface FlowRunning {
 	task_id: string
 	flow_name: string
 	progress: number
-	input_files?: TaskInputFile
+	input_files?: TaskInputFile[]
 	input_params_mapped: TaskHistoryInputParam
 	translated_input_params_mapped?: TaskHistoryInputParam
 	outputs: FlowOutputParam[]
@@ -939,6 +1063,7 @@ export interface FlowRunning {
 	execution_time?: number
 	parent_task_id: number|null
 	child_tasks?: TaskHistoryItem[]
+	priority: number
 }
 
 export interface FlowProgress {
@@ -964,8 +1089,11 @@ export interface FlowResult {
 	parent_task_id: number
 	parent_task_node_id: number
 	child_tasks: TaskHistoryItem[]
+	input_files: TaskInputFile[]
 	progress: number
 	error: string
+	finished_at: string
+	showInputFiles?: boolean
 }
 
 export interface TasksHistory {
@@ -992,7 +1120,7 @@ export interface TaskHistoryItem {
 	execution_time: number
 	finished_at: string
 	flow_comfy: any
-	input_files: TaskInputFile
+	input_files: TaskInputFile[]
 	input_params: TaskHistoryInputParam
 	locked_at: string
 	name: string
@@ -1000,6 +1128,7 @@ export interface TaskHistoryItem {
 	parent_task_id: number
 	parent_task_node_id: number
 	progress: number
+	priority: number
 	task_id: number
 	translated_input_params: TaskHistoryInputParam
 	updated_at: string

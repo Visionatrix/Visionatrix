@@ -2,13 +2,14 @@ import builtins
 import json
 import logging
 import re
+from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
 
 from . import options
 from .basic_node_list import BASIC_NODE_LIST
-from .comfyui import get_node_class_mappings
+from .comfyui import get_folder_names_and_paths, get_node_class_mappings
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import AIResourceModel
 
@@ -40,12 +41,25 @@ MODEL_LOAD_CLASSES = {
         "4": ["inputs", "lora_04"],
     },
     "UNETLoader": {"1": ["inputs", "unet_name"]},
+    "CLIPLoader": {"1": ["inputs", "clip_name"]},
     "DualCLIPLoader": {
         "1": ["inputs", "clip_name1"],
         "2": ["inputs", "clip_name2"],
     },
+    "TripleCLIPLoader": {
+        "1": ["inputs", "clip_name1"],
+        "2": ["inputs", "clip_name2"],
+        "3": ["inputs", "clip_name3"],
+    },
     "PhotoMakerLoaderPlus": {
         "1": ["inputs", "photomaker_model_name"],
+    },
+    "RIFE VFI": {
+        "preset": ["inputs", "ckpt_name"],
+    },
+    "DWPreprocessor": {
+        "preset1": ["inputs", "bbox_detector"],
+        "preset2": ["inputs", "pose_estimator"],
     },
 }
 MODELS_CATALOG: dict[str, dict] = {}
@@ -65,7 +79,13 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
             models_from_nodes = nodes_with_models.get(node_module, [])
             for node_model_info in models_from_nodes:
                 if node_model_info.name not in [i.name for i in models_info]:
-                    models_info.append(node_model_info)
+                    models_info.append(
+                        node_model_info.model_copy(
+                            update={
+                                "paths": [str(Path(options.BACKEND_DIR).joinpath(i)) for i in node_model_info.paths]
+                            }
+                        )
+                    )
 
         if (load_class := MODEL_LOAD_CLASSES.get(class_type)) is None:
             continue
@@ -80,7 +100,9 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
                         models_info.append(AIResourceModel(**model_details, name=model))
                     not_found = False
             if not_found:
-                LOGGER.error("Can not map model for:\n%s", node_details)
+                LOGGER.error(
+                    "Can not map model(%s) for %s(%s):\n%s", node_input_model_name, class_type, k, node_details
+                )
     return models_info
 
 
@@ -100,15 +122,16 @@ def match_replace_model(
                 set_node_value(
                     node_details,
                     node_model_load_path,
-                    skip_first_part_of_path(model_details["save_path"]),
+                    get_model_name_from_details(model_details),
                 )
             return True
     return False
 
 
-def skip_first_part_of_path(save_path: str):
-    parts = save_path.split("/", 1)
-    return parts[1] if len(parts) > 1 else save_path
+def get_model_name_from_details(model_details: dict) -> str:
+    if model_details.get("filename"):
+        return model_details["filename"]
+    return urlparse(model_details["url"]).path.split("/")[-1]
 
 
 def get_models_catalog() -> dict[str, dict]:
@@ -118,6 +141,36 @@ def get_models_catalog() -> dict[str, dict]:
         else:
             with builtins.open(options.MODELS_CATALOG_URL, encoding="UTF-8") as models_catalog_file:
                 MODELS_CATALOG.update(json.loads(models_catalog_file.read()))
+    for model, model_details in MODELS_CATALOG.items():
+        model_types = model_details.get("types", [])
+        if model_types:
+            comfyui_models_paths = get_folder_names_and_paths()
+            comfyui_folders_info = None
+
+            for model_type in model_types:
+                if model_type in comfyui_models_paths:
+                    comfyui_folders_info = comfyui_models_paths[model_type]
+                    break
+
+            if comfyui_folders_info is None:
+                raise ValueError(
+                    f"Error installing model '{model}': no directory found for any of types: {model_types}"
+                ) from None
+
+            if not comfyui_folders_info[0]:
+                raise ValueError(
+                    f"Error installing model '{model}': no output folders defined: {comfyui_folders_info}"
+                ) from None
+
+            save_paths = []
+            for output_folder in comfyui_folders_info[0]:
+                if "filename" in model_details:
+                    save_paths.append(Path(output_folder).joinpath(model_details["filename"]))
+                else:
+                    save_paths.append(Path(output_folder).joinpath(urlparse(model_details["url"]).path.split("/")[-1]))
+        else:
+            save_paths = [Path(options.BACKEND_DIR).joinpath(model_details["filename"])]
+        model_details["paths"] = [str(i) for i in save_paths]
     return MODELS_CATALOG
 
 

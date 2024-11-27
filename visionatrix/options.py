@@ -13,8 +13,6 @@ PYTHON_EMBEDED = path.split(path.split(sys.executable)[0])[1] == "python_embeded
 BACKEND_DIR = environ.get(
     "BACKEND_DIR", str(Path("vix_backend") if PYTHON_EMBEDED else Path("./vix_backend").resolve())
 )
-FLOWS_DIR = environ.get("FLOWS_DIR", str(Path("vix_flows") if PYTHON_EMBEDED else Path("./vix_flows").resolve()))
-MODELS_DIR = environ.get("MODELS_DIR", str(Path("vix_models") if PYTHON_EMBEDED else Path("./vix_models").resolve()))
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
 
 VIX_HOST = environ.get("VIX_HOST", "")
@@ -49,8 +47,11 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 ORG_URL = "https://github.com/Visionatrix/"  # organization from which ComfyUI nodes will be installed
 
 FLOWS_URL = environ.get("FLOWS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/")
-"""URL or path that points to the location of archive files containing lists and definitions of Visionatrix workflows.
-More information: https://visionatrix.github.io/VixFlowsDocs/TechnicalInformation.html#workflows-storage
+"""URLs or file paths (separated by ';') that point to locations of archive files
+containing lists and definitions of Visionatrix workflows.
+
+Each URL or path can point to an archive containing flows, more information:
+https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/#workflows-storage
 """
 
 # For Flows development, execute command from next line to create a zip with adjusted/new flows:
@@ -84,24 +85,14 @@ Example:
 This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
-MAX_PARALLEL_DOWNLOADS = int(environ.get("MAX_PARALLEL_DOWNLOADS", "2"))
-"""Maximum number of parallel downloads allowed during workflow installation. Defaults to '2'."""
-
 MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform 'git clone' operations during installation."""
 
-NODES_TIMING = int(environ.get("NODES_TIMING", "0")) == 1
-"""If set to '1', logs the execution time of each workflow node for performance analysis."""
 
-
-def init_dirs_values(backend: str | None, flows: str | None, models: str | None, tasks_files: str | None) -> None:
-    global BACKEND_DIR, FLOWS_DIR, MODELS_DIR, TASKS_FILES_DIR
+def init_dirs_values(backend: str | None, tasks_files: str | None) -> None:
+    global BACKEND_DIR, TASKS_FILES_DIR
     if backend:
         BACKEND_DIR = str(Path(backend).resolve())
-    if flows:
-        FLOWS_DIR = str(Path(flows).resolve())
-    if models:
-        MODELS_DIR = str(Path(models).resolve())
     if tasks_files:
         TASKS_FILES_DIR = str(Path(tasks_files).resolve())
 
@@ -110,8 +101,6 @@ def get_server_mode_options_as_env() -> dict[str, str]:
     return {
         "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
         "BACKEND_DIR": BACKEND_DIR,
-        "FLOWS_DIR": FLOWS_DIR,
-        "MODELS_DIR": MODELS_DIR,
         "TASKS_FILES_DIR": TASKS_FILES_DIR,
         "VIX_HOST": VIX_HOST,
         "VIX_PORT": VIX_PORT,

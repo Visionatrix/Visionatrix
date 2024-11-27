@@ -26,14 +26,16 @@ watch(() => flowsStore.paginatedFlows, () => {
 		<UProgress v-if="flowsStore.$state.loading.flows_available || flowsStore.loading.flows_installed || flowsStore.$state.loading.tasks_history" />
 		<template v-else>
 			<div class="w-full sticky z-[100] top-1 flex flex-col md:flex-row justify-center items-center my-1">
-				<UInput v-model="flowsStore.$state.flows_search_filter"
+				<UInput
+					v-model="flowsStore.$state.flows_search_filter"
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
 					class="mb-1 md:mr-3 md:mb-0"
 					:label="'Filter by prompt'"
 					:trailing="true"
 					placeholder="Search flows" />
-				<UPagination v-if="flowsStore.flows.length > flowsStore.$state.pageSize"
+				<UPagination
+					v-if="flowsStore.flows.length > flowsStore.$state.pageSize"
 					v-model="flowsStore.$state.page"
 					class="mb-1 md:mr-3 md:mb-0"
 					:page-count="flowsStore.$state.pageSize"

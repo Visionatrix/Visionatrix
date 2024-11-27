@@ -43,28 +43,40 @@ jobs:
       - name: Install Vix
         shell: bash
         run: |
-          cp scripts/easy_install.py vix_portable/easy_install.py
+          cp scripts/easy_install.py vix_portable/
           cp scripts/python_embeded/run_cpu.bat vix_portable/
           cp scripts/python_embeded/run_nvidia_gpu.bat vix_portable/
           cd vix_portable
-          ./python_embeded/python.exe easy_install.py
-          rm -rf Visionatrix
+          if grep -q "\.dev" ../visionatrix/_version.py; then
+            echo "Detected development version. Running with the DEV_VERSION flag set."
+            DEV_VERSION=1 ./python_embeded/python.exe easy_install.py
+          else
+            ./python_embeded/python.exe easy_install.py
+          fi
+          rm -rf Visionatrix tasks_history.db
+          ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
         env:
-          COMPUTE_DEVICE: "NVIDIA"
+          COMPUTE_DEVICE: "CPU"
 
       - name: Archive Vix
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
-          "C:\Program Files\7-Zip\7z.exe" a -t7z -m0=lzma -mx=8 -mfb=64 -md=32m -ms=on -mf=BCJ2 -v2100000000b vix_portable_cuda.7z vix_portable
+          "C:\Program Files\7-Zip\7z.exe" a -t7z -m0=lzma -mx=8 -mfb=64 -md=32m -ms=on -mf=BCJ2 vix_portable_cuda.7z vix_portable
+
+      - name: Test Portable
+        shell: bash
+        run: |
+          cd vix_portable
+          ./python_embeded/python.exe ../tests/rm_background_bria.py
 
       - name: Upload to Artifacts
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ always() && github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
           name: vix_portable_cuda.7z
-          path: vix_portable_cuda.7z*
+          path: vix_portable_cuda.7z
           if-no-files-found: error
 
   publish_release:

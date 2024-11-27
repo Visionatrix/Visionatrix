@@ -18,16 +18,12 @@ from packaging.version import parse
 
 from .. import options
 from ..db_queries import (
-    add_flow_progress_install,
-    delete_flows_progress_install,
-    finish_flow_progress_install,
+    delete_flow_progress_install,
     flows_installation_in_progress,
     get_flows_progress_install,
-    set_flow_progress_install_error,
-    update_flow_progress_install,
 )
 from ..db_queries_async import (
-    delete_flows_progress_install_async,
+    delete_flow_progress_install_async,
     get_flows_progress_install_async,
 )
 from ..flows import (
@@ -53,7 +49,7 @@ async def get_installed() -> list[Flow]:
     includes details such as the name, display name, description, author, homepage URL, and other relevant
     information about each flow.
     """
-    return get_installed_flows()
+    return list(get_installed_flows().values())
 
 
 @ROUTER.get("/not-installed")
@@ -62,7 +58,7 @@ async def get_not_installed() -> list[Flow]:
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
     similar to the installed flows, which includes metadata and configuration parameters.
     """
-    return get_not_installed_flows()
+    return list(get_not_installed_flows().values())
 
 
 @ROUTER.get("/subflows")
@@ -75,7 +71,7 @@ async def get_subflows(input_type: typing.Literal["image", "image-inpaint", "vid
     from the sub-flows into the main flow's parameters based on matching names.
     """
     r = []
-    for i in get_installed_flows():
+    for i in get_installed_flows().values():
         for sub_flow in i.sub_flows:
             if sub_flow.type == input_type:
                 transformed_flow = copy.deepcopy(i)
@@ -100,8 +96,10 @@ async def get_subflows(input_type: typing.Literal["image", "image-inpaint", "vid
             "content": {"application/json": {"example": {"detail": "Can't find `flow_name` flow."}}},
         },
         409: {
-            "description": "Another flow installation is in progress",
-            "content": {"application/json": {"example": {"detail": "Another flow installation is in progress."}}},
+            "description": "Installation of the same flow is already in progress",
+            "content": {
+                "application/json": {"example": {"detail": "Installation of this flow is already in progress."}}
+            },
         },
     },
 )
@@ -111,27 +109,20 @@ def install(
     name: str = Query(..., description="Name of the flow you wish to install"),
 ):
     """
-    Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges
-    to perform the installation. If another flow installation is already in progress, it prevents a new
-    installation to avoid conflicts, returning a 409 Conflict HTTP status.
+    Initiates the installation of a flow based on its name. Requires admin privileges.
 
-    This endpoint schedules a background task for the installation process using the specified flow name. It
-    checks the availability of the flow in the list of available flows and starts the installation if the flow
-    is found. It ensures that no two installations can run concurrently.
+    If the specified flow is already being installed, a `409 Conflict` status is returned. However,
+    the installation of other flows is allowed concurrently.
     """
     require_admin(request)
-    if flows_installation_in_progress():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Another flow installation is in progress.")
-
-    flows_comfy = []
-    flows = get_available_flows(flows_comfy)
-    for i, flow in enumerate(flows):
-        if flow.name == name:
-            delete_flows_progress_install(name)
-            add_flow_progress_install(name, flows_comfy[i])
-            b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
-            return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` flow.")
+    flow_name = name.lower()
+    flows_comfy = {}
+    flow = get_available_flows(flows_comfy).get(flow_name)
+    if not flow:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{flow_name}` flow.")
+    if flows_installation_in_progress(flow.name):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
+    b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name])
 
 
 @ROUTER.put(
@@ -141,8 +132,10 @@ def install(
     responses={
         204: {"description": "Successful start of installation"},
         409: {
-            "description": "Another flow installation is in progress",
-            "content": {"application/json": {"example": {"detail": "Another flow installation is in progress."}}},
+            "description": "Installation of the same flow is already in progress",
+            "content": {
+                "application/json": {"example": {"detail": "Installation of this flow is already in progress."}}
+            },
         },
     },
 )
@@ -152,21 +145,17 @@ def install_from_file(
     flow_file: UploadFile = File(..., description="The ComfyUI workflow file to be uploaded and installed"),
 ):
     """
-    Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges
-    to perform the installation. If another flow installation is already in progress, it prevents a parallel flow
-    installation to avoid conflicts, returning a 409 Conflict HTTP status.
+    Initiates the installation of a flow from an uploaded file. Requires admin privileges.
 
-    This endpoint schedules a background task for the installation process using the uploaded flow file.
+    If the specified flow is already being installed, a `409 Conflict` status is returned. However,
+    the installation of other flows is allowed concurrently.
     """
     require_admin(request)
-    if flows_installation_in_progress():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Another flow installation is in progress.")
-
     flow_comfy = json.loads(flow_file.file.read())
     flow = get_vix_flow(flow_comfy)
-    delete_flows_progress_install(flow.name)
-    add_flow_progress_install(flow.name, flow_comfy)
-    b_tasks.add_task(install_custom_flow, flow, flow_comfy, __progress_install_callback)
+    if flows_installation_in_progress(flow.name):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
+    b_tasks.add_task(install_custom_flow, flow, flow_comfy)
 
 
 @ROUTER.post(
@@ -180,9 +169,9 @@ def install_from_file(
             "content": {"application/json": {"example": {"detail": "Can't find `flow_name` flow."}}},
         },
         409: {
-            "description": "Another flow installation or update is in progress",
+            "description": "Update or installation of the same flow is already in progress",
             "content": {
-                "application/json": {"example": {"detail": "Another flow installation or update is in progress."}}
+                "application/json": {"example": {"detail": "Installation of this flow is already in progress."}}
             },
         },
         412: {
@@ -197,45 +186,31 @@ def flow_update(
     name: str = Query(..., description="Name of the flow you wish to update"),
 ):
     """
-    Endpoint to initiate the update process of an installed flow based on its name.
-    This endpoint requires admin privileges to perform the update. If another flow installation or update is already
-    in progress, it prevents a new update to avoid conflicts, returning a 409 Conflict HTTP status.
+    Initiates the update process for an installed flow. Requires admin privileges.
 
-    This endpoint schedules a background task for the update process using the specified flow name. It checks the
-    availability of a newer version of the flow and starts the update if a newer version is found. It ensures that no
-    two installations or updates can run concurrently.
+    If the specified flow is already being installed or updated, a `409 Conflict` status is returned.
+    However, updates or installations of other flows are allowed concurrently.
     """
     require_admin(request)
-    if flows_installation_in_progress():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Another flow installation or update is in progress."
-        )
-
-    _installed_flow_info = [i for i in get_installed_flows(None) if i.name == name]
+    flow_name = name.lower()
+    _installed_flow_info = get_installed_flows().get(flow_name)
     if not _installed_flow_info:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` in installed flows.")
-
-    flows_comfy = []
-    available_flows = get_available_flows(flows_comfy)
-    for i, flow in enumerate(available_flows):
-        if flow.name == name:
-            if parse(_installed_flow_info[0].version) >= parse(flow.version):
-                raise HTTPException(
-                    status_code=status.HTTP_412_PRECONDITION_FAILED,
-                    detail=f"Flow `{name}` does not have a newer version.",
-                )
-            delete_flows_progress_install(name)
-            add_flow_progress_install(name, flows_comfy[i])
-            b_tasks.add_task(install_custom_flow, flow, flows_comfy[i], __progress_install_callback)
-            return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}` in available flows.")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{flow_name}` in installed flows.")
+    flows_comfy = {}
+    flow = get_available_flows(flows_comfy).get(flow_name)
+    if not flow:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{flow_name}` in available flows.")
+    if parse(_installed_flow_info.version) >= parse(flow.version):
+        raise HTTPException(status.HTTP_412_PRECONDITION_FAILED, f"Flow `{flow_name}` does not have a newer version.")
+    if flows_installation_in_progress(flow.name):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
+    b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name])
 
 
 @ROUTER.get("/install-progress")
 async def get_install_progress(request: Request) -> list[FlowProgressInstall]:
     """
-    Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint
-    returns a dictionary showing the installation status for each flow.
+    Retrieves the current installation progress of all flows.
 
     Requires administrative privileges.
     """
@@ -271,9 +246,9 @@ async def delete_install_progress(
     """
     require_admin(request)
     if options.VIX_MODE == "SERVER":
-        r = await delete_flows_progress_install_async(name)
+        r = await delete_flow_progress_install_async(name)
     else:
-        r = delete_flows_progress_install(name)
+        r = delete_flow_progress_install(name)
     if not r:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}`.")
 
@@ -291,15 +266,3 @@ async def delete(request: Request, name: str = Query(..., description="Name of t
     """
     require_admin(request)
     uninstall_flow(name)
-
-
-def __progress_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
-    """Returns `True` if no errors occurred."""
-
-    if error:
-        set_flow_progress_install_error(name, error)
-        return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
-    if progress == 100.0:
-        LOGGER.debug("Installation of %s flow completed", name)
-        return finish_flow_progress_install(name)
-    return update_flow_progress_install(name, progress, relative_progress)

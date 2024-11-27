@@ -10,31 +10,25 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "test": "vitest"
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@img-comparison-slider/vue": "^8.0.0",
-    "@nuxt/ui": "^2.18.4",
-    "konva": "^9.3.14",
-    "pinia": "^2.2.2",
-    "vue": "^3.5.10",
-    "vue-konva": "^3.1.0",
-    "vue-router": "^4.4.3"
+    "@nuxt/ui": "^2.19.2",
+    "konva": "^9.3.16",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-konva": "^3.1.2",
+    "vue-router": "^4.4.5"
   },
   "devDependencies": {
-    "@nuxt/eslint-config": "^0.3.1",
-    "@nuxt/image": "^1.8.0",
-    "@nuxt/test-utils": "^3.14.0",
-    "@pinia/nuxt": "^0.5.1",
-    "@types/node": "^20.14.9",
-    "@vue/test-utils": "^2.4.6",
-    "eslint": "^8.57.0",
-    "happy-dom": "^13.8.2",
-    "nuxt": "^3.13.2",
-    "playwright-core": "^1.47.0",
-    "typescript": "^5.5.4",
-    "vitest": "^1.6.0",
-    "vue-tsc": "^2.1.6"
+    "@nuxt/eslint": "^0.6.1",
+    "@nuxt/image": "^1.8.1",
+    "@pinia/nuxt": "^0.7.0",
+    "@types/node": "^22.9.0",
+    "eslint": "^9.15.0",
+    "nuxt": "^3.14.159",
+    "typescript": "^5.6.3",
+    "vue-tsc": "^2.1.10"
   }
 }

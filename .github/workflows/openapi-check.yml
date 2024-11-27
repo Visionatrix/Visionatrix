@@ -23,7 +23,9 @@ jobs:
         run: python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install from source
-        run: python3 -m pip install ".[dev]"
+        run: |
+          python3 -m pip install ".[dev]"
+          python3 -m visionatrix install
 
       - name: Save current OpenAPI specs
         run: cp openapi.json original_openapi.json

@@ -8,15 +8,13 @@ from packaging.version import Version
 
 from .. import _version, comfyui, options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
-from . import flow_install_callback
 from .custom_nodes import update_base_custom_nodes
-from .install import create_missing_models_dirs, create_nodes_stuff
+from .install import create_nodes_stuff
 
 
 def update() -> None:
     if options.BACKEND_DIR:
         if options.PYTHON_EMBEDED:
-            create_missing_models_dirs()
             logging.warning("Updating the Backend for the EMBEDDED version is currently not possible, skipped.")
             return
         logging.info("Updating backend(ComfyUI)..")
@@ -39,19 +37,15 @@ def update() -> None:
                 [sys.executable, "-m", "pip", "install", "-r", os.path.join(options.BACKEND_DIR, "requirements.txt")],
             )
         os.makedirs(os.path.join(options.BACKEND_DIR, "user"), exist_ok=True)  # for multiprocessing installations
-        create_missing_models_dirs()
         create_nodes_stuff()
         logging.info("Updating custom nodes..")
         update_base_custom_nodes()
     comfyui.load(None)
     logging.info("Updating flows..")
-    avail_flows_comfy = []
+    avail_flows_comfy = {}
     avail_flows = get_available_flows(avail_flows_comfy)
-    avail_flows_names = [v.name for v in avail_flows]
     for i in get_installed_flows():
-        if i.name in avail_flows_names:
-            v = avail_flows_names.index(i.name)
-            flow_install_callback.progress_callback(avail_flows[v].name, 0.0, "", False)
-            install_custom_flow(avail_flows[v], avail_flows_comfy[v], flow_install_callback.progress_callback)
+        if i in avail_flows:
+            install_custom_flow(avail_flows[i], avail_flows_comfy[i])
         else:
-            logging.warning("`%s` flow not found in repository, skipping update of it.", i.name)
+            logging.warning("`%s` flow not found in repository, skipping update of it.", i)

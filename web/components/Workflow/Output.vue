@@ -2,7 +2,9 @@
 const flowStore  = useFlowsStore()
 
 const hasOutputResult = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).length > 0 || false)
-const results = computed(() => flowStore.flowResultsByName(flowStore.currentFlow?.name).reverse() || [])
+const results = computed(() => {
+	return flowStore.flowResultsByName(flowStore.currentFlow?.name) || []
+})
 const resultsPerPage = computed(() => flowStore.$state.resultsPageSize)
 
 // watch for total results length and update the page to the last one
@@ -76,7 +78,7 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 	if (flowResult.child_tasks.length === 0
 		|| !hasChildTaskByParentTaskNodeId(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)) {
 		sendToFlowResult.value = flowResult
-		sendToImgSrc.value = outputImgSrc({
+		sendToImgSrc.value = outputResultSrc({
 			task_id: flowResult.task_id,
 			node_id: flowResult.outputs[outputIndex].comfy_node_id
 		})
@@ -86,7 +88,7 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 		const targetTask = findLatestChildTask(flowResult, outputIndex, flowResult.outputs[outputIndex].comfy_node_id)
 		sendToFlowResult.value = targetTask
 		sendToFlowInputParamsMapped.value = flowResult.input_params_mapped
-		sendToImgSrc.value = outputImgSrc({
+		sendToImgSrc.value = outputResultSrc({
 			task_id: targetTask.task_id,
 			node_id: targetTask.outputs[0].comfy_node_id
 		})
@@ -113,7 +115,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
 		}]
 	]
-	if (flowResult.outputs.length === 1) {
+	if (flowResult.outputs.length === 1 && flowResult.outputs.every((output) => output.type === 'image')) {
 		taskDropdownItems.splice(1, 0, [{
 			label: 'Send to flow',
 			labelClass: 'text-violet-500 text-sm',
@@ -129,31 +131,37 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 </script>
 
 <template>
-	<div id="output-container"
+	<div
+		id="output-container"
 		ref="outputContainer"
 		class="w-full p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg shadow-md my-10">
-		<ScrollToTop :show="showScrollToTop"
+		<ScrollToTop
+			:show="showScrollToTop"
 			class="fixed bottom-5 right-5"
 			target="output-container" />
-		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
+		<h2
+			class="text-lg font-bold cursor-pointer select-none flex items-center mb-3"
 			@click="() => {
 				collapsed = !collapsed
 			}">
-			<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+			<UIcon
+				:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
 			Output ({{ results.filter((task: FlowResult) => task.parent_task_id === null).length }})
 		</h2>
 
 		<template v-if="!collapsed">
 			<div class="flex flex-col md:flex-row items-center justify-center mb-5 sticky top-1 z-[10]">
-				<UInput v-model="flowStore.$state.flow_results_filter"
+				<UInput
+					v-model="flowStore.$state.flow_results_filter"
 					icon="i-heroicons-magnifying-glass-20-solid"
 					color="white"
 					class="md:mr-3"
 					:label="'Filter by prompt'"
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
-				<UPagination v-if="results.filter((task: FlowResult) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
+				<UPagination
+					v-if="results.filter((task: FlowResult) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.$state.resultsPage"
 					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
@@ -161,19 +169,24 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					show-first
 					show-last />
 				<div class="flex items-center justify-center">
-					<USelect v-model="flowStore.resultsPageSize"
+					<USelect
+						v-model="flowStore.resultsPageSize"
 						class="md:mx-3 w-fit mr-3"
 						:options="[5, 10, 20, 50, 100]"
 						:label="'Results per page'" />
-					<UDropdown :items="[
-						[{
-							label: 'Delete all results',
-							labelClass: 'text-red-500',
-							icon: 'i-heroicons-trash',
-							iconClass: 'dark:text-red-500 text-red-500',
-							click: () => deleteModalOpen = true,
-						}]
-					]" mode="click" label="Options" :popper="{ placement: 'bottom-end' }">
+					<UDropdown
+						:items="[
+							[{
+								label: 'Delete all results',
+								labelClass: 'text-red-500',
+								icon: 'i-heroicons-trash',
+								iconClass: 'dark:text-red-500 text-red-500',
+								click: () => deleteModalOpen = true,
+							}]
+						]"
+						mode="click"
+						label="Options"
+						:popper="{ placement: 'bottom-end' }">
 						<UButton color="white" icon="i-heroicons-ellipsis-vertical-16-solid" />
 					</UDropdown>
 				</div>
@@ -188,7 +201,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							will be deleted.
 						</p>
 						<div class="flex justify-center">
-							<UButton class="mr-2" color="red" variant="outline" :loading="deletingFlowResults"
+							<UButton
+								class="mr-2"
+								color="red"
+								variant="outline"
+								:loading="deletingFlowResults"
 								@click="() => {
 									deletingFlowResults = true
 									flowStore.deleteFlowResults(flowStore.currentFlow?.name).then(() => {
@@ -204,84 +221,27 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 				</UModal>
 			</div>
 			<div v-if="hasOutputResult" class="results overflow-auto">
-				<div v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
+				<div
+					v-for="flowResult in flowStore.flowResultsByNamePaginated(flowStore.currentFlow?.name)"
 					:id="'task_id_' + flowResult.task_id"
 					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
-					<template v-if="flowResult.outputs.length === 1">
-						<WorkflowChildOutput
-							v-if="flowResult?.child_tasks && flowResult?.child_tasks.length > 0"
-							:flow-result="flowResult"
-							:open-image-modal="openImageModal" />
-						<NuxtImg v-else-if="flowResult.outputs.length === 1"
-							class="mb-2 mx-auto rounded-lg cursor-pointer"
-							:height="flowStore.$state.outputMaxSize"
-							:width="flowStore.$state.outputMaxSize"
-							draggable="false"
-							fit="cover"
-							loading="lazy"
-							:src="outputImgSrc({
-								task_id: flowResult.task_id,
-								node_id: flowResult.outputs[0].comfy_node_id
-							})"
-							@click="openImageModal(outputImgSrc({
-								task_id: flowResult.task_id,
-								node_id: flowResult.outputs[0].comfy_node_id
-							}))" />
-					</template>
-					<UCarousel v-else-if="flowResult.outputs.length > 1"
-						v-slot="{ item }"
-						class="mb-3 rounded-lg overflow-hidden"
-						:items="flowResult.outputs.map((result_output_param: FlowOutputParam, index: number) => {
-							return {
-								task_id: flowResult.task_id,
-								node_id: result_output_param.comfy_node_id,
-								index,
-							}
-						})"
-						:ui="{
-							item: 'basis-full md:basis-1/2',
-							indicators: {
-								wrapper: 'relative bottom-0 mt-4 md:hidden'
-							}
-						}"
-						:page="1"
-						indicators>
-						<div class="flex flex-col basis-full justify-between mx-2">
-							<WorkflowChildOutput
-								v-if="flowResult?.child_tasks
-									&& hasChildTaskByParentTaskNodeId(flowResult, item.index, item.node_id)"
-								:flow-result="flowResult"
-								:outputs-index="item.index"
-								:open-image-modal="openImageModal" />
-							<NuxtImg
-								v-else
-								:class="`mb-2 h-100 max-h-[${flowStore.$state.outputMaxSize}px] mx-auto rounded-lg cursor-pointer`"
-								draggable="false"
-								:height="flowStore.$state.outputMaxSize"
-								:width="flowStore.$state.outputMaxSize"
-								fit="cover"
-								loading="lazy"
-								:src="outputImgSrc(item)"
-								@click="openImageModal(outputImgSrc(item))" />
-							<UButton
-								class="mt-2 w-fit mx-auto"
-								icon="i-heroicons-arrow-uturn-up-solid"
-								color="violet"
-								size="xs"
-								variant="outline"
-								@click="() => {
-									handleSendToFlow(flowResult, item.index)
-								}">
-								Send to flow
-							</UButton>
-						</div>
-					</UCarousel>
+					<WorkflowOutputImage
+						v-if="flowResult.outputs.some((output) => output.type === 'image')"
+						:flow-result="flowResult"
+						:handle-send-to-flow="handleSendToFlow"
+						:open-image-modal="openImageModal" />
+					<WorkflowOutputVideo
+						v-else-if="flowResult.outputs.some((output) => output.type === 'video')"
+						:flow-result="flowResult"
+						:handle-send-to-flow="handleSendToFlow"
+						:open-image-modal="openImageModal" />
 					<div class="text-sm text-slate-500 text-center mb-1">
 						<div class="w-5/6 mx-auto flex flex-wrap items-center justify-center">
 							<WorkflowOutputParams :flow-result="flowResult" />
 						</div>
 					</div>
+					<WorkflowOutputInputFiles :flow-result="flowResult" />
 					<div class="w-full flex justify-center items-center">
 						<UButton
 							class="mr-3"
@@ -292,7 +252,8 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 							@click="() => flowStore.deleteFlowHistory(flowResult.task_id)">
 							Delete
 						</UButton>
-						<UDropdown :items="buildResultDropdownItems(flowResult)"
+						<UDropdown
+							:items="buildResultDropdownItems(flowResult)"
 							mode="click"
 							:popper="{ placement: 'bottom-start' }">
 							<UButton
@@ -303,26 +264,28 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					</div>
 				</div>
 				<WorkflowSendToFlowModal
-					v-model="showSendToFlowModal"
+					v-model:show="showSendToFlowModal"
 					:flow-result="sendToFlowResult"
 					:output-img-src="sendToImgSrc"
 					:output-param-index="sendToFlowOutputParamIndex"
 					:input-params-mapped="sendToFlowInputParamsMapped"
-					:is-child-task="sendToFlowIsChildTask"
-					@update:show="(value: boolean) => showSendToFlowModal = value" />
+					:is-child-task="sendToFlowIsChildTask" />
 			</div>
 			<p v-else class="text-center text-slate-500">
 				No output results available
 			</p>
 		</template>
 		<UModal v-model="isModalOpen" class="z-[90]" :transition="false" fullscreen>
-			<UButton class="absolute top-4 right-4"
+			<UButton
+				class="absolute top-4 right-4"
 				icon="i-heroicons-x-mark"
 				variant="ghost"
 				@click="() => isModalOpen = false" />
-			<div class="flex items-center justify-center w-full h-full p-4"
+			<div
+				class="flex items-center justify-center w-full h-full p-4"
 				@click.left="() => isModalOpen = false">
-				<NuxtImg v-if="modalImageSrc"
+				<NuxtImg
+					v-if="modalImageSrc"
 					class="lg:h-full"
 					fit="inside"
 					loading="lazy"

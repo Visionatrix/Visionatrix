@@ -6,13 +6,13 @@ export function buildBackendUrl() {
 	}
 	return config.app.backendApiUrl !== ''
 		? config.app.backendApiUrl
-		: location.port 
+		: location.port
 			? `${location.protocol}//${location.hostname}:${location.port}`
 			: `${location.protocol}//${location.hostname}` + (prefix ? prefix : '')
 }
 
 export function buildBackendApiUrl() {
-	return buildBackendUrl() + '/api'
+	return buildBackendUrl() + '/vapi'
 }
 
 export function buildAuthorization() {
@@ -20,6 +20,6 @@ export function buildAuthorization() {
 	return 'Basic ' + btoa(`${config.app.authUser}:${config.app.authPassword}`)
 }
 
-export function outputImgSrc(result: any) {
+export function outputResultSrc(result: any) {
 	return `${buildBackendApiUrl()}/tasks/results?task_id=${result.task_id}&node_id=${result.node_id}`
 }

@@ -70,6 +70,9 @@ class TaskDetails(Base):
     parent_task_id = Column(Integer, nullable=True, index=True)
     parent_task_node_id = Column(Integer, nullable=True)
     translated_input_params = Column(JSON, default=None)
+    execution_details = Column(JSON, default=None, nullable=True)
+    extra_flags = Column(JSON, default=None, nullable=True)
+    custom_worker = Column(String, default=None, index=True)
 
     __table_args__ = (Index("ix_parent_task", "parent_task_id", "parent_task_node_id"),)
 
@@ -105,6 +108,7 @@ class Worker(Base):
     torch_vram_free = Column(BigInteger)
     ram_total = Column(BigInteger)
     ram_free = Column(BigInteger)
+    engine_details = Column(JSON, default=None, nullable=True)
 
 
 class UserInfo(Base):
@@ -144,7 +148,19 @@ class FlowsInstallStatus(Base):
     error = Column(String, default="")
     started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
-    finished_at = Column(DateTime, nullable=True, default=None)
+
+
+class ModelsInstallStatus(Base):
+    __tablename__ = "models_install_status"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False, unique=True)
+    flow_name = Column(String, nullable=False)
+    progress = Column(Float, default=0.0, nullable=False)
+    error = Column(String, default="")
+    started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    file_mtime = Column(Float, nullable=True)
 
 
 def init_database_engine() -> None:

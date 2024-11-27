@@ -16,13 +16,16 @@ from sqlalchemy.exc import IntegrityError
 from . import database, options
 from .comfyui import (
     cleanup_models,
+    get_engine_details,
     get_worker_details,
     interrupt_processing,
     soft_empty_cache,
+    unload_all_models,
 )
 from .db_queries import get_global_setting, get_setting
-from .flows import get_google_nodes, get_installed_flows_names, get_ollama_nodes
+from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
+    ExecutionDetails,
     TaskDetails,
     TaskDetailsShort,
     UserInfo,
@@ -33,6 +36,7 @@ from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS_SHORT,
     get_get_incomplete_task_without_error_query,
     init_new_task_details,
+    nodes_execution_profiler,
     prepare_worker_info_update,
     task_details_from_dict,
     task_details_short_to_dict,
@@ -152,22 +156,40 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
         ollama_vision_model = ""
         if [i for i in ollama_nodes if task_to_exec["flow_comfy"][i]["class_type"] == "OllamaVision"]:
             ollama_vision_model = get_worker_value("OLLAMA_VISION_MODEL", task_to_exec["user_id"])
+        ollama_llm_model = ""
+        if [
+            i
+            for i in ollama_nodes
+            if task_to_exec["flow_comfy"][i]["class_type"] in ("OllamaGenerate", "OllamaGenerateAdvance")
+        ]:
+            ollama_llm_model = get_worker_value("OLLAMA_LLM_MODEL", task_to_exec["user_id"])
         ollama_url = get_worker_value("OLLAMA_URL", task_to_exec["user_id"])
+        ollama_keepalive = get_worker_value("OLLAMA_KEEPALIVE", task_to_exec["user_id"])
 
         for node in ollama_nodes:
             if ollama_url:
                 task_to_exec["flow_comfy"][node]["inputs"]["url"] = ollama_url
+            if ollama_keepalive:
+                task_to_exec["flow_comfy"][node]["inputs"]["keep_alive"] = ollama_keepalive
             if ollama_vision_model and task_to_exec["flow_comfy"][node]["class_type"] == "OllamaVision":
                 task_to_exec["flow_comfy"][node]["inputs"]["model"] = ollama_vision_model
+            if ollama_llm_model and task_to_exec["flow_comfy"][node]["class_type"] in (
+                "OllamaGenerate",
+                "OllamaGenerateAdvance",
+            ):
+                task_to_exec["flow_comfy"][node]["inputs"]["model"] = ollama_llm_model
 
     google_nodes = get_google_nodes(task_to_exec["flow_comfy"])
     if google_nodes:
         google_proxy = get_worker_value("GOOGLE_PROXY", task_to_exec["user_id"])
         google_api_key = get_worker_value("GOOGLE_API_KEY", task_to_exec["user_id"])
+        gemini_model = get_worker_value("GEMINI_MODEL", task_to_exec["user_id"])
         for node in google_nodes:
             if google_api_key:
                 task_to_exec["flow_comfy"][node]["inputs"]["api_key"] = google_api_key
                 task_to_exec["flow_comfy"][node]["inputs"]["proxy"] = google_proxy
+                if gemini_model:
+                    task_to_exec["flow_comfy"][node]["inputs"]["model"] = gemini_model
 
     return task_to_exec
 
@@ -246,7 +268,9 @@ def get_incomplete_task_without_error_database(
         else:
             query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
             tasks_to_give = session.execute(query).scalar().tasks_to_give
-        query = get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+        query = get_get_incomplete_task_without_error_query(
+            tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
+        )
         task = session.execute(query).scalar()
         if not task:
             session.commit()
@@ -274,6 +298,7 @@ def __lock_task_and_return_details(task: type[database.TaskDetails] | database.T
         "execution_time": 0.0,
         "webhook_url": task.webhook_url,
         "webhook_headers": task.webhook_headers,
+        "extra_flags": task.extra_flags,
     }
 
 
@@ -530,8 +555,9 @@ def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
 
 def update_task_progress(task_details: dict) -> bool:
     __update_temporary_execution_time(task_details)
+    execution_details = task_details.get("execution_details") if task_details["progress"] == 100.0 else None
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        return update_task_progress_server(task_details)
+        return update_task_progress_server(task_details, execution_details)
     r = update_task_progress_database(
         task_details["task_id"],
         task_details["progress"],
@@ -539,6 +565,7 @@ def update_task_progress(task_details: dict) -> bool:
         task_details["execution_time"],
         database.DEFAULT_USER.user_id,
         WorkerDetailsRequest.model_validate(get_worker_details()),
+        ExecutionDetails.model_validate(execution_details) if execution_details else None,
     )
     if r and task_details["webhook_url"]:
         try:
@@ -570,6 +597,7 @@ def update_task_progress_database(
     execution_time: float,
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
+    execution_details: ExecutionDetails | None = None,
 ) -> bool:
     with database.SESSION() as session:
         try:
@@ -583,6 +611,8 @@ def update_task_progress_database(
             }
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
+                if execution_details is not None:
+                    update_values["execution_details"] = execution_details.model_dump(mode="json", exclude_none=True)
             result = session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
@@ -622,7 +652,7 @@ def task_restart_database(task_id: int) -> bool:
     return False
 
 
-def update_task_progress_server(task_details: dict) -> bool:
+def update_task_progress_server(task_details: dict, execution_details: dict | None = None) -> bool:
     task_id = task_details["task_id"]
     request_data = {
         "worker_details": get_worker_details(),
@@ -631,6 +661,8 @@ def update_task_progress_server(task_details: dict) -> bool:
         "execution_time": task_details["execution_time"],
         "error": task_details["error"],
     }
+    if execution_details is not None:
+        request_data["execution_details"] = execution_details
     for i in range(3):
         try:
             r = httpx.put(
@@ -773,20 +805,8 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         return
     node_percent = 99 / ACTIVE_TASK["nodes_count"]
 
+    nodes_execution_profiler(ACTIVE_TASK, event, data)
     if event == "executing":
-        if options.NODES_TIMING:
-            last_node_id_timing = ACTIVE_TASK.get("timing_last_node_id", 0)
-            current_time = time.perf_counter()
-            if last_node_id_timing and last_node_id_timing != data["node"]:
-                LOGGER.log(
-                    LOGGER.getEffectiveLevel(),
-                    "Flow %s, node %s execution time: %s",
-                    ACTIVE_TASK["task_id"],
-                    data["node"],
-                    current_time - ACTIVE_TASK["timing_last_time"],
-                )
-            ACTIVE_TASK["timing_last_node_id"] = data["node"]
-            ACTIVE_TASK["timing_last_time"] = current_time
         if not ACTIVE_TASK["current_node"]:
             ACTIVE_TASK["current_node"] = data["node"]
         if ACTIVE_TASK["current_node"] != data["node"]:
@@ -836,14 +856,23 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         ):
             break
 
-        ACTIVE_TASK = get_incomplete_task_without_error(get_installed_flows_names(), last_task_name)
+        ACTIVE_TASK = get_incomplete_task_without_error(list(get_installed_flows()), last_task_name)
         if not ACTIVE_TASK:
             reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
             continue
         if init_active_task_inputs_from_server() is False:
             ACTIVE_TASK = {}
             continue
+
+        if ACTIVE_TASK.get("extra_flags") and ACTIVE_TASK["extra_flags"].get("unload_models"):
+            LOGGER.info("unload_models=True, unloading..")
+            unload_all_models()
+            gc.collect()
+            last_gc_collect = time.perf_counter()
+            soft_empty_cache(True)  # for AMD GPUs since ComfyUI doesn't automatically clear cache for them
+
         last_task_name = ACTIVE_TASK["name"]
+        ACTIVE_TASK["execution_details"] = get_engine_details()
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])

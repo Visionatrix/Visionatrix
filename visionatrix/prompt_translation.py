@@ -90,13 +90,16 @@ async def translate_prompt_with_ollama_async(
 def translate_prompt_with_gemini(user_id: str, is_admin: bool, data: TranslatePromptRequest) -> TranslatePromptResponse:
     google_proxy = get_setting(user_id, "google_proxy", is_admin)
     google_api_key = get_setting(user_id, "google_api_key", is_admin)
+    gemini_model = get_setting(user_id, "gemini_model", is_admin)
+    if not gemini_model:
+        gemini_model = "gemini-1.5-flash-002"
 
     if not google_api_key:
         raise ValueError("No GOOGLE_API_KEY defined, can't perform prompt translation")
 
     system_prompt = LLM_TRANSLATE_SYSTEM_PROMPT if data.system_prompt is None else data.system_prompt
     genai.configure(api_key=google_api_key, transport="rest")
-    model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=system_prompt)
+    model = genai.GenerativeModel(model_name=gemini_model, system_instruction=system_prompt)
 
     if google_proxy:
         LOGGER.debug("Google Proxy is defined.")
@@ -116,20 +119,23 @@ async def translate_prompt_with_gemini_async(
 ) -> TranslatePromptResponse:
     google_proxy = await get_setting_async(user_id, "google_proxy", is_admin)
     google_api_key = await get_setting_async(user_id, "google_api_key", is_admin)
+    gemini_model = await get_setting_async(user_id, "gemini_model", is_admin)
+    if not gemini_model:
+        gemini_model = "gemini-1.5-flash-002"
 
     if not google_api_key:
         raise ValueError("No GOOGLE_API_KEY defined, can't perform prompt translation")
 
     system_prompt = LLM_TRANSLATE_SYSTEM_PROMPT if data.system_prompt is None else data.system_prompt
     genai.configure(api_key=google_api_key, transport="rest")
-    model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=system_prompt)
+    model = genai.GenerativeModel(model_name=gemini_model, system_instruction=system_prompt)
 
     if google_proxy:
         LOGGER.debug("Google Proxy is defined.")
         with temporary_env_var("HTTP_PROXY", google_proxy), temporary_env_var("HTTPS_PROXY", google_proxy):
-            response = await model.generate_content_async(data.prompt)
+            response = await model.generate_content_async(data.prompt, safety_settings="BLOCK_NONE")
     else:
-        response = await model.generate_content_async(data.prompt)
+        response = await model.generate_content_async(data.prompt, safety_settings="BLOCK_NONE")
     finish_reason = int(response.candidates[0].finish_reason)
     if finish_reason in (1, 2):  # FinishReason.STOP, FinishReason.MAX_TOKENS
         done_reason = "stop" if finish_reason == 1 else "max_tokens"

@@ -5,16 +5,16 @@ import threading
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, HTTPException, responses, status
+from fastapi import APIRouter, FastAPI, HTTPException, Query, responses, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from pillow_heif import register_heif_opener
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import comfyui, database, options
-from .routes import flows, other, settings, tasks, workers
+from . import comfyui, custom_openapi, database, options, routes
 from .tasks_engine import (
     background_prompt_executor,
     remove_active_task_lock,
@@ -73,7 +73,7 @@ class VixAuthMiddleware:
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    tasks.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
+    routes.tasks_internal.VALIDATE_PROMPT, comfy_queue = comfyui.load(task_progress_callback)
     await start_tasks_engine(comfy_queue, EXIT_EVENT)
     if options.UI_DIR:
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
@@ -91,12 +91,12 @@ def custom_generate_unique_id(route: APIRoute):
 
 
 APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
-API_ROUTER = APIRouter(prefix="/api")
-API_ROUTER.include_router(flows.ROUTER)
-API_ROUTER.include_router(settings.ROUTER)
-API_ROUTER.include_router(tasks.ROUTER)
-API_ROUTER.include_router(workers.ROUTER)
-API_ROUTER.include_router(other.ROUTER)
+API_ROUTER = APIRouter(prefix="/vapi")  # if you change the prefix, also change it in custom_openapi.py
+API_ROUTER.include_router(routes.flows.ROUTER)
+API_ROUTER.include_router(routes.settings.ROUTER)
+API_ROUTER.include_router(routes.tasks.ROUTER)
+API_ROUTER.include_router(routes.workers.ROUTER)
+API_ROUTER.include_router(routes.other.ROUTER)
 APP.include_router(API_ROUTER)
 APP.add_middleware(VixAuthMiddleware)
 if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
@@ -127,7 +127,7 @@ def run_vix(*args, **kwargs) -> None:
             uvicorn.run(
                 _app,
                 *args,
-                host=options.VIX_HOST if options.VIX_HOST else "127.0.0.1",
+                host=options.VIX_HOST if options.VIX_HOST else "localhost",
                 port=int(options.VIX_PORT) if options.VIX_PORT else 8288,
                 workers=int(options.VIX_SERVER_WORKERS),
                 **kwargs,
@@ -143,3 +143,39 @@ def run_vix(*args, **kwargs) -> None:
         except KeyboardInterrupt:
             remove_active_task_lock()
             print("Visionatrix is shutting down.")
+
+
+def generate_openapi(flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
+    return custom_openapi.generate_openapi(APP, flows, skip_not_installed, exclude_base)
+
+
+APP.openapi = generate_openapi
+
+
+@APP.get("/openapi/flows.json", include_in_schema=False)
+async def openapi_flows_json(
+    flows: str = Query("", description="Flows to include in OpenAPI specs (comma-separated list or '*')"),
+    skip_not_installed: bool = Query(True, description="Skip flows that are not installed"),
+):
+    return custom_openapi.generate_openapi(APP, flows=flows, skip_not_installed=skip_not_installed)
+
+
+@APP.get("/docs/flows", include_in_schema=False)
+async def docs_flows(
+    flows: str = Query("*", description="Flows to include in OpenAPI specs (comma-separated list or '*')"),
+    skip_not_installed: bool = Query(True, description="Skip flows that are not installed"),
+):
+    query_params = []
+    if flows:
+        query_params.append(f"flows={flows}")
+    if not skip_not_installed:
+        query_params.append("skip_not_installed=false")
+    query_string = "&".join(query_params)
+    openapi_url = "/openapi/flows.json"
+    if query_string:
+        openapi_url += f"?{query_string}"
+    return get_swagger_ui_html(
+        openapi_url=openapi_url,
+        title="Flows Documentation",
+        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+    )

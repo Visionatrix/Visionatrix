@@ -2,6 +2,98 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0 - 2024-11-23]
+
+Emergency release due to update of `yolo`(Impact-Node) HuggingFace models, which broke our all new installations for all versions.
+
+### Added
+
+- UI: button to show task result's input files. #233
+
+### Changed
+
+- **Removed** `--models_dir` argument to rely solely on ComfyUI algorithm and support multiple directories for models. #236
+- **Backend API Breaking change**: API URL has been moved from `/api` to `/vapi`. #237
+- **Reworked** `--openapi` command to support more functionality and be easier to use. #231
+
+### Fixed
+
+- OpenAPI specs: now correctly fills the default values with `float`, `bool`, `int` input types for flows. #234
+
+## [1.6.0 - 2024-11-14]
+
+This release focuses on simplifying the process of writing integrations and fixing bugs found in version `1.5`.
+
+### Added
+
+- The `install-cmd` command now accepts directories, allowing installation of all flows from a specified directory. #206
+
+### Changed
+
+- Windows archive release size greatly reduced(minus 2GB) and now fits into **1** archive file. #225
+- The default `pytorch` version for new installations has been updated to `2.5.1`.
+- The old, deprecated endpoint for task creation has been removed. #209
+- The deprecated `--loglevel` command-line argument has been removed. #218
+
+### Fixed
+
+- **UI**: Images were not displayed during the `Send to flow` action. #205
+- **UI**: Tasks are now sorted by the `finished_at` column. #211
+- **UI**: Corrected settings descriptions, added links to docs. #224
+- **UI**: Error creating flow after updating flow if parameter names changed. #229
+- The `seed` parameter was ignored in the new `task creation` endpoint. #210
+- **macOS**: The `PYTORCH_ENABLE_MPS_FALLBACK` setting is now correctly applied, and flows like `SUPIR`, `remove background`, etc., work again. #212
+- The `Gemini model` setting is now respected by the backend. #214 #217
+- The `Ollama keepalive` setting is now respected by the backend. #215
+- The `seed` parameter is now correctly included in the new `OpenAPI specs` for Flows. #216
+- Disabled automatic update checks for the "Albumentations" package. #221
+- The translations feature can now be used for non-`VixUI*` classes. #220
+
+## [1.5.0 - 2024-10-31]
+
+### Added
+
+- Vide Flows: Support of flows with video as result. #192
+- First video flow: [AllYourLife](https://visionatrix.github.io/VixFlowsDocs/Flows/AllYourLife/)
+- Additional new flows: **Proteus** and **SD3.5**.
+
+### Changed
+
+- Now by default `localhost` is used instead of `127.0.0.1`
+- `--loglevel` cmd argument is deprecated, and the same argument(`--verbose`) as in ComfyUI takes it place. #201
+- `ComfyUI_Gemini_Flash` node was [replaced](https://github.com/Visionatrix/Visionatrix/commit/ce52839ee42cca6ae5cad08cc13771440930efbd) with `ComfyUI-Gemini` node with additional support for **Gemini Pro** model.
+- Devs: new endpoint for creating tasks. Much easier implementing integrations, Gradio examples for ComfyUI flows will come in `1.6` version.
+
+### Fixed
+
+- UI now fetches all settings from backend in a single request. #200
+- `install-flow` cmd command now can accept `tags` and you can use patterns with it. #198
+- **Install ALL(4)** option in `easy_install.py` script now correctly installs **all** flows using `*` pattern. #198
+- Parse of models from `CLIPLoader` and `TripleCLIPLoader` basic ComfyUI nodes. [commit](https://github.com/Visionatrix/Visionatrix/commit/63f6cbc351d98b5926e8f0d4d1f9ea1b0c07f95e)
+
+## [1.4.1 - 2024-10-11]
+
+### Fixed
+
+- UI can now display the original of translated generation prompt without reloading the page. #195
+- Installing the `ultralytics` package for ComfyUI-Impact-Pack. #194
+
+## [1.4.0 - 2024-10-08]
+
+### Added
+
+- **Translations for Prompts** with help of Ollama or Gemini. #178
+- `PhotomakerPlus` node and `Photomaker 2` flow. #184
+- UI: priority toggle for tasks in queue. #188
+- Always resume download of an incomplete model, if possible. #175
+- Backend: endpoint to fetch all settings at one. #180
+- Ability to specify multiple values in `options.FLOWS_URL`. #187
+
+### Fixed
+
+- ImpactNode: separately download required models during Workflow installation. #181
+- Worker asks for User settings before Global. #182
+
 ## [1.3.0 - 2024-09-24]
 
 Release with bug fixes and minor features found after testing in production environment.

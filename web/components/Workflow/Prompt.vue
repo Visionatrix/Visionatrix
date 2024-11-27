@@ -19,7 +19,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	if (input_param.type === 'text') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as string || '',
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as string || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -30,7 +30,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'number') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -59,7 +59,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'list') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as any || Object.keys(input_param.options as object)[0] || '',
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as any || Object.keys(input_param.options as object)[0] || '',
 				type: input_param.type,
 				optional: input_param.optional,
 				options: input_param.options,
@@ -70,7 +70,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 	} else if (input_param.type === 'bool') {
 		return ({
 			[input_param.name]: {
-				value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as boolean || false,
+				value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as boolean || false,
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
@@ -79,7 +79,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 		})
 	} else if (['range', 'range_scale'].includes(input_param.type)) {
 		const param: any = {
-			value: prev_input_params_map !== null ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
+			value: prev_input_params_map !== null && prev_input_params_map[input_param.name] ? prev_input_params_map[input_param.name] : input_param.default as number || 0,
 			type: input_param.type,
 			optional: input_param.optional,
 			advanced: input_param.advanced || false,
@@ -240,35 +240,42 @@ const requiredInputParamsValid = computed(() => {
 </script>
 
 <template>
-	<div v-if="flowStore.currentFlow"
+	<div
+		v-if="flowStore.currentFlow"
 		id="prompt"
 		class="w-full my-10 lg:my-0 p-4 ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg">
-		<h2 class="text-lg font-bold cursor-pointer select-none flex items-center mb-3" @click="() => {
-			collapsed = !collapsed
-		}">
-			<UIcon :name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+		<h2
+			class="text-lg font-bold cursor-pointer select-none flex items-center mb-3" @click="() => {
+				collapsed = !collapsed
+			}">
+			<UIcon
+				:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
 			Prompt
 		</h2>
 
 		<div v-show="!collapsed">
-			<WorkflowInputParams :input-params-map.sync="inputParamsMap"
-				:additional-input-params-map.sync="additionalInputParamsMap"
+			<WorkflowPromptInputParams
+				v-model:input-params-map="inputParamsMap"
+				v-model:additional-input-params-map="additionalInputParamsMap"
 				:advanced="false" />
-			<WorkflowInputParams v-if="additionalInputParamsMap.length > 0"
-				:input-params-map.sync="inputParamsMap"
-				:additional-input-params-map.sync="additionalInputParamsMap"
+			<WorkflowPromptInputParams
+				v-if="additionalInputParamsMap.length > 0"
+				v-model:input-params-map="inputParamsMap"
+				v-model:additional-input-params-map="additionalInputParamsMap"
 				:advanced="true" />
 
-			<UFormGroup v-if="flowStore.currentFlow.is_count_supported" label="Number of images">
-				<UInput v-model="batchSize"
+			<UFormGroup v-if="flowStore.currentFlow.is_count_supported" label="Number of results">
+				<UInput
+					v-model="batchSize"
 					type="number"
 					min="1"
 					max="50"
 					label="Batch size"
 					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
-			<UFormGroup v-if="shouldTranslate"
+			<UFormGroup
+				v-if="shouldTranslate"
 				class="my-3 flex justify-end">
 				<UCheckbox
 					v-model="translatePrompt"
@@ -285,7 +292,8 @@ const requiredInputParamsValid = computed(() => {
 					</UButton>
 				</UTooltip>
 				<div class="action flex items-center">
-					<UButton icon="i-heroicons-sparkles-16-solid"
+					<UButton
+						icon="i-heroicons-sparkles-16-solid"
 						variant="outline"
 						:loading="running"
 						:disabled="!requiredInputParamsValid"

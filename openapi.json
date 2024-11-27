@@ -2,10 +2,10 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.4.0.dev0"
+    "version": "1.8.0.dev0"
   },
   "paths": {
-    "/api/flows/installed": {
+    "/vapi/flows/installed": {
       "get": {
         "tags": [
           "flows"
@@ -31,7 +31,7 @@
         }
       }
     },
-    "/api/flows/not-installed": {
+    "/vapi/flows/not-installed": {
       "get": {
         "tags": [
           "flows"
@@ -57,7 +57,7 @@
         }
       }
     },
-    "/api/flows/subflows": {
+    "/vapi/flows/subflows": {
       "get": {
         "tags": [
           "flows"
@@ -109,13 +109,13 @@
         }
       }
     },
-    "/api/flows/flow": {
+    "/vapi/flows/flow": {
       "post": {
         "tags": [
           "flows"
         ],
         "summary": "Install",
-        "description": "Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a new\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the specified flow name. It\nchecks the availability of the flow in the list of available flows and starts the installation if the flow\nis found. It ensures that no two installations can run concurrently.",
+        "description": "Initiates the installation of a flow based on its name. Requires admin privileges.\n\nIf the specified flow is already being installed, a `409 Conflict` status is returned. However,\nthe installation of other flows is allowed concurrently.",
         "operationId": "install",
         "parameters": [
           {
@@ -145,11 +145,11 @@
             }
           },
           "409": {
-            "description": "Another flow installation is in progress",
+            "description": "Installation of the same flow is already in progress",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Another flow installation is in progress."
+                  "detail": "Installation of this flow is already in progress."
                 }
               }
             }
@@ -171,7 +171,7 @@
           "flows"
         ],
         "summary": "Install From File",
-        "description": "Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a parallel flow\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the uploaded flow file.",
+        "description": "Initiates the installation of a flow from an uploaded file. Requires admin privileges.\n\nIf the specified flow is already being installed, a `409 Conflict` status is returned. However,\nthe installation of other flows is allowed concurrently.",
         "operationId": "install_from_file",
         "requestBody": {
           "required": true,
@@ -188,11 +188,11 @@
             "description": "Successful start of installation"
           },
           "409": {
-            "description": "Another flow installation is in progress",
+            "description": "Installation of the same flow is already in progress",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Another flow installation is in progress."
+                  "detail": "Installation of this flow is already in progress."
                 }
               }
             }
@@ -246,13 +246,13 @@
         }
       }
     },
-    "/api/flows/flow-update": {
+    "/vapi/flows/flow-update": {
       "post": {
         "tags": [
           "flows"
         ],
         "summary": "Flow Update",
-        "description": "Endpoint to initiate the update process of an installed flow based on its name.\nThis endpoint requires admin privileges to perform the update. If another flow installation or update is already\nin progress, it prevents a new update to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the update process using the specified flow name. It checks the\navailability of a newer version of the flow and starts the update if a newer version is found. It ensures that no\ntwo installations or updates can run concurrently.",
+        "description": "Initiates the update process for an installed flow. Requires admin privileges.\n\nIf the specified flow is already being installed or updated, a `409 Conflict` status is returned.\nHowever, updates or installations of other flows are allowed concurrently.",
         "operationId": "flow_update",
         "parameters": [
           {
@@ -282,11 +282,11 @@
             }
           },
           "409": {
-            "description": "Another flow installation or update is in progress",
+            "description": "Update or installation of the same flow is already in progress",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Another flow installation or update is in progress."
+                  "detail": "Installation of this flow is already in progress."
                 }
               }
             }
@@ -314,13 +314,13 @@
         }
       }
     },
-    "/api/flows/install-progress": {
+    "/vapi/flows/install-progress": {
       "get": {
         "tags": [
           "flows"
         ],
         "summary": "Get Install Progress",
-        "description": "Retrieves the current installation progress of all flows from an in-memory dictionary. This endpoint\nreturns a dictionary showing the installation status for each flow.\n\nRequires administrative privileges.",
+        "description": "Retrieves the current installation progress of all flows.\n\nRequires administrative privileges.",
         "operationId": "get_install_progress",
         "responses": {
           "200": {
@@ -386,7 +386,7 @@
         }
       }
     },
-    "/api/settings/get": {
+    "/vapi/settings/get": {
       "get": {
         "tags": [
           "settings"
@@ -429,7 +429,7 @@
         }
       }
     },
-    "/api/settings/global": {
+    "/vapi/settings/global": {
       "get": {
         "tags": [
           "settings"
@@ -515,7 +515,7 @@
         }
       }
     },
-    "/api/settings/user": {
+    "/vapi/settings/user": {
       "get": {
         "tags": [
           "settings"
@@ -591,7 +591,7 @@
         }
       }
     },
-    "/api/settings/get_all": {
+    "/vapi/settings/get_all": {
       "get": {
         "tags": [
           "settings"
@@ -620,7 +620,7 @@
         }
       }
     },
-    "/api/settings/global_all": {
+    "/vapi/settings/global_all": {
       "get": {
         "tags": [
           "settings"
@@ -649,7 +649,7 @@
         }
       }
     },
-    "/api/settings/user_all": {
+    "/vapi/settings/user_all": {
       "get": {
         "tags": [
           "settings"
@@ -678,23 +678,34 @@
         }
       }
     },
-    "/api/tasks/create": {
+    "/vapi/tasks/create/{name}": {
       "put": {
         "tags": [
           "tasks"
         ],
         "summary": "Create Task",
-        "description": "Endpoint to initiate the creation and execution of tasks within the Vix workflow environment,\nhandling both file inputs and task-related parameters.",
+        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Custom Headers (Admin Only):**\n\n- `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.\n- `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.\n- `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
         "operationId": "create_task",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name of the flow from which the task should be created"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
-            "application/x-www-form-urlencoded": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_task"
+                "$ref": "#/components/schemas/TaskCreationWithFullParams"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -720,7 +731,7 @@
         }
       }
     },
-    "/api/tasks/progress": {
+    "/vapi/tasks/progress": {
       "get": {
         "tags": [
           "tasks"
@@ -846,7 +857,7 @@
         }
       }
     },
-    "/api/tasks/progress-summary": {
+    "/vapi/tasks/progress-summary": {
       "get": {
         "tags": [
           "tasks"
@@ -919,7 +930,7 @@
         }
       }
     },
-    "/api/tasks/progress/{task_id}": {
+    "/vapi/tasks/progress/{task_id}": {
       "get": {
         "tags": [
           "tasks"
@@ -962,7 +973,7 @@
         }
       }
     },
-    "/api/tasks/restart": {
+    "/vapi/tasks/restart": {
       "post": {
         "tags": [
           "tasks"
@@ -1043,7 +1054,7 @@
         }
       }
     },
-    "/api/tasks/task": {
+    "/vapi/tasks/task": {
       "delete": {
         "tags": [
           "tasks"
@@ -1091,7 +1102,7 @@
         }
       }
     },
-    "/api/tasks/clear": {
+    "/vapi/tasks/clear": {
       "delete": {
         "tags": [
           "tasks"
@@ -1141,7 +1152,7 @@
         }
       }
     },
-    "/api/tasks/inputs": {
+    "/vapi/tasks/inputs": {
       "get": {
         "tags": [
           "tasks"
@@ -1206,13 +1217,13 @@
         }
       }
     },
-    "/api/tasks/results": {
+    "/vapi/tasks/results": {
       "get": {
         "tags": [
           "tasks"
         ],
         "summary": "Get Task Results",
-        "description": "Retrieves the result file associated with a specific task and node ID. This function searches for\noutput files in the designated output directory that match the task and node identifiers.\n\nParameters:\n- task_id (int): ID of the task.\n- node_id (int): ID of the node.\n- batch_index (int, optional): Index of the node result if the node produced more than one result.\n  - If set to 0 (default), the first result file is returned.\n  - If set to a positive integer, the corresponding result file index is returned.\n  - If set to -1, all results are returned as a ZIP archive.\n\nIf the specific result file is not found, or if the task does not exist, a 404 HTTP error is returned.\n\nReturns:\n- FileResponse: The result file or a ZIP archive containing all result files if batch_index is -1.\n- HTTPException: If the task or result file is not found.",
+        "description": "Retrieves the result file associated with a specific task and node ID.\n\nThis function searches for output files in the designated output directory that match the task and node identifiers.\n\n**Parameters:**\n\n- `task_id` (int): ID of the task.\n- `node_id` (int): ID of the node.\n- `batch_index` (int, optional): Index of the node result if the node produced more than one result.\n  - If set to 0 (default), the first result file is returned.\n  - If set to a positive integer, the corresponding result file index is returned.\n  - If set to -1, all results are returned as a ZIP archive.\n\n**Returns:**\n\n- `FileResponse`: The result file or a ZIP archive containing all result files if `batch_index` is -1.\n- `HTTPException`: If the task is not completed or the result file is not found.",
         "operationId": "get_task_results",
         "parameters": [
           {
@@ -1243,11 +1254,11 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results are returned as a ZIP archive.",
+              "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results for the node are returned as a ZIP archive.",
               "default": 0,
               "title": "Batch Index"
             },
-            "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results are returned as a ZIP archive."
+            "description": "Optional index of the node result if the node produced more than one result. If set to -1, all results for the node are returned as a ZIP archive."
           }
         ],
         "responses": {
@@ -1260,12 +1271,22 @@
               "application/octet-stream": {}
             }
           },
+          "400": {
+            "description": "Task not completed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Task `task_id` is not completed yet."
+                }
+              }
+            }
+          },
           "404": {
             "description": "Task or result file not found",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Missing result for task=task_id and node=node_id."
+                  "detail": "Missing result for task=`task_id` and node=`node_id`."
                 }
               }
             }
@@ -1349,7 +1370,7 @@
         }
       }
     },
-    "/api/tasks/queue": {
+    "/vapi/tasks/queue": {
       "delete": {
         "tags": [
           "tasks"
@@ -1399,7 +1420,7 @@
         }
       }
     },
-    "/api/tasks/queue/{task_id}": {
+    "/vapi/tasks/queue/{task_id}": {
       "delete": {
         "tags": [
           "tasks"
@@ -1445,7 +1466,7 @@
         }
       }
     },
-    "/api/tasks/next": {
+    "/vapi/tasks/next": {
       "post": {
         "tags": [
           "tasks"
@@ -1488,7 +1509,7 @@
         }
       }
     },
-    "/api/tasks/lock": {
+    "/vapi/tasks/lock": {
       "delete": {
         "tags": [
           "tasks"
@@ -1536,7 +1557,7 @@
         }
       }
     },
-    "/api/tasks/update": {
+    "/vapi/tasks/update": {
       "put": {
         "tags": [
           "tasks"
@@ -1622,7 +1643,7 @@
         }
       }
     },
-    "/api/workers/info": {
+    "/vapi/workers/info": {
       "get": {
         "tags": [
           "workers"
@@ -1684,7 +1705,7 @@
         }
       }
     },
-    "/api/workers/tasks": {
+    "/vapi/workers/tasks": {
       "post": {
         "tags": [
           "workers"
@@ -1729,7 +1750,7 @@
         }
       }
     },
-    "/api/other/interrupt-engine": {
+    "/vapi/other/interrupt-engine": {
       "post": {
         "tags": [
           "other"
@@ -1754,7 +1775,7 @@
         }
       }
     },
-    "/api/other/shutdown-server": {
+    "/vapi/other/shutdown-server": {
       "post": {
         "tags": [
           "other"
@@ -1779,7 +1800,7 @@
         }
       }
     },
-    "/api/other/whoami": {
+    "/vapi/other/whoami": {
       "get": {
         "tags": [
           "other"
@@ -1801,7 +1822,7 @@
         }
       }
     },
-    "/api/other/translate-prompt": {
+    "/vapi/other/translate-prompt": {
       "post": {
         "tags": [
           "other"
@@ -1868,10 +1889,13 @@
             "title": "Name",
             "description": "Unique name of the model."
           },
-          "save_path": {
-            "type": "string",
-            "title": "Save Path",
-            "description": "Subpath where the model is stored within the local system."
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Paths",
+            "description": "Paths where the model can be stored within the filesystem."
           },
           "url": {
             "type": "string",
@@ -1914,101 +1938,12 @@
         "type": "object",
         "required": [
           "name",
-          "save_path",
+          "paths",
           "url",
           "hash"
         ],
         "title": "AIResourceModel",
         "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
-      },
-      "Body_create_task": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the flow from which the task should be created"
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count",
-            "description": "Number of tasks to be created",
-            "default": 1
-          },
-          "input_params": {
-            "type": "string",
-            "title": "Input Params",
-            "description": "List of input parameters as an encoded json string"
-          },
-          "webhook_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Webhook Url",
-            "description": "URL to call when task state changes"
-          },
-          "webhook_headers": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Webhook Headers",
-            "description": "Headers for webhook url as an encoded json string"
-          },
-          "child_task": {
-            "type": "integer",
-            "title": "Child Task",
-            "description": "Int boolean indicating whether to create a relation between tasks",
-            "default": 0
-          },
-          "group_scope": {
-            "type": "integer",
-            "title": "Group Scope",
-            "description": "Group number to which task should be assigned. Maximum value is 255.",
-            "default": 1
-          },
-          "priority": {
-            "type": "integer",
-            "title": "Priority",
-            "description": "Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
-            "default": 0
-          },
-          "translate": {
-            "type": "integer",
-            "title": "Translate",
-            "description": "Should the prompt be translated if auto-translation option is enabled.",
-            "default": 0
-          },
-          "files": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "binary"
-                },
-                {
-                  "type": "string"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Files",
-            "description": "List of input files for flow"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "Body_create_task"
       },
       "Body_get_next_task": {
         "properties": {
@@ -2164,6 +2099,16 @@
             "title": "Error",
             "description": "Error message if any",
             "default": ""
+          },
+          "execution_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -2174,6 +2119,126 @@
           "execution_time"
         ],
         "title": "Body_update_task_progress"
+      },
+      "ComfyEngineDetails": {
+        "properties": {
+          "disable_smart_memory": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disable Smart Memory",
+            "description": "Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+          },
+          "vram_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram State",
+            "description": "Current VRAM management mode used by ComfyUI."
+          }
+        },
+        "type": "object",
+        "title": "ComfyEngineDetails",
+        "description": "Performance options that ComfyUI is running with."
+      },
+      "ExecutionDetails": {
+        "properties": {
+          "disable_smart_memory": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disable Smart Memory",
+            "description": "Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+          },
+          "vram_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram State",
+            "description": "Current VRAM management mode used by ComfyUI."
+          },
+          "nodes_profiling": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/NodeProfiling"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nodes Profiling",
+            "description": "Profiling information for each node in the workflow."
+          },
+          "max_memory_usage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Memory Usage",
+            "description": "Maximum GPU memory usage during task execution in MB."
+          },
+          "nodes_execution_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nodes Execution Time",
+            "description": "Execution time of all ComfyUI nodes in the workflow in seconds."
+          }
+        },
+        "type": "object",
+        "title": "ExecutionDetails",
+        "description": "Contains profiling information for the entire task execution."
+      },
+      "ExtraFlags": {
+        "properties": {
+          "profiler_execution": {
+            "type": "boolean",
+            "title": "Profiler Execution",
+            "description": "Enable profiling for this task execution.",
+            "default": false
+          },
+          "unload_models": {
+            "type": "boolean",
+            "title": "Unload Models",
+            "description": "Unload all models before task execution.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ExtraFlags",
+        "description": "Additional options and flags that modify how the task is executed."
       },
       "Flow": {
         "properties": {
@@ -2348,30 +2413,10 @@
             "description": "Timestamp when the installation process started."
           },
           "updated_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "date-time",
             "title": "Updated At",
             "description": "Timestamp of the last update to the installation progress."
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At",
-            "description": "Timestamp when the installation process completed."
           }
         },
         "type": "object",
@@ -2379,7 +2424,8 @@
           "name",
           "flow_comfy",
           "progress",
-          "started_at"
+          "started_at",
+          "updated_at"
         ],
         "title": "FlowProgressInstall",
         "description": "Represents the progress status of a flow installation process."
@@ -2396,6 +2442,45 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "NodeProfiling": {
+        "properties": {
+          "execution_time": {
+            "type": "number",
+            "title": "Execution Time",
+            "description": "Execution time of the node in seconds."
+          },
+          "gpu_memory_usage": {
+            "type": "number",
+            "title": "Gpu Memory Usage",
+            "description": "GPU memory consumed by the node in MB."
+          },
+          "class_type": {
+            "type": "string",
+            "title": "Class Type",
+            "description": "Class type of the node."
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Title of the node."
+          },
+          "node_id": {
+            "type": "string",
+            "title": "Node Id",
+            "description": "Unique identifier of the node."
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_time",
+          "gpu_memory_usage",
+          "class_type",
+          "title",
+          "node_id"
+        ],
+        "title": "NodeProfiling",
+        "description": "Represents profiling information for a single node in the workflow."
       },
       "SubFlow": {
         "properties": {
@@ -2426,6 +2511,65 @@
         ],
         "title": "SubFlow",
         "description": "A SubFlow modifies or extends a Flow by overwriting certain parameters like display_name and input_params."
+      },
+      "TaskCreationWithFullParams": {
+        "properties": {
+          "group_scope": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Group Scope",
+            "description": "Group number to which task should be assigned.",
+            "default": 1
+          },
+          "priority": {
+            "type": "integer",
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "title": "Priority",
+            "description": "Execution priority. Higher numbers indicate higher priority.",
+            "default": 0
+          },
+          "child_task": {
+            "type": "integer",
+            "title": "Child Task",
+            "description": "Int boolean indicating whether to create a relation between tasks",
+            "default": 0
+          },
+          "webhook_url": {
+            "type": "string",
+            "title": "Webhook Url",
+            "description": "Optional. URL to call when task state changes. Leave empty if not needed or if using `/progress` or `/progress-summary` endpoints.",
+            "default": ""
+          },
+          "webhook_headers": {
+            "type": "string",
+            "title": "Webhook Headers",
+            "description": "Optional. Headers for webhook URL as an encoded JSON string. Used only when `webhook_url` is set.",
+            "default": ""
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed",
+            "description": "The `seed` parameter for reproducing the results of workflows.",
+            "default": 1
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Count",
+            "description": "Number of tasks to be created.",
+            "default": 1
+          },
+          "translate": {
+            "type": "integer",
+            "title": "Translate",
+            "description": "Should the prompt be translated if auto-translation option is enabled.",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "TaskCreationWithFullParams"
       },
       "TaskDetails": {
         "properties": {
@@ -2545,6 +2689,18 @@
             "description": "List of child tasks of type `TaskDetailsShort` if any.",
             "default": []
           },
+          "translated_input_params": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translated Input Params",
+            "description": "If auto-translation feature is enabled, contains translations for input values."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2597,7 +2753,7 @@
               }
             ],
             "title": "Webhook Url",
-            "description": "The URL that will be called when the task state changes."
+            "description": "URL that was set to be called when the task state changes."
           },
           "webhook_headers": {
             "anyOf": [
@@ -2609,19 +2765,41 @@
               }
             ],
             "title": "Webhook Headers",
-            "description": "Headers to send to webhook."
+            "description": "Headers that were set to be sent to the webhook URL."
           },
-          "translated_input_params": {
+          "execution_details": {
             "anyOf": [
               {
-                "type": "object"
+                "$ref": "#/components/schemas/ExecutionDetails"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Translated Input Params",
-            "description": "If auto-translation feature is enabled, contains translations for input values."
+            "description": "Profiling information about task execution, present only if profiling was enabled for this task."
+          },
+          "extra_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFlags"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set of additional options and flags that affect how the task is executed."
+          },
+          "custom_worker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Worker",
+            "description": "ID of the worker to which the task was explicitly assigned, if specified."
           }
         },
         "type": "object",
@@ -2672,7 +2850,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Type of the result from the ComfyUI node - currently can be either 'image' or 'video'."
+            "description": "Type of the result from the ComfyUI node - can be either 'image', 'image-mask' or 'video'."
           },
           "file_size": {
             "type": "integer",
@@ -2812,6 +2990,18 @@
             "title": "Child Tasks",
             "description": "List of child tasks of type `TaskDetailsShort` if any.",
             "default": []
+          },
+          "translated_input_params": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translated Input Params",
+            "description": "If auto-translation feature is enabled, contains translations for input values."
           }
         },
         "type": "object",
@@ -2837,11 +3027,20 @@
             "type": "array",
             "title": "Tasks Ids",
             "description": "List of IDs representing the tasks that were created."
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailsOutput"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "List of outputs for the created tasks."
           }
         },
         "type": "object",
         "required": [
-          "tasks_ids"
+          "tasks_ids",
+          "outputs"
         ],
         "title": "TaskRunResults"
       },
@@ -2852,7 +3051,7 @@
               {
                 "type": "integer",
                 "maximum": 15.0,
-                "exclusiveMinimum": 0.0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -3143,6 +3342,16 @@
             ],
             "title": "Ram Free",
             "description": "Free RAM available on the worker in bytes."
+          },
+          "engine_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComfyEngineDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -3152,7 +3361,8 @@
           "worker_id",
           "worker_version",
           "last_seen",
-          "tasks_to_give"
+          "tasks_to_give",
+          "engine_details"
         ],
         "title": "WorkerDetails"
       },
@@ -3247,14 +3457,18 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-09-30T19:40:04.717954Z"
+            "default": "2024-11-27T08:01:41.974463Z"
+          },
+          "engine_details": {
+            "$ref": "#/components/schemas/ComfyEngineDetails"
           }
         },
         "type": "object",
         "required": [
           "worker_version",
           "system",
-          "devices"
+          "devices",
+          "engine_details"
         ],
         "title": "WorkerDetailsRequest",
         "description": "Consolidates information relevant to a worker handling AI tasks."
@@ -3293,5 +3507,11 @@
         "description": "Provides OS and Python environment details of the worker."
       }
     }
-  }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8288",
+      "description": "Default server running Visionatrix"
+    }
+  ]
 }

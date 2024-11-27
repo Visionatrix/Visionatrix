@@ -3,61 +3,39 @@ import json
 import logging
 import os
 import shutil
-import typing
 from io import BytesIO
 from pathlib import Path
+from typing import Annotated
 from zipfile import ZipFile
 
-import httpx
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Body,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    UploadFile,
-    responses,
-    status,
-)
+from fastapi import APIRouter, BackgroundTasks, Body, Form, HTTPException
+from fastapi import Path as FastApiPath
+from fastapi import Query, Request, UploadFile, responses, status
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from .. import options
-from ..db_queries import get_setting
-from ..db_queries_async import get_setting_async
+from .. import etc, options
 from ..flows import (
-    Flow,
-    flow_prepare_output_params,
+    SUPPORTED_FILE_TYPES_INPUTS,
+    SUPPORTED_TEXT_TYPES_INPUTS,
     get_installed_flow,
-    get_nodes_for_translate,
-    prepare_flow_comfy,
-)
-from ..prompt_translation import (
-    translate_prompt_with_gemini,
-    translate_prompt_with_gemini_async,
-    translate_prompt_with_ollama,
-    translate_prompt_with_ollama_async,
 )
 from ..pydantic_models import (
+    ExecutionDetails,
+    TaskCreationWithFullParams,
     TaskRunResults,
     TaskUpdateRequest,
-    TranslatePromptRequest,
-    UserInfo,
     WorkerDetailsRequest,
 )
 from ..tasks_engine import (
     TaskDetails,
     TaskDetailsShort,
     collect_child_task_ids,
-    create_new_task,
     get_incomplete_task_without_error_database,
     get_task,
     get_task_files,
     get_tasks,
     get_tasks_short,
-    put_task_in_queue,
     remove_task_by_id_database,
-    remove_task_files,
     remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name_and_group,
@@ -67,218 +45,165 @@ from ..tasks_engine import (
     update_task_progress_database,
 )
 from ..tasks_engine_async import (
-    create_new_task_async,
     get_incomplete_task_without_error_database_async,
     get_task_async,
     get_tasks_async,
     get_tasks_short_async,
-    put_task_in_queue_async,
     task_restart_database_async,
     update_task_info_database_async,
     update_task_outputs_async,
     update_task_progress_database_async,
 )
+from .tasks_internal import get_translated_input_params, task_run, webhook_task_progress
 
 LOGGER = logging.getLogger("visionatrix")
-ROUTER = APIRouter(prefix="/tasks", tags=["tasks"])
-VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]] | None = None
+ROUTER = APIRouter(prefix="/tasks", tags=["tasks"])  # if you change the prefix, also change it in custom_openapi.py
 
 
-async def __task_run(
-    name: str,
-    input_params: dict,
-    translated_input_params: dict,
-    in_files: list[UploadFile | dict],
-    flow: Flow,
-    flow_comfy: dict,
-    user_info: UserInfo,
-    webhook_url: str | None,
-    webhook_headers: dict | None,
-    child_task: bool,
-    group_scope: int,
-    priority: int,
-):
-    if options.VIX_MODE == "SERVER":
-        task_details = await create_new_task_async(name, input_params, user_info)
-    else:
-        task_details = create_new_task(name, input_params, user_info)
-    input_params_copy = input_params.copy()
-    for i, v in translated_input_params.items():
-        input_params_copy[i] = v
-    try:
-        flow_comfy = prepare_flow_comfy(flow, flow_comfy, input_params_copy, in_files, task_details)
-    except RuntimeError as e:
-        remove_task_files(task_details["task_id"], ["input"])
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
-
-    flow_validation: [bool, dict, list, list] = VALIDATE_PROMPT(flow_comfy)
-    if not flow_validation[0]:
-        remove_task_files(task_details["task_id"], ["input"])
-        LOGGER.error("Flow validation error: %s\n%s", flow_validation[1], flow_validation[3])
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Bad Flow: `{flow_validation[1]}`"
-        ) from None
-    task_details["flow_comfy"] = flow_comfy
-    task_details["webhook_url"] = webhook_url
-    task_details["webhook_headers"] = webhook_headers
-    if child_task:
-        if not in_files or not isinstance(in_files[0], dict):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No input file provided. A child task can only be created from the node ID of the parent task.",
-            ) from None
-        task_details["parent_task_id"] = in_files[0]["task_id"]
-        task_details["parent_task_node_id"] = in_files[0]["node_id"]
-    task_details["group_scope"] = group_scope
-    task_details["priority"] = ((group_scope - 1) << 4) + priority
-    if translated_input_params:
-        task_details["translated_input_params"] = translated_input_params
-    flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
-    if options.VIX_MODE == "SERVER":
-        await put_task_in_queue_async(task_details)
-    else:
-        put_task_in_queue(task_details)
-    return task_details
-
-
-async def __get_translated_input_params(
-    translate: bool, flow: Flow, input_params_dict: dict, flow_comfy: dict, user_id: str, is_user_admin: bool
-):
-    translated_input_params_dict = {}
-    if translate and flow.is_translations_supported:
-        nodes_for_translate = get_nodes_for_translate(input_params_dict, flow_comfy)
-        if not nodes_for_translate:
-            return translated_input_params_dict
-        if options.VIX_MODE == "SERVER":
-            translations_provider = await get_setting_async(user_id, "translations_provider", is_user_admin)
-        else:
-            translations_provider = get_setting(user_id, "translations_provider", is_user_admin)
-        if translations_provider:
-            if translations_provider not in ("ollama", "gemini"):
-                raise HTTPException(
-                    status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                    detail=f"Unknown translation provider: {translations_provider}",
-                )
-            for node_to_translate in nodes_for_translate:
-                tr_req = TranslatePromptRequest(prompt=node_to_translate["input_param_value"])
-                if node_to_translate["llm_prompt"]:
-                    tr_req.system_prompt = node_to_translate["llm_prompt"]
-                try:
-                    if translations_provider == "ollama":
-                        if options.VIX_MODE == "SERVER":
-                            r = await translate_prompt_with_ollama_async(user_id, is_user_admin, tr_req)
-                        else:
-                            r = translate_prompt_with_ollama(user_id, is_user_admin, tr_req)
-                    else:
-                        if options.VIX_MODE == "SERVER":
-                            r = await translate_prompt_with_gemini_async(user_id, is_user_admin, tr_req)
-                        else:
-                            r = translate_prompt_with_gemini(user_id, is_user_admin, tr_req)
-                except Exception as e:
-                    LOGGER.exception(
-                        "Exception during prompt translation using `%s` for user `%s`", translations_provider, user_id
-                    )
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail=f"Can't translate the prompt: provider={translations_provider}, "
-                        f"user_id={user_id}, prompt=`{tr_req.prompt}`: {e}",
-                    ) from None
-                translated_input_params_dict[node_to_translate["input_param_id"]] = r.result
-    return translated_input_params_dict
-
-
-@ROUTER.put("/create")
+@ROUTER.put("/create/{name}")
 async def create_task(
     request: Request,
-    name: str = Form(description="Name of the flow from which the task should be created"),
-    count: int = Form(1, description="Number of tasks to be created"),
-    input_params: str = Form(None, description="List of input parameters as an encoded json string"),
-    webhook_url: str | None = Form(None, description="URL to call when task state changes"),
-    webhook_headers: str | None = Form(None, description="Headers for webhook url as an encoded json string"),
-    child_task: int = Form(0, description="Int boolean indicating whether to create a relation between tasks"),
-    group_scope: int = Form(1, description="Group number to which task should be assigned. Maximum value is 255."),
-    priority: int = Form(
-        0,
-        description="Task execution priority. Higher numbers indicate higher priority. Maximum value is 15.",
-    ),
-    translate: int = Form(0, description="Should the prompt be translated if auto-translation option is enabled."),
-    files: list[UploadFile | str] = Form(None, description="List of input files for flow"),  # noqa
+    name: Annotated[str, FastApiPath(title="Name of the flow from which the task should be created")],
+    data: Annotated[TaskCreationWithFullParams, Form()],
 ) -> TaskRunResults:
     """
-    Endpoint to initiate the creation and execution of tasks within the Vix workflow environment,
-    handling both file inputs and task-related parameters.
+    Endpoint to initiate the creation and execution of tasks from the flows.
+
+    **Path Parameter:**
+
+    - `name`: Name of the flow from which the task should be created
+
+    **Reserved Form Fields:**
+
+    - `group_scope`: Group number to which task should be assigned. Maximum value is 255
+    - `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15
+    - `child_task`: Int boolean indicating whether to create a relation between tasks
+    - `webhook_url`: Optional. URL to call when task state changes
+    - `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set
+    - `count`: Number of tasks to be created
+    - `translate`: Should the prompt be translated if auto-translation option is enabled
+
+    **Dynamic Task Parameters:**
+
+    All other form fields will be considered as **dynamic task-specific input parameters**.
+    These parameters vary depending on the flow specified by `name` and can be either text parameters or input files.
+
+    **Custom Headers (Admin Only):**
+
+    - `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.
+    - `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.
+    - `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.
+
+    **Response:**
+
+    - Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.
+
+    **Notes:**
+
+    - The request must use `multipart/form-data` as the content type.
+    - Dynamic parameters should correspond to the inputs expected by the specified flow.
+    - If a parameter is expected to be a file, include it as a file upload in the form data.
+    - If a parameter is expected to be text, include it as a regular form field.
+    - The endpoint accepts both text and file inputs as dynamic parameters.
     """
-
-    if group_scope < 1 or group_scope > 255:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Group number should from 1 to 255"
-        ) from None
-
-    if priority > 15:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Priority cannot be greater than 15.")
 
     user_id = request.scope["user_info"].user_id
     is_user_admin = request.scope["user_info"].is_admin
-    in_files = []
-    for i in files if files else []:
-        if isinstance(i, str):
-            try:
-                input_file_info = json.loads(i)
-            except json.JSONDecodeError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid files input:{i}"
-                ) from None
-            if "task_id" not in input_file_info:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter"
-                ) from None
-            if not get_task(int(input_file_info["task_id"]), user_id):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing task with id={input_file_info['task_id']}",
-                ) from None
-            in_files.append(input_file_info)
-        else:
-            in_files.append(i)
-    try:
-        input_params_dict = json.loads(input_params) if input_params else {}
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON format for params") from None
-    if "seed" in input_params_dict:
-        input_params_dict["seed"] = int(input_params_dict["seed"])
+
+    extra_flags = {}
+    custom_worker = None
+    if is_user_admin:
+        if request.headers.get("X-WORKER-UNLOAD-MODELS") == "1":
+            extra_flags["unload_models"] = True
+        if request.headers.get("X-WORKER-EXECUTION-PROFILER") == "1":
+            extra_flags["profiler_execution"] = True
+        custom_worker = request.headers.get("X-WORKER-ID")
+    if not extra_flags:
+        extra_flags = None
 
     flow_comfy = {}
     flow = get_installed_flow(name, flow_comfy)
     if not flow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
 
-    translated_input_params_dict = await __get_translated_input_params(
-        bool(translate), flow, input_params_dict, flow_comfy, user_id, is_user_admin
+    form_data = await request.form()
+
+    in_text_params: dict[str, int | float | str] = {}
+    in_files_params = {}
+    flow_input_params = {}
+    for input_param in flow.input_params:
+        flow_input_params[input_param["name"]] = input_param
+
+    standard_params = TaskCreationWithFullParams.model_fields.keys()
+    for key in form_data:
+        if flow.is_seed_supported and key == "seed":
+            in_text_params["seed"] = int(form_data.get(key))
+            continue
+        if key in standard_params:
+            continue
+        if key not in flow_input_params:
+            LOGGER.warning("Unexpected parameter '%s' for '%s' task creation, ignoring.", key, name)
+            continue
+        value = form_data.get(key)
+        if flow_input_params[key]["type"] in SUPPORTED_TEXT_TYPES_INPUTS:
+            in_text_params[key] = value
+            continue
+        if flow_input_params[key]["type"] not in SUPPORTED_FILE_TYPES_INPUTS:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported input type '{flow_input_params[key]['type']}' for {key} parameter",
+            ) from None
+        if isinstance(value, str):
+            try:
+                input_file_info = json.loads(value)
+            except json.JSONDecodeError:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Invalid file input:{value}") from None
+            if "task_id" not in input_file_info:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter") from None
+            if not get_task(int(input_file_info["task_id"]), user_id):
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
+                ) from None
+            in_files_params[key] = input_file_info
+        elif isinstance(value, StarletteUploadFile):
+            in_files_params[key] = value
+        else:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail=f"Unsupported input file type: {type(value)}"
+            ) from None
+
+    translated_in_text_params = await get_translated_input_params(
+        bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
     )
     tasks_ids = []
-    webhook_headers_dict = json.loads(webhook_headers) if webhook_headers else None
-    for _ in range(count):
-        task_details = await __task_run(
+    outputs = None
+    webhook_headers_dict = json.loads(data.webhook_headers) if data.webhook_headers else None
+    for _ in range(data.count):
+        task_details = await task_run(
             name,
-            input_params_dict,
-            translated_input_params_dict,
-            in_files,
+            in_text_params,
+            translated_in_text_params,
+            in_files_params,
             flow,
             flow_comfy,
             request.scope["user_info"],
-            webhook_url,
+            data.webhook_url if data.webhook_url else None,
             webhook_headers_dict,
-            bool(child_task),
-            group_scope,
-            priority,
+            bool(data.child_task),
+            data.group_scope,
+            data.priority,
+            extra_flags,
+            custom_worker,
         )
         tasks_ids.append(task_details["task_id"])
-        if "seed" in input_params_dict:
-            input_params_dict["seed"] = input_params_dict["seed"] + 1
+        if outputs is None:
+            outputs = task_details["outputs"]
+        if "seed" in in_text_params:
+            in_text_params["seed"] = in_text_params["seed"] + 1
     try:
-        return TaskRunResults.model_validate({"tasks_ids": tasks_ids})
+        return TaskRunResults.model_validate({"tasks_ids": tasks_ids, "outputs": outputs})
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
 
 
 @ROUTER.get("/progress")
@@ -545,10 +470,14 @@ async def get_task_inputs(
             "description": "Successfully retrieved the result file",
             "content": {"application/octet-stream": {}},
         },
+        400: {
+            "description": "Task not completed",
+            "content": {"application/json": {"example": {"detail": "Task `task_id` is not completed yet."}}},
+        },
         404: {
             "description": "Task or result file not found",
             "content": {
-                "application/json": {"example": {"detail": "Missing result for task=task_id and node=node_id."}}
+                "application/json": {"example": {"detail": "Missing result for task=`task_id` and node=`node_id`."}}
             },
         },
     },
@@ -560,45 +489,60 @@ async def get_task_results(
     batch_index: int = Query(
         0,
         description="Optional index of the node result if the node produced more than one result. "
-        "If set to -1, all results are returned as a ZIP archive.",
+        "If set to -1, all results for the node are returned as a ZIP archive.",
     ),
 ):
     """
-    Retrieves the result file associated with a specific task and node ID. This function searches for
-    output files in the designated output directory that match the task and node identifiers.
+    Retrieves the result file associated with a specific task and node ID.
 
-    Parameters:
-    - task_id (int): ID of the task.
-    - node_id (int): ID of the node.
-    - batch_index (int, optional): Index of the node result if the node produced more than one result.
+    This function searches for output files in the designated output directory that match the task and node identifiers.
+
+    **Parameters:**
+
+    - `task_id` (int): ID of the task.
+    - `node_id` (int): ID of the node.
+    - `batch_index` (int, optional): Index of the node result if the node produced more than one result.
       - If set to 0 (default), the first result file is returned.
       - If set to a positive integer, the corresponding result file index is returned.
       - If set to -1, all results are returned as a ZIP archive.
 
-    If the specific result file is not found, or if the task does not exist, a 404 HTTP error is returned.
+    **Returns:**
 
-    Returns:
-    - FileResponse: The result file or a ZIP archive containing all result files if batch_index is -1.
-    - HTTPException: If the task or result file is not found.
+    - `FileResponse`: The result file or a ZIP archive containing all result files if `batch_index` is -1.
+    - `HTTPException`: If the task is not completed or the result file is not found.
     """
     if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, request.scope["user_info"].user_id)
+        task = await get_task_async(task_id, request.scope["user_info"].user_id)
     else:
-        r = get_task(task_id, request.scope["user_info"].user_id)
-    if r is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
+        task = get_task(task_id, request.scope["user_info"].user_id)
+    if task is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
+    if task["progress"] < 100.0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` is not completed yet.")
+
     result_prefix = f"{task_id}_{node_id}_"
     output_files = get_task_files(task_id, "output")
     relevant_files = [file_info for file_info in output_files if file_info[0].startswith(result_prefix)]
+    output_node = None
+    for output in task["outputs"]:
+        if output["comfy_node_id"] == node_id:
+            output_node = output
+            break
+    if not output_node:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"No such node in the flow for task=`{task_id}`.")
+    if output_node["type"] == "image":
+        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_EXTENSIONS)]
+    elif output_node["type"] == "video":
+        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.VIDEO_EXTENSIONS)]
     if not relevant_files:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Missing result for task=`{task_id}` and node=`{node_id}`.",
         )
     if batch_index == -1:
         zip_buffer = BytesIO()
         with ZipFile(zip_buffer, "w") as zip_file:
-            for file_info in relevant_files:
-                file_name, file_path = file_info
+            for file_name, file_path in relevant_files:
                 with builtins.open(file_path, "rb") as f:
                     zip_file.writestr(file_name, f.read())
         zip_buffer.seek(0)
@@ -609,7 +553,8 @@ async def get_task_results(
         )
     if batch_index + 1 > len(relevant_files):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Missing result for task={task_id} and node={node_id}."
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Missing result for task=`{task_id}` and node=`{node_id}`.",
         )
     base_name, extension = os.path.splitext(relevant_files[batch_index][0])
     content_disposition = base_name[:-1] + extension if base_name.endswith("_") else base_name + extension
@@ -696,25 +641,6 @@ async def get_next_task(
     return task
 
 
-async def __webhook_task_progress(
-    url: str, headers: dict | None, task_id: int, progress: float, execution_time: float, error: str
-) -> None:
-    try:
-        async with httpx.AsyncClient(base_url=url, timeout=3.0) as client:
-            await client.post(
-                url="task-progress",
-                json={
-                    "task_id": task_id,
-                    "progress": progress,
-                    "execution_time": execution_time,
-                    "error": error,
-                },
-                headers=headers,
-            )
-    except httpx.RequestError as e:
-        LOGGER.exception("Exception during calling webhook %s, progress=%s: %s", url, progress, e)
-
-
 @ROUTER.put(
     "/progress",
     response_class=responses.Response,
@@ -741,6 +667,7 @@ async def update_task_progress(
     progress: float = Body(..., description="Progress percentage of the task"),
     execution_time: float = Body(..., description="Execution time of the task in seconds"),
     error: str = Body("", description="Error message if any"),
+    execution_details: ExecutionDetails | None = Body(None),
 ):
     """
     Updates the progress of a specific task identified by `task_id`. This endpoint checks if the task exists
@@ -753,21 +680,22 @@ async def update_task_progress(
         r = get_task(task_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
+    user_info = request.scope["user_info"]
+    if r["user_id"] != user_info.user_id and not user_info.is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if options.VIX_MODE == "SERVER":
         update_success = await update_task_progress_database_async(
-            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
         )
     else:
         update_success = update_task_progress_database(
-            task_id, progress, error, execution_time, request.scope["user_info"].user_id, worker_details
+            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
         )
     if not update_success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task progress.")
     if r["webhook_url"]:
         b_tasks.add_task(
-            __webhook_task_progress, r["webhook_url"], r["webhook_headers"], task_id, progress, execution_time, error
+            webhook_task_progress, r["webhook_url"], r["webhook_headers"], task_id, progress, execution_time, error
         )
 
 

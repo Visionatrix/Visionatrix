@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from . import database, options
 from .comfyui import interrupt_processing
 from .pydantic_models import (
+    ExecutionDetails,
     TaskDetails,
     TaskDetailsShort,
     UserInfo,
@@ -199,7 +200,9 @@ async def get_incomplete_task_without_error_database_async(
             else:
                 query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
                 tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
-            query = get_get_incomplete_task_without_error_query(tasks_to_ask, tasks_to_give, last_task_name, user_id)
+            query = get_get_incomplete_task_without_error_query(
+                tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
+            )
             task = (await session.execute(query)).scalar()
             if not task:
                 await session.commit()
@@ -230,6 +233,7 @@ async def update_task_progress_database_async(
     execution_time: float,
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
+    execution_details: ExecutionDetails | None = None,
 ) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
@@ -243,6 +247,8 @@ async def update_task_progress_database_async(
             }
             if progress == 100.0:
                 update_values["finished_at"] = datetime.now(timezone.utc)
+                if execution_details is not None:
+                    update_values["execution_details"] = execution_details.model_dump(mode="json", exclude_none=True)
             result = await session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )

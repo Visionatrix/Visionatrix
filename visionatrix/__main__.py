@@ -5,22 +5,23 @@ import json
 import logging
 import os
 import sys
+from fnmatch import fnmatchcase
 from pathlib import Path
 
-from . import comfyui, database, install, options, run_vix, update
+from . import comfyui, database, generate_openapi, install, options, run_vix, update
 from .etc import get_higher_log_level, get_log_level
-from .flows import get_available_flows, get_vix_flow, install_custom_flow
-from .install_update import flow_install_callback
+from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .orphan_models import process_orphan_models
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    default_log_level = os.environ.get("LOG_LEVEL", "INFO")
     parser.add_argument(
-        "--loglevel",
-        type=str,
-        help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-        default=default_log_level,
+        "--verbose",
+        default=os.environ.get("LOG_LEVEL", "INFO"),
+        const="DEBUG",
+        nargs="?",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set the logging level",
     )
     subparsers = parser.add_subparsers(dest="command")
     for i in [
@@ -30,6 +31,7 @@ if __name__ == "__main__":
         ("install-flow", "Install flow by name or from file"),
         ("create-user", "Create new user"),
         ("orphan-models", "Remove orphan models"),
+        ("openapi", "Generate OpenAPI specs"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
         if i[0] == "create-user":
@@ -51,21 +53,56 @@ if __name__ == "__main__":
             subparser.add_argument(
                 "--include-useful-models",
                 action="store_true",
-                help="Include orphaned models that can be used in future flows for removal.",
+                help="Include orphaned models that can be used in future flows for removal",
+            )
+
+        if i[0] == "openapi":
+            subparser.add_argument(
+                "--file",
+                type=str,
+                help="Filename to save",
+                default="openapi.json",
+            )
+            subparser.add_argument(
+                "--indentation",
+                type=int,
+                help="Indentation size",
+                default=2,
+            )
+            subparser.add_argument(
+                "--flows",
+                type=str,
+                help="Flows to include in OpenAPI specs (comma-separated list or '*')",
+                default="",
+            )
+            subparser.add_argument(
+                "--skip-not-installed",
+                action="store_true",
+                help="Skip flows that are not installed",
+                default=True,
+            )
+            subparser.add_argument(
+                "--exclude-base",
+                action="store_true",
+                help="Exclude base application endpoints from OpenAPI specs",
+                default=False,
             )
 
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
-            install_flow_group.add_argument("--name", type=str, help="Name of the flow")
-            install_flow_group.add_argument("--file", type=str, help="Path to `comfyui_flow.json` file")
+            install_flow_group.add_argument(
+                "--file",
+                type=str,
+                help="Path to `comfyui_flow.json` file or a directory containing flow files",
+            )
+            install_flow_group.add_argument("--name", type=str, help="Flow name mask of the flow(s)")
+            install_flow_group.add_argument("--tag", type=str, help="Flow tags mask of the flow(s)")
 
         subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
-        subparser.add_argument("--flows_dir", type=str, help="Directory for the flows")
-        subparser.add_argument("--models_dir", type=str, help="Directory for the models")
         if i[0] == "run":
             subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
-            subparser.add_argument("--server", type=str, help="Address of Vix Server(WORKER mode)")
+            subparser.add_argument("--server", type=str, help="Address of Vix Server (WORKER mode)")
             subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
             subparser.add_argument("--mode", choices=["WORKER", "SERVER"], help="VIX special operating mode")
             subparser.add_argument("--ui", nargs="?", default="", help="Enable WebUI (DEFAULT or SERVER mode)")
@@ -73,19 +110,21 @@ if __name__ == "__main__":
             comfyui.add_arguments(subparser)
 
     args = parser.parse_args()
-    defined_loglvl = get_log_level(args.loglevel)
+
+    defined_loglvl = get_log_level(args.verbose)
     logging.basicConfig(
         level=defined_loglvl,
         format="%(asctime)s: [%(funcName)s]:%(levelname)s: %(message)s",
         datefmt="%H:%M:%S",
     )
     logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
+
     if args.command == "run":
         if args.host:
             options.VIX_HOST = args.host
         if args.port:
             options.VIX_PORT = args.port
-        if args.ui is None:  # `--ui`: enable default UI
+        if args.ui is None:  # `--ui` without value: enable default UI
             options.UI_DIR = str(importlib.resources.files("visionatrix").joinpath("client"))
         elif args.ui != "":
             options.UI_DIR = args.ui
@@ -93,60 +132,111 @@ if __name__ == "__main__":
             options.VIX_MODE = args.mode
         if args.server:
             options.VIX_SERVER = args.server
-    if options.VIX_MODE != "WORKER" or not options.VIX_SERVER:  # we get tasks directly from the Database
-        database.init_database_engine()
+
+    database.init_database_engine()
+
     if args.command == "create-user":
         database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
         sys.exit(0)
+
     options.init_dirs_values(
         backend=getattr(args, "backend_dir", ""),
-        flows=getattr(args, "flows_dir", ""),
-        models=getattr(args, "models_dir", ""),
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
+
     if args.command == "install":
-        operations_mask = [True, True, True]
-        if Path(options.MODELS_DIR).exists():
-            c = input("Do you want to clear models folder? (Y/N): ").lower()
+        comfyui_dir = Path(options.BACKEND_DIR)
+        if comfyui_dir.exists():
+            c = input("Do you want to reinstall the ComfyUI folder? (Y/N): ").lower()
             if c != "y":
-                operations_mask[2] = False
-        if Path(options.FLOWS_DIR).exists():
-            c = input("Do you want to clear flows folder? (Y/N): ").lower()
-            if c != "y":
-                operations_mask[1] = False
-        if Path(options.BACKEND_DIR).exists():
-            c = input("Do you want to reinstall backend(ComfyUI) folder? (Y/N): ").lower()
-            if c != "y":
-                operations_mask[0] = False
-        install(operations_mask)
+                print("Skipping ComfyUI re-installation.")
+                sys.exit(0)
+            comfyui_models = comfyui_dir.joinpath("models")
+            comfyui_models_size = sum(file.stat().st_size for file in comfyui_models.rglob("*") if file.is_file())
+            comfyui_models_size_gb = round(comfyui_models_size / (1024**3), 1)
+            logging.getLogger("visionatrix").debug("Size of ComfyUI models dir: %s GB", comfyui_models_size_gb)
+            if comfyui_models_size_gb > 3.9:  # Threshold in GB
+                c = input(
+                    f"The ComfyUI folder is approximately {comfyui_models_size_gb} GB. "
+                    "Are you sure you want to proceed and clear this folder? (Y/N): "
+                ).lower()
+                if c != "y":
+                    print("Skipping backend re-installation.")
+                    sys.exit(0)
+        install()
     elif args.command == "update":
         update()
     elif args.command == "run":
         run_vix()
     elif args.command == "install-flow":
         comfyui.load(None)
-        install_flow = {}
+        r = True
         if args.file:
-            with builtins.open(Path(args.file), "rb") as fp:
-                install_flow_comfy = json.loads(fp.read())
-            install_flow = get_vix_flow(install_flow_comfy)
-        else:
-            flows_comfy = []
-            flows = get_available_flows(flows_comfy)
-            for i, flow in enumerate(flows):
-                if flow.name == args.name:
-                    install_flow = flow
-                    install_flow_comfy = flows_comfy[i]
-                    break
-            if not install_flow:
-                logging.getLogger("visionatrix").error("Can not find the specific flow: %s", args.name)
+            path = Path(args.file)
+            if path.is_file():
+                with path.open("rb") as fp:
+                    install_flow_comfy = json.loads(fp.read())
+                r = install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy)
+            elif path.is_dir():
+                json_files = list(path.glob("*.json"))
+                if not json_files:
+                    logging.getLogger("visionatrix").error("No JSON files found in directory: '%s'", path)
+                    sys.exit(2)
+                if len(json_files) > 1:
+                    logging.getLogger("visionatrix").info("Multiple JSON files found in directory: '%s'", path)
+
+                for json_file in json_files:
+                    logging.getLogger("visionatrix").info("Installing flow from file: '%s'", json_file)
+                    with json_file.open("rb") as fp:
+                        install_flow_comfy = json.loads(fp.read())
+                    if not install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy):
+                        r = False
+            else:
+                logging.getLogger("visionatrix").error("Path is neither a file nor a directory: '%s'", path)
                 sys.exit(2)
-        install_custom_flow(
-            flow=install_flow, flow_comfy=install_flow_comfy, progress_callback=flow_install_callback.progress_callback
-        )
+        else:
+            flows_comfy = {}
+            not_installed_flows = get_not_installed_flows(flows_comfy)
+            if args.tag:
+                flow_install_pattern = str(args.tag)
+                flows_to_install = {}
+                for flow_name, flow in not_installed_flows.items():
+                    if any(fnmatchcase(tag, flow_install_pattern) for tag in flow.tags):
+                        flows_to_install[flow_name] = flow
+            else:
+                flow_install_pattern = str(args.name).lower()
+                flows_to_install = {
+                    name: flow for name, flow in not_installed_flows.items() if fnmatchcase(name, flow_install_pattern)
+                }
+            if not flows_to_install:
+                logging.getLogger("visionatrix").error("No flows found matching pattern: '%s'", flow_install_pattern)
+                sys.exit(2)
+            if len(flows_to_install) > 1:
+                logging.getLogger("visionatrix").warning("Multiple flows match pattern: '%s'", flow_install_pattern)
+                for flow_name, flow in flows_to_install.items():
+                    logging.getLogger("visionatrix").warning(" - %s (tags: %s)", flow_name, ", ".join(flow.tags))
+                confirm = input("Do you want to install all of them? (Y/N): ").lower()
+                if confirm != "y":
+                    logging.getLogger("visionatrix").info("Aborting installation.")
+                    sys.exit(0)
+            for flow_name, flow in flows_to_install.items():
+                if not install_custom_flow(flow=flow, flow_comfy=flows_comfy[flow_name]):
+                    r = False
+        if not r:
+            sys.exit(1)
     elif args.command == "orphan-models":
         comfyui.load(None)
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
+    elif args.command == "openapi":
+        comfyui.load(None)
+        flows_arg = args.flows.strip()
+        skip_not_installed = args.skip_not_installed
+        openapi_schema = generate_openapi(flows_arg, skip_not_installed, args.exclude_base)
+        with builtins.open(args.file, "w", encoding="UTF-8") as f:
+            openapi_schema_str = json.dumps(openapi_schema, indent=args.indentation)
+            if not openapi_schema_str.endswith("\n"):
+                openapi_schema_str += "\n"
+            f.write(openapi_schema_str)
     else:
         logging.getLogger("visionatrix").error("Unknown command: '%s'", args.command)
         sys.exit(2)

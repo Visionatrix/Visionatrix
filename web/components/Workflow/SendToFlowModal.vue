@@ -1,11 +1,7 @@
 <script setup lang="ts">
 const props = defineProps({
-	show: {
-		type: Boolean,
-		required: false,
-	},
 	flowResult: {
-		type: Object,
+		type: Object as PropType<FlowResult>,
 		required: false,
 		default: () => null,
 	},
@@ -32,6 +28,8 @@ const props = defineProps({
 		default: false,
 	},
 })
+
+const show = defineModel('show', { default: false, type: Boolean })
 
 const flowStore = useFlowsStore()
 const subFlows = computed(() => {
@@ -134,15 +132,17 @@ onBeforeMount(() => {
 </script>
 
 <template>
-	<UModal v-model="$props.show" class="z-[90]" :transition="false">
+	<UModal v-model="show" class="z-[90]" :transition="false">
 		<div class="p-4">
 			<h2 class="text-lg text-center mb-4">Send to flow</h2>
 			<div class="flex justify-center mb-4">
-				<NuxtImg v-if="flowResultReady"
+				<NuxtImg
+					v-if="flowResultReady"
 					:src="outputImgSrc"
 					class="w-1/2 rounded-lg"
 					:draggable="false" />
-				<UAlert v-else
+				<UAlert
+					v-else
 					color="orange"
 					icon="i-heroicons-exclamation-circle-solid"
 					:title="`Task is still running (${Math.ceil(flowResult.progress)}%, ${flowResult.execution_time.toFixed(2)}s)`"
@@ -171,7 +171,8 @@ onBeforeMount(() => {
 					:options="subFlows" />
 				<span v-else>No sub-flows available</span>
 			</p>
-			<UAlert v-if="isChildTask"
+			<UAlert
+				v-if="isChildTask"
 				class="mb-4"
 				icon="i-heroicons-exclamation-circle-solid"
 				title="Child task"

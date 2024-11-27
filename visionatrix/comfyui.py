@@ -7,17 +7,19 @@ https://github.com/comfyanonymous/ComfyUI
 # pylint: skip-file
 
 import contextlib
+import importlib.util
 import inspect
+import itertools
 import logging
 import os
 import re
+import subprocess
 import sys
 import typing
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from socket import gethostname
 
-import torch
 from psutil import virtual_memory
 
 from . import _version, options
@@ -30,16 +32,48 @@ SYSTEM_DETAILS = {
     "version": sys.version,
     "embedded_python": options.PYTHON_EMBEDED,
 }
-
-if torch.version.cuda is not None:
-    TORCH_VERSION = f"{torch.__version__} (CUDA {torch.version.cuda})"
-elif torch.version.hip is not None:
-    TORCH_VERSION = f"{torch.__version__} (ROCm {torch.version.hip})"
-else:
-    TORCH_VERSION = torch.__version__
+TORCH_VERSION: str | None = None
 
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
+
+    if "NO_ALBUMENTATIONS_UPDATE" not in os.environ:
+        os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"  # disable checking if new version of "Albumentations" is available
+
+    if sys.platform.lower() == "darwin":
+        # SUPIR node: 'aten::upsample_bicubic2d.out' is not currently implemented for the MPS device
+        # BiRefNet: torchvision::deform_conv2d
+        if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
+            os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
+    if options.PYTHON_EMBEDED and importlib.util.find_spec("torch") is None:
+        # we remove pytorch from the Windows standalone release, so that the archive with the release is smaller.
+        LOGGER.info("PyTorch is not installed. Installing torch, torchvision, torchaudio.")
+
+        for attempt in range(options.MAX_GIT_CLONE_ATTEMPTS):
+            try:
+                subprocess.check_call(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "torch",
+                        "torchvision",
+                        "torchaudio",
+                        "--index-url",
+                        "https://download.pytorch.org/whl/cu124",
+                        # !!! do not forget to change PyTorch version in "scripts/easy_install.py" !!!
+                    ]
+                )
+                LOGGER.info("Successfully installed PyTorch packages.")
+                break
+            except subprocess.CalledProcessError as e:
+                LOGGER.error("Attempt %d: Failed to install PyTorch packages: %s", attempt, e)
+                if attempt == options.MAX_GIT_CLONE_ATTEMPTS - 1:
+                    LOGGER.error("All installation attempts failed.")
+                    raise e
+                LOGGER.info("Retrying installation...")
 
     sys.path.append(options.BACKEND_DIR)
 
@@ -48,11 +82,8 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--host",
         "--port",
         "--backend_dir",
-        "--flows_dir",
-        "--models_dir",
         "--tasks_files_dir",
         "--ui",
-        "--loglevel",
         "^run$",
         "^update$",
         "^install-flow$",
@@ -60,11 +91,17 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         "--dry-run",
         "--no-confirm",
         "--include-useful-models",
-        "--name=",
         "--file=",
+        "--name=",
+        "--tag=",
         "--mode",
         "--server",
         "--disable-device-detection",
+        "^openapi$",
+        "--skip-not-installed",
+        "--flows",
+        "--exclude-base",
+        "--indentation=",
         "visionatrix:APP",
     ]
     args_to_remove = []
@@ -77,12 +114,9 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     for i in args_to_remove:
         sys.argv.pop(i)
 
-    if sys.platform.lower() == "darwin":
-        # SUPIR node: 'aten::upsample_bicubic2d.out' is not currently implemented for the MPS device
-        if "PYTORCH_ENABLE_MPS_FALLBACK" not in os.environ:
-            os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-
-    if not no_device_detection and "--cpu" not in sys.argv and "--directml" not in sys.argv:
+    if task_progress_callback is None and "--cpu" not in sys.argv:
+        sys.argv.append("--cpu")
+    elif not no_device_detection and "--cpu" not in sys.argv and "--directml" not in sys.argv:
         if need_directml_flag():
             sys.argv.append("--directml")
         elif need_cpu_flag():
@@ -90,7 +124,6 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 
     LOGGER.debug("command line arguments: %s", sys.argv)
 
-    original_logging_lvl = logging.getLogger().getEffectiveLevel()  # ComfyUI resets loglvl of "root" logger
     original_add_handler = logging.Logger.addHandler
 
     def out_add_handler(self, hdlr):
@@ -104,7 +137,6 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     import main  # noqa # isort: skip
 
     logging.Logger.addHandler = original_add_handler
-    logging.getLogger().setLevel(original_logging_lvl)
 
     import execution  # noqa # isort: skip
     import folder_paths  # noqa # isort: skip
@@ -116,13 +148,20 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         LOGGER.info("Set cuda device to: %s", main.args.cuda_device)
 
     import cuda_malloc  # noqa
+    import utils.extra_config  # noqa
 
-    try:
-        main.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
-    except AttributeError:  # September 17: remove this in ~3 months
-        import utils.extra_config
+    default_outside_config = Path("./extra_model_paths.yaml").resolve()
+    if default_outside_config.is_file():
+        LOGGER.info("loading Visionatrix default extra model path config: %s", default_outside_config)
+        utils.extra_config.load_extra_path_config(default_outside_config)
 
-        utils.extra_config.load_extra_path_config(Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml"))
+    extra_path = Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml")
+    if extra_path.is_file():
+        LOGGER.info("loading ComfyUI default extra model path config: %s", default_outside_config)
+        utils.extra_config.load_extra_path_config(extra_path)
+    if main.args.extra_model_paths_config:
+        for config_path in itertools.chain(*main.args.extra_model_paths_config):
+            utils.extra_config.load_extra_path_config(config_path)
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
@@ -181,22 +220,43 @@ def get_node_class_mappings() -> dict[str, object]:
     return nodes.NODE_CLASS_MAPPINGS
 
 
+def get_folder_names_and_paths() -> dict[str, tuple[list[str], set[str]]]:
+    import folder_paths  # noqa
+
+    return folder_paths.folder_names_and_paths
+
+
 def interrupt_processing() -> None:
     import nodes  # noqa
 
     nodes.interrupt_processing()
 
 
-def cleanup_models() -> None:
+def cleanup_models(keep_clone_weights_loaded=False) -> None:
     import comfy  # noqa
 
-    comfy.model_management.cleanup_models()
+    comfy.model_management.cleanup_models(keep_clone_weights_loaded)
+
+
+def unload_all_models() -> None:
+    import comfy  # noqa
+
+    comfy.model_management.unload_all_models()
 
 
 def soft_empty_cache(force: bool = False) -> None:
     import comfy  # noqa
 
     comfy.model_management.soft_empty_cache(force)
+
+
+def get_engine_details() -> dict:
+    import comfy  # noqa
+
+    return {
+        "disable_smart_memory": bool(comfy.model_management.DISABLE_SMART_MEMORY),
+        "vram_state": str(comfy.model_management.vram_state.name),
+    }
 
 
 def torch_device_info() -> dict:
@@ -219,6 +279,18 @@ def torch_device_info() -> dict:
 
 
 def get_worker_details() -> dict:
+    global TORCH_VERSION
+
+    if not TORCH_VERSION:
+        import torch  # noqa
+
+        if torch.version.cuda is not None:
+            TORCH_VERSION = f"{torch.__version__} (CUDA {torch.version.cuda})"
+        elif torch.version.hip is not None:
+            TORCH_VERSION = f"{torch.__version__} (ROCm {torch.version.hip})"
+        else:
+            TORCH_VERSION = torch.__version__
+
     return {
         "worker_version": _version.__version__,
         "pytorch_version": TORCH_VERSION,
@@ -226,6 +298,7 @@ def get_worker_details() -> dict:
         "ram_total": virtual_memory().total,
         "ram_free": virtual_memory().available,
         "devices": [torch_device_info()],
+        "engine_details": get_engine_details(),
     }
 
 
@@ -259,6 +332,15 @@ def need_cpu_flag() -> bool:
 
 
 def add_arguments(parser):
+    parser.add_argument(
+        "--extra-model-paths-config",
+        type=str,
+        default=None,
+        metavar="PATH",
+        nargs="+",
+        action="append",
+        help="Load one or more extra_model_paths.yaml files.",
+    )
     parser.add_argument(
         "--cuda-device",
         type=int,
