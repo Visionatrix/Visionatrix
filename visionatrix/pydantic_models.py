@@ -118,8 +118,22 @@ class FlowProgressInstall(BaseModel):
     progress: float = Field(..., description="The current progress of the installation, ranging from 0 to 100.")
     error: str = Field("", description="Details of any error encountered during the installation process.")
     started_at: datetime = Field(..., description="Timestamp when the installation process started.")
-    updated_at: datetime | None = Field(None, description="Timestamp of the last update to the installation progress.")
-    finished_at: datetime | None = Field(None, description="Timestamp when the installation process completed.")
+    updated_at: datetime = Field(..., description="Timestamp of the last update to the installation progress.")
+
+
+class ModelProgressInstall(BaseModel):
+    """Represents the progress status of a model installation process."""
+
+    model_config = ConfigDict(from_attributes=True)
+    name: str = Field(..., description="Unique name of the model being installed.")
+    flow_name: str = Field(..., description="Name of the flow requesting the installation.")
+    progress: float = Field(..., description="The current progress of the installation, ranging from 0 to 100.")
+    error: str = Field("", description="Details of any error encountered during the installation process.")
+    started_at: datetime = Field(..., description="Timestamp when the installation process started.")
+    updated_at: datetime = Field(..., description="Timestamp of the last update to the installation record.")
+    file_mtime: float | None = Field(
+        None, description="Last modification time of the model file, as a floating-point timestamp."
+    )
 
 
 class TaskDetailsInput(BaseModel):

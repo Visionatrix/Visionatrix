@@ -115,7 +115,7 @@
           "flows"
         ],
         "summary": "Install",
-        "description": "Endpoint to initiate the installation of a flow based on its name. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a new\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the specified flow name. It\nchecks the availability of the flow in the list of available flows and starts the installation if the flow\nis found. It ensures that no two installations can run concurrently.",
+        "description": "Initiates the installation of a flow based on its name. Requires admin privileges.\n\nIf the specified flow is already being installed, a `409 Conflict` status is returned. However,\nthe installation of other flows is allowed concurrently.",
         "operationId": "install",
         "parameters": [
           {
@@ -145,11 +145,11 @@
             }
           },
           "409": {
-            "description": "Another flow installation is in progress",
+            "description": "Installation of the same flow is already in progress",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Another flow installation is in progress."
+                  "detail": "Installation of this flow is already in progress."
                 }
               }
             }
@@ -171,7 +171,7 @@
           "flows"
         ],
         "summary": "Install From File",
-        "description": "Endpoint to initiate the installation of a flow from an uploaded file. This endpoint requires admin privileges\nto perform the installation. If another flow installation is already in progress, it prevents a parallel flow\ninstallation to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the installation process using the uploaded flow file.",
+        "description": "Initiates the installation of a flow from an uploaded file. Requires admin privileges.\n\nIf the specified flow is already being installed, a `409 Conflict` status is returned. However,\nthe installation of other flows is allowed concurrently.",
         "operationId": "install_from_file",
         "requestBody": {
           "required": true,
@@ -188,11 +188,11 @@
             "description": "Successful start of installation"
           },
           "409": {
-            "description": "Another flow installation is in progress",
+            "description": "Installation of the same flow is already in progress",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Another flow installation is in progress."
+                  "detail": "Installation of this flow is already in progress."
                 }
               }
             }
@@ -252,7 +252,7 @@
           "flows"
         ],
         "summary": "Flow Update",
-        "description": "Endpoint to initiate the update process of an installed flow based on its name.\nThis endpoint requires admin privileges to perform the update. If another flow installation or update is already\nin progress, it prevents a new update to avoid conflicts, returning a 409 Conflict HTTP status.\n\nThis endpoint schedules a background task for the update process using the specified flow name. It checks the\navailability of a newer version of the flow and starts the update if a newer version is found. It ensures that no\ntwo installations or updates can run concurrently.",
+        "description": "Initiates the update process for an installed flow. Requires admin privileges.\n\nIf the specified flow is already being installed or updated, a `409 Conflict` status is returned.\nHowever, updates or installations of other flows are allowed concurrently.",
         "operationId": "flow_update",
         "parameters": [
           {
@@ -282,11 +282,11 @@
             }
           },
           "409": {
-            "description": "Another flow installation or update is in progress",
+            "description": "Update or installation of the same flow is already in progress",
             "content": {
               "application/json": {
                 "example": {
-                  "detail": "Another flow installation or update is in progress."
+                  "detail": "Installation of this flow is already in progress."
                 }
               }
             }
@@ -2413,30 +2413,10 @@
             "description": "Timestamp when the installation process started."
           },
           "updated_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "date-time",
             "title": "Updated At",
             "description": "Timestamp of the last update to the installation progress."
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At",
-            "description": "Timestamp when the installation process completed."
           }
         },
         "type": "object",
@@ -2444,7 +2424,8 @@
           "name",
           "flow_comfy",
           "progress",
-          "started_at"
+          "started_at",
+          "updated_at"
         ],
         "title": "FlowProgressInstall",
         "description": "Represents the progress status of a flow installation process."
@@ -3476,7 +3457,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-23T15:44:53.518841Z"
+            "default": "2024-11-27T08:01:41.974463Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

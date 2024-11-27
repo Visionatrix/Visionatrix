@@ -185,7 +185,7 @@ async def get_flows_progress_install_async() -> list[FlowProgressInstall]:
             raise
 
 
-async def delete_flows_progress_install_async(name: str) -> bool:
+async def delete_flow_progress_install_async(name: str) -> bool:
     async with database.SESSION_ASYNC() as session:
         try:
             stmt = delete(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
