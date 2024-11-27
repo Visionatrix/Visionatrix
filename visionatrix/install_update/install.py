@@ -37,7 +37,6 @@ def install() -> None:
         [sys.executable, "-m", "pip", "install", "-r", comfyui_dir.joinpath("requirements.txt")],
         check=True,
     )
-    os.makedirs(comfyui_dir.joinpath("user"), exist_ok=True)  # for multiprocessing installations
     create_nodes_stuff()
     install_base_custom_nodes()
 
