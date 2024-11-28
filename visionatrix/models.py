@@ -68,6 +68,7 @@ def install_model(
                 if total_added_progress > 0 and not progress_callback(flow_name, -total_added_progress, "", True):
                     return False  # Model installation failed; Progress roll back failed
                 retries += 1
+                time.sleep(0.5)
                 break
             model_progress_status = installing_models[model.name]
             new_model_progress = model_progress_status.progress
