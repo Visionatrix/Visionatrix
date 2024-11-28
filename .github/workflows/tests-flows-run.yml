@@ -1,4 +1,4 @@
-name: Test install
+name: Flows Run
 
 on:
   pull_request:
@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: test_install-${{ github.head_ref || github.run_id }}
+  group: flows_run-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  install_macos_github:
-    name: GitHub macOS:14
+  github_flows_run_macos:
+    name: Flows Run GitHub macOS 14
     runs-on: macos-14
     strategy:
       fail-fast: false
@@ -36,8 +36,8 @@ jobs:
       - name: Perform Tensor tests
         run: python3 tests/rm_background_bria.py
 
-  install_linux_github:
-    name: GitHub Ubuntu:22
+  github_flows_run_linux:
+    name: Flows Run GitHub Ubuntu 22
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -59,8 +59,8 @@ jobs:
       - name: Perform Tensor tests
         run: python3 tests/rm_background_bria.py
 
-  install_windows_github:
-    name: GitHub Windows:2019
+  github_flows_run_windows:
+    name: Flows Run GitHub Windows 2019
     runs-on: windows-2019
     strategy:
       fail-fast: false

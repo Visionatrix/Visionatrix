@@ -129,21 +129,12 @@ def download_model(
     progress_callback: typing.Callable[[str, float, str, bool], bool],
     hf_auth_token: str = "",
 ) -> bool:
-    if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
+    if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0" and save_path.suffix != ".zip":
         server_mode_ensure_model_exists(save_path)
         db_queries.update_model_progress_install(model.name, flow_name, 100.0)
         return True
 
-    headers = {}
-    if model.gated and urlparse(model.url).netloc == "huggingface.co" and hf_auth_token:
-        headers["Authorization"] = f"Bearer {hf_auth_token}"
-
-    existing_file_size = 0
-    if save_path.exists():
-        existing_file_size = save_path.stat().st_size
-        if existing_file_size > 0:
-            headers["Range"] = f"bytes={existing_file_size}-"
-            LOGGER.info("Resuming download from byte %d", existing_file_size)
+    headers, existing_file_size = prepare_download_headers(model, save_path, hf_auth_token)
 
     retry = True
     while retry:
@@ -221,14 +212,15 @@ def download_model(
                                     return False
                                 total_added_progress += progress_value
                                 progress_value = 0.0
-                if not check_hash(model.hash, save_path):
+                if not check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
                     save_path.unlink(missing_ok=True)
                     raise RuntimeError("Downloaded file hash does not match the expected hash.")
                 if model.url.endswith(".zip"):
                     with zipfile.ZipFile(save_path) as zip_file:
                         zip_file.extractall(save_path.parent)
                     save_path.unlink(missing_ok=True)
-                db_queries.update_model_mtime(model.name, save_path.stat().st_mtime, flow_name)
+                else:
+                    db_queries.update_model_mtime(model.name, save_path.stat().st_mtime, flow_name)
                 db_queries.update_model_progress_install(model.name, flow_name, 100.0)
                 return True
             except (httpx.HTTPError, RuntimeError):
@@ -236,6 +228,19 @@ def download_model(
                 raise
     save_path.unlink(missing_ok=True)
     raise RuntimeError("Failed to download model after retries")
+
+
+def prepare_download_headers(model: AIResourceModel, save_path: Path, hf_auth_token: str = "") -> tuple[dict, int]:
+    headers = {}
+    if model.gated and urlparse(model.url).netloc == "huggingface.co" and hf_auth_token:
+        headers["Authorization"] = f"Bearer {hf_auth_token}"
+    existing_file_size = 0
+    if save_path.exists():
+        existing_file_size = save_path.stat().st_size
+        if existing_file_size > 0:
+            headers["Range"] = f"bytes={existing_file_size}-"
+            LOGGER.info("Resuming download from byte %d", existing_file_size)
+    return headers, existing_file_size
 
 
 def is_model_exists_in_fs(
@@ -274,7 +279,7 @@ def is_model_exists_in_fs(
             for model_name, model_hash in model.hashes.items():
                 archive_element = Path(save_path.with_suffix("")).joinpath(model_name)
                 if archive_element.exists():
-                    if check_hash(model_hash, archive_element):
+                    if check_hash(model_hash, archive_element, True):
                         LOGGER.info("`%s` already exists.", archive_element)
                         continue
                     LOGGER.warning(
@@ -288,8 +293,8 @@ def is_model_exists_in_fs(
     return False
 
 
-def check_hash(etag: str, model_path: str | Path) -> bool:
-    if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
+def check_hash(etag: str, model_path: str | Path, force_full_model: bool = False) -> bool:
+    if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0" and force_full_model is False:
         return True
     with builtins.open(model_path, "rb") as file:
         sha256_hash = hashlib.sha256()
