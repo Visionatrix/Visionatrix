@@ -216,8 +216,7 @@ def download_model(
                     save_path.unlink(missing_ok=True)
                     raise RuntimeError("Downloaded file hash does not match the expected hash.")
                 if model.url.endswith(".zip"):
-                    with zipfile.ZipFile(save_path) as zip_file:
-                        zip_file.extractall(save_path.parent)
+                    extract_zip_with_subfolder(save_path, save_path.parent)
                     save_path.unlink(missing_ok=True)
                 else:
                     db_queries.update_model_mtime(model.name, save_path.stat().st_mtime, flow_name)
@@ -228,6 +227,23 @@ def download_model(
                 raise
     save_path.unlink(missing_ok=True)
     raise RuntimeError("Failed to download model after retries")
+
+
+def extract_zip_with_subfolder(zip_path: Path, extract_to: Path):
+    with zipfile.ZipFile(zip_path) as zip_file:
+        # Get the list of top-level items in the archive
+        top_level_items = {os.path.split(item)[0] for item in zip_file.namelist()}
+
+        # Check if all files are in a single top-level folder
+        if len(top_level_items) == 1 and "" not in top_level_items:
+            # Extract directly if there's a top-level folder
+            zip_file.extractall(extract_to)
+        else:
+            # Create a subfolder based on the archive name
+            subfolder_name = zip_path.stem
+            subfolder_path = extract_to / subfolder_name
+            subfolder_path.mkdir(exist_ok=True)
+            zip_file.extractall(subfolder_path)
 
 
 def prepare_download_headers(model: AIResourceModel, save_path: Path, hf_auth_token: str = "") -> tuple[dict, int]:
