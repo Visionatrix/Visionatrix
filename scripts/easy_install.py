@@ -248,7 +248,7 @@ def install_graphics_card_packages():
         if sys.platform.lower() == "win32":
             venv_run(
                 pip_install + "torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124"
-            )  # noqa # !!! do not forget to change PyTorch version in `visionatrix/comfyui.py` !!!
+            )  # noqa # !!! do not forget to change PyTorch version in `visionatrix/comfyui_wrapper.py` !!!
         else:
             venv_run(pip_install + "torch torchvision torchaudio")
         venv_run(pip_install + "torch torchvision torchaudio")

@@ -20,7 +20,7 @@ from packaging.version import Version, parse
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from . import _version, comfyui_class_info, db_queries, options
-from .comfyui import get_node_class_mappings
+from .comfyui_wrapper import get_node_class_mappings
 from .etc import is_english
 from .models import install_model
 from .models_map import get_flow_models

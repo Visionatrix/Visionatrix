@@ -8,7 +8,15 @@ import sys
 from fnmatch import fnmatchcase
 from pathlib import Path
 
-from . import comfyui, database, generate_openapi, install, options, run_vix, update
+from . import (
+    comfyui_wrapper,
+    database,
+    generate_openapi,
+    install,
+    options,
+    run_vix,
+    update,
+)
 from .etc import get_higher_log_level, get_log_level
 from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .orphan_models import process_orphan_models
@@ -26,8 +34,8 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="command")
     for i in [
         ("install", "Performs cleanup & initialization"),
-        ("update", "Performs update to the latest version"),
-        ("run", "Starts the ComfyUI and Visionatrix backends"),
+        ("update", "Performs update to the next version"),
+        ("run", "Starts the Visionatrix"),
         ("install-flow", "Install flow by name or from file"),
         ("create-user", "Create new user"),
         ("orphan-models", "Remove orphan models"),
@@ -98,7 +106,7 @@ if __name__ == "__main__":
             install_flow_group.add_argument("--name", type=str, help="Flow name mask of the flow(s)")
             install_flow_group.add_argument("--tag", type=str, help="Flow tags mask of the flow(s)")
 
-        subparser.add_argument("--backend_dir", type=str, help="Directory for the backend")
+        subparser.add_argument("--comfyui_dir", type=str, help="ComfyUI directory")
         if i[0] == "run":
             subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
@@ -107,7 +115,7 @@ if __name__ == "__main__":
             subparser.add_argument("--mode", choices=["WORKER", "SERVER"], help="VIX special operating mode")
             subparser.add_argument("--ui", nargs="?", default="", help="Enable WebUI (DEFAULT or SERVER mode)")
             subparser.add_argument("--disable-device-detection", action="store_true", default=False)
-            comfyui.add_arguments(subparser)
+            comfyui_wrapper.add_arguments(subparser)
 
     args = parser.parse_args()
 
@@ -140,12 +148,12 @@ if __name__ == "__main__":
         sys.exit(0)
 
     options.init_dirs_values(
-        backend=getattr(args, "backend_dir", ""),
+        comfyui=getattr(args, "comfyui_dir", ""),
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
 
     if args.command == "install":
-        comfyui_dir = Path(options.BACKEND_DIR)
+        comfyui_dir = Path(options.COMFYUI_DIR)
         if comfyui_dir.exists():
             c = input("Do you want to reinstall the ComfyUI folder? (Y/N): ").lower()
             if c != "y":
@@ -161,7 +169,7 @@ if __name__ == "__main__":
                     "Are you sure you want to proceed and clear this folder? (Y/N): "
                 ).lower()
                 if c != "y":
-                    print("Skipping backend re-installation.")
+                    print("Skipping ComfyUI re-installation.")
                     sys.exit(0)
         install()
     elif args.command == "update":
@@ -169,7 +177,7 @@ if __name__ == "__main__":
     elif args.command == "run":
         run_vix()
     elif args.command == "install-flow":
-        comfyui.load(None)
+        comfyui_wrapper.load(None)
         r = True
         if args.file:
             path = Path(args.file)
@@ -225,10 +233,10 @@ if __name__ == "__main__":
         if not r:
             sys.exit(1)
     elif args.command == "orphan-models":
-        comfyui.load(None)
+        comfyui_wrapper.load(None)
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
     elif args.command == "openapi":
-        comfyui.load(None)
+        comfyui_wrapper.load(None)
         flows_arg = args.flows.strip()
         skip_not_installed = args.skip_not_installed
         openapi_schema = generate_openapi(flows_arg, skip_not_installed, args.exclude_base)

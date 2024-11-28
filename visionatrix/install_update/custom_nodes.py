@@ -25,7 +25,7 @@ def install_base_custom_nodes() -> None:
 
 
 def install_base_custom_node(node_name: str, node_details: dict) -> None:
-    custom_nodes_dir = Path(options.BACKEND_DIR).joinpath("custom_nodes")
+    custom_nodes_dir = Path(options.COMFYUI_DIR).joinpath("custom_nodes")
     LOGGER.info("Cloning `%s`", node_name)
     git_flags = node_details.get("git_flags", "")
     github_url = f"{options.ORG_URL}{node_name}.git"
@@ -51,7 +51,7 @@ def install_base_custom_node(node_name: str, node_details: dict) -> None:
 
 
 def update_base_custom_nodes() -> None:
-    custom_nodes_dir = Path(options.BACKEND_DIR).joinpath("custom_nodes")
+    custom_nodes_dir = Path(options.COMFYUI_DIR).joinpath("custom_nodes")
     for node_name, node_details in BASIC_NODE_LIST.items():
         if Path(custom_nodes_dir).joinpath(node_name).exists() is False:
             LOGGER.info("Installing `%s`", node_name)
@@ -66,7 +66,7 @@ def update_base_custom_nodes() -> None:
                     run("git pull".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
                 except CalledProcessError:
                     logging.error(
-                        "git pull for '%s' folder failed. Trying apply the `rebase` flag..", options.BACKEND_DIR
+                        "git pull for '%s' folder failed. Trying apply the `rebase` flag..", options.COMFYUI_DIR
                     )
                     run("git pull --rebase".split(), check=True, cwd=os.path.join(custom_nodes_dir, node_name))
             except CalledProcessError:

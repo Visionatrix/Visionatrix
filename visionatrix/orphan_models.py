@@ -3,7 +3,7 @@ from pathlib import Path
 
 from . import options
 from .basic_node_list import BASIC_NODE_LIST
-from .comfyui import get_folder_names_and_paths
+from .comfyui_wrapper import get_folder_names_and_paths
 from .flows import get_available_flows, get_installed_flows
 from .models_map import get_formatted_models_catalog
 from .pydantic_models import OrphanModel
@@ -46,7 +46,7 @@ def get_orphan_models() -> list[OrphanModel]:
                     models_to_flows_map[model_save_path] = [flow]
                 all_known_models[model_save_path] = model
 
-    custom_nodes_path = str(Path(options.BACKEND_DIR).joinpath("custom_nodes"))
+    custom_nodes_path = str(Path(options.COMFYUI_DIR).joinpath("custom_nodes"))
     models_filenames_from_nodes = set()
     for node_details in BASIC_NODE_LIST.values():
         if not node_details.get("models"):

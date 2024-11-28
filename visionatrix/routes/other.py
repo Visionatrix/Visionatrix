@@ -12,7 +12,7 @@ from fastapi import (
     status,
 )
 
-from .. import comfyui, options
+from .. import comfyui_wrapper, options
 from ..prompt_translation import (
     translate_prompt_with_gemini,
     translate_prompt_with_ollama,
@@ -45,7 +45,7 @@ async def interrupt_engine(request: Request, b_tasks: BackgroundTasks):
     """
 
     def __interrupt_task():
-        comfyui.interrupt_processing()
+        comfyui_wrapper.interrupt_processing()
 
     require_admin(request)
     if options.VIX_MODE != "SERVER":

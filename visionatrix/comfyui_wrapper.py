@@ -75,13 +75,13 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
                     raise e
                 LOGGER.info("Retrying installation...")
 
-    sys.path.append(options.BACKEND_DIR)
+    sys.path.append(options.COMFYUI_DIR)
 
     no_device_detection = "--disable-device-detection" in sys.argv
     filter_list = [
         "--host",
         "--port",
-        "--backend_dir",
+        "--comfyui_dir",
         "--tasks_files_dir",
         "--ui",
         "^run$",
@@ -155,7 +155,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         LOGGER.info("loading Visionatrix default extra model path config: %s", default_outside_config)
         utils.extra_config.load_extra_path_config(default_outside_config)
 
-    extra_path = Path(options.BACKEND_DIR).joinpath("extra_model_paths.yaml")
+    extra_path = Path(options.COMFYUI_DIR).joinpath("extra_model_paths.yaml")
     if extra_path.is_file():
         LOGGER.info("loading ComfyUI default extra model path config: %s", default_outside_config)
         utils.extra_config.load_extra_path_config(extra_path)
