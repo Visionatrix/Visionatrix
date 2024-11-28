@@ -46,7 +46,7 @@ def get_orphan_models() -> list[OrphanModel]:
                     models_to_flows_map[model_save_path] = [flow]
                 all_known_models[model_save_path] = model
 
-    custom_nodes_path = str(Path(options.BACKEND_DIR).joinpath("custom_nodes"))
+    custom_nodes_path = str(Path(options.COMFYUI_DIR).joinpath("custom_nodes"))
     models_filenames_from_nodes = set()
     for node_details in BASIC_NODE_LIST.values():
         if not node_details.get("models"):

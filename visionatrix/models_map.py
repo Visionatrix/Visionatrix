@@ -82,7 +82,7 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
                     models_info.append(
                         node_model_info.model_copy(
                             update={
-                                "paths": [str(Path(options.BACKEND_DIR).joinpath(i)) for i in node_model_info.paths]
+                                "paths": [str(Path(options.COMFYUI_DIR).joinpath(i)) for i in node_model_info.paths]
                             }
                         )
                     )
@@ -169,7 +169,7 @@ def get_models_catalog() -> dict[str, dict]:
                 else:
                     save_paths.append(Path(output_folder).joinpath(urlparse(model_details["url"]).path.split("/")[-1]))
         else:
-            save_paths = [Path(options.BACKEND_DIR).joinpath(model_details["filename"])]
+            save_paths = [Path(options.COMFYUI_DIR).joinpath(model_details["filename"])]
         model_details["paths"] = [str(i) for i in save_paths]
     return MODELS_CATALOG
 

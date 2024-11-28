@@ -23,9 +23,9 @@ def remove_readonly(func, path, _):
 def install() -> None:
     """Deletes all Flows and performs a clean installation of ComfyUI."""
     db_queries.delete_flows_progress_install()
-    comfyui_dir = Path(options.BACKEND_DIR)
+    comfyui_dir = Path(options.COMFYUI_DIR)
     if comfyui_dir.exists():
-        LOGGER.info("Removing existing Backend directory: %s", comfyui_dir)
+        LOGGER.info("Removing existing ComfyUI directory: %s", comfyui_dir)
         rmtree(comfyui_dir, onerror=remove_readonly)
     os.makedirs(comfyui_dir)
     check_call(["git", "clone", "https://github.com/Visionatrix/ComfyUI.git", comfyui_dir])
@@ -44,5 +44,5 @@ def install() -> None:
 def create_nodes_stuff() -> None:
     """Currently we only create `skip_download_model` file in "custom_nodes" for ComfyUI-Impact-Pack"""
 
-    with Path(options.BACKEND_DIR).joinpath("custom_nodes").joinpath("skip_download_model").open("a", encoding="utf-8"):
+    with Path(options.COMFYUI_DIR).joinpath("custom_nodes").joinpath("skip_download_model").open("a", encoding="utf-8"):
         pass
