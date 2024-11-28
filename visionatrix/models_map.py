@@ -136,11 +136,21 @@ def get_model_name_from_details(model_details: dict) -> str:
 
 def get_models_catalog() -> dict[str, dict]:
     if not MODELS_CATALOG:
-        if urlparse(options.MODELS_CATALOG_URL).scheme in ("http", "https", "ftp", "ftps"):
-            MODELS_CATALOG.update(json.loads(httpx.get(options.MODELS_CATALOG_URL, timeout=5.0).text))
-        else:
-            with builtins.open(options.MODELS_CATALOG_URL, encoding="UTF-8") as models_catalog_file:
-                MODELS_CATALOG.update(json.loads(models_catalog_file.read()))
+        models_catalog_urls = [url.strip() for url in options.MODELS_CATALOG_URL.split(";") if url.strip()]
+        for catalog_url in models_catalog_urls:
+            try:
+                if urlparse(catalog_url).scheme in ("http", "https", "ftp", "ftps"):
+                    response = httpx.get(catalog_url, timeout=5.0)
+                    response.raise_for_status()
+                    catalog_data = json.loads(response.text)
+                else:
+                    with builtins.open(catalog_url, encoding="UTF-8") as models_catalog_file:
+                        catalog_data = json.loads(models_catalog_file.read())
+                for model_name, model_details in catalog_data.items():
+                    MODELS_CATALOG[model_name] = model_details
+            except Exception as e:
+                LOGGER.error("Failed to fetch models catalog from %s: %s", catalog_url, str(e))
+    # Process each model in the combined MODELS_CATALOG
     for model, model_details in MODELS_CATALOG.items():
         model_types = model_details.get("types", [])
         if model_types:

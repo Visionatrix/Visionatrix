@@ -58,7 +58,10 @@ https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information
 # FLOWS_URL = "./flows.zip"
 
 MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog.json")
-"""URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models."""
+"""URLs or file paths (separated by ';') that point to models catalog JSON files.
+
+Later addresses have higher priority, and models from later catalogs will override those from earlier ones.
+"""
 
 # MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.
 
