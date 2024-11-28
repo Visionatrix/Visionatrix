@@ -8,7 +8,15 @@ import sys
 from fnmatch import fnmatchcase
 from pathlib import Path
 
-from . import comfyui, database, generate_openapi, install, options, run_vix, update
+from . import (
+    comfyui_wrapper,
+    database,
+    generate_openapi,
+    install,
+    options,
+    run_vix,
+    update,
+)
 from .etc import get_higher_log_level, get_log_level
 from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .orphan_models import process_orphan_models
@@ -107,7 +115,7 @@ if __name__ == "__main__":
             subparser.add_argument("--mode", choices=["WORKER", "SERVER"], help="VIX special operating mode")
             subparser.add_argument("--ui", nargs="?", default="", help="Enable WebUI (DEFAULT or SERVER mode)")
             subparser.add_argument("--disable-device-detection", action="store_true", default=False)
-            comfyui.add_arguments(subparser)
+            comfyui_wrapper.add_arguments(subparser)
 
     args = parser.parse_args()
 
@@ -169,7 +177,7 @@ if __name__ == "__main__":
     elif args.command == "run":
         run_vix()
     elif args.command == "install-flow":
-        comfyui.load(None)
+        comfyui_wrapper.load(None)
         r = True
         if args.file:
             path = Path(args.file)
@@ -225,10 +233,10 @@ if __name__ == "__main__":
         if not r:
             sys.exit(1)
     elif args.command == "orphan-models":
-        comfyui.load(None)
+        comfyui_wrapper.load(None)
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
     elif args.command == "openapi":
-        comfyui.load(None)
+        comfyui_wrapper.load(None)
         flows_arg = args.flows.strip()
         skip_not_installed = args.skip_not_installed
         openapi_schema = generate_openapi(flows_arg, skip_not_installed, args.exclude_base)

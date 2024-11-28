@@ -8,7 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
-from .comfyui import interrupt_processing
+from .comfyui_wrapper import interrupt_processing
 from .pydantic_models import (
     ExecutionDetails,
     TaskDetails,

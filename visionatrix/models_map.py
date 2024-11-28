@@ -9,7 +9,7 @@ import httpx
 
 from . import options
 from .basic_node_list import BASIC_NODE_LIST
-from .comfyui import get_folder_names_and_paths, get_node_class_mappings
+from .comfyui_wrapper import get_folder_names_and_paths, get_node_class_mappings
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import AIResourceModel
 

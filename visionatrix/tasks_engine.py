@@ -14,7 +14,7 @@ from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database, options
-from .comfyui import (
+from .comfyui_wrapper import (
     cleanup_models,
     get_engine_details,
     get_worker_details,

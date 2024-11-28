@@ -3,7 +3,7 @@ from pathlib import Path
 
 from . import options
 from .basic_node_list import BASIC_NODE_LIST
-from .comfyui import get_folder_names_and_paths
+from .comfyui_wrapper import get_folder_names_and_paths
 from .flows import get_available_flows, get_installed_flows
 from .models_map import get_formatted_models_catalog
 from .pydantic_models import OrphanModel
