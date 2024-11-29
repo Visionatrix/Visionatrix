@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0 - 2024-11-29]
+
+This release introduces some breaking changes that are incompatible with previous versions.
+Feel free to create issues or discussions if anything is unclear. We are working towards providing a much smoother experience starting with the `2.0` series.
+
+### Added
+
+- Support for the `--extra-model-paths-config` ComfyUI argument. #240
+- The `MODELS_CATALOG_URL` option now supports multiple addresses. #251
+- Model catalogs now use the same versioning scheme as `FLOWS_URL`, which will help prevent a situation where a format change for new versions causes all old ones to stop working. #252
+- **Parallel** installation of (work)flows is now supported. #244
+
+### Changed
+
+- The `--flows_dir` argument and `FLOWS_DIR` environment variable have been removed. This information is now stored in the database. #242
+- The `vix_backend` folder has been renamed to `ComfyUI`. Please rename it manually if you are updating from a previous version, or perform a clean installation. #250
+- The default CUDA version for new installations has been updated from `12.1` to `12.4`. #239
+
+### Fixed
+
+- Resolved cases where the `buffalo_l.zip` installation (InsightFace) led to duplicate models in the filesystem. #249
+
 ## [1.7.0 - 2024-11-23]
 
 Emergency release due to update of `yolo`(Impact-Node) HuggingFace models, which broke our all new installations for all versions.
