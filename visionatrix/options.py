@@ -45,10 +45,10 @@ DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
 ORG_URL = "https://github.com/Visionatrix/"  # organization from which ComfyUI nodes will be installed
 
 FLOWS_URL = environ.get("FLOWS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/")
-"""URLs or file paths (separated by ';') that point to locations of archive files
-containing lists and definitions of Visionatrix workflows.
+"""URLs or file paths (separated by ';') that point to locations of archive files containing Visionatrix workflows.
 
-Each URL or path can point to an archive containing flows, more information:
+Each URL or path can point to an archive containing flows. If a URL ends with `/`,
+Visionatrix fetches an archive matching its version. More information:
 https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/#workflows-storage
 """
 
@@ -57,10 +57,12 @@ https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information
 # And uncomment the next line to use the local version.
 # FLOWS_URL = "./flows.zip"
 
-MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog.json")
+MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/")
 """URLs or file paths (separated by ';') that point to models catalog JSON files.
 
-Later addresses have higher priority, and models from later catalogs will override those from earlier ones.
+Each URL or path can point to a models catalog. If a URL ends with `/`,
+Visionatrix fetches a catalog matching its version. More information:
+https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/#models-storage
 """
 
 # MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.

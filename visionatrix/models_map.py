@@ -6,8 +6,9 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
+from packaging.version import Version
 
-from . import options
+from . import _version, options
 from .basic_node_list import BASIC_NODE_LIST
 from .comfyui_wrapper import get_folder_names_and_paths, get_node_class_mappings
 from .nodes_helpers import get_node_value, set_node_value
@@ -134,22 +135,38 @@ def get_model_name_from_details(model_details: dict) -> str:
     return urlparse(model_details["url"]).path.split("/")[-1]
 
 
+def fetch_models_catalog_from_url_or_path(catalog_url: str) -> dict[str, dict]:
+    if catalog_url.endswith("/"):
+        vix_version = Version(_version.__version__)
+        if vix_version.is_devrelease:
+            catalog_url += "models_catalog.json"
+        else:
+            catalog_url += f"models_catalog-{vix_version.major}.{vix_version.minor}.json"
+    parsed_url = urlparse(catalog_url)
+    if parsed_url.scheme in ("http", "https", "ftp", "ftps"):
+        try:
+            response = httpx.get(catalog_url, timeout=5.0)
+            response.raise_for_status()
+            return json.loads(response.text)
+        except Exception as e:
+            LOGGER.error("Failed to fetch models catalog from %s: %s", catalog_url, str(e))
+            return {}
+    else:
+        try:
+            with builtins.open(catalog_url, encoding="UTF-8") as models_catalog_file:
+                return json.loads(models_catalog_file.read())
+        except Exception as e:
+            LOGGER.error("Failed to read models catalog at %s: %s", catalog_url, str(e))
+            return {}
+
+
 def get_models_catalog() -> dict[str, dict]:
     if not MODELS_CATALOG:
         models_catalog_urls = [url.strip() for url in options.MODELS_CATALOG_URL.split(";") if url.strip()]
         for catalog_url in models_catalog_urls:
-            try:
-                if urlparse(catalog_url).scheme in ("http", "https", "ftp", "ftps"):
-                    response = httpx.get(catalog_url, timeout=5.0)
-                    response.raise_for_status()
-                    catalog_data = json.loads(response.text)
-                else:
-                    with builtins.open(catalog_url, encoding="UTF-8") as models_catalog_file:
-                        catalog_data = json.loads(models_catalog_file.read())
-                for model_name, model_details in catalog_data.items():
-                    MODELS_CATALOG[model_name] = model_details
-            except Exception as e:
-                LOGGER.error("Failed to fetch models catalog from %s: %s", catalog_url, str(e))
+            catalog_data = fetch_models_catalog_from_url_or_path(catalog_url)
+            for model_name, model_details in catalog_data.items():
+                MODELS_CATALOG[model_name] = model_details
     # Process each model in the combined MODELS_CATALOG
     for model, model_details in MODELS_CATALOG.items():
         model_types = model_details.get("types", [])
