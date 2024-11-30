@@ -335,6 +335,38 @@ class UserInfo(BaseModel):
     is_admin: bool = Field(False, description="Flag showing is user is admin.")
 
 
+class ComfyUIFolderPath(BaseModel):
+    """Represents a folder path in ComfyUI with metadata, including modification options, creation time, and size."""
+
+    readonly: bool = Field(
+        ...,
+        description=(
+            "Flag indicating whether the folder path can be modified or deleted. "
+            "Folders added from YAML files are read-only and cannot be modified."
+        ),
+    )
+    full_path: str = Field(..., description="The full filesystem path of the folder.")
+    create_time: datetime = Field(..., description="The folder's creation time as a datetime object.")
+    total_size: int = Field(..., description="The total size of the folder in bytes.")
+    is_default: bool = Field(..., description="If True, adds the folder at the beginning of the list for its key.")
+
+
+class ComfyUIFolderPaths(BaseModel):
+    """Represents a mapping of folder keys to their corresponding folder paths and metadata."""
+
+    folders: dict[str, list[ComfyUIFolderPath]] = Field(
+        ..., description="A mapping of folder keys to a list of folder paths with metadata."
+    )
+
+
+class ComfyUIFolderPathDefinition(BaseModel):
+    """Represents a simplified version of ComfyUI folder paths for storage purposes in the database."""
+
+    folder_key: str = Field(..., description="The folder key (e.g., 'checkpoints', 'vae').")
+    path: str = Field(..., description="The full or relative filesystem path to the folder.")
+    is_default: bool = Field(..., description="If True, adds the folder at the beginning of the list for its key.")
+
+
 class OrphanModel(BaseModel):
     """
     Represents an orphaned model file that is not associated with any currently installed flow.

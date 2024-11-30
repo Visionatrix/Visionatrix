@@ -94,6 +94,7 @@ APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_uni
 API_ROUTER = APIRouter(prefix="/vapi")  # if you change the prefix, also change it in custom_openapi.py
 API_ROUTER.include_router(routes.flows.ROUTER)
 API_ROUTER.include_router(routes.settings.ROUTER)
+API_ROUTER.include_router(routes.settings_comfyui.ROUTER)
 API_ROUTER.include_router(routes.tasks.ROUTER)
 API_ROUTER.include_router(routes.workers.ROUTER)
 API_ROUTER.include_router(routes.other.ROUTER)

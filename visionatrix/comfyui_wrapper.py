@@ -10,6 +10,7 @@ import contextlib
 import importlib.util
 import inspect
 import itertools
+import json
 import logging
 import os
 import re
@@ -23,6 +24,8 @@ from socket import gethostname
 from psutil import virtual_memory
 
 from . import _version, options
+from .db_queries import get_global_setting
+from .pydantic_models import ComfyUIFolderPathDefinition
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -148,20 +151,8 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
         LOGGER.info("Set cuda device to: %s", main.args.cuda_device)
 
     import cuda_malloc  # noqa
-    import utils.extra_config  # noqa
 
-    default_outside_config = Path("./extra_model_paths.yaml").resolve()
-    if default_outside_config.is_file():
-        LOGGER.info("loading Visionatrix default extra model path config: %s", default_outside_config)
-        utils.extra_config.load_extra_path_config(default_outside_config)
-
-    extra_path = Path(options.COMFYUI_DIR).joinpath("extra_model_paths.yaml")
-    if extra_path.is_file():
-        LOGGER.info("loading ComfyUI default extra model path config: %s", default_outside_config)
-        utils.extra_config.load_extra_path_config(extra_path)
-    if main.args.extra_model_paths_config:
-        for config_path in itertools.chain(*main.args.extra_model_paths_config):
-            utils.extra_config.load_extra_path_config(config_path)
+    process_extra_paths_configs(main.args)
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
@@ -184,6 +175,32 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     main.cleanup_temp()
     prompt_executor = get_comfy_prompt_executor(comfy_server, task_progress_callback, main.args.cache_lru)
     return execution.validate_prompt, prompt_executor
+
+
+def process_extra_paths_configs(main_args) -> None:
+    import utils.extra_config  # noqa
+
+    default_outside_config = Path("./extra_model_paths.yaml").resolve()
+    if default_outside_config.is_file():
+        LOGGER.info("Loading Visionatrix default extra model path config: %s", default_outside_config)
+        utils.extra_config.load_extra_path_config(default_outside_config)
+
+    extra_path = Path(options.COMFYUI_DIR).joinpath("extra_model_paths.yaml")
+    if extra_path.is_file():
+        LOGGER.info("Loading ComfyUI default extra model path config: %s", default_outside_config)
+        utils.extra_config.load_extra_path_config(extra_path)
+    if main_args.extra_model_paths_config:
+        for config_path in itertools.chain(*main_args.extra_model_paths_config):
+            utils.extra_config.load_extra_path_config(config_path)
+
+    comfyui_folders: list[ComfyUIFolderPathDefinition] = []
+    if comfyui_folders_setting := get_global_setting("comfyui_folders", True):
+        comfyui_folders = [ComfyUIFolderPathDefinition.model_validate(i) for i in json.loads(comfyui_folders_setting)]
+    for custom_folder in comfyui_folders:
+        absolute_path = Path(custom_folder.path)
+        if not absolute_path.is_absolute():
+            absolute_path = Path(options.COMFYUI_DIR).joinpath(custom_folder).resolve()
+        add_model_folder_path(custom_folder.folder_key, str(absolute_path), custom_folder.is_default)
 
 
 def get_comfy_server_class(task_progress_callback):
@@ -224,6 +241,12 @@ def get_folder_names_and_paths() -> dict[str, tuple[list[str], set[str]]]:
     import folder_paths  # noqa
 
     return folder_paths.folder_names_and_paths
+
+
+def add_model_folder_path(folder_name: str, full_folder_path: str, is_default: bool = False) -> None:
+    import folder_paths  # noqa
+
+    folder_paths.add_model_folder_path(folder_name, full_folder_path, is_default)
 
 
 def interrupt_processing() -> None:

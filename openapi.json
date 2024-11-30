@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.8.0.dev0"
+    "version": "1.9.0.dev0"
   },
   "paths": {
     "/vapi/flows/installed": {
@@ -671,6 +671,108 @@
                 },
                 "example": {
                   "user_setting_key": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/settings/comfyui/folders": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Comfyui Get Folders Paths",
+        "description": "Retrieves all folder paths and their metadata from the ComfyUI folder settings.\n\nRequires administrative privileges.",
+        "operationId": "comfyui_get_folders_paths",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComfyUIFolderPaths"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Add Folder Path",
+        "description": "Adds a new folder path with a specified priority to the ComfyUI settings.\n\nRequires administrative privileges.",
+        "operationId": "add_folder_path",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComfyUIFolderPathDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComfyUIFolderPaths"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Remove Folder Path",
+        "description": "Removes a folder path from the ComfyUI settings.\n\nRequires administrative privileges.",
+        "operationId": "remove_folder_path",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_remove_folder_path"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComfyUIFolderPaths"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1987,6 +2089,26 @@
         ],
         "title": "Body_install_from_file"
       },
+      "Body_remove_folder_path": {
+        "properties": {
+          "folder_key": {
+            "type": "string",
+            "title": "Folder Key",
+            "description": "The folder key (e.g., 'checkpoints', 'vae')."
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "The full or relative filesystem path of the folder to remove."
+          }
+        },
+        "type": "object",
+        "required": [
+          "folder_key",
+          "path"
+        ],
+        "title": "Body_remove_folder_path"
+      },
       "Body_set_global": {
         "properties": {
           "key": {
@@ -2150,6 +2272,94 @@
         "type": "object",
         "title": "ComfyEngineDetails",
         "description": "Performance options that ComfyUI is running with."
+      },
+      "ComfyUIFolderPath": {
+        "properties": {
+          "readonly": {
+            "type": "boolean",
+            "title": "Readonly",
+            "description": "Flag indicating whether the folder path can be modified or deleted. Folders added from YAML files are read-only and cannot be modified."
+          },
+          "full_path": {
+            "type": "string",
+            "title": "Full Path",
+            "description": "The full filesystem path of the folder."
+          },
+          "create_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Create Time",
+            "description": "The folder's creation time as a datetime object."
+          },
+          "total_size": {
+            "type": "integer",
+            "title": "Total Size",
+            "description": "The total size of the folder in bytes."
+          },
+          "is_default": {
+            "type": "boolean",
+            "title": "Is Default",
+            "description": "If True, adds the folder at the beginning of the list for its key."
+          }
+        },
+        "type": "object",
+        "required": [
+          "readonly",
+          "full_path",
+          "create_time",
+          "total_size",
+          "is_default"
+        ],
+        "title": "ComfyUIFolderPath",
+        "description": "Represents a folder path in ComfyUI with metadata, including modification options, creation time, and size."
+      },
+      "ComfyUIFolderPathDefinition": {
+        "properties": {
+          "folder_key": {
+            "type": "string",
+            "title": "Folder Key",
+            "description": "The folder key (e.g., 'checkpoints', 'vae')."
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "The full or relative filesystem path to the folder."
+          },
+          "is_default": {
+            "type": "boolean",
+            "title": "Is Default",
+            "description": "If True, adds the folder at the beginning of the list for its key."
+          }
+        },
+        "type": "object",
+        "required": [
+          "folder_key",
+          "path",
+          "is_default"
+        ],
+        "title": "ComfyUIFolderPathDefinition",
+        "description": "Represents a simplified version of ComfyUI folder paths for storage purposes in the database."
+      },
+      "ComfyUIFolderPaths": {
+        "properties": {
+          "folders": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/ComfyUIFolderPath"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Folders",
+            "description": "A mapping of folder keys to a list of folder paths with metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "folders"
+        ],
+        "title": "ComfyUIFolderPaths",
+        "description": "Represents a mapping of folder keys to their corresponding folder paths and metadata."
       },
       "ExecutionDetails": {
         "properties": {
@@ -3457,7 +3667,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-29T10:26:17.154567Z"
+            "default": "2024-11-30T12:13:52.763778Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
