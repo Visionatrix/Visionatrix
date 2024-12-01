@@ -55,7 +55,6 @@ const foldersLinks = computed(() => {
 	})
 	return links
 })
-const selectedFolders = ref([])
 
 const columns = computed(() => {
 	const columns = [
@@ -287,7 +286,7 @@ const hideEmptyFolders = ref(true)
 									</template>
 								</UBreadcrumb>
 
-								<UTable v-model="selectedFolders"
+								<UTable
 									:loading="loadingFoldersListing"
 									:loading-state="{ icon: 'i-heroicons-arrow-path-20-solid', label: 'Loading...' }"
 									:rows="currentFoldersListing.filter((folder) => {
