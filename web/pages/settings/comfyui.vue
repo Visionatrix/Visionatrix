@@ -71,14 +71,14 @@ const columns = computed(() => {
 			sortable: true,
 			class: '',
 		},
-		{
+	]
+	if (path.value !== '') {
+		columns.push({
 			key: 'create_time',
 			label: 'Created time',
 			sortable: true,
 			class: '',
-		},
-	]
-	if (path.value !== '') {
+		})
 		columns.push({
 			key: 'actions',
 			label: 'Actions',
@@ -102,6 +102,7 @@ function performComfyUiAutoconfig() {
 		if ('folders' in res) {
 			console.debug('[DEBUG] ComfyUI folders: ', res.folders)
 			foldersListing.value = res.folders
+			settingsStore.loadAllSettings()
 			toast.add({
 				title: 'Autoconfig performed',
 				description: 'Autoconfig performed successfully',
@@ -124,6 +125,7 @@ const fetchingNewComfyUiFolder = ref(false)
 const newComfyUiFolder = ref('')
 const newComfyUiFolderIsDefault = ref(false)
 const deletingComfyUiFolder = ref(false)
+const hideEmptyFolders = ref(true)
 </script>
 
 <template>
@@ -135,7 +137,7 @@ const deletingComfyUiFolder = ref(false)
 					<h3 class="mb-3 text-xl font-bold">ComfyUI settings (global)</h3>
 
 					<div class="mt-3 mb-5">
-						<UFormGroup v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+						<UFormGroup
 							size="md"
 							class="py-3"
 							label="ComfyUI models folder"
@@ -162,8 +164,8 @@ const deletingComfyUiFolder = ref(false)
 							<div v-if="addingComfyUiFolder">
 								<div class="flex flex-row w-full md:flex-col">
 									<UInput
-										v-model="newComfyUiFolder"
 										ref="newComfyUiFolderInput"
+										v-model="newComfyUiFolder"
 										placeholder="ComfyUI folder path (relative or absolute)"
 										class="w-fit mt-3"
 										type="text"
@@ -256,7 +258,8 @@ const deletingComfyUiFolder = ref(false)
 							</UButton>
 						</UFormGroup>
 
-						<UModal v-model="showComfyUiFoldersModal"
+						<UModal v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+							v-model="showComfyUiFoldersModal"
 							class="z-[90]"
 							fullscreen>
 							<UButton
@@ -266,9 +269,11 @@ const deletingComfyUiFolder = ref(false)
 								@click="() => showComfyUiFoldersModal = false" />
 							<div class="p-4 max-h-screen">
 								<h3 class="text-xl text-center">ComfyUI folders</h3>
-								<p v-if="selectedFolders.length > 0" class="text-slate-500 truncate">
-									Selected folders ({{ selectedFolders.length }}): {{ selectedFolders.map((folder: ComfyUiFolder) => folder.full_path).join(', ') }}
-								</p>
+								<div>
+									<UCheckbox v-model="hideEmptyFolders"
+										class="mt-3"
+										label="Hide empty folders" />
+								</div>
 
 								<UBreadcrumb :links="foldersLinks" class="my-2">
 									<template #default="{ link, isActive }">
@@ -285,7 +290,12 @@ const deletingComfyUiFolder = ref(false)
 								<UTable v-model="selectedFolders"
 									:loading="loadingFoldersListing"
 									:loading-state="{ icon: 'i-heroicons-arrow-path-20-solid', label: 'Loading...' }"
-									:rows="currentFoldersListing"
+									:rows="currentFoldersListing.filter((folder) => {
+										if (hideEmptyFolders) {
+											return folder.total_size > 0
+										}
+										return true
+									})"
 									:columns="columns"
 									style="max-height: 80vh;">
 									<template #full_path-data="{ row }">
@@ -301,7 +311,7 @@ const deletingComfyUiFolder = ref(false)
 										{{ row.total_size ? formatBytes(row.total_size): '-' }}
 									</template>
 									<template #create_time-data="{ row }">
-										{{ row.create_time ? new Date(row.create_time).toLocaleString() : '-' }}
+										{{ row.create_time && new Date(row.create_time).getTime() !== 0 ? new Date(row.create_time).toLocaleString() : '-' }}
 									</template>
 									<template #actions-data="{ row }">
 										<UButton
@@ -320,7 +330,7 @@ const deletingComfyUiFolder = ref(false)
 															title: 'ComfyUI folder removed',
 															description: 'ComfyUI folder removed successfully',
 														})
-														if (!foldersListing.value[path]) {
+														if (!foldersListing[path]) {
 															path = '' // reset path if last folder was removed
 														}
 													}
