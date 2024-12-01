@@ -199,7 +199,7 @@ def process_extra_paths_configs(main_args) -> None:
     for custom_folder in comfyui_folders:
         absolute_path = Path(custom_folder.path)
         if not absolute_path.is_absolute():
-            absolute_path = Path(options.COMFYUI_DIR).joinpath(custom_folder).resolve()
+            absolute_path = Path(options.COMFYUI_DIR).joinpath(custom_folder.path).resolve()
         add_model_folder_path(custom_folder.folder_key, str(absolute_path), custom_folder.is_default)
 
 

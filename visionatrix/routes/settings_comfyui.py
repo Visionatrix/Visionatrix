@@ -67,7 +67,7 @@ def add_folder_path(
 
     body_path = body.path
     if not Path(body_path).is_absolute():
-        body_path = str(Path(options.COMFYUI_DIR).joinpath(body.path).absolute())
+        body_path = str(Path(options.COMFYUI_DIR).joinpath(body.path).resolve())
     add_model_folder_path(body.folder_key, body_path, body.is_default)
 
     comfyui_folders.append(body)
@@ -111,8 +111,8 @@ def remove_folder_path(
 
     if not folder_found:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"The folder path '{path}' under the key '{folder_key}' was not found.",
+            status.HTTP_404_NOT_FOUND,
+            f"The folder path '{path}' under the key '{folder_key}' was not found.",
         )
 
     folder_names_and_paths = get_folder_names_and_paths()
@@ -128,6 +128,62 @@ def remove_folder_path(
         "comfyui_folders", json.dumps([i.model_dump(mode="json") for i in updated_folders]), sensitive=True
     )
     return compute_folder_paths(updated_folders)
+
+
+@ROUTER.post(
+    "/folders/autoconfig",
+    status_code=status.HTTP_200_OK,
+)
+def autoconfigure_model_folders(
+    request: Request,
+    models_dir: str = Body(..., embed=True, description="The default folder for models."),
+) -> ComfyUIFolderPaths:
+    """
+    Autoconfigures model paths to the selected folder.
+
+    Requires administrative privileges.
+    """
+    require_admin(request)
+
+    if get_global_setting("comfyui_folders", True):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "ComfyUI folder settings are not empty.",
+        )
+
+    paths_to_preconfigure = {
+        "checkpoints": "checkpoints",
+        "text_encoders": "text_encoders",
+        "clip_vision": "clip_vision",
+        "controlnet": "controlnet",
+        "diffusion_models": "diffusion_models",
+        "diffusers": "diffusers",
+        "ipadapter": "ipadapter",
+        "instantid": "instantid",
+        "loras": ["loras", "photomaker"],
+        "photomaker": "photomaker",
+        "sams": "sams",
+        "ultralytics": "ultralytics",
+        "unet": "unet",
+        "upscale_models": "upscale_models",
+        "vae": "vae",
+        "vae_approx": "vae_approx",
+        "pulid": "pulid",
+    }
+
+    for folder_key, subpaths in paths_to_preconfigure.items():
+        if isinstance(subpaths, str):
+            subpaths = [subpaths]
+        for subpath in subpaths:
+            add_folder_path(
+                request,
+                ComfyUIFolderPathDefinition(
+                    folder_key=folder_key,
+                    path=str(Path(models_dir).joinpath(subpath)),
+                    is_default=True,
+                ),
+            )
+    return comfyui_get_folders_paths(request)
 
 
 def compute_folder_paths(comfyui_folders: list[ComfyUIFolderPathDefinition]) -> ComfyUIFolderPaths:
@@ -150,7 +206,10 @@ def compute_folder_paths(comfyui_folders: list[ComfyUIFolderPathDefinition]) -> 
             readonly = True
             is_default = False
             for custom_folder in comfyui_folders:
-                if key == custom_folder.folder_key and str(folder_path) == custom_folder.path:
+                custom_folder_path = Path(custom_folder.path)
+                if not custom_folder_path.is_absolute():
+                    custom_folder_path = Path(options.COMFYUI_DIR).joinpath(custom_folder.path).resolve()
+                if key == custom_folder.folder_key and folder_path == custom_folder_path:
                     readonly = False
                     is_default = custom_folder.is_default
                     break
