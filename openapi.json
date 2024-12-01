@@ -780,6 +780,48 @@
         }
       }
     },
+    "/vapi/settings/comfyui/folders/autoconfig": {
+      "post": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Autoconfigure Model Folders",
+        "description": "Autoconfigures model paths to the selected folder.\n\nRequires administrative privileges.",
+        "operationId": "autoconfigure_model_folders",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_autoconfigure_model_folders"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComfyUIFolderPaths"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/tasks/create/{name}": {
       "put": {
         "tags": [
@@ -2046,6 +2088,20 @@
         ],
         "title": "AIResourceModel",
         "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
+      },
+      "Body_autoconfigure_model_folders": {
+        "properties": {
+          "models_dir": {
+            "type": "string",
+            "title": "Models Dir",
+            "description": "The default folder for models."
+          }
+        },
+        "type": "object",
+        "required": [
+          "models_dir"
+        ],
+        "title": "Body_autoconfigure_model_folders"
       },
       "Body_get_next_task": {
         "properties": {
@@ -3667,7 +3723,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-30T12:13:52.763778Z"
+            "default": "2024-12-01T08:34:35.922605Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
