@@ -1,5 +1,22 @@
 export const useSettingsStore = defineStore('settingsStore', {
 	state: () => ({
+		links: [
+			{
+				label: 'Settings',
+				icon: 'i-heroicons-cog-6-tooth-20-solid',
+				to: '/settings',
+			},
+			{
+				label: 'Workers information',
+				icon: 'i-heroicons-chart-bar-16-solid',
+				to: '/settings/workers',
+			},
+			{
+				label: 'ComfyUI',
+				icon: 'i-heroicons-folder-16-solid',
+				to: '/settings/comfyui',
+			},
+		],
 		settingsMap: {
 			huggingface_auth_token: {
 				key: 'huggingface_auth_token',
@@ -60,6 +77,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				key: 'translations_provider',
 				value: '',
 				options: ['ollama', 'gemini'],
+				sensitive: false,
+				admin: true,
+			},
+			comfyui_folders: {
+				key: 'comfyui_folders',
+				value: '',
 				sensitive: false,
 				admin: true,
 			},
@@ -176,6 +199,46 @@ export const useSettingsStore = defineStore('settingsStore', {
 				}),
 			})
 		},
+
+		getComfyUiFolderListing() {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/comfyui/folders', {
+				method: 'GET',
+			})
+		},
+
+		addComfyUiFolder(folder_key: string, path: string, is_default: boolean) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/comfyui/folders', {
+				method: 'POST',
+				body: {
+					folder_key,
+					path,
+					is_default,
+				},
+			})
+		},
+
+		deleteComfyUiFolder(folder_key: string, path: string) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/comfyui/folders', {
+				method: 'DELETE',
+				body: {
+					folder_key,
+					path,
+				},
+			})
+		},
+
+		performComfyUiAutoconfig(models_dir: string) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/comfyui/folders/autoconfig', {
+				method: 'POST',
+				body: {
+					models_dir,
+				},
+			})
+		},
 	},
 })
 
@@ -193,4 +256,16 @@ export interface VixSetting {
 
 export interface SavedSetting {
 	[key: string]: any
+}
+
+export interface ComfyUiFolder {
+	readonly: boolean
+	full_path: string
+	is_default: boolean
+	create_time: string
+	total_size: number
+}
+
+export interface ComfyUiFolderListing {
+	[key: string]: ComfyUiFolder[]
 }
