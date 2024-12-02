@@ -58,17 +58,21 @@ def add_folder_path(
     if comfyui_folders_setting := get_global_setting("comfyui_folders", True):
         comfyui_folders = [ComfyUIFolderPathDefinition.model_validate(i) for i in loads(comfyui_folders_setting)]
 
+    absolute_new_path = body.path
+    if not Path(absolute_new_path).is_absolute():
+        absolute_new_path = Path(options.COMFYUI_DIR).joinpath(body.path).resolve()
+
     for custom_folder in comfyui_folders:
-        if body.folder_key == custom_folder.folder_key and body.path == custom_folder.path:
+        custom_folder_path = Path(custom_folder.path)
+        if not custom_folder_path.is_absolute():
+            custom_folder_path = Path(options.COMFYUI_DIR).joinpath(custom_folder.path).resolve()
+        if body.folder_key == custom_folder.folder_key and absolute_new_path == custom_folder_path:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 f"The folder path '{body.path}' already exists under the key '{body.folder_key}'.",
             )
 
-    body_path = body.path
-    if not Path(body_path).is_absolute():
-        body_path = str(Path(options.COMFYUI_DIR).joinpath(body.path).resolve())
-    add_model_folder_path(body.folder_key, body_path, body.is_default)
+    add_model_folder_path(body.folder_key, str(absolute_new_path), body.is_default)
 
     comfyui_folders.append(body)
     set_global_setting(
@@ -104,7 +108,10 @@ def remove_folder_path(
     updated_folders = []
     folder_found = False
     for custom_folder in comfyui_folders:
-        if custom_folder.folder_key == folder_key and custom_folder.path == str(absolute_path):
+        custom_folder_path = Path(custom_folder.path)
+        if not custom_folder_path.is_absolute():
+            custom_folder_path = Path(options.COMFYUI_DIR).joinpath(custom_folder.path).resolve()
+        if custom_folder.folder_key == folder_key and custom_folder_path == absolute_path:
             folder_found = True
         else:
             updated_folders.append(custom_folder)
@@ -171,19 +178,33 @@ def autoconfigure_model_folders(
         "pulid": "pulid",
     }
 
+    comfyui_folders = []
     for folder_key, subpaths in paths_to_preconfigure.items():
         if isinstance(subpaths, str):
             subpaths = [subpaths]
         for subpath in subpaths:
-            add_folder_path(
-                request,
-                ComfyUIFolderPathDefinition(
-                    folder_key=folder_key,
-                    path=str(Path(models_dir).joinpath(subpath)),
-                    is_default=True,
-                ),
+            path = str(Path(models_dir).joinpath(subpath))
+            folder_def = ComfyUIFolderPathDefinition(
+                folder_key=folder_key,
+                path=path,
+                is_default=True,
             )
-    return comfyui_get_folders_paths(request)
+
+            absolute_new_path = folder_def.path
+            if not Path(absolute_new_path).is_absolute():
+                absolute_new_path = Path(options.COMFYUI_DIR).joinpath(folder_def.path).resolve()
+
+            add_model_folder_path(folder_def.folder_key, str(absolute_new_path), folder_def.is_default)
+            comfyui_folders.append(folder_def)
+
+    # Update the global setting once with all folder paths
+    set_global_setting(
+        "comfyui_folders",
+        json.dumps([i.model_dump(mode="json") for i in comfyui_folders]),
+        sensitive=True,
+    )
+
+    return compute_folder_paths(comfyui_folders)
 
 
 def compute_folder_paths(comfyui_folders: list[ComfyUIFolderPathDefinition]) -> ComfyUIFolderPaths:
