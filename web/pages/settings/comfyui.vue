@@ -165,8 +165,8 @@ const hideEmptyFolders = ref(true)
 									<UInput
 										ref="newComfyUiFolderInput"
 										v-model="newComfyUiFolder"
-										placeholder="ComfyUI folder path (relative or absolute)"
-										class="w-fit mt-3"
+										placeholder="External folder to use for model types"
+										class="w-full mt-3"
 										type="text"
 										size="sm"
 										icon="i-heroicons-folder-16-solid"
@@ -174,8 +174,8 @@ const hideEmptyFolders = ref(true)
 										:disable="fetchingNewComfyUiFolder" />
 									<UInput
 										v-model="newComfyUiFolderKey"
-										placeholder="ComfyUI folder key root path"
-										class="w-fit mt-3"
+										placeholder="Folder Name (model type, e.g. checkpoints, loras, vae)"
+										class="w-full mt-3"
 										type="text"
 										size="sm"
 										icon="i-heroicons-folder-16-solid"
