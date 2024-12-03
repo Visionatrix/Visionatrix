@@ -80,13 +80,7 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
             models_from_nodes = nodes_with_models.get(node_module, [])
             for node_model_info in models_from_nodes:
                 if node_model_info.name not in [i.name for i in models_info]:
-                    models_info.append(
-                        node_model_info.model_copy(
-                            update={
-                                "paths": [str(Path(options.COMFYUI_DIR).joinpath(i)) for i in node_model_info.paths]
-                            }
-                        )
-                    )
+                    models_info.append(node_model_info)
 
         if (load_class := MODEL_LOAD_CLASSES.get(class_type)) is None:
             continue
@@ -167,37 +161,6 @@ def get_models_catalog() -> dict[str, dict]:
             catalog_data = fetch_models_catalog_from_url_or_path(catalog_url)
             for model_name, model_details in catalog_data.items():
                 MODELS_CATALOG[model_name] = model_details
-    # Process each model in the combined MODELS_CATALOG
-    for model, model_details in MODELS_CATALOG.items():
-        model_types = model_details.get("types", [])
-        if model_types:
-            comfyui_models_paths = get_folder_names_and_paths()
-            comfyui_folders_info = None
-
-            for model_type in model_types:
-                if model_type in comfyui_models_paths:
-                    comfyui_folders_info = comfyui_models_paths[model_type]
-                    break
-
-            if comfyui_folders_info is None:
-                raise ValueError(
-                    f"Error installing model '{model}': no directory found for any of types: {model_types}"
-                ) from None
-
-            if not comfyui_folders_info[0]:
-                raise ValueError(
-                    f"Error installing model '{model}': no output folders defined: {comfyui_folders_info}"
-                ) from None
-
-            save_paths = []
-            for output_folder in comfyui_folders_info[0]:
-                if "filename" in model_details:
-                    save_paths.append(Path(output_folder).joinpath(model_details["filename"]))
-                else:
-                    save_paths.append(Path(output_folder).joinpath(urlparse(model_details["url"]).path.split("/")[-1]))
-        else:
-            save_paths = [Path(options.COMFYUI_DIR).joinpath(model_details["filename"])]
-        model_details["paths"] = [str(i) for i in save_paths]
     return MODELS_CATALOG
 
 
@@ -206,3 +169,35 @@ def get_formatted_models_catalog() -> list[AIResourceModel]:
     for model, model_details in get_models_catalog().items():
         r.append(AIResourceModel(**model_details, name=model))
     return r
+
+
+def get_possible_paths_for_model(model: AIResourceModel) -> list[str]:
+    if not model.types:
+        # this is some Custom Node model that does not support ComfyUI path configuration
+        return [str(Path(options.COMFYUI_DIR).joinpath(model.filename))]
+
+    comfyui_models_paths = get_folder_names_and_paths()
+    comfyui_folders_info = None
+
+    for model_type in model.types:
+        if model_type in comfyui_models_paths:
+            comfyui_folders_info = comfyui_models_paths[model_type]
+            break
+
+    if comfyui_folders_info is None:
+        raise ValueError(
+            f"Error installing model '{model.name}': no directory found for any of types: {model.types}"
+        ) from None
+
+    if not comfyui_folders_info[0]:
+        raise ValueError(
+            f"Error installing model '{model.name}': no output folders defined: {comfyui_folders_info}"
+        ) from None
+
+    save_paths = []
+    for output_folder in comfyui_folders_info[0]:
+        if model.filename:
+            save_paths.append(Path(output_folder).joinpath(model.filename))
+        else:
+            save_paths.append(Path(output_folder).joinpath(urlparse(model.url).path.split("/")[-1]))
+    return [str(i) for i in save_paths]

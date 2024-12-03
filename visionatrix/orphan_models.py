@@ -5,7 +5,7 @@ from . import options
 from .basic_node_list import BASIC_NODE_LIST
 from .comfyui_wrapper import get_folder_names_and_paths
 from .flows import get_available_flows, get_installed_flows
-from .models_map import get_formatted_models_catalog
+from .models_map import get_formatted_models_catalog, get_possible_paths_for_model
 from .pydantic_models import OrphanModel
 
 
@@ -27,18 +27,18 @@ def get_orphan_models() -> list[OrphanModel]:
     required_models = {}
     for flow in installed_flows.values():
         for model in flow.models:
-            for i in model.paths:
+            for i in get_possible_paths_for_model(model):
                 required_models[str(Path(i))] = model
 
     all_known_models = {}
     for model in get_formatted_models_catalog():
-        for i in model.paths:
+        for i in get_possible_paths_for_model(model):
             all_known_models[str(Path(i))] = model
 
     models_to_flows_map = {}
     for flow in all_known_flows.values():
         for model in flow.models:
-            model_save_paths = {str(Path(i)) for i in model.paths}
+            model_save_paths = {str(Path(i)) for i in get_possible_paths_for_model(model)}
             for model_save_path in model_save_paths:
                 if model_save_path in models_to_flows_map:
                     models_to_flows_map[model_save_path].append(flow)
@@ -52,7 +52,7 @@ def get_orphan_models() -> list[OrphanModel]:
         if not node_details.get("models"):
             continue
         for model_from_node in node_details["models"]:
-            for i in model_from_node.paths:
+            for i in get_possible_paths_for_model(model_from_node):
                 models_filenames_from_nodes.add(str(Path(i).name))
             for i in model_from_node.hashes:
                 models_filenames_from_nodes.add(i)
