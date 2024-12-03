@@ -20,6 +20,7 @@ import typing
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from socket import gethostname
+from zlib import crc32
 
 from psutil import virtual_memory
 
@@ -36,6 +37,8 @@ SYSTEM_DETAILS = {
     "embedded_python": options.PYTHON_EMBEDED,
 }
 TORCH_VERSION: str | None = None
+COMFYUI_FOLDERS_SETTING: list[ComfyUIFolderPathDefinition] = []
+COMFYUI_FOLDERS_SETTING_CRC32: int | None = None
 
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
@@ -180,6 +183,8 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 def process_extra_paths_configs(main_args) -> None:
     import utils.extra_config  # noqa
 
+    global COMFYUI_FOLDERS_SETTING_CRC32
+
     default_outside_config = Path("./extra_model_paths.yaml").resolve()
     if default_outside_config.is_file():
         LOGGER.info("Loading Visionatrix default extra model path config: %s", default_outside_config)
@@ -193,10 +198,12 @@ def process_extra_paths_configs(main_args) -> None:
         for config_path in itertools.chain(*main_args.extra_model_paths_config):
             utils.extra_config.load_extra_path_config(config_path)
 
-    comfyui_folders: list[ComfyUIFolderPathDefinition] = []
     if comfyui_folders_setting := get_global_setting("comfyui_folders", True):
-        comfyui_folders = [ComfyUIFolderPathDefinition.model_validate(i) for i in json.loads(comfyui_folders_setting)]
-    for custom_folder in comfyui_folders:
+        COMFYUI_FOLDERS_SETTING_CRC32 = crc32(comfyui_folders_setting.encode("utf-8"))
+        COMFYUI_FOLDERS_SETTING.extend(
+            [ComfyUIFolderPathDefinition.model_validate(i) for i in json.loads(comfyui_folders_setting)]
+        )
+    for custom_folder in COMFYUI_FOLDERS_SETTING:
         absolute_path = Path(custom_folder.path)
         if not absolute_path.is_absolute():
             absolute_path = Path(options.COMFYUI_DIR).joinpath(custom_folder.path).resolve()

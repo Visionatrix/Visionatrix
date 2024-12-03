@@ -366,6 +366,14 @@ class ComfyUIFolderPathDefinition(BaseModel):
     path: str = Field(..., description="The full or relative filesystem path to the folder.")
     is_default: bool = Field(..., description="If True, adds the folder at the beginning of the list for its key.")
 
+    def __hash__(self):
+        return hash((self.folder_key, self.path))
+
+    def __eq__(self, other):
+        if not isinstance(other, ComfyUIFolderPathDefinition):
+            return False
+        return self.folder_key == other.folder_key and self.path == other.path
+
 
 class OrphanModel(BaseModel):
     """
