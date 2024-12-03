@@ -12,6 +12,7 @@ import httpx
 from fastapi import status
 
 from . import db_queries, options
+from .models_map import get_possible_paths_for_model
 from .pydantic_models import AIResourceModel, ModelProgressInstall
 
 DOWNLOAD_RETRY_COUNT = 3
@@ -93,7 +94,7 @@ def install_model(
         return False
 
     # Proceed to install the model
-    save_path = Path(model.paths[0])
+    save_path = Path(get_possible_paths_for_model(model)[0])
     os.makedirs(save_path.parent, exist_ok=True)
     for _ in range(DOWNLOAD_RETRY_COUNT):
         LOGGER.info("Downloading `%s`..", model.name)
@@ -263,7 +264,7 @@ def prepare_download_headers(model: AIResourceModel, save_path: Path, hf_auth_to
 def is_model_exists_in_fs(
     model: AIResourceModel, flow_name: str, model_progress_install: ModelProgressInstall | None = None
 ) -> bool:
-    for model_paths in model.paths:
+    for model_paths in get_possible_paths_for_model(model):
         save_path = Path(model_paths)
         LOGGER.debug("model=%s --> save_path=%s", model.name, save_path)
         if save_path.exists() and not model.url.endswith(".zip"):

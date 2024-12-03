@@ -2033,13 +2033,20 @@
             "title": "Name",
             "description": "Unique name of the model."
           },
-          "paths": {
+          "types": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Paths",
-            "description": "Paths where the model can be stored within the filesystem."
+            "title": "Types",
+            "description": "ComfyUI model types to which model belongs(e.g 'checkpoints', 'loras').",
+            "default": []
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "description": "Overridden file name under which the model can be found in the file system.",
+            "default": ""
           },
           "url": {
             "type": "string",
@@ -2082,7 +2089,6 @@
         "type": "object",
         "required": [
           "name",
-          "paths",
           "url",
           "hash"
         ],
@@ -3723,7 +3729,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-01T08:34:35.922605Z"
+            "default": "2024-12-03T13:17:55.801258Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

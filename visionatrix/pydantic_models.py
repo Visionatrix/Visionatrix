@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
@@ -38,7 +38,8 @@ class AIResourceModel(BaseModel):
     """
 
     name: str = Field(..., description="Unique name of the model.")
-    paths: list[str] = Field(..., description="Paths where the model can be stored within the filesystem.")
+    types: list[str] = Field([], description="ComfyUI model types to which model belongs(e.g 'checkpoints', 'loras').")
+    filename: str = Field("", description="Overridden file name under which the model can be found in the file system.")
     url: str = Field(..., description="URL from which the model can be downloaded.")
     homepage: str = Field("", description="Webpage with detailed information about the model.")
     hash: str = Field(..., description="SHA256 hash of the model file for integrity verification.")
@@ -57,13 +58,6 @@ class AIResourceModel(BaseModel):
 
     def __eq__(self, other):
         return isinstance(other, AIResourceModel) and self.name == other.name
-
-    @model_validator(mode="before")
-    @classmethod
-    def validator_before(cls, data: Any) -> Any:
-        if isinstance(data, dict) and isinstance(data.get("paths", []), str):
-            data["paths"] = [data["paths"]]
-        return data
 
 
 class Flow(BaseModel):
