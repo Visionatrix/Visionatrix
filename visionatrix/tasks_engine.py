@@ -852,8 +852,6 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         if need_gc:
             current_time = time.perf_counter()
             if (current_time - last_gc_collect) > options.GC_COLLECT_INTERVAL:
-                LOGGER.debug("cleanup_models")
-                comfyui_wrapper.cleanup_models()
                 LOGGER.debug("gc.collect")
                 gc.collect()
                 LOGGER.debug("soft_empty_cache")
