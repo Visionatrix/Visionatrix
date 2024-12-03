@@ -9,19 +9,6 @@ useHead({
 	],
 })
 
-const links = [
-	{
-		label: 'Settings',
-		icon: 'i-heroicons-cog-6-tooth-20-solid',
-		to: '/settings',
-	},
-	{
-		label: 'Workers information',
-		icon: 'i-heroicons-chart-bar-16-solid',
-		to: '/settings/workers',
-	},
-]
-
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 const toast = useToast()
@@ -101,7 +88,7 @@ onBeforeMount(() => {
 <template>
 	<AppContainer class="lg:h-dvh">
 		<div class="flex flex-col md:flex-row">
-			<UVerticalNavigation :links="links" class="md:w-1/5" />
+			<UVerticalNavigation :links="settingsStore.links" class="md:w-1/5" />
 			<div class="px-5 pb-5 md:w-4/5">
 				<div v-if="userStore.isAdmin" class="admin-settings mb-3">
 					<h3 class="mb-3 text-xl font-bold">Admin preferences (global settings)</h3>
@@ -309,8 +296,202 @@ onBeforeMount(() => {
 							Custom workflows may require manual installation of dependencies (e.g., custom nodes) before upload.
 						</template>
 					</UAlert>
-						
 				</div>
+
+				<!-- <UDivider class="mt-3" label="ComfyUI" />
+				<p class="text-slate text-sm text-orange-300 dark:text-orange-100 text-center">ComfyUI specific preferences</p> -->
+
+				<!-- <div class="mt-3 mb-5">
+					<UFormGroup v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+						size="md"
+						class="py-3"
+						label="ComfyUI models folder"
+						description="Relative or absolute path to the models folders">
+						<div v-if="settingsStore.settingsMap.comfyui_folders.value === ''">
+							<p class="text-gray-500">No ComfyUI folders initialized.</p>
+							<UInput v-model="modelsDir"
+								placeholder="ComfyUI folder path"
+								class="w-fit mt-3"
+								type="text"
+								size="sm"
+								icon="i-heroicons-folder-16-solid"
+								:disabled="autoconfigLoading"
+								autocomplete="off" />
+							<UButton
+								class="mt-3"
+								icon="i-heroicons-cog-6-tooth-20-solid"
+								color="orange"
+								:loading="autoconfigLoading"
+								@click="performComfyUiAutoconfig">
+								Perform autoconfig
+							</UButton>
+						</div>
+						<div v-if="addingComfyUiFolder">
+							<UInput
+								v-model="newComfyUiFolder"
+								ref="newComfyUiFolderInput"
+								placeholder="ComfyUI folder path (relative or absolute)"
+								class="w-fit mt-3"
+								type="text"
+								size="sm"
+								icon="i-heroicons-folder-16-solid"
+								autocomplete="off"
+								:disable="fetchingNewComfyUiFolder" />
+							<UInput
+								v-model="newComfyUiFolderKey"
+								placeholder="ComfyUI folder key rot path"
+								class="w-fit mt-3"
+								type="text"
+								size="sm"
+								icon="i-heroicons-folder-16-solid"
+								autocomplete="off"
+								:disable="fetchingNewComfyUiFolder" />
+							<div class="flex mt-3">
+								<UButton
+									class="mr-2"
+									color="white"
+									icon="i-heroicons-x-mark"
+									variant="outline"
+									@click="() => {
+										addingComfyUiFolder = false
+										newComfyUiFolder = ''
+									}">
+									Cancel
+								</UButton>
+								<UButton
+									icon="i-heroicons-check-16-solid"
+									:loading="fetchingNewComfyUiFolder"
+									@click="() => {
+										if (newComfyUiFolder === '') {
+											return
+										}
+										fetchingNewComfyUiFolder = true
+										settingsStore.addComfyUiFolder(newComfyUiFolderKey, newComfyUiFolder).then((res: any) => {
+											if ('folders' in res) {
+												console.debug('[DEBUG] ComfyUI folders: ', res.folders)
+												foldersListing = res.folders
+												toast.add({
+													title: 'ComfyUI folder added',
+													description: 'ComfyUI folder added successfully',
+												})
+											}
+										}).finally(() => {
+											fetchingNewComfyUiFolder = false
+										})
+									}">
+									Add
+								</UButton>
+							</div>
+						</div>
+						<UButton
+							v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+							class="mt-3"
+							icon="i-heroicons-folder-16-solid"
+							color="cyan"
+							@click="() => {
+								settingsStore.getComfyUiFolderListing().then((res: any) => {
+									console.debug('[DEBUG] ComfyUI folders: ', res)
+									foldersListing = res.folders
+								})
+								showComfyUiFoldersModal = true
+							}">
+							Show ComfyUI folders
+						</UButton>
+						<UButton v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+							class="mt-3 ml-2"
+							color="white"
+							variant="outline"
+							icon="i-heroicons-folder-plus-16-solid"
+							@click="() => {
+								addingComfyUiFolder = true
+								// focus on input on vue next tick
+								$nextTick(() => {
+									if (newComfyUiFolderInput) {
+										newComfyUiFolderInput.$refs.input.focus()
+									}
+								})
+							}">
+							Add ComfyUI folder
+						</UButton>
+					</UFormGroup>
+
+					<UModal v-model="showComfyUiFoldersModal"
+						fullscreen>
+						<UButton
+							class="absolute top-4 right-4"
+							icon="i-heroicons-x-mark"
+							variant="ghost"
+							@click="() => showComfyUiFoldersModal = false" />
+						<div class="p-4 max-h-screen">
+							<h3 class="text-xl text-center">ComfyUI folders</h3>
+							<p v-if="selectedFolders.length > 0" class="text-slate-500 truncate">
+								Selected folders ({{ selectedFolders.length }}): {{ selectedFolders.map((folder: ComfyUiFolder) => folder.full_path).join(', ') }}
+							</p>
+
+							<UBreadcrumb :links="foldersLinks" class="my-2">
+								<template #default="{ link, isActive }">
+									<UBadge :color="isActive ? 'primary' : 'gray'"
+										class="rounded-full truncate cursor-pointer select-none"
+										@click="() => {
+											path = link.to
+										}">
+										{{ link.label }}
+									</UBadge>
+								</template>
+							</UBreadcrumb>
+
+							<UTable v-model="selectedFolders"
+								:loading="loadingFoldersListing"
+								:loading-state="{ icon: 'i-heroicons-arrow-path-20-solid', label: 'Loading...' }"
+								:rows="currentFoldersListing"
+								:columns="columns"
+								style="max-height: 80vh;">
+								<template #full_path-data="{ row }">
+									<span :class="{ 
+											'text-blue-500': row.full_path in foldersListing,
+											'cursor-pointer': row.full_path in foldersListing
+										}"
+										@click="() => navigateToFolder(row)">
+										{{ row.full_path }}
+									</span>
+								</template>
+								<template #total_size-data="{ row }">
+									{{ row.total_size ? formatBytes(row.total_size): '-' }}
+								</template>
+								<template #create_time-data="{ row }">
+									{{ row.create_time ? new Date(row.create_time).toLocaleString() : '-' }}
+								</template>
+								<template #actions-data="{ row }">
+									<UButton
+										icon="i-heroicons-trash-16-solid"
+										variant="outline"
+										color="red"
+										:disabled="row.readonly === true"
+										@click="() => {
+											settingsStore.deleteComfyUiFolder(path, row.full_path).then((res: any) => {
+												if ('folders' in res) {
+													console.debug('[DEBUG] ComfyUI folders: ', res.folders)
+													foldersListing = res.folders
+													toast.add({
+														title: 'ComfyUI folder removed',
+														description: 'ComfyUI folder removed successfully',
+													})
+												}
+											}).catch((error) => {
+												toast.add({
+													title: 'Error removing ComfyUI folder',
+													description: error.details,
+												})
+											})
+										}">
+										Remove
+									</UButton>
+								</template>
+							</UTable>
+						</div>
+					</UModal>
+				</div> -->
+
 				<div class="user-settings mb-3">
 					<h3 class="mb-3 text-xl font-bold">User preferences (overrides global)</h3>
 					<UFormGroup

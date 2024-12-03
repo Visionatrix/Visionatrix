@@ -128,6 +128,7 @@ class GlobalSettings(Base):
     name = Column(String, nullable=False, unique=True)
     value = Column(String, nullable=False)
     sensitive = Column(Boolean, default=True)
+    crc32 = Column(BigInteger, nullable=True)
 
 
 class UserSettings(Base):

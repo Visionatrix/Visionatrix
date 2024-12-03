@@ -35,12 +35,14 @@ def get_setting(user_id: str, key: str, admin: bool) -> str:
     return get_global_setting(key, admin)
 
 
-def get_global_setting(key: str, admin: bool) -> str:
+def get_global_setting(key: str, admin: bool, crc32: int | None = None) -> str:
     session = database.SESSION()
     try:
         query = select(database.GlobalSettings.value, database.GlobalSettings.sensitive).where(
             database.GlobalSettings.name == key
         )
+        if crc32 is not None:
+            query = query.where(database.GlobalSettings.crc32 != crc32)
         result = session.execute(query).one_or_none()
         if result is None:
             return ""
@@ -70,18 +72,18 @@ def get_user_setting(user_id: str, key: str) -> str:
         session.close()
 
 
-def set_global_setting(key: str, value: str, sensitive: bool) -> None:
+def set_global_setting(key: str, value: str, sensitive: bool, crc32: int | None = None) -> None:
     session = database.SESSION()
     try:
         if value:
             stmt = (
                 update(database.GlobalSettings)
                 .where(database.GlobalSettings.name == key)
-                .values(value=value, sensitive=sensitive)
+                .values(value=value, sensitive=sensitive, crc32=crc32)
             )
             result = session.execute(stmt)
             if result.rowcount == 0:
-                session.add(database.GlobalSettings(name=key, value=value, sensitive=sensitive))
+                session.add(database.GlobalSettings(name=key, value=value, sensitive=sensitive, crc32=crc32))
             session.commit()
         else:
             result = session.execute(delete(database.GlobalSettings).where(database.GlobalSettings.name == key))

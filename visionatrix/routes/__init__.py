@@ -1,1 +1,1 @@
-from . import flows, other, settings, tasks, tasks_internal, workers
+from . import flows, other, settings, settings_comfyui, tasks, tasks_internal, workers

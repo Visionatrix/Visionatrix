@@ -13,18 +13,11 @@ import httpx
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
-from . import database, options
-from .comfyui_wrapper import (
-    cleanup_models,
-    get_engine_details,
-    get_worker_details,
-    interrupt_processing,
-    soft_empty_cache,
-    unload_all_models,
-)
+from . import comfyui_wrapper, database, options, settings_comfyui
 from .db_queries import get_global_setting, get_setting
 from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
+    ComfyUIFolderPathDefinition,
     ExecutionDetails,
     TaskDetails,
     TaskDetailsShort,
@@ -144,7 +137,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
     else:
         task_to_exec = get_incomplete_task_without_error_database(
             database.DEFAULT_USER.user_id,
-            WorkerDetailsRequest.model_validate(get_worker_details()),
+            WorkerDetailsRequest.model_validate(comfyui_wrapper.get_worker_details()),
             tasks_to_ask,
             last_task_name,
         )
@@ -221,7 +214,7 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
         r = httpx.post(
             options.VIX_SERVER.rstrip("/") + "/api/tasks/next",
             json={
-                "worker_details": get_worker_details(),
+                "worker_details": comfyui_wrapper.get_worker_details(),
                 "tasks_names": tasks_to_ask,
                 "last_task_name": last_task_name,
             },
@@ -275,7 +268,27 @@ def get_incomplete_task_without_error_database(
         if not task:
             session.commit()
             return {}
-        return lock_task_and_return_details(session, task)
+        task_details = lock_task_and_return_details(session, task)
+        if task_details and options.VIX_MODE == "WORKER":
+            comfyui_folders_setting = get_global_setting(
+                "comfyui_folders", True, comfyui_wrapper.COMFYUI_FOLDERS_SETTING_CRC32
+            )
+            if comfyui_folders_setting:
+                new_paths = {
+                    ComfyUIFolderPathDefinition.model_validate(item) for item in json.loads(comfyui_folders_setting)
+                }
+                current_paths = set(comfyui_wrapper.COMFYUI_FOLDERS_SETTING)
+                folders_to_remove = current_paths - new_paths
+                for folder in folders_to_remove:
+                    with contextlib.suppress(ValueError):
+                        settings_comfyui.remove_folder_path(folder.folder_key, folder.path)
+
+                folders_to_add = new_paths - current_paths
+                for folder in folders_to_add:
+                    comfyui_wrapper.add_model_folder_path(folder.folder_key, folder.path, folder.is_default)
+
+                comfyui_wrapper.COMFYUI_FOLDERS_SETTING = list(new_paths)
+        return task_details
     except Exception as e:
         session.rollback()
         LOGGER.exception("Failed to retrieve task for processing: %s", e)
@@ -547,7 +560,7 @@ def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
                 session.commit()
                 return True
         except Exception as e:
-            interrupt_processing()
+            comfyui_wrapper.interrupt_processing()
             session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails outputs: %s", task_id, e)
     return False
@@ -564,7 +577,7 @@ def update_task_progress(task_details: dict) -> bool:
         task_details["error"],
         task_details["execution_time"],
         database.DEFAULT_USER.user_id,
-        WorkerDetailsRequest.model_validate(get_worker_details()),
+        WorkerDetailsRequest.model_validate(comfyui_wrapper.get_worker_details()),
         ExecutionDetails.model_validate(execution_details) if execution_details else None,
     )
     if r and task_details["webhook_url"]:
@@ -624,7 +637,7 @@ def update_task_progress_database(
                 session.commit()
             return task_updated
         except Exception as e:
-            interrupt_processing()
+            comfyui_wrapper.interrupt_processing()
             session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
     return False
@@ -646,7 +659,7 @@ def task_restart_database(task_id: int) -> bool:
             session.commit()
             return result.rowcount == 1
         except Exception as e:
-            interrupt_processing()
+            comfyui_wrapper.interrupt_processing()
             session.rollback()
             LOGGER.exception("Task %s: failed to restart: %s", task_id, e)
     return False
@@ -655,7 +668,7 @@ def task_restart_database(task_id: int) -> bool:
 def update_task_progress_server(task_details: dict, execution_details: dict | None = None) -> bool:
     task_id = task_details["task_id"]
     request_data = {
-        "worker_details": get_worker_details(),
+        "worker_details": comfyui_wrapper.get_worker_details(),
         "task_id": task_id,
         "progress": task_details["progress"],
         "execution_time": task_details["execution_time"],
@@ -840,11 +853,11 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
             current_time = time.perf_counter()
             if (current_time - last_gc_collect) > options.GC_COLLECT_INTERVAL:
                 LOGGER.debug("cleanup_models")
-                cleanup_models()
+                comfyui_wrapper.cleanup_models()
                 LOGGER.debug("gc.collect")
                 gc.collect()
                 LOGGER.debug("soft_empty_cache")
-                soft_empty_cache(True)
+                comfyui_wrapper.soft_empty_cache(True)
                 last_gc_collect = current_time
                 need_gc = False
 
@@ -866,13 +879,13 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
 
         if ACTIVE_TASK.get("extra_flags") and ACTIVE_TASK["extra_flags"].get("unload_models"):
             LOGGER.info("unload_models=True, unloading..")
-            unload_all_models()
+            comfyui_wrapper.unload_all_models()
             gc.collect()
             last_gc_collect = time.perf_counter()
-            soft_empty_cache(True)  # for AMD GPUs since ComfyUI doesn't automatically clear cache for them
+            comfyui_wrapper.soft_empty_cache(True)  # for AMD GPUs ComfyUI doesn't automatically clear cache
 
         last_task_name = ACTIVE_TASK["name"]
-        ACTIVE_TASK["execution_details"] = get_engine_details()
+        ACTIVE_TASK["execution_details"] = comfyui_wrapper.get_engine_details()
         ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
         ACTIVE_TASK["current_node"] = ""
         prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
@@ -906,7 +919,7 @@ def update_task_progress_thread(active_task: dict) -> None:
                     break
                 if not update_task_progress(last_info):
                     active_task["interrupted"] = True
-                    interrupt_processing()
+                    comfyui_wrapper.interrupt_processing()
                     break
                 if last_info["error"]:
                     break

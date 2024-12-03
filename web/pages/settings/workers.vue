@@ -10,6 +10,7 @@ useHead({
 })
 
 const workersStore = useWorkersStore()
+const settingsStore = useSettingsStore()
 
 onMounted(() => {
 	workersStore.startPolling()
@@ -18,20 +19,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
 	workersStore.stopPolling()
 })
-
-const links = [
-	{
-		label: 'Settings',
-		icon: 'i-heroicons-cog-6-tooth-20-solid',
-		to: '/settings',
-	},
-	{
-		label: 'Workers information',
-		icon: 'i-heroicons-chart-bar-16-solid',
-		to: '/settings/workers',
-	},
-]
-
 
 const tableHeadersMap = [
 	{
@@ -211,7 +198,7 @@ watch(rows, (newRows) => {
 <template>
 	<AppContainer class="lg:h-dvh">
 		<div class="flex flex-col md:flex-row">
-			<UVerticalNavigation :links="links" class="md:w-1/5" />
+			<UVerticalNavigation :links="settingsStore.links" class="md:w-1/5" />
 			<div class="px-5 md:w-4/5">
 				<h2 class="mb-3 text-xl">Workers</h2>
 				<div class="flex flex-col lg:flex-row px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
