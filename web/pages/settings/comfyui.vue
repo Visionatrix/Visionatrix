@@ -217,6 +217,11 @@ const hideEmptyFolders = ref(true)
 														description: 'ComfyUI folder added successfully',
 													})
 												}
+											}).catch((err) => {
+												toast.add({
+													title: 'Error adding ComfyUI folder',
+													description: err.details,
+												})
 											}).finally(() => {
 												fetchingNewComfyUiFolder = false
 											})
