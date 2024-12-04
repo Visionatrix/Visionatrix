@@ -39,7 +39,7 @@ VIX_SERVER_FULL_MODELS = environ.get("VIX_SERVER_FULL_MODELS", "0")
 
 In the case of installation on one server machine or when you have mapped MODELS folder between different machines."""
 
-DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
+DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./visionatrix.db")
 """for SQLite: if path is relative than it is always relative to the current directory"""
 
 ORG_URL = "https://github.com/Visionatrix/"  # organization from which ComfyUI nodes will be installed

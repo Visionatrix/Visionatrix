@@ -99,7 +99,7 @@ vix_models
 vix_tasks_files
 vix_worker_tasks_files
 scripts/visionatrix
-tasks_history.db
+visionatrix.db
 temp_repo_clones
 /flows.zip
 
