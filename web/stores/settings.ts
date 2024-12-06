@@ -86,6 +86,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			civitai_auth_token: {
+				key: 'civitai_auth_token',
+				value: '',
+				sensitive: false,
+				admin: true,
+			},
 		} as VixSettingsMap,
 	}),
 
