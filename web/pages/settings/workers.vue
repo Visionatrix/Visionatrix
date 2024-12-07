@@ -182,7 +182,10 @@ const rowsFiltered = computed(() => {
 })
 
 function getWorkerStatus(row: WorkerInfo) {
-	return new Date().getTime() - new Date(row.last_seen).getTime() <= 120000 ? 'Online' : 'Offline'
+	const lastSeenDate = new Date(row.last_seen.includes('Z') ? row.last_seen : row.last_seen + 'Z')
+	const currentTime = new Date().getTime()
+	const timeDifference = currentTime - lastSeenDate.getTime()
+	return timeDifference <= 120000 ? 'Online' : 'Offline'
 }
 
 const selectedRows: any = ref([])
