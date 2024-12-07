@@ -107,6 +107,21 @@ onBeforeMount(() => {
 							autocomplete="off"
 						/>
 					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="CivitAI Auth Token"
+						description="Auth token for CivitAI flows and models.">
+						<UInput
+							v-model="settingsStore.settingsMap.civitai_auth_token.value"
+							placeholder="CivitAI Auth Token"
+							class="w-full"
+							type="password"
+							icon="i-heroicons-shield-check"
+							size="md"
+							autocomplete="off"
+						/>
+					</UFormGroup>
 					<UAlert
 						color="blue"
 						variant="soft"
@@ -114,7 +129,7 @@ onBeforeMount(() => {
 						title="Note">
 						<template #description>
 							Access tokens are required for gated models.
-							More information can be found <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/GatedModels.html" target="_blank">here</a>.
+							More information can be found <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/" target="_blank">here</a>.
 						</template>
 					</UAlert>
 
@@ -263,25 +278,6 @@ onBeforeMount(() => {
 						</div>
 					</UFormGroup>
 				</div>
-
-				<UDivider class="mt-3" label="CivitAI" />
-				<p class="text-slate text-sm text-orange-300 dark:text-orange-100 text-center">Can be used by flows</p>
-
-				<UFormGroup
-					size="md"
-					class="py-3"
-					label="CivitAI Auth Token"
-					description="Auth token for CivitAI flows and models.">
-					<UInput
-						v-model="settingsStore.settingsMap.civitai_auth_token.value"
-						placeholder="CivitAI Auth Token"
-						class="w-full"
-						type="password"
-						icon="i-heroicons-shield-check"
-						size="md"
-						autocomplete="off"
-					/>
-				</UFormGroup>
 
 				<div v-if="userStore.isAdmin" class="mb-5 py-4">
 					<h4 class="mb-3 font-bold">Upload Flow</h4>
