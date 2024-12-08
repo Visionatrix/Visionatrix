@@ -24,7 +24,7 @@ def install_model(
     flow_name: str,
     progress_for_model: float,
     progress_callback: typing.Callable[[str, float, str, bool], bool],
-    hf_auth_token: str = "",
+    auth_tokens: tuple[str, str] = ("", ""),  # (huggingface_token, civitai_token)
 ) -> bool:
     model.hash = model.hash.lower()
     max_retries = 3
@@ -102,7 +102,7 @@ def install_model(
             if not db_queries.update_model_progress_install(model.name, flow_name, 0.0):
                 progress_callback(flow_name, 0.0, f"Fail to update progress for model `{model.name}`", False)
                 return False
-            r = download_model(model, save_path, flow_name, progress_for_model, progress_callback, hf_auth_token)
+            r = download_model(model, save_path, flow_name, progress_for_model, progress_callback, auth_tokens)
             if not r:
                 db_queries.set_model_progress_install_error(model.name, flow_name, "installation was canceled")
                 progress_callback(flow_name, 0.0, f"Model `{model.name}` installation was canceled.", False)
@@ -115,6 +115,9 @@ def install_model(
             db_queries.set_model_progress_install_error(model.name, flow_name, error_string)
             progress_callback(flow_name, 0.0, error_string, False)
             raise
+        except (FileNotFoundError, PermissionError) as e:
+            LOGGER.error("Error during downloading `%s`: %s", model.name, str(e))
+            break
         except Exception as e:
             LOGGER.warning("Error during downloading `%s`: %s", model.name, str(e))
 
@@ -129,14 +132,14 @@ def download_model(
     flow_name: str,
     progress_for_model: float,
     progress_callback: typing.Callable[[str, float, str, bool], bool],
-    hf_auth_token: str = "",
+    auth_tokens: tuple[str, str] = ("", ""),
 ) -> bool:
     if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0" and save_path.suffix != ".zip":
         server_mode_ensure_model_exists(save_path)
         db_queries.update_model_progress_install(model.name, flow_name, 100.0)
         return True
 
-    headers, existing_file_size = prepare_download_headers(model, save_path, hf_auth_token)
+    headers, existing_file_size = prepare_download_headers(model, save_path, auth_tokens)
 
     retry = True
     while retry:
@@ -153,7 +156,30 @@ def download_model(
                 retry = True
                 continue
             if response.status_code == status.HTTP_404_NOT_FOUND:
-                raise RuntimeError(f"Resource not found at {model.url}")
+                if urlparse(model.url).netloc == "huggingface.co":
+                    LOGGER.warning("Hugging Face URL not found, attempting to locate model on Civitai.")
+                    civitai_search_url = f"https://civitai.com/api/v1/model-versions/by-hash/{model.hash}"
+                    try:
+                        civitai_response = httpx.get(civitai_search_url, timeout=15.0)
+                        if civitai_response.status_code == status.HTTP_200_OK:
+                            civitai_data = civitai_response.json()
+                            if civitai_data.get("files"):
+                                civitai_download_url = civitai_data["files"][0].get("downloadUrl", "")
+                                if civitai_download_url:
+                                    LOGGER.info("Found model on Civitai. Switching to Civitai download URL.")
+                                    model.url = civitai_download_url
+                                    headers, existing_file_size = prepare_download_headers(
+                                        model, save_path, auth_tokens
+                                    )
+                                    retry = True
+                                    continue
+                    except httpx.HTTPError as e:
+                        LOGGER.error("Failed to fetch model metadata from Civitai: %s", str(e))
+                        raise FileNotFoundError("Resource not found on Hugging Face, and Civitai lookup failed.") from e
+                raise FileNotFoundError(f"Resource not found at {model.url}")
+            if response.status_code == status.HTTP_401_UNAUTHORIZED:
+                authorization = headers.get("Authorization", "")
+                raise PermissionError(f"Denied access for model at {model.url} with token=`{authorization}`")
             if response.status_code == status.HTTP_200_OK and "Range" in headers:
                 # Server does not support resuming
                 LOGGER.warning("Server does not support resuming; starting download from scratch.")
@@ -163,23 +189,12 @@ def download_model(
                 retry = True
                 continue
             if httpx.codes.is_error(response.status_code):
-                if response.status_code == status.HTTP_401_UNAUTHORIZED and model.gated:
-                    raise RuntimeError(f"Denied access for gated model at {model.url} with token={hf_auth_token}")
                 raise RuntimeError(f"Download request failed with status: {response.status_code}")
 
-            # Actual downloading logic starts here
-            if response.status_code == status.HTTP_206_PARTIAL_CONTENT:
-                content_range = response.headers.get("Content-Range")
-                if content_range is None:
-                    raise RuntimeError("Server did not provide 'Content-Range' header for partial content.")
-                total_size = int(content_range.split("/")[-1])
-            else:
-                total_size = int(response.headers.get("Content-Length", 0))
-
-            if not total_size:
-                raise RuntimeError("Received empty response when attempting to download the model.")
+            total_size = get_model_total_size(response)
             check_etag(response, model)
 
+            # Actual downloading logic starts here
             total_added_progress = 0.0  # Total progress added to flow progress
             progress_value = 0.0  # Accumulated progress in flow progress units
             if existing_file_size > 0:
@@ -231,6 +246,20 @@ def download_model(
     raise RuntimeError("Failed to download model after retries")
 
 
+def get_model_total_size(response: httpx.Response) -> int:
+    if response.status_code == status.HTTP_206_PARTIAL_CONTENT:
+        content_range = response.headers.get("Content-Range")
+        if content_range is None:
+            raise RuntimeError("Server did not provide 'Content-Range' header for partial content.")
+        total_size = int(content_range.split("/")[-1])
+    else:
+        total_size = int(response.headers.get("Content-Length", 0))
+
+    if not total_size:
+        raise RuntimeError("Received empty response when attempting to download the model.")
+    return total_size
+
+
 def extract_zip_with_subfolder(zip_path: Path, extract_to: Path):
     with zipfile.ZipFile(zip_path) as zip_file:
         # Get the list of top-level items in the archive
@@ -248,10 +277,19 @@ def extract_zip_with_subfolder(zip_path: Path, extract_to: Path):
             zip_file.extractall(subfolder_path)
 
 
-def prepare_download_headers(model: AIResourceModel, save_path: Path, hf_auth_token: str = "") -> tuple[dict, int]:
+def prepare_download_headers(model: AIResourceModel, save_path: Path, auth_tokens: tuple[str, str]) -> tuple[dict, int]:
     headers = {}
-    if model.gated and urlparse(model.url).netloc == "huggingface.co" and hf_auth_token:
-        headers["Authorization"] = f"Bearer {hf_auth_token}"
+    if urlparse(model.url).netloc == "huggingface.co":
+        if auth_tokens[0]:
+            headers["Authorization"] = f"Bearer {auth_tokens[0]}"
+        else:
+            LOGGER.warning("Downloading `%s` from `%s`: HuggingFace token was not provided.", model.name, model.url)
+    elif urlparse(model.url).netloc == "civitai.com":
+        if auth_tokens[1]:
+            headers["Authorization"] = f"Bearer {auth_tokens[1]}"
+        else:
+            LOGGER.warning("Downloading `%s` from `%s`: CivitAI API key was not provided.", model.name, model.url)
+
     existing_file_size = 0
     if save_path.exists():
         existing_file_size = save_path.stat().st_size

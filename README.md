@@ -136,8 +136,9 @@ If you have any questions or need assistance, we're here to help! Feel free to [
   - **Flows Developing**
     - [Vix Workflows](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/vix_workflows/)
     - [Technical Information](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/)
-    - [Gated Models](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/)
     - [Creating Workflows](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/comfyui_vix_migration/)
+    - [Models Catalog](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/models_catalog/)
+    - [Gated Models](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/)
   - **Common Information**
     - [FAQ](https://visionatrix.github.io/VixFlowsDocs/faq/)
     - [Hardware FAQ](https://visionatrix.github.io/VixFlowsDocs/hardware_faq/)

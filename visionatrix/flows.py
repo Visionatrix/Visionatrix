@@ -245,29 +245,36 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
     progress_for_model = 97 / max(len(flow.models), 1)
     if not __flow_install_callback(flow.name, 1.0, "", False):
         return False
-    hf_auth_token = ""
-    gated_models = [i for i in flow.models if i.gated]
-    if gated_models:
-        if "HF_AUTH_TOKEN" in os.environ:
-            hf_auth_token = os.environ["HF_AUTH_TOKEN"]
+    auth_tokens = {"huggingface_auth_token": "", "civitai_auth_token": ""}
+    for token_env, token_key in [("HF_AUTH_TOKEN", "huggingface_auth_token"), ("CA_AUTH_TOKEN", "civitai_auth_token")]:
+        if token_env in os.environ:
+            auth_tokens[token_key] = os.environ[token_env]
         elif options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-            r = httpx.get(
-                options.VIX_SERVER.rstrip("/") + "/setting",
-                params={"key": "huggingface_auth_token"},
-                auth=options.worker_auth(),
-                timeout=float(options.WORKER_NET_TIMEOUT),
-            )
-            if not httpx.codes.is_error(r.status_code):
-                hf_auth_token = r.text
+            try:
+                r = httpx.get(
+                    options.VIX_SERVER.rstrip("/") + "/setting",
+                    params={"key": token_key},
+                    auth=options.worker_auth(),
+                    timeout=float(options.WORKER_NET_TIMEOUT),
+                )
+                if not httpx.codes.is_error(r.status_code):
+                    auth_tokens[token_key] = r.text.strip()
+            except Exception as e:
+                LOGGER.error("Error fetching `%s`: %s", token_key, str(e))
         else:
-            hf_auth_token = db_queries.get_global_setting("huggingface_auth_token", True)
-        if not hf_auth_token:
-            LOGGER.warning("Flow has gated model(s): %s; AccessToken was not found.", [i.name for i in gated_models])
+            auth_tokens[token_key] = db_queries.get_global_setting(token_key, True)
 
     install_models_results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         futures = [
-            executor.submit(install_model, model, flow.name, progress_for_model, __flow_install_callback, hf_auth_token)
+            executor.submit(
+                install_model,
+                model,
+                flow.name,
+                progress_for_model,
+                __flow_install_callback,
+                (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
+            )
             for model in flow.models
         ]
         for future in concurrent.futures.as_completed(futures):
