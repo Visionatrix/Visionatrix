@@ -84,6 +84,7 @@ def autoconfigure_model_folders(models_dir: str) -> list[ComfyUIFolderPathDefini
         "loras": ["loras", "photomaker"],
         "photomaker": "photomaker",
         "sams": "sams",
+        "style_models": "style_models",
         "ultralytics": "ultralytics",
         "unet": "unet",
         "upscale_models": "upscale_models",
