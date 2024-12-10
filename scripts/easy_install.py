@@ -31,6 +31,7 @@ def main_entry():
             print("\tUpdate (2)")
             print("\tRun (3)")
             print("\tInstall ALL flows(can be done from UI)(4)")
+            print("\tCreate extra model config file(5)")
             c = input("What should we do?: ")
             if c == "1":
                 reinstall()
@@ -40,6 +41,8 @@ def main_entry():
                 run_visionatrix()
             elif c == "4":
                 venv_run("python -m visionatrix install-flow --name='*'")
+            elif c == "5":
+                create_extra_models_config_file()
             else:
                 print("exiting")
         else:
