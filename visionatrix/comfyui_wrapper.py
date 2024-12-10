@@ -43,6 +43,10 @@ COMFYUI_FOLDERS_SETTING_CRC32: int | None = None
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
 
+    # for diffusers/transformers library
+    os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+    os.environ["DO_NOT_TRACK"] = "1"
+
     if "NO_ALBUMENTATIONS_UPDATE" not in os.environ:
         os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"  # disable checking if new version of "Albumentations" is available
 
