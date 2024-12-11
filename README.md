@@ -119,7 +119,7 @@ python3 easy_install.py
 Updating the portable version involves:
 
 1. Unpacking the new portable version.
-2. Moving `vix_models`, `vix_tasks_files`, and `tasks_history.db` from the old version to the new one.
+2. Moving `vix_models`, `vix_tasks_files`, and `visionatrix.db` from the old version to the new one.
 3. In most cases, this should be sufficient unless there are breaking changes.
 
 ## 📚 Documentation and Support

@@ -53,7 +53,7 @@ jobs:
           else
             ./python_embeded/python.exe easy_install.py
           fi
-          rm -rf Visionatrix tasks_history.db
+          rm -rf Visionatrix visionatrix.db
           ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
         env:
