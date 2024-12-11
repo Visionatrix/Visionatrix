@@ -17,50 +17,157 @@ from .pydantic_models import AIResourceModel
 LOGGER = logging.getLogger("visionatrix")
 MODEL_LOAD_CLASSES = {
     "CheckpointLoaderSimple": {
-        "1": ["inputs", "ckpt_name"],
+        "1": {
+            "path": ["inputs", "ckpt_name"],
+            "type": "checkpoints",
+        },
     },
     "ControlNetLoader": {
-        "1": ["inputs", "control_net_name"],
+        "1": {
+            "path": ["inputs", "control_net_name"],
+            "type": "controlnet",
+        },
     },
     "Efficient Loader": {
-        "1": ["inputs", "ckpt_name"],
-        "2": ["inputs", "lora_name"],
+        "1": {
+            "path": ["inputs", "ckpt_name"],
+            "type": "checkpoints",
+        },
+        "2": {
+            "path": ["inputs", "lora_name"],
+            "type": "loras",
+        },
     },
-    "InstantIDModelLoader": {"1": ["inputs", "instantid_file"]},
-    "IPAdapterUnifiedLoader": {"preset": ["inputs", "preset"]},
-    "LoraLoader": {"1": ["inputs", "lora_name"]},
-    "LoraLoaderModelOnly": {"1": ["inputs", "lora_name"]},
-    "PhotoMakerLoader": {"1": ["inputs", "photomaker_model_name"]},
-    "VAELoader": {"1": ["inputs", "vae_name"]},
-    "UpscaleModelLoader": {"1": ["inputs", "model_name"]},
-    "SUPIR_model_loader_v2": {"1": ["inputs", "supir_model"]},
-    "PulidModelLoader": {"1": ["inputs", "pulid_file"]},
+    "InstantIDModelLoader": {
+        "1": {
+            "path": ["inputs", "instantid_file"],
+            "type": "instantid",
+        },
+    },
+    "IPAdapterUnifiedLoader": {
+        "1": {
+            "path": ["inputs", "preset"],
+            "type": ["ipadapter", "clip_vision"],
+            "preset": True,
+        },
+    },
+    "LoraLoader": {
+        "1": {
+            "path": ["inputs", "lora_name"],
+            "type": "loras",
+        }
+    },
+    "LoraLoaderModelOnly": {
+        "1": {
+            "path": ["inputs", "lora_name"],
+            "type": "loras",
+        },
+    },
+    "PhotoMakerLoader": {
+        "1": {
+            "path": ["inputs", "photomaker_model_name"],
+            "type": "photomaker",
+        },
+    },
+    "VAELoader": {
+        "1": {
+            "path": ["inputs", "vae_name"],
+            "type": "vae",
+        },
+    },
+    "UpscaleModelLoader": {
+        "1": {
+            "path": ["inputs", "model_name"],
+            "type": "upscale_models",
+        },
+    },
+    "SUPIR_model_loader_v2": {
+        "1": {
+            "path": ["inputs", "supir_model"],
+            "type": "checkpoints",
+        },
+    },
+    "PulidModelLoader": {
+        "1": {
+            "path": ["inputs", "pulid_file"],
+            "type": "pulid",
+        },
+    },
     "Lora Loader Stack (rgthree)": {
-        "1": ["inputs", "lora_01"],
-        "2": ["inputs", "lora_02"],
-        "3": ["inputs", "lora_03"],
-        "4": ["inputs", "lora_04"],
+        "1": {
+            "path": ["inputs", "lora_01"],
+            "type": "loras",
+        },
+        "2": {
+            "path": ["inputs", "lora_02"],
+            "type": "loras",
+        },
+        "3": {
+            "path": ["inputs", "lora_03"],
+            "type": "loras",
+        },
+        "4": {
+            "path": ["inputs", "lora_04"],
+            "type": "loras",
+        },
     },
-    "UNETLoader": {"1": ["inputs", "unet_name"]},
-    "CLIPLoader": {"1": ["inputs", "clip_name"]},
+    "UNETLoader": {
+        "1": {
+            "path": ["inputs", "unet_name"],
+            "type": "diffusion_models",
+        },
+    },
+    "CLIPLoader": {
+        "1": {
+            "path": ["inputs", "clip_name"],
+            "type": "text_encoders",
+        },
+    },
     "DualCLIPLoader": {
-        "1": ["inputs", "clip_name1"],
-        "2": ["inputs", "clip_name2"],
+        "1": {
+            "path": ["inputs", "clip_name1"],
+            "type": "text_encoders",
+        },
+        "2": {
+            "path": ["inputs", "clip_name2"],
+            "type": "text_encoders",
+        },
     },
     "TripleCLIPLoader": {
-        "1": ["inputs", "clip_name1"],
-        "2": ["inputs", "clip_name2"],
-        "3": ["inputs", "clip_name3"],
+        "1": {
+            "path": ["inputs", "clip_name1"],
+            "type": "text_encoders",
+        },
+        "2": {
+            "path": ["inputs", "clip_name2"],
+            "type": "text_encoders",
+        },
+        "3": {
+            "path": ["inputs", "clip_name3"],
+            "type": "text_encoders",
+        },
     },
     "PhotoMakerLoaderPlus": {
-        "1": ["inputs", "photomaker_model_name"],
+        "1": {
+            "path": ["inputs", "photomaker_model_name"],
+            "type": "photomaker",
+        },
     },
     "RIFE VFI": {
-        "preset": ["inputs", "ckpt_name"],
+        "1": {
+            "path": ["inputs", "ckpt_name"],
+            "preset": True,
+        },
     },
     "DWPreprocessor": {
-        "preset1": ["inputs", "bbox_detector"],
-        "preset2": ["inputs", "pose_estimator"],
+        "1": {
+            "path": ["inputs", "bbox_detector"],
+            "preset": True,
+        },
+        "2": {
+            "path": ["inputs", "pose_estimator"],
+            "preset": True,
+        },
     },
 }
 MODELS_CATALOG: dict[str, dict] = {}
@@ -84,13 +191,23 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
 
         if (load_class := MODEL_LOAD_CLASSES.get(class_type)) is None:
             continue
-        for k, node_model_load_path in load_class.items():
-            node_input_model_name = get_node_value(node_details, node_model_load_path)
+        for k, node_model_load_info in load_class.items():
+            node_input_model_name = get_node_value(node_details, node_model_load_info["path"])
             if node_input_model_name == "None":
                 continue
             not_found = True
             for model, model_details in models_catalog.items():
-                if match_replace_model(model_details, node_input_model_name, node_details, node_model_load_path, k):
+                model_types = model_details.get("types")
+                node_model_type = node_model_load_info.get("type")
+                if model_types and node_model_type:
+                    if isinstance(node_model_type, str):
+                        if node_model_type not in model_types:
+                            continue
+                    elif isinstance(node_model_type, list) and not any(
+                        ntype in model_types for ntype in node_model_type
+                    ):
+                        continue
+                if match_replace_model(model_details, node_input_model_name, node_details, node_model_load_info):
                     if model not in [i.name for i in models_info]:
                         models_info.append(AIResourceModel(**model_details, name=model))
                     not_found = False
@@ -105,15 +222,15 @@ def match_replace_model(
     model_details: dict,
     node_input_model_name: str,
     node_details: dict,
-    node_model_load_path: list[str],
-    node_model_load_path_key: str,
+    node_model_load_info: dict[str, str | list[str] | bool],
 ) -> bool:
     for regex in model_details["regexes"]:
+        node_model_load_path = node_model_load_info["path"]
         _input_value = "input_value" not in regex or re.match(regex["input_value"], node_input_model_name) is not None
         _input_name = "input_name" not in regex or re.match(regex["input_name"], node_model_load_path[-1]) is not None
         _class_name = "class_name" not in regex or re.match(regex["class_name"], node_details["class_type"]) is not None
         if _input_value and _input_name and _class_name:
-            if not node_model_load_path_key.lower().startswith("preset"):
+            if not node_model_load_info.get("preset"):
                 set_node_value(
                     node_details,
                     node_model_load_path,
