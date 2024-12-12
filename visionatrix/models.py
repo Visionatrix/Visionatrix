@@ -364,17 +364,25 @@ def check_model_file(
     model_existing_path = model_directory.joinpath(model_filename)
     if model_existing_path.exists():
         if model_progress_install:
-            if model_existing_path.stat().st_mtime == model_progress_install.file_mtime:
-                LOGGER.info("`%s` already exists, and modification time is fine.", model_existing_path)
-                return True
-            LOGGER.info("`%s` already exists, but modification time differs, checking hash...", model_existing_path)
+            if model_filename == model_progress_install.filename:
+                if model_existing_path.stat().st_mtime == model_progress_install.file_mtime:
+                    LOGGER.info("`%s` already exists, and modification time is fine.", model_existing_path)
+                    return True
+                LOGGER.info("`%s` already exists, but modification time differs, checking hash...", model_existing_path)
+            else:
+                LOGGER.warning(
+                    "`%s` already exists, but filename from database does not match, checking hash...",
+                    model_existing_path,
+                )
         if check_hash(model.hash, model_existing_path):
             LOGGER.info("`%s` already exists, and hash is fine.", model_existing_path)
             if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
                 return True
             if model_progress_install:
                 # Model is present in DB, just update the modification time
-                db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime, model_filename)
+                db_queries.update_model_mtime(
+                    model.name, model_existing_path.stat().st_mtime, new_filename=model_filename
+                )
             elif db_queries.add_model_progress_install(model.name, flow_name, model_filename):
                 # Model was not present in DB, we successfully added it
                 db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime)
