@@ -162,6 +162,7 @@ class ModelsInstallStatus(Base):
     started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     file_mtime = Column(Float, nullable=True)
+    filename = Column(String, default="")
 
 
 def init_database_engine() -> None:

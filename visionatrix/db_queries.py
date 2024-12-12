@@ -409,7 +409,7 @@ def delete_old_model_progress_install(name: str) -> bool:
         session.close()
 
 
-def add_model_progress_install(name: str, flow_name: str) -> datetime | None:
+def add_model_progress_install(name: str, flow_name: str, filename: str | None = None) -> datetime | None:
     session = database.SESSION()
     try:
         new_updated_at = datetime.now(timezone.utc)
@@ -419,6 +419,7 @@ def add_model_progress_install(name: str, flow_name: str) -> datetime | None:
             progress=0.0,
             started_at=datetime.now(timezone.utc),
             updated_at=new_updated_at,
+            filename=filename,
         )
         session.add(new_model)
         session.commit()
@@ -496,13 +497,19 @@ def set_model_progress_install_error(name: str, flow_name: str, error: str) -> b
         session.close()
 
 
-def update_model_mtime(name: str, new_mtime: float, flow_name: str | None = None) -> bool:
+def update_model_mtime(
+    name: str, new_mtime: float, flow_name: str | None = None, new_filename: str | None = None
+) -> bool:
     session = database.SESSION()
     try:
         stmt = update(database.ModelsInstallStatus).where(database.ModelsInstallStatus.name == name)
         if flow_name:
             stmt = stmt.where(database.ModelsInstallStatus.flow_name == flow_name)
-        stmt = stmt.values(file_mtime=new_mtime)
+        stmt = (
+            stmt.values(file_mtime=new_mtime, filename=new_filename)
+            if new_filename
+            else stmt.values(file_mtime=new_mtime)
+        )
         result = session.execute(stmt)
         session.commit()
         if result.rowcount == 0:

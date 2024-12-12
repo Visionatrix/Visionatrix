@@ -2,6 +2,7 @@ import builtins
 import hashlib
 import logging
 import os
+import re
 import time
 import typing
 import zipfile
@@ -31,12 +32,12 @@ def install_model(
     retries = 0
 
     # We need this part of code to be able to detect models that present on FS but not in Database
-    if is_model_exists_in_fs(model, flow_name, db_queries.get_installed_models().get(model.name)):
+    if does_model_exist_in_fs(model, flow_name, db_queries.get_installed_models().get(model.name)):
         return progress_callback(flow_name, progress_for_model, "", True)
 
     while retries < max_retries:
         installed_models = db_queries.get_installed_models()
-        if model.name in installed_models and is_model_exists_in_fs(model, flow_name, installed_models[model.name]):
+        if model.name in installed_models and does_model_exist_in_fs(model, flow_name, installed_models[model.name]):
             return progress_callback(flow_name, progress_for_model, "", True)
 
         installing_models = db_queries.models_installation_in_progress(model.name)
@@ -56,7 +57,7 @@ def install_model(
             if not installing_models:
                 # Installation finished, check if the model was installed successfully
                 installed_models = db_queries.get_installed_models()
-                if model.name in installed_models and is_model_exists_in_fs(
+                if model.name in installed_models and does_model_exist_in_fs(
                     model, flow_name, installed_models[model.name]
                 ):
                     # Model installed successfully
@@ -94,13 +95,14 @@ def install_model(
         return False
 
     # Proceed to install the model
-    save_path = Path(get_possible_paths_for_model(model)[0])
+    save_directory, save_name = get_possible_paths_for_model(model)[0]
+    save_path = save_directory.joinpath(save_name)
     os.makedirs(save_path.parent, exist_ok=True)
     for _ in range(DOWNLOAD_RETRY_COUNT):
         LOGGER.info("Downloading `%s`..", model.name)
         try:
             if not db_queries.update_model_progress_install(model.name, flow_name, 0.0):
-                progress_callback(flow_name, 0.0, f"Fail to update progress for model `{model.name}`", False)
+                progress_callback(flow_name, 0.0, f"Failed to update progress for model `{model.name}`", False)
                 return False
             r = download_model(model, save_path, flow_name, progress_for_model, progress_callback, auth_tokens)
             if not r:
@@ -141,9 +143,9 @@ def download_model(
 
     headers, existing_file_size = prepare_download_headers(model, save_path, auth_tokens)
 
-    retry = True
-    while retry:
-        retry = False
+    should_retry = True
+    while should_retry:
+        should_retry = False
         with httpx.stream("GET", model.url, headers=headers, follow_redirects=True, timeout=15.0) as response:
             if response.status_code == status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE or (
                 existing_file_size > 0 and response.status_code == status.HTTP_404_NOT_FOUND
@@ -153,7 +155,7 @@ def download_model(
                 existing_file_size = 0
                 headers.pop("Range", None)
                 save_path.unlink(missing_ok=True)  # Delete the incomplete file
-                retry = True
+                should_retry = True
                 continue
             if response.status_code == status.HTTP_404_NOT_FOUND:
                 if urlparse(model.url).netloc == "huggingface.co":
@@ -171,7 +173,7 @@ def download_model(
                                     headers, existing_file_size = prepare_download_headers(
                                         model, save_path, auth_tokens
                                     )
-                                    retry = True
+                                    should_retry = True
                                     continue
                     except httpx.HTTPError as e:
                         LOGGER.error("Failed to fetch model metadata from Civitai: %s", str(e))
@@ -186,7 +188,7 @@ def download_model(
                 existing_file_size = 0
                 headers.pop("Range", None)
                 save_path.unlink(missing_ok=True)  # Delete the incomplete file
-                retry = True
+                should_retry = True
                 continue
             if httpx.codes.is_error(response.status_code):
                 raise RuntimeError(f"Download request failed with status: {response.status_code}")
@@ -299,33 +301,35 @@ def prepare_download_headers(model: AIResourceModel, save_path: Path, auth_token
     return headers, existing_file_size
 
 
-def is_model_exists_in_fs(
+def does_model_exist_in_fs(
     model: AIResourceModel, flow_name: str, model_progress_install: ModelProgressInstall | None = None
 ) -> bool:
-    for model_paths in get_possible_paths_for_model(model):
-        save_path = Path(model_paths)
+    model_possible_directories = []
+    for model_directory_path, model_filename in get_possible_paths_for_model(model):
+        save_path = model_directory_path.joinpath(model_filename)
+        if save_path.suffix != ".zip" and not model.url.endswith(".zip"):
+            model_possible_directories.append(model_directory_path)
         LOGGER.debug("model=%s --> save_path=%s", model.name, save_path)
-        if save_path.exists() and not model.url.endswith(".zip"):
+        if not model.url.endswith(".zip"):
             if model_progress_install:
-                if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
+                LOGGER.debug(
+                    "Model `%s` with filename `%s` record is present in the database.",
+                    model.name,
+                    model_progress_install.filename,
+                )
+                if model_progress_install.filename and check_model_file(
+                    model_directory_path, model_progress_install.filename, model, model_progress_install, flow_name
+                ):
                     return True
-                if save_path.stat().st_mtime == model_progress_install.file_mtime:
-                    LOGGER.info("`%s` already exists, and modification time is fine.", save_path)
+            if save_path.exists():
+                LOGGER.debug(
+                    "File for model '%s' exists at '%s', but it's not in the database.",
+                    model.name,
+                    save_path,
+                )
+                if check_model_file(model_directory_path, model_filename, model, model_progress_install, flow_name):
                     return True
-                LOGGER.info("`%s` already exists, but modification time differs, checking hash...", save_path)
-            if check_hash(model.hash, save_path):
-                LOGGER.info("`%s` already exists, and hash is fine.", save_path)
-                if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
-                    return True
-                if model_progress_install:
-                    # Model is present in DB, just update the modification time
-                    db_queries.update_model_mtime(model.name, save_path.stat().st_mtime)
-                elif db_queries.add_model_progress_install(model.name, flow_name):
-                    # Model was not present in DB, we successfully added it
-                    db_queries.update_model_mtime(model.name, save_path.stat().st_mtime)
-                    db_queries.update_model_progress_install(model.name, flow_name, 100.0)
-                return True
-            LOGGER.warning("Model `%s` exists but has invalid hash. Deleting '%s'", model.name, save_path)
+                LOGGER.warning("Model `%s` exists but has invalid hash. Deleting '%s'", model.name, save_path)
             save_path.unlink(missing_ok=True)
         elif save_path.suffix == ".zip":
             if not model.hashes:
@@ -346,6 +350,87 @@ def is_model_exists_in_fs(
                 break
             if check_result:
                 return True
+
+    return lookup_for_model_file(model, model_possible_directories, flow_name, model_progress_install)
+
+
+def check_model_file(
+    model_directory: Path,
+    model_filename: str,
+    model: AIResourceModel,
+    model_progress_install: ModelProgressInstall | None,
+    flow_name: str,
+) -> bool:
+    model_existing_path = model_directory.joinpath(model_filename)
+    if model_existing_path.exists():
+        if model_progress_install:
+            if model_existing_path.stat().st_mtime == model_progress_install.file_mtime:
+                LOGGER.info("`%s` already exists, and modification time is fine.", model_existing_path)
+                return True
+            LOGGER.info("`%s` already exists, but modification time differs, checking hash...", model_existing_path)
+        if check_hash(model.hash, model_existing_path):
+            LOGGER.info("`%s` already exists, and hash is fine.", model_existing_path)
+            if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
+                return True
+            if model_progress_install:
+                # Model is present in DB, just update the modification time
+                db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime, model_filename)
+            elif db_queries.add_model_progress_install(model.name, flow_name, model_filename):
+                # Model was not present in DB, we successfully added it
+                db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime)
+                db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+            return True
+    return False
+
+
+def lookup_for_model_file(
+    model: AIResourceModel,
+    model_possible_directories: list[Path],
+    flow_name: str,
+    model_progress_install: ModelProgressInstall | None = None,
+) -> bool:
+    if not model.regexes:
+        return False
+    for model_possible_directory in model_possible_directories:
+        if lookup_for_model_file_in_directory(model, model_possible_directory, flow_name, model_progress_install):
+            return True
+    return False
+
+
+def lookup_for_model_file_in_directory(
+    model: AIResourceModel,
+    model_possible_directory: Path,
+    flow_name: str,
+    model_progress_install: ModelProgressInstall | None = None,
+) -> bool:
+    if not model_possible_directory.exists() or not model_possible_directory.is_dir():
+        return False
+
+    for root, _, files in os.walk(model_possible_directory):
+        for file_name in files:
+            file_path = Path(root) / file_name
+
+            # Check if the file matches any of the regex patterns provided in the model's regexes
+            for regex in model.regexes:
+                if "input_value" in regex and re.match(regex["input_value"], file_name):
+                    LOGGER.info("Found potential match for `%s` at `%s`.", model.name, file_path)
+
+                    # Validate the file hash
+                    if check_hash(model.hash, file_path):
+                        LOGGER.info("Validated hash for `%s` at `%s`.", model.name, file_path)
+                        model_filename = str(file_path.relative_to(model_possible_directory))
+
+                        # Update the database with the model's information
+                        if not model_progress_install:
+                            db_queries.add_model_progress_install(model.name, flow_name, model_filename)
+                        db_queries.update_model_mtime(
+                            model.name,
+                            file_path.stat().st_mtime,
+                            flow_name,
+                            new_filename=model_filename,
+                        )
+                        db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+                        return True
     return False
 
 

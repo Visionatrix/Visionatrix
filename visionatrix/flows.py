@@ -23,7 +23,7 @@ from . import _version, comfyui_class_info, db_queries, options
 from .comfyui_wrapper import get_node_class_mappings
 from .etc import is_english
 from .models import install_model
-from .models_map import get_flow_models
+from .models_map import process_flow_models
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import Flow
 
@@ -503,7 +503,7 @@ def get_vix_flow(flow_comfy: dict[str, dict]) -> Flow:
     vix_flow = get_flow_metadata(flow_comfy)
     vix_flow["sub_flows"] = get_flow_subflows(flow_comfy)
     vix_flow["input_params"] = get_flow_inputs(flow_comfy)
-    vix_flow["models"] = get_flow_models(flow_comfy)
+    vix_flow["models"] = process_flow_models(flow_comfy, {})
     return Flow.model_validate(vix_flow)
 
 
