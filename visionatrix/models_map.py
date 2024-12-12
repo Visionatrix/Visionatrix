@@ -8,11 +8,11 @@ from urllib.parse import urlparse
 import httpx
 from packaging.version import Version
 
-from . import _version, options
+from . import _version, db_queries, options
 from .basic_node_list import BASIC_NODE_LIST
 from .comfyui_wrapper import get_folder_names_and_paths, get_node_class_mappings
 from .nodes_helpers import get_node_value, set_node_value
-from .pydantic_models import AIResourceModel
+from .pydantic_models import AIResourceModel, ModelProgressInstall
 
 LOGGER = logging.getLogger("visionatrix")
 MODEL_LOAD_CLASSES = {
@@ -173,7 +173,9 @@ MODEL_LOAD_CLASSES = {
 MODELS_CATALOG: dict[str, dict] = {}
 
 
-def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
+def process_flow_models(
+    flow_comfy: dict[str, dict], remap_data: dict[str, ModelProgressInstall]
+) -> list[AIResourceModel]:
     nodes_with_models = {key: value["models"] for key, value in BASIC_NODE_LIST.items() if value.get("models")}
     nodes_class_mappings = get_node_class_mappings()
 
@@ -207,22 +209,24 @@ def get_flow_models(flow_comfy: dict[str, dict]) -> list[AIResourceModel]:
                         ntype in model_types for ntype in node_model_type
                     ):
                         continue
-                if match_replace_model(model_details, node_input_model_name, node_details, node_model_load_info):
+                if match_replace_model(
+                    model, model_details, node_input_model_name, node_details, node_model_load_info, remap_data
+                ):
                     if model not in [i.name for i in models_info]:
                         models_info.append(AIResourceModel(**model_details, name=model))
                     not_found = False
             if not_found:
-                LOGGER.error(
-                    "Can not map model(%s) for %s(%s):\n%s", node_input_model_name, class_type, k, node_details
-                )
+                LOGGER.error("Cannot map model(%s) for %s(%s):\n%s", node_input_model_name, class_type, k, node_details)
     return models_info
 
 
 def match_replace_model(
+    model: str,
     model_details: dict,
     node_input_model_name: str,
     node_details: dict,
     node_model_load_info: dict[str, str | list[str] | bool],
+    remap_data: dict[str, ModelProgressInstall],
 ) -> bool:
     for regex in model_details["regexes"]:
         node_model_load_path = node_model_load_info["path"]
@@ -230,20 +234,24 @@ def match_replace_model(
         _input_name = "input_name" not in regex or re.match(regex["input_name"], node_model_load_path[-1]) is not None
         _class_name = "class_name" not in regex or re.match(regex["class_name"], node_details["class_type"]) is not None
         if _input_value and _input_name and _class_name:
-            if not node_model_load_info.get("preset"):
+            if node_model_load_info.get("preset"):
+                return True
+            if remap_data:
+                if model not in remap_data:
+                    LOGGER.error("Model `%s` is not marked as installed; mapping may be broken.", model)
+                if model in remap_data and remap_data[model].filename:
+                    model_filename = remap_data[model].filename
+                elif model_details.get("filename"):
+                    model_filename = model_details["filename"]
+                else:
+                    model_filename = urlparse(model_details["url"]).path.split("/")[-1]
                 set_node_value(
                     node_details,
                     node_model_load_path,
-                    get_model_name_from_details(model_details),
+                    model_filename,
                 )
             return True
     return False
-
-
-def get_model_name_from_details(model_details: dict) -> str:
-    if model_details.get("filename"):
-        return model_details["filename"]
-    return urlparse(model_details["url"]).path.split("/")[-1]
 
 
 def fetch_models_catalog_from_url_or_path(catalog_url: str) -> dict[str, dict]:
@@ -260,7 +268,7 @@ def fetch_models_catalog_from_url_or_path(catalog_url: str) -> dict[str, dict]:
             response.raise_for_status()
             return json.loads(response.text)
         except Exception as e:
-            LOGGER.error("Failed to fetch models catalog from %s: %s", catalog_url, str(e))
+            LOGGER.error("Failed to fetch the models catalog from %s: %s", catalog_url, str(e))
             return {}
     else:
         try:
@@ -288,10 +296,10 @@ def get_formatted_models_catalog() -> list[AIResourceModel]:
     return r
 
 
-def get_possible_paths_for_model(model: AIResourceModel) -> list[str]:
+def get_possible_paths_for_model(model: AIResourceModel) -> list[(Path, str)]:
     if not model.types:
-        # this is some Custom Node model that does not support ComfyUI path configuration
-        return [str(Path(options.COMFYUI_DIR).joinpath(model.filename))]
+        # this is a custom node model that does not support ComfyUI path configuration.
+        return [(Path(options.COMFYUI_DIR), model.filename)]
 
     comfyui_models_paths = get_folder_names_and_paths()
     comfyui_folders_info = None
@@ -303,18 +311,32 @@ def get_possible_paths_for_model(model: AIResourceModel) -> list[str]:
 
     if comfyui_folders_info is None:
         raise ValueError(
-            f"Error installing model '{model.name}': no directory found for any of types: {model.types}"
+            f"Error installing model '{model.name}': no directory found for any of the types: {model.types}"
         ) from None
 
     if not comfyui_folders_info[0]:
         raise ValueError(
-            f"Error installing model '{model.name}': no output folders defined: {comfyui_folders_info}"
+            f"Error installing model '{model.name}': no output folders found: {comfyui_folders_info}"
         ) from None
+
+    model_filename = model.filename if model.filename else urlparse(model.url).path.split("/")[-1]
 
     save_paths = []
     for output_folder in comfyui_folders_info[0]:
-        if model.filename:
-            save_paths.append(Path(output_folder).joinpath(model.filename))
-        else:
-            save_paths.append(Path(output_folder).joinpath(urlparse(model.url).path.split("/")[-1]))
-    return [str(i) for i in save_paths]
+        save_paths.append(Path(output_folder))
+    return [(i, model_filename) for i in save_paths]
+
+
+def get_possible_final_paths_for_model(model: AIResourceModel) -> list[Path]:
+    installed_models = db_queries.get_installed_models()
+    model_filename = model.filename if model.filename else urlparse(model.url).path.split("/")[-1]
+    alternative_model_filename = ""
+    if model.name in installed_models:
+        alternative_model_filename = installed_models[model.name].filename
+    if alternative_model_filename and alternative_model_filename != model_filename:
+        r = []
+        for x, y in get_possible_paths_for_model(model):
+            r.append(x.joinpath(y))
+            r.append(x.joinpath(alternative_model_filename))
+        return r
+    return [x.joinpath(y) for x, y in get_possible_paths_for_model(model)]

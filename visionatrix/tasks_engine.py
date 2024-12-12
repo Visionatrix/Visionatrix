@@ -13,8 +13,8 @@ import httpx
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
-from . import comfyui_wrapper, database, options, settings_comfyui
-from .db_queries import get_global_setting, get_setting
+from . import comfyui_wrapper, database, models_map, options, settings_comfyui
+from .db_queries import get_global_setting, get_installed_models, get_setting
 from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
     ComfyUIFolderPathDefinition,
@@ -183,6 +183,8 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
                 task_to_exec["flow_comfy"][node]["inputs"]["proxy"] = google_proxy
                 if gemini_model:
                     task_to_exec["flow_comfy"][node]["inputs"]["model"] = gemini_model
+
+    models_map.process_flow_models(task_to_exec["flow_comfy"], get_installed_models())
 
     return task_to_exec
 

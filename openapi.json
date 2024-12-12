@@ -2045,7 +2045,7 @@
           "filename": {
             "type": "string",
             "title": "Filename",
-            "description": "Overridden file name under which the model can be found in the file system.",
+            "description": "Overridden file name under which the model should be stored in the file system.",
             "default": ""
           },
           "url": {
@@ -3729,7 +3729,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-03T13:17:55.801258Z"
+            "default": "2024-12-12T17:14:12.597129Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

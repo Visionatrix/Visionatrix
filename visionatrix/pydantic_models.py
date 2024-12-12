@@ -39,7 +39,9 @@ class AIResourceModel(BaseModel):
 
     name: str = Field(..., description="Unique name of the model.")
     types: list[str] = Field([], description="ComfyUI model types to which model belongs(e.g 'checkpoints', 'loras').")
-    filename: str = Field("", description="Overridden file name under which the model can be found in the file system.")
+    filename: str = Field(
+        "", description="Overridden file name under which the model should be stored in the file system."
+    )
     url: str = Field(..., description="URL from which the model can be downloaded.")
     homepage: str = Field("", description="Webpage with detailed information about the model.")
     hash: str = Field(..., description="SHA256 hash of the model file for integrity verification.")
@@ -128,6 +130,7 @@ class ModelProgressInstall(BaseModel):
     file_mtime: float | None = Field(
         None, description="Last modification time of the model file, as a floating-point timestamp."
     )
+    filename: str | None = Field(None, description="Filename of the model on the filesystem.")
 
 
 class TaskDetailsInput(BaseModel):

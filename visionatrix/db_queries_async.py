@@ -4,7 +4,7 @@ from sqlalchemy import delete, select, update
 
 from . import database
 from .db_queries import __get_worker_query, __get_workers_query
-from .pydantic_models import FlowProgressInstall, WorkerDetails
+from .pydantic_models import FlowProgressInstall, ModelProgressInstall, WorkerDetails
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -196,3 +196,14 @@ async def delete_flow_progress_install_async(name: str) -> bool:
             await session.rollback()
             LOGGER.exception("Failed to delete flow installation progress for `%s`", name)
             raise
+
+
+async def get_installed_models_async() -> dict[str, ModelProgressInstall]:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            query = select(database.ModelsInstallStatus).where(database.ModelsInstallStatus.progress >= 100.0)
+            results = (await session.execute(query)).scalars().all()
+            return {model.name: ModelProgressInstall.model_validate(model) for model in results}
+        except Exception as e:
+            LOGGER.exception("Failed to retrieve installed models.")
+            raise e
