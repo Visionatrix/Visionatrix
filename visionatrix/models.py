@@ -32,7 +32,9 @@ def install_model(
     retries = 0
 
     # We need this part of code to be able to detect models that present on FS but not in Database
-    if does_model_exist_in_fs(model, flow_name, db_queries.get_installed_models().get(model.name)):
+    if does_model_exist_in_fs(
+        model, flow_name, db_queries.get_installed_models().get(model.name), delete_invalid=False
+    ):
         return progress_callback(flow_name, progress_for_model, "", True)
 
     while retries < max_retries:
@@ -307,7 +309,10 @@ def prepare_download_headers(model: AIResourceModel, save_path: Path, auth_token
 
 
 def does_model_exist_in_fs(
-    model: AIResourceModel, flow_name: str, model_progress_install: ModelProgressInstall | None = None
+    model: AIResourceModel,
+    flow_name: str,
+    model_progress_install: ModelProgressInstall | None = None,
+    delete_invalid: bool = True,
 ) -> bool:
     model_possible_directories = []
     for model_directory_path, model_filename in get_possible_paths_for_model(model):
@@ -334,8 +339,10 @@ def does_model_exist_in_fs(
                 )
                 if check_model_file(model_directory_path, model_filename, model, model_progress_install, flow_name):
                     return True
-                LOGGER.warning("Model `%s` exists but has invalid hash. Deleting '%s'", model.name, save_path)
-            save_path.unlink(missing_ok=True)
+                if delete_invalid:
+                    LOGGER.warning("Model `%s` exists but has invalid hash. Deleting '%s'", model.name, save_path)
+            if delete_invalid:
+                save_path.unlink(missing_ok=True)
         elif save_path.suffix == ".zip":
             if not model.hashes:
                 LOGGER.info("`%s` does not provide hashes for files in archive, skipping.", save_path)
@@ -347,10 +354,11 @@ def does_model_exist_in_fs(
                     if check_hash(model_hash, archive_element, True):
                         LOGGER.info("`%s` already exists.", archive_element)
                         continue
-                    LOGGER.warning(
-                        "Model `%s` exists but has invalid hash. Deleting '%s'", archive_element, archive_element
-                    )
-                    save_path.unlink(missing_ok=True)
+                    if delete_invalid:
+                        LOGGER.warning(
+                            "Model `%s` exists but has invalid hash. Deleting '%s'", archive_element, archive_element
+                        )
+                        save_path.unlink(missing_ok=True)
                 check_result = False
                 break
             if check_result:
@@ -383,15 +391,12 @@ def check_model_file(
             LOGGER.info("`%s` already exists, and hash is fine.", model_existing_path)
             if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
                 return True
-            if model_progress_install:
-                # Model is present in DB, just update the modification time
-                db_queries.update_model_mtime(
-                    model.name, model_existing_path.stat().st_mtime, new_filename=model_filename
-                )
-            elif db_queries.add_model_progress_install(model.name, flow_name, model_filename):
-                # Model was not present in DB, we successfully added it
-                db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime)
-                db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+            if not model_progress_install:
+                LOGGER.debug("Adding model `%s` to the database.", model.name)
+                if not db_queries.add_model_progress_install(model.name, flow_name, model_filename):
+                    db_queries.reset_model_progress_install_error(model.name, flow_name)
+            db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime, new_filename=model_filename)
+            db_queries.update_model_progress_install(model.name, flow_name, 100.0)
             return True
     return False
 

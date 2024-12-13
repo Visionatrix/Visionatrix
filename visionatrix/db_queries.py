@@ -497,6 +497,33 @@ def set_model_progress_install_error(name: str, flow_name: str, error: str) -> b
         session.close()
 
 
+def reset_model_progress_install_error(name: str, flow_name: str) -> bool:
+    session = database.SESSION()
+    try:
+        stmt = (
+            update(database.ModelsInstallStatus)
+            .where(
+                database.ModelsInstallStatus.name == name,
+                database.ModelsInstallStatus.error != "",
+                database.ModelsInstallStatus.flow_name == flow_name,
+            )
+            .values(error="")
+        )
+        result = session.execute(stmt)
+        session.commit()
+
+        if result.rowcount == 0:
+            LOGGER.warning("Failed to reset model installation error for `%s`", name)
+            return False
+        return True
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to reset model installation error for `%s`", name)
+        raise
+    finally:
+        session.close()
+
+
 def update_model_mtime(
     name: str, new_mtime: float, flow_name: str | None = None, new_filename: str | None = None
 ) -> bool:
