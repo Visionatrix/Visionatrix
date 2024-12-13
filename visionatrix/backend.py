@@ -1,7 +1,6 @@
 import fnmatch
 import logging
 import os
-import threading
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -14,7 +13,7 @@ from pillow_heif import register_heif_opener
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import comfyui_wrapper, custom_openapi, database, options, routes
+from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .tasks_engine import (
     background_prompt_executor,
     remove_active_task_lock,
@@ -24,7 +23,6 @@ from .tasks_engine_async import start_tasks_engine
 from .user_backends import perform_auth
 
 LOGGER = logging.getLogger("visionatrix")
-EXIT_EVENT = threading.Event()
 
 
 class VixAuthMiddleware:
@@ -74,11 +72,11 @@ async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
     routes.tasks_internal.VALIDATE_PROMPT, comfy_queue = comfyui_wrapper.load(task_progress_callback)
-    await start_tasks_engine(comfy_queue, EXIT_EVENT)
+    await start_tasks_engine(comfy_queue, events.EXIT_EVENT)
     if options.UI_DIR:
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
     yield
-    EXIT_EVENT.set()
+    events.EXIT_EVENT.set()
     comfyui_wrapper.interrupt_processing()
 
 
@@ -140,7 +138,7 @@ def run_vix(*args, **kwargs) -> None:
         _, comfy_queue = comfyui_wrapper.load(task_progress_callback)
 
         try:
-            background_prompt_executor(comfy_queue, EXIT_EVENT)
+            background_prompt_executor(comfy_queue, events.EXIT_EVENT)
         except KeyboardInterrupt:
             remove_active_task_lock()
             print("Visionatrix is shutting down.")

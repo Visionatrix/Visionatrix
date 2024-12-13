@@ -1,5 +1,6 @@
 import builtins
 import concurrent.futures
+import contextlib
 import io
 import json
 import logging
@@ -19,7 +20,7 @@ import httpx
 from packaging.version import Version, parse
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from . import _version, comfyui_class_info, db_queries, options
+from . import _version, comfyui_class_info, db_queries, events, options
 from .comfyui_wrapper import get_node_class_mappings
 from .etc import is_english
 from .models import install_model
@@ -264,26 +265,34 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
         else:
             auth_tokens[token_key] = db_queries.get_global_setting(token_key, True)
 
-    install_models_results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [
-            executor.submit(
-                install_model,
-                model,
-                flow.name,
-                progress_for_model,
-                __flow_install_callback,
-                (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
-            )
-            for model in flow.models
-        ]
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                install_models_result = future.result()
-                install_models_results.append(install_models_result)
-            except Exception as e:
-                LOGGER.exception("Error during models installation: %s", e)
-                return False
+    try:
+        install_models_results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [
+                executor.submit(
+                    install_model,
+                    model,
+                    flow.name,
+                    progress_for_model,
+                    __flow_install_callback,
+                    (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
+                )
+                for model in flow.models
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    install_models_result = future.result()
+                    install_models_results.append(install_models_result)
+                except Exception as e:
+                    LOGGER.exception("Error during models installation: %s", e)
+                    return False
+    except KeyboardInterrupt:
+        # this will only work for the "install-flow" command when run from terminal
+        events.EXIT_EVENT.set()
+        for future in futures:
+            with contextlib.suppress(Exception):
+                future.result()
+        return False
 
     if not all(install_models_results):
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
@@ -305,6 +314,10 @@ def __flow_install_callback(name: str, progress: float, error: str, relative_pro
     if progress == 100.0:
         LOGGER.info("Installation of %s flow completed", name)
         return db_queries.update_flow_progress_install(name, progress, False)
+
+    if events.EXIT_EVENT.is_set():
+        db_queries.set_flow_progress_install_error(name, "Installation interrupted by user.")
+        return False
 
     if LOGGER.getEffectiveLevel() <= logging.INFO:
         current_progress_info = db_queries.get_flow_progress_install(name)
