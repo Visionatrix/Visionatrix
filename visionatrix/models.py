@@ -104,7 +104,9 @@ def install_model(
             if not db_queries.update_model_progress_install(model.name, flow_name, 0.0):
                 progress_callback(flow_name, 0.0, f"Failed to update progress for model `{model.name}`", False)
                 return False
-            r = download_model(model, save_path, flow_name, progress_for_model, progress_callback, auth_tokens)
+            r = download_model(
+                model, save_path, save_name, flow_name, progress_for_model, progress_callback, auth_tokens
+            )
             if not r:
                 db_queries.set_model_progress_install_error(model.name, flow_name, "installation was canceled")
                 progress_callback(flow_name, 0.0, f"Model `{model.name}` installation was canceled.", False)
@@ -131,6 +133,7 @@ def install_model(
 def download_model(
     model: AIResourceModel,
     save_path: Path,
+    save_name: str,
     flow_name: str,
     progress_for_model: float,
     progress_callback: typing.Callable[[str, float, str, bool], bool],
@@ -238,7 +241,9 @@ def download_model(
                     extract_zip_with_subfolder(save_path, save_path.parent)
                     save_path.unlink(missing_ok=True)
                 else:
-                    db_queries.update_model_mtime(model.name, save_path.stat().st_mtime, flow_name)
+                    db_queries.update_model_mtime(
+                        model.name, save_path.stat().st_mtime, flow_name, new_filename=save_name
+                    )
                 db_queries.update_model_progress_install(model.name, flow_name, 100.0)
                 return True
             except (httpx.HTTPError, RuntimeError):
