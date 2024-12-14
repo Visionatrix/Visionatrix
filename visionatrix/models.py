@@ -471,7 +471,7 @@ def check_etag(response: httpx.Response, model: AIResourceModel) -> None:
     if not linked_etag:
         linked_etag = response.headers.get("X-Linked-ETag", response.headers.get("ETag", ""))
     linked_etag = linked_etag.strip('"').lower()
-    if linked_etag != model.hash and model.url.find("civitai.com/") == -1:
+    if linked_etag != model.hash and model.url.find("civitai.com/") == -1 and not model.filename.endswith(".py"):
         raise RuntimeError(f"Model hash mismatch: {linked_etag} != {model.hash}, please report this.")
 
 

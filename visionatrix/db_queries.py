@@ -513,7 +513,7 @@ def reset_model_progress_install_error(name: str, flow_name: str) -> bool:
         session.commit()
 
         if result.rowcount == 0:
-            LOGGER.warning("Failed to reset model installation error for `%s`", name)
+            LOGGER.info("Failed to reset model installation error for `%s`", name)
             return False
         return True
     except Exception:
