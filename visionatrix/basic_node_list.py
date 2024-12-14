@@ -3,10 +3,21 @@ from .pydantic_models import AIResourceModel
 BASIC_NODE_LIST = {
     "ComfyUI-Impact-Pack": {
         "main_branch": "Main",
-        "before_install": {
-            "python": "-m pip install ultralytics",
-        },
         "models": [
+            AIResourceModel(
+                name="mmdet_anime-face_yolov3",
+                filename="models/mmdet/bbox/mmdet_anime-face_yolov3.pth",
+                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/mmdet/bbox/mmdet_anime-face_yolov3.pth",
+                homepage="https://huggingface.co/Bingsu/adetailer",
+                hash="38208bb6b8a4633193feba532e96ed9a7942129af8fe948b27bfcf8e9a30a12e",
+            ),
+            AIResourceModel(
+                name="mmdet_anime-face_yolov3-config",
+                filename="models/ultralytics/bbox/mmdet_anime-face_yolov3.py",
+                url="https://huggingface.co/andrey18106/visionatrix_models/raw/main/mmdet/bbox/mmdet_anime-face_yolov3.py",
+                homepage="https://huggingface.co/Bingsu/adetailer",
+                hash="4deda4dde43497fd123d28b08bd1eaff12ab6dd5b1650de5cea41c95e812cd8c",
+            ),
             AIResourceModel(
                 name="sam_vit_b_01ec64",
                 filename="models/sams/sam_vit_b_01ec64.pth",
@@ -14,22 +25,29 @@ BASIC_NODE_LIST = {
                 homepage="https://github.com/facebookresearch/segment-anything",
                 hash="ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
             ),
+        ],
+    },
+    "ComfyUI-Impact-Subpack": {
+        "before_install": {
+            "python": "-m pip install ultralytics",
+        },
+        "models": [
             AIResourceModel(
-                name="face_yolov8m.pt",
+                name="face_yolov8m",
                 filename="models/ultralytics/bbox/face_yolov8m.pt",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/ultralytics/bbox/face_yolov8m.pt",
                 homepage="https://huggingface.co/Bingsu/adetailer",
                 hash="f02b8a23e6f12bd2c1b1f6714f66f984c728fa41ed749d033e7d6dea511ef70c",
             ),
             AIResourceModel(
-                name="hand_yolov8s.pt",
+                name="hand_yolov8s",
                 filename="models/ultralytics/bbox/hand_yolov8s.pt",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/ultralytics/bbox/hand_yolov8s.pt",
                 homepage="https://huggingface.co/Bingsu/adetailer",
                 hash="5c4faf8d17286ace2c3d3346c6d0d4a0c8d62404955263a7ae95c1dd7eb877af",
             ),
             AIResourceModel(
-                name="person_yolov8m-seg.pt",
+                name="person_yolov8m-seg",
                 filename="models/ultralytics/segm/person_yolov8m-seg.pt",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/ultralytics/segm/person_yolov8m-seg.pt",
                 homepage="https://huggingface.co/Bingsu/adetailer",

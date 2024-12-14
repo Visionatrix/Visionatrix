@@ -9,7 +9,6 @@ https://github.com/comfyanonymous/ComfyUI
 import contextlib
 import importlib.util
 import inspect
-import itertools
 import json
 import logging
 import os
@@ -159,7 +158,11 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
 
     import cuda_malloc  # noqa
 
+    # TO-DO: maybe we should do this before "import main" by setting as the args?
     process_extra_paths_configs(main.args)
+    folder_paths.set_output_directory(str(Path(options.TASKS_FILES_DIR).joinpath("output")))
+    folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
+    # =================================================================
 
     comfy_server = get_comfy_server_class(task_progress_callback)
 
@@ -168,16 +171,6 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     main.cuda_malloc_warning()
 
     main.hijack_progress(comfy_server)
-
-    folder_paths.set_output_directory(str(Path(options.TASKS_FILES_DIR).joinpath("output")))
-    folder_paths.add_model_folder_path("checkpoints", os.path.join(folder_paths.get_output_directory(), "checkpoints"))
-    folder_paths.add_model_folder_path("clip", os.path.join(folder_paths.get_output_directory(), "clip"))
-    folder_paths.add_model_folder_path("vae", os.path.join(folder_paths.get_output_directory(), "vae"))
-    folder_paths.add_model_folder_path(
-        "diffusion_models", os.path.join(folder_paths.get_output_directory(), "diffusion_models")
-    )
-    folder_paths.add_model_folder_path("loras", os.path.join(folder_paths.get_output_directory(), "loras"))
-    folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
 
     main.cleanup_temp()
     prompt_executor = get_comfy_prompt_executor(comfy_server, task_progress_callback, main.args.cache_lru)
@@ -193,14 +186,6 @@ def process_extra_paths_configs(main_args) -> None:
     if default_outside_config.is_file():
         LOGGER.info("Loading Visionatrix default extra model path config: %s", default_outside_config)
         utils.extra_config.load_extra_path_config(default_outside_config)
-
-    extra_path = Path(options.COMFYUI_DIR).joinpath("extra_model_paths.yaml")
-    if extra_path.is_file():
-        LOGGER.info("Loading ComfyUI default extra model path config: %s", default_outside_config)
-        utils.extra_config.load_extra_path_config(extra_path)
-    if main_args.extra_model_paths_config:
-        for config_path in itertools.chain(*main_args.extra_model_paths_config):
-            utils.extra_config.load_extra_path_config(config_path)
 
     if comfyui_folders_setting := get_global_setting("comfyui_folders", True):
         COMFYUI_FOLDERS_SETTING_CRC32 = crc32(comfyui_folders_setting.encode("utf-8"))
