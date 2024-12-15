@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0 - 2024-12-15]
+
+Please rename **tasks_history.db** to **visionatrix.db** before or after the update.
+
+### Added
+
+- New built-in node added: **ComfyUI-KJNodes**. #257
+- New built-in node added: **ComfyUI_LayerStyle**. #259
+- New `Flux Extend` and `Pencil Sketch` flows.
+- Support for the CivitAI API key. #258
+- `easy_install` script: ability to create `extra_model_paths.yaml` later, after installation. #262
+- Flows Developing: [GUI](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/models_catalog/) to easily add models to the **model catalog**.
+
+### Changed
+
+- Changed the default SQLite database name to **visionatrix.db** as we start storing much more data in the database.
+- Improved parallel installation of flows, model downloads, and more robust integration with the part of ComfyUI responsible for these tasks.
+
+### Fixes
+
+- Correct handling of **ctrl+c** for the "install-flow" terminal command.
+- Pinned to the latest version of ComfyUI, which fixes the `Photomaker` flow and some other issues.
+- NodeJS packages updated. #265
+
 ## [1.8.0 - 2024-11-29]
 
 This release introduces some breaking changes that are incompatible with previous versions.
