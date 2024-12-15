@@ -17,6 +17,11 @@ FORCE_DEV_VERSION = os.environ.get("DEV_VERSION", "0") == "1"
 
 
 def main_entry():
+    if auto_create_config_path := os.environ.get("AUTO_INIT_CONFIG_MODELS_DIR", ""):
+        print(f"Request to create extra model config file for `{auto_create_config_path}` detected.")
+        create_extra_models_config_file(auto_create_config_path)
+        sys.exit(0)
+
     if not INITIAL_RERUN:
         print()
         print("Greetings from Visionatrix easy install script")
@@ -94,9 +99,10 @@ def reinstall():
         venv_run("python -m pip install .")
     print("Preparing Visionatrix working instance..")
     venv_run("python -m visionatrix install")
-    create_extra_models_config_file()
     if GH_BUILD_RELEASE:
         return
+
+    create_extra_models_config_file()
 
     c = input("Installation finished. Run Visionatrix? (Y/N): ").lower()
     if c == "y":
@@ -300,38 +306,37 @@ def is_dev_version(version_str: str) -> bool:
     return bool(re.match(r"\d+\.\d+\.\d+\.dev\d+", version_str))
 
 
-def create_extra_models_config_file():
-    # Check if "extra_model_paths.yaml" file exists and ask if the user wants to create "extra_model_paths.yaml"
+def create_extra_models_config_file(models_dir=""):
     comfyui_extra_models_paths = Path("ComfyUI/extra_model_paths.yaml")
-    if Path("extra_model_paths.yaml").exists() or comfyui_extra_models_paths.exists():
-        print("Skipping creation of 'extra_model_paths.yaml' as it is already exists.")
-        return
-
-    while True:
-        if GH_BUILD_RELEASE:
-            models_dir = "VixModels"
-            break
-
-        create_extra = input('Do you want to create an "extra_model_paths.yaml" for models map? (Y/N): ').lower()
-        if create_extra != "y":
-            print("Skipping creation of 'extra_model_paths.yaml'.")
+    if not models_dir:
+        # Check if "extra_model_paths.yaml" file exists and ask if the user wants to create "extra_model_paths.yaml"
+        if Path("extra_model_paths.yaml").exists() or comfyui_extra_models_paths.exists():
+            print("Skipping creation of 'extra_model_paths.yaml' as it is already exists.")
             return
 
-        # Ask for the models directory path
-        models_dir = input("Enter the relative or absolute path to the models directory: ").strip()
-        if os.path.exists(models_dir):
-            break
-        create_dir = input(f"The directory '{models_dir}' does not exist. Do you want to create it? (Y/N): ").lower()
-        if create_dir == "y":
-            os.makedirs(models_dir, exist_ok=True)
-            print(f"Directory '{models_dir}' created.")
-            break
+        while True:
+            create_extra = input('Do you want to create an "extra_model_paths.yaml" for models map? (Y/N): ')
+            if create_extra.lower() != "y":
+                print("Skipping creation of 'extra_model_paths.yaml'.")
+                return
+
+            # Ask for the models directory path
+            models_dir = input("Enter the relative or absolute path to the models directory: ").strip()
+            if os.path.exists(models_dir):
+                break
+            create_dir = input(f"The directory '{models_dir}' does not exist. Do you want to create it? (Y/N): ")
+            if create_dir.lower() == "y":
+                os.makedirs(models_dir, exist_ok=True)
+                print(f"Directory '{models_dir}' created.")
+                break
+    else:
+        os.makedirs(models_dir, exist_ok=True)
+        print(f"Directory '{models_dir}' created.")
 
     # Replace "base_path" with the path to the models directory
     extra_model_paths_content = EXTRA_MODEL_PATHS_YAML.format(
         base_path=models_dir.replace("\\", "/")
     )
-    print(str(comfyui_extra_models_paths))
     with open(comfyui_extra_models_paths, "w") as f:
         f.write(extra_model_paths_content)
     print("'extra_model_paths.yaml' has been created in the ComfyUI directory.")
