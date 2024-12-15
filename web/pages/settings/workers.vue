@@ -118,9 +118,16 @@ if (selectedColumnsFromLocalStorage !== null) {
 	savedSelectedColumns.sort(sortColumnsOrder)
 }
 const selectedColumns = ref(savedSelectedColumns || [...columns])
+// TODO: Remove after UTable bug first column removed fix is released in nuxt/ui
+selectedColumns.value.unshift({
+	key: '',
+	label: '',
+	sortable: false,
+	class: '',
+})
 
 // watch for changes in selected columns and save to local storage
-watch(selectedColumns, (value) => {
+watch(selectedColumns, (value: any) => {
 	localStorage.setItem('selectedColumns', JSON.stringify(Object.values(columns).filter((column) => value.includes(column)).map((column) => column.key)))
 	value.sort(sortColumnsOrder)
 })
@@ -130,7 +137,7 @@ function sortColumnsOrder(a: any, b: any) {
 }
 
 const flowsStore = useFlowsStore()
-const flowsAvailableOptions = computed(() => flowsStore.flows.map((flow) => {
+const flowsAvailableOptions = computed(() => flowsStore.flows.map((flow: Flow) => {
 	return {
 		label: flow.display_name,
 		value: flow.name,
@@ -174,7 +181,7 @@ function updateSelectedTasksToGive() {
 const filterQuery = ref('')
 const rows = computed(() => workersStore.$state.workers)
 const rowsFiltered = computed(() => {
-	return rows.value.filter((row) => {
+	return rows.value.filter((row: WorkerInfo) => {
 		return Object.values(row).some((value) => {
 			return String(value).toLowerCase().includes(filterQuery.value.toLowerCase())
 		})
@@ -189,11 +196,11 @@ function getWorkerStatus(row: WorkerInfo) {
 }
 
 const selectedRows: any = ref([])
-watch(rows, (newRows) => {
+watch(rows, (newRows: WorkerInfo[]) => {
 	// restore selected rows after data is updated
 	if (selectedRows.value.length > 0) {
 		const selectedRowsIds = selectedRows.value.map((row: WorkerInfo) => row.id)
-		selectedRows.value = newRows.filter((row) => selectedRowsIds.includes(row.id))
+		selectedRows.value = newRows.filter((row: WorkerInfo) => selectedRowsIds.includes(row.id))
 	}
 })
 </script>
@@ -216,7 +223,7 @@ watch(rows, (newRows) => {
 					<div v-if="selectedRows.length >= 1" class="flex flex-col md:flex-row items-center">
 						<USelectMenu
 							v-model="tasksToGive"
-							class="mr-3 my-3 lg:mx-3 lg:my-0 w-full max-w-64"
+							class="mr-3 my-3 lg:mx-3 lg:my-0 w-full max-w-64 min-w-64"
 							:options="flowsAvailableOptions"
 							multiple>
 							<template #label>
