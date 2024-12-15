@@ -53,7 +53,7 @@ jobs:
           else
             ./python_embeded/python.exe easy_install.py
           fi
-          AUTO_INIT_CONFIG_MODELS_DIR="VixModels" ./python_embeded/python.exe easy_install.py
+          AUTO_INIT_CONFIG_MODELS_DIR="VixModels" ./python_embeded/python.exe ../scripts/easy_install.py
           rm -rf Visionatrix visionatrix.db
           ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
@@ -61,6 +61,7 @@ jobs:
           COMPUTE_DEVICE: "CPU"
 
       - name: Listing archive content
+        if: ${{ always() }}
         shell: bash
         run: |
           echo "Listing contents of the 'vix_portable' directory:"
