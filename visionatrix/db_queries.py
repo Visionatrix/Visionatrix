@@ -436,7 +436,7 @@ def add_model_progress_install(name: str, flow_name: str, filename: str | None =
         session.close()
 
 
-def update_model_progress_install(name: str, flow_name: str, progress: float) -> bool:
+def update_model_progress_install(name: str, flow_name: str, progress: float, not_critical=False) -> bool:
     session = database.SESSION()
     try:
         stmt = (
@@ -452,7 +452,8 @@ def update_model_progress_install(name: str, flow_name: str, progress: float) ->
         session.commit()
 
         if result.rowcount == 0:
-            LOGGER.warning(
+            LOGGER.log(
+                logging.INFO if not_critical else logging.ERROR,
                 "Model installation progress not updated for `%s`. Either it doesn't exist or already has an error.",
                 name,
             )
