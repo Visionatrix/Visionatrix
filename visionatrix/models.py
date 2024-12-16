@@ -396,7 +396,7 @@ def check_model_file(
                 if not db_queries.add_model_progress_install(model.name, flow_name, model_filename):
                     db_queries.reset_model_progress_install_error(model.name, flow_name)
             db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime, new_filename=model_filename)
-            db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+            db_queries.update_model_progress_install(model.name, flow_name, 100.0, not_critical=True)
             return True
     return False
 
@@ -447,7 +447,7 @@ def lookup_for_model_file_in_directory(
                             flow_name,
                             new_filename=model_filename,
                         )
-                        db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+                        db_queries.update_model_progress_install(model.name, flow_name, 100.0, not_critical=True)
                         return True
     return False
 

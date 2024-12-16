@@ -19,6 +19,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     create_engine,
+    text,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -174,11 +175,22 @@ def init_database_engine() -> None:
     if database_uri.startswith("sqlite:"):
         connect_args = {
             "check_same_thread": False,
-            "timeout": 5,
+            "timeout": 10,
         }
         if database_uri.startswith("sqlite:///."):
             database_uri = f"sqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[10:]))}"
+
     engine = create_engine(database_uri, connect_args=connect_args)
+
+    if database_uri.startswith("sqlite:"):
+        with engine.connect() as connection:
+            current_mode = connection.execute(text("PRAGMA journal_mode;")).scalar()
+            if current_mode.lower() != "wal":
+                new_mode = connection.execute(text("PRAGMA journal_mode=WAL;")).scalar()
+                if new_mode.lower() != "wal":
+                    raise RuntimeError("Failed to set SQLite journal mode to WAL.")
+                LOGGER.info("SQLite journal mode set to WAL.")
+
     SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
     run_db_migrations(database_uri)
     if options.VIX_MODE == "SERVER":
