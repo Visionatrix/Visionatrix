@@ -168,4 +168,5 @@ BASIC_NODE_LIST = {
     },
     "ComfyUI-KJNodes": {},
     "ComfyUI_LayerStyle": {},
+    "ComfyUI-Easy-Use": {},
 }
