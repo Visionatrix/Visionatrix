@@ -172,7 +172,10 @@ def init_database_engine() -> None:
     connect_args = {}
     database_uri = options.DATABASE_URI
     if database_uri.startswith("sqlite:"):
-        connect_args = {"check_same_thread": False}
+        connect_args = {
+            "check_same_thread": False,
+            "timeout": 5,
+        }
         if database_uri.startswith("sqlite:///."):
             database_uri = f"sqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[10:]))}"
     engine = create_engine(database_uri, connect_args=connect_args)
