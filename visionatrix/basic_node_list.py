@@ -20,10 +20,10 @@ BASIC_NODE_LIST = {
             ),
             AIResourceModel(
                 name="sam_vit_b_01ec64",
-                filename="models/sams/sam_vit_b_01ec64.pth",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/sams/sam_vit_b_01ec64.pth",
                 homepage="https://github.com/facebookresearch/segment-anything",
                 hash="ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
+                types=["sams"],
             ),
         ],
     },
