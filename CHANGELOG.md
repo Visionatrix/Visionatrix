@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.9.0 - 2024-12-15]
+## [1.9.0 - 2024-12-17]
 
 Please rename **tasks_history.db** to **visionatrix.db** before or after the update.
 
@@ -10,6 +10,7 @@ Please rename **tasks_history.db** to **visionatrix.db** before or after the upd
 
 - New built-in node added: **ComfyUI-KJNodes**. #257
 - New built-in node added: **ComfyUI_LayerStyle**. #259
+- New built-in node added: **ComfyUI-Easy-Use**. #270
 - New `Flux Extend` and `Pencil Sketch` flows.
 - Support for the CivitAI API key. #258
 - `easy_install` script: ability to create `extra_model_paths.yaml` later, after installation. #262
@@ -17,14 +18,16 @@ Please rename **tasks_history.db** to **visionatrix.db** before or after the upd
 
 ### Changed
 
-- Changed the default SQLite database name to **visionatrix.db** as we start storing much more data in the database.
+- Changed the default **SQLite** database name to **visionatrix.db** as we start storing much more data in the database.
 - Improved parallel installation of flows, model downloads, and more robust integration with the part of ComfyUI responsible for these tasks.
 
 ### Fixes
 
+- `Database is locked` error for **SQLite** database. #269
 - Correct handling of **ctrl+c** for the "install-flow" terminal command.
 - Pinned to the latest version of ComfyUI, which fixes the `Photomaker` flow and some other issues.
-- NodeJS packages updated. #265
+- UI: `Worker` with invalid status `offline` when it should be `online`.
+- UI: Updated Node.js packages. #265
 
 ## [1.8.0 - 2024-11-29]
 
