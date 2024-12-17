@@ -86,6 +86,8 @@ def autoconfigure_model_folders(models_dir: str) -> list[ComfyUIFolderPathDefini
         "sams": "sams",
         "style_models": "style_models",
         "ultralytics": "ultralytics",
+        "ultralytics_bbox": "ultralytics/bbox",
+        "ultralytics_segm": "ultralytics/segm",
         "unet": "unet",
         "upscale_models": "upscale_models",
         "vae": "vae",

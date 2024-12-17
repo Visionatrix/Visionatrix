@@ -361,6 +361,8 @@ vix_models:
   sams: sams
   style_models: style_models
   ultralytics: ultralytics
+  ultralytics_bbox: ultralytics/bbox
+  ultralytics_segm: ultralytics/segm
   upscale_models: upscale_models
   vae: vae
   vae_approx: vae_approx
