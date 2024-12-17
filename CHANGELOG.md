@@ -26,6 +26,8 @@ Please rename **tasks_history.db** to **visionatrix.db** before or after the upd
 - `Database is locked` error for **SQLite** database. #269
 - Correct handling of **ctrl+c** for the "install-flow" terminal command.
 - Pinned to the latest version of ComfyUI, which fixes the `Photomaker` flow and some other issues.
+- Added correct path mappings to `ultralytics_bbox` and `ultralytics_segm` models folders. #273
+- Added correct path mappings to `sams` models folder with fix in `comfyui-art-venture` node. #272
 - UI: `Worker` with invalid status `offline` when it should be `online`.
 - UI: Updated Node.js packages. #265
 
