@@ -409,6 +409,25 @@ def delete_old_model_progress_install(name: str) -> bool:
         session.close()
 
 
+def delete_model_by_time_and_filename(mtime: float, file_name: str) -> bool:
+    session = database.SESSION()
+    try:
+        stmt = (
+            delete(database.ModelsInstallStatus)
+            .where(database.ModelsInstallStatus.file_mtime == mtime)
+            .where(database.ModelsInstallStatus.filename.like(f"%{file_name}"))
+        )
+        result = session.execute(stmt)
+        session.commit()
+        return result.rowcount > 0
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to delete model by mtime `%s` and filename `%s`", mtime, file_name)
+        raise
+    finally:
+        session.close()
+
+
 def add_model_progress_install(name: str, flow_name: str, filename: str | None = None) -> datetime | None:
     session = database.SESSION()
     try:
