@@ -396,15 +396,107 @@
         "operationId": "get_orphan_models",
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "List of orphaned models retrieved successfully.",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/OrphanModel"
                   },
-                  "type": "array",
                   "title": "Response Get Orphan Models"
+                },
+                "example": [
+                  {
+                    "path": "models/example_model.ckpt",
+                    "full_path": "/absolute/path/to/models/example_model.ckpt",
+                    "size": 512.3,
+                    "creation_time": 1695724800.0,
+                    "possible_flows": []
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Ongoing installation prevents orphan model detection.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Cannot run orphan models detection during ongoing installations."
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Delete Orphan Model",
+        "description": "Deletes a specified orphaned model file.\n\nThis endpoint removes an orphaned model if:\n- There are no ongoing model or flow installations.\n- The specified `full_path` and `file_creation_time` correspond to an orphaned model.\n\nAccess to this endpoint is restricted to administrators.",
+        "operationId": "delete_orphan_model",
+        "parameters": [
+          {
+            "name": "full_orphan_path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Full Orphan Path"
+            }
+          },
+          {
+            "name": "file_creation_time",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "File Creation Time"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Orphaned model successfully deleted."
+          },
+          "400": {
+            "description": "Invalid input or ongoing installations prevent deletion.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Cannot delete orphan models during ongoing installations."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found at the specified path.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "File not found at path: /absolute/path/to/models/example_model.ckpt"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during deletion.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Failed to delete orphan model: Unknown error occurred."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2787,6 +2879,11 @@
             "title": "Path",
             "description": "The relative path of the orphaned model file within 'models_dir' directory."
           },
+          "full_path": {
+            "type": "string",
+            "title": "Full Path",
+            "description": "Full path to the orphaned model file."
+          },
           "size": {
             "type": "number",
             "title": "Size",
@@ -2821,6 +2918,7 @@
         "type": "object",
         "required": [
           "path",
+          "full_path",
           "size",
           "creation_time"
         ],
@@ -3802,7 +3900,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-19T06:46:57.326882Z"
+            "default": "2024-12-19T08:14:04.612674Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

@@ -381,6 +381,7 @@ class OrphanModel(BaseModel):
     """
 
     path: str = Field(..., description="The relative path of the orphaned model file within 'models_dir' directory.")
+    full_path: str = Field(..., description="Full path to the orphaned model file.")
     size: float = Field(..., description="Size of the orphaned file in megabytes.")
     creation_time: float = Field(..., description="The file's creation time in UNIX timestamp format.")
     res_model: AIResourceModel | None = Field(None, description="AIResourceModel describing the file, if any matches.")

@@ -1,12 +1,15 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 
-from . import options
+from . import db_queries, options
 from .basic_node_list import BASIC_NODE_LIST
 from .comfyui_wrapper import get_folder_names_and_paths
 from .flows import get_available_flows, get_installed_flows
 from .models_map import get_formatted_models_catalog, get_possible_final_paths_for_model
 from .pydantic_models import OrphanModel
+
+LOGGER = logging.getLogger("visionatrix")
 
 
 def get_orphan_models() -> list[OrphanModel]:
@@ -72,9 +75,11 @@ def get_orphan_models() -> list[OrphanModel]:
                         size_in_mb = file_path.stat().st_size / (1024 * 1024)
                         creation_time = file_path.stat().st_ctime
                         used_in_flows = models_to_flows_map.get(str_file_path, [])
+
                         orphan_models.add(
                             OrphanModel(
                                 path=str(file_path),
+                                full_path=str(Path(file_path).resolve()),
                                 size=size_in_mb,
                                 creation_time=creation_time,
                                 res_model=all_known_models.get(str_file_path),
@@ -84,7 +89,21 @@ def get_orphan_models() -> list[OrphanModel]:
     return list(orphan_models)
 
 
-def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool):
+def remove_orphan_model(orphan_path: str) -> bool:
+    orphan_file = Path(orphan_path)
+    orphan_filename = orphan_file.name
+    file_st_ctime = orphan_file.stat().st_ctime
+    orphan_file.unlink()
+    r = db_queries.delete_model_by_time_and_filename(file_st_ctime, orphan_filename)
+    LOGGER.debug("Database removal result for orphan model '%s': %s", orphan_filename, r)
+    return bool(r)
+
+
+def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool) -> None:
+    if db_queries.models_installation_in_progress():
+        print("Some models have the status of being installed. Repeat the request in 3 minutes.")
+        return
+
     orphan_models = get_orphan_models()
     if not include_useful_models:
         orphan_models = [model for model in orphan_models if not model.possible_flows]
@@ -104,16 +123,16 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
     for orphan in orphan_models:
         creation_time_utc = datetime.utcfromtimestamp(orphan.creation_time).strftime("%Y-%m-%d %H:%M")
         print(f"- {orphan.path} ({orphan.size/1024:.2f} GB)")
+        print(f"    Full file path: {orphan.full_path}")
         print(f"    File creation time(UTC): {creation_time_utc}")
         if include_useful_models:
             print(f"    Can be used in flows: {[i.name for i in orphan.possible_flows]}")
 
         if dry_run:
             continue
-        file_to_remove = Path(orphan.path)
         if no_confirm:
             try:
-                file_to_remove.unlink()
+                remove_orphan_model(orphan.path)
                 print(f"Deleted: {orphan.path}")
             except Exception as e:
                 print(f"Error deleting {orphan.path}: {e}")
@@ -121,7 +140,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
             user_input = input(f"Delete {orphan.path}? (y/Y to confirm, any other key to skip): ").lower()
             if user_input == "y":
                 try:
-                    file_to_remove.unlink()
+                    remove_orphan_model(orphan.path)
                     print(f"Deleted: {orphan.path}")
                 except Exception as e:
                     print(f"Error deleting {orphan.path}: {e}")
