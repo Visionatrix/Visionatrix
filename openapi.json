@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.9.0"
+    "version": "1.10.0.dev0"
   },
   "paths": {
     "/vapi/flows/installed": {
@@ -369,6 +369,161 @@
               "application/json": {
                 "example": {
                   "detail": "Can't find `flow_name`."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/models/orphan": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Get Orphan Models",
+        "description": "Retrieves a list of orphaned AI model files not associated with any installed flow.\n\nOrphaned models are files found in ComfyUI's model directories that are not required\nby installed flows. This endpoint provides metadata for each orphaned model,\nincluding file path, size, and potential usage in flows.\n\nAccess to this endpoint is restricted to administrators.",
+        "operationId": "get_orphan_models",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrphanModel"
+                  },
+                  "type": "array",
+                  "title": "Response Get Orphan Models"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/interrupt-engine": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Interrupt Engine",
+        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
+        "operationId": "interrupt_engine",
+        "responses": {
+          "204": {
+            "description": "Engine interrupt initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/shutdown-server": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Shutdown Server",
+        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
+        "operationId": "shutdown_server",
+        "responses": {
+          "204": {
+            "description": "Server shutdown initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/whoami": {
+      "get": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Whoami",
+        "description": "Returns information about the currently authenticated user.",
+        "operationId": "whoami",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/translate-prompt": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Translate Prompt",
+        "description": "Translates an image generation prompt from another language into English.\n\nThis endpoint accepts a prompt in any language and translates it into English.\nIt returns the original prompt, the translated result, and the reason the generation was completed.\n\nAccessible to all authenticated users.\n\nRaises:\n    HTTPException: If there is an error during the translation process.",
+        "operationId": "translate_prompt",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslatePromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Translation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslatePromptResponse"
+                },
+                "example": {
+                  "prompt": "Dornr\u00f6schen",
+                  "result": "Sleeping Beauty",
+                  "done_reason": "stop"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Translation service error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Translation service error"
                 }
               }
             }
@@ -1893,135 +2048,6 @@
           }
         }
       }
-    },
-    "/vapi/other/interrupt-engine": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Interrupt Engine",
-        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
-        "operationId": "interrupt_engine",
-        "responses": {
-          "204": {
-            "description": "Engine interrupt initiated successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Admin privilege required",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Admin privilege required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/shutdown-server": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Shutdown Server",
-        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
-        "operationId": "shutdown_server",
-        "responses": {
-          "204": {
-            "description": "Server shutdown initiated successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Admin privilege required",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Admin privilege required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/whoami": {
-      "get": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Whoami",
-        "description": "Returns information about the currently authenticated user.",
-        "operationId": "whoami",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/translate-prompt": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Translate Prompt",
-        "description": "Translates an image generation prompt from another language into English.\n\nThis endpoint accepts a prompt in any language and translates it into English.\nIt returns the original prompt, the translated result, and the reason the generation was completed.\n\nAccessible to all authenticated users.\n\nRaises:\n    HTTPException: If there is an error during the translation process.",
-        "operationId": "translate_prompt",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TranslatePromptRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Translation successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TranslatePromptResponse"
-                },
-                "example": {
-                  "prompt": "Dornr\u00f6schen",
-                  "result": "Sleeping Beauty",
-                  "done_reason": "stop"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Translation service error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Translation service error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -2753,6 +2779,53 @@
         ],
         "title": "NodeProfiling",
         "description": "Represents profiling information for a single node in the workflow."
+      },
+      "OrphanModel": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "The relative path of the orphaned model file within 'models_dir' directory."
+          },
+          "size": {
+            "type": "number",
+            "title": "Size",
+            "description": "Size of the orphaned file in megabytes."
+          },
+          "creation_time": {
+            "type": "number",
+            "title": "Creation Time",
+            "description": "The file's creation time in UNIX timestamp format."
+          },
+          "res_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AIResourceModel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "AIResourceModel describing the file, if any matches."
+          },
+          "possible_flows": {
+            "items": {
+              "$ref": "#/components/schemas/Flow"
+            },
+            "type": "array",
+            "title": "Possible Flows",
+            "description": "List of possible flows that could potentially use this model.",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "size",
+          "creation_time"
+        ],
+        "title": "OrphanModel",
+        "description": "Represents an orphaned model file that is not associated with any currently installed flow.\n\nThis model provides detailed information about the orphaned file, including its\nsize, potential usage in flows, and any matching AIResourceModel, if available."
       },
       "SubFlow": {
         "properties": {
@@ -3729,7 +3802,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-15T08:38:49.120669Z"
+            "default": "2024-12-19T06:46:57.326882Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
