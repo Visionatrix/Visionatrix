@@ -2887,12 +2887,12 @@
           "size": {
             "type": "number",
             "title": "Size",
-            "description": "Size of the orphaned file in megabytes."
+            "description": "Size of the orphaned model file in bytes."
           },
           "creation_time": {
             "type": "number",
             "title": "Creation Time",
-            "description": "The file's creation time in UNIX timestamp format."
+            "description": "The file's creation time in seconds."
           },
           "res_model": {
             "anyOf": [
@@ -3900,7 +3900,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-19T08:14:04.612674Z"
+            "default": "2024-12-20T16:32:48.121085Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

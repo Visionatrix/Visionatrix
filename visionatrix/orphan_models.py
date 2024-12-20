@@ -72,7 +72,8 @@ def get_orphan_models() -> list[OrphanModel]:
                         continue
                     str_file_path = str(file_path)
                     if str_file_path not in required_models and not str_file_path.startswith(custom_nodes_path):
-                        size_in_mb = file_path.stat().st_size / (1024 * 1024)
+                        file_path = Path(file_path)
+                        size_in_mb = file_path.stat().st_size
                         creation_time = file_path.stat().st_ctime
                         used_in_flows = models_to_flows_map.get(str_file_path, [])
 
@@ -113,7 +114,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
         total_size += i.size
 
     print(f"Total count of orphan models: {len(orphan_models)}")
-    print(f"Total size of orphaned models: {total_size/1024:.2f} GB")
+    print(f"Total size of orphaned models: {total_size/1024**3:.2f} GB")
 
     if dry_run:
         print("\nDry Run Mode: The following files would be deleted:")
@@ -122,7 +123,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
 
     for orphan in orphan_models:
         creation_time_utc = datetime.utcfromtimestamp(orphan.creation_time).strftime("%Y-%m-%d %H:%M")
-        print(f"- {orphan.path} ({orphan.size/1024:.2f} GB)")
+        print(f"- {orphan.path} ({orphan.size/1024**3:.2f} GB)")
         print(f"    Full file path: {orphan.full_path}")
         print(f"    File creation time(UTC): {creation_time_utc}")
         if include_useful_models:
