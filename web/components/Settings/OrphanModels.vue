@@ -88,7 +88,8 @@ const deletingOrphanModel = ref<boolean>(false)
 				{{ row.creation_time ? new Date(row.creation_time * 1000).toLocaleString() : '-' }}
 			</template>
 			<template #res_model-data="{ row }">
-				<a :href="row.res_model.homepage" target="_blank" class="text-blue-500">{{ row.res_model.name }}</a>
+				<a v-if="row.res_model" :href="row.res_model.homepage" target="_blank" class="text-blue-500">{{ row.res_model.name }}</a>
+				<span v-else>-</span>
 			</template>
 			<template #possible_flows-data="{ row }">
 				<UPopover>
