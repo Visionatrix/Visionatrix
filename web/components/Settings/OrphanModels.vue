@@ -13,7 +13,7 @@ function fetchOrphanModels() {
 }
 
 const columns = [
-	{ key: 'path', label: 'Path', sortable: true, class: '' },
+	{ key: '', label: '', sortable: false, class: '', }, // TODO: Remove after UTable bug fixed
 	{ key: 'full_path', label: 'Path', sortable: true, class: '' },
 	{ key: 'size', label: 'Size', sortable: true, class: '' },
 	{ key: 'creation_time', label: 'Created time', sortable: true, class: '' },
@@ -48,7 +48,7 @@ const deletingOrphanModel = ref<boolean>(false)
 <template>
 	<div class="orphan-models">
 		<h3 class="text-md font-bold">
-			Orphan models <span v-if="orphanModelsList.length > 0" class="text-red-500">({{ orphanModelsList.length }}, {{ formatBytes(orphanModelsList.reduce((acc, model) => acc + model.size, 0)) }})</span>
+			Orphan models <span v-if="orphanModelsList.length > 0" class="text-red-500">({{ orphanModelsList.length }} - {{ formatBytes(orphanModelsList.reduce((acc, model) => acc + model.size, 0)) }})</span>
 		</h3>
 		<p class="text-gray-500 text-sm">
 			Orphan models are models that are not associated with any model type.
@@ -72,12 +72,13 @@ const deletingOrphanModel = ref<boolean>(false)
 		<UTable
 			v-if="orphanModelsList.length > 0"
 			v-model="selectedRows"
+			class="mt-5"
+			:ui="{
+				thead: 'sticky top-0 dark:bg-gray-800 bg-white z-10',
+			}"
 			:rows="orphanModelsList"
 			:columns="columns"
 			style="max-height: 40vh;">
-			<template #path-data="{ row }">
-				{{ row.path }}
-			</template>
 			<template #full_path-data="{ row }">
 				{{ row.full_path }}
 			</template>
