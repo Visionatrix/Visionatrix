@@ -75,6 +75,22 @@ const copyPromptInputs = function (inputs: any[]) {
 }
 
 const userStore = useUserStore()
+
+const installedModelsSize = computed(() => {
+	return flowStore.currentFlow?.models.filter((model) => model.installed).reduce((acc, model: Model) => acc + model?.file_size || 0, 0)
+})
+const totalModelsSize = computed(() => {
+	return flowStore.currentFlow?.models.reduce((acc, model: Model) => acc + model?.file_size || 0, 0)
+})
+const modelsSize = computed(() => {
+	if (!installedModelsSize.value && !totalModelsSize.value) {
+		return ''
+	}
+	if (installedModelsSize.value === totalModelsSize.value) {
+		return ` - ${formatBytes(totalModelsSize.value)}`
+	}
+	return ` - ${formatBytes(installedModelsSize.value)} / ${formatBytes(totalModelsSize.value)}`
+})
 </script>
 
 <template>
@@ -156,7 +172,11 @@ const userStore = useUserStore()
 								v-if="flowStore.currentFlow?.models?.length > 0"
 								class="flex flex-row flex-wrap items-center text-md mb-2">
 								<UIcon name="i-heroicons-arrow-down-on-square-stack" class="mr-1" />
-								<b>Models ({{ flowStore.currentFlow?.models.length }} - {{ formatBytes(flowStore.currentFlow?.models.reduce((acc, model: Model) => acc + model?.file_size || 0, 0)) }}):</b>&nbsp;
+								<UTooltip
+									:text="totalModelsSize - installedModelsSize > 0 ? `${formatBytes(totalModelsSize - installedModelsSize)} to download` : 'All models installed'"
+									:popper="{ placement: 'top' }">
+									<b>Models ({{ flowStore.currentFlow?.models.length }}{{ modelsSize }}):</b>&nbsp;
+								</UTooltip>
 								<UBadge
 									v-for="model in flowStore.currentFlow?.models"
 									:key="model.name"
