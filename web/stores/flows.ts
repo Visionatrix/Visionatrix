@@ -1009,6 +1009,8 @@ export interface Model {
 	homepage: string
 	hash: string
 	gated: boolean
+	file_size: number
+	installed: boolean
 }
 
 export interface FlowInputParam {

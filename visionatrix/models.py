@@ -14,7 +14,7 @@ from fastapi import status
 
 from . import db_queries, options
 from .models_map import get_possible_paths_for_model
-from .pydantic_models import AIResourceModel, ModelProgressInstall
+from .pydantic_models import AIResourceModel, Flow, ModelProgressInstall
 
 DOWNLOAD_RETRY_COUNT = 3
 LOGGER = logging.getLogger("visionatrix")
@@ -480,3 +480,11 @@ def server_mode_ensure_model_exists(save_path: Path) -> None:
         return
     with builtins.open(save_path, "w", encoding="UTF-8") as file:
         file.write("SERVER MODE")
+
+
+def fill_installed_flag(flows: dict[str, Flow]) -> dict[str, Flow]:
+    installed_models = db_queries.get_installed_models()
+    for flow in flows.values():
+        for model in flow.models:
+            model.installed = model.name in installed_models
+    return flows
