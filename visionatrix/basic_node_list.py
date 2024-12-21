@@ -83,18 +83,6 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "ComfyUI-BRIA_AI-RMBG": {
-        "models": [
-            AIResourceModel(
-                name="RMGB-1.4",
-                filename="custom_nodes/ComfyUI-BRIA_AI-RMBG/RMBG-1.4/model.pth",
-                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/RMBG-1.4/model.pth",
-                homepage="https://huggingface.co/briaai/RMBG-1.4",
-                hash="893c16c340b1ddafc93e78457a4d94190da9b7179149f8574284c83caebf5e8c",
-                file_size=176718373,
-            ),
-        ],
-    },
     "ComfyUI-BiRefNet": {
         "models": [
             AIResourceModel(

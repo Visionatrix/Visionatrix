@@ -367,6 +367,7 @@ vix_models:
   vae: vae
   vae_approx: vae_approx
   pulid: pulid
+  rmbg: rmbg
 """
 
 
