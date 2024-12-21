@@ -180,6 +180,8 @@ def process_flow_models(
     nodes_class_mappings = get_node_class_mappings()
 
     models_catalog = get_models_catalog()
+    simple_model_load_classes = get_simple_model_load_classes(models_catalog)
+
     models_info: list[AIResourceModel] = []
     for node_details in flow_comfy.values():
         class_type = node_details.get("class_type")
@@ -190,6 +192,21 @@ def process_flow_models(
             for node_model_info in models_from_nodes:
                 if node_model_info.name not in [i.name for i in models_info]:
                     models_info.append(node_model_info)
+
+        simple_loader = False
+        for i, v in simple_model_load_classes.items():
+            if re.match(i, class_type) is not None:
+                simple_loader_class_model_name = v
+                if simple_loader_class_model_name not in [i.name for i in models_info]:
+                    models_info.append(
+                        AIResourceModel(
+                            **models_catalog[simple_loader_class_model_name],
+                            name=simple_loader_class_model_name,
+                        )
+                    )
+                simple_loader = True
+        if simple_loader:
+            continue
 
         if (load_class := MODEL_LOAD_CLASSES.get(class_type)) is None:
             continue
@@ -340,3 +357,25 @@ def get_possible_final_paths_for_model(model: AIResourceModel) -> list[Path]:
             r.append(x.joinpath(alternative_model_filename))
         return r
     return [x.joinpath(y) for x, y in get_possible_paths_for_model(model)]
+
+
+def get_simple_model_load_classes(models_catalog: dict[str, dict]) -> dict[str, str]:
+    """
+    There are classes of nodes that are tightly tied to models, without the ability to change or select them.
+    In the model catalog such records only have a "class_name" without an "input_value" or "input_name".
+
+    Returns a dictionary with regular expressions to determine by "class_type" whether the node is a simple loader.
+    """
+    simple_load_classes = {}
+    for model_name, model_details in models_catalog.items():
+        if "regexes" in model_details:
+            simple_loader = True
+            for i in model_details["regexes"]:
+                if len(i.keys()) != 1 or "class_name" not in i:
+                    simple_loader = False
+                    break
+            if not simple_loader:
+                continue
+            for i in model_details["regexes"]:
+                simple_load_classes[i["class_name"]] = model_name
+    return simple_load_classes
