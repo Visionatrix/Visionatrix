@@ -91,11 +91,12 @@ def custom_generate_unique_id(route: APIRoute):
 APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
 API_ROUTER = APIRouter(prefix="/vapi")  # if you change the prefix, also change it in custom_openapi.py
 API_ROUTER.include_router(routes.flows.ROUTER)
+API_ROUTER.include_router(routes.models.ROUTER)
+API_ROUTER.include_router(routes.other.ROUTER)
 API_ROUTER.include_router(routes.settings.ROUTER)
 API_ROUTER.include_router(routes.settings_comfyui.ROUTER)
 API_ROUTER.include_router(routes.tasks.ROUTER)
 API_ROUTER.include_router(routes.workers.ROUTER)
-API_ROUTER.include_router(routes.other.ROUTER)
 APP.include_router(API_ROUTER)
 APP.add_middleware(VixAuthMiddleware)
 if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):

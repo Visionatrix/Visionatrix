@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.9.0"
+    "version": "1.10.0.dev0"
   },
   "paths": {
     "/vapi/flows/installed": {
@@ -369,6 +369,253 @@
               "application/json": {
                 "example": {
                   "detail": "Can't find `flow_name`."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/models/orphan": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Get Orphan Models",
+        "description": "Retrieves a list of orphaned AI model files not associated with any installed flow.\n\nOrphaned models are files found in ComfyUI's model directories that are not required\nby installed flows. This endpoint provides metadata for each orphaned model,\nincluding file path, size, and potential usage in flows.\n\nAccess to this endpoint is restricted to administrators.",
+        "operationId": "get_orphan_models",
+        "responses": {
+          "200": {
+            "description": "List of orphaned models retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrphanModel"
+                  },
+                  "title": "Response Get Orphan Models"
+                },
+                "example": [
+                  {
+                    "path": "models/example_model.ckpt",
+                    "full_path": "/absolute/path/to/models/example_model.ckpt",
+                    "size": 512.3,
+                    "creation_time": 1695724800.0,
+                    "possible_flows": []
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Ongoing installation prevents orphan model detection.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Cannot run orphan models detection during ongoing installations."
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Delete Orphan Model",
+        "description": "Deletes a specified orphaned model file.\n\nThis endpoint removes an orphaned model if:\n- There are no ongoing model or flow installations.\n- The specified `full_path` and `file_creation_time` correspond to an orphaned model.\n\nAccess to this endpoint is restricted to administrators.",
+        "operationId": "delete_orphan_model",
+        "parameters": [
+          {
+            "name": "full_orphan_path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Full Orphan Path"
+            }
+          },
+          {
+            "name": "file_creation_time",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "File Creation Time"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Orphaned model successfully deleted."
+          },
+          "400": {
+            "description": "Invalid input or ongoing installations prevent deletion.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Cannot delete orphan models during ongoing installations."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found at the specified path.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "File not found at path: /absolute/path/to/models/example_model.ckpt"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during deletion.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Failed to delete orphan model: Unknown error occurred."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/interrupt-engine": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Interrupt Engine",
+        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
+        "operationId": "interrupt_engine",
+        "responses": {
+          "204": {
+            "description": "Engine interrupt initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/shutdown-server": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Shutdown Server",
+        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
+        "operationId": "shutdown_server",
+        "responses": {
+          "204": {
+            "description": "Server shutdown initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/whoami": {
+      "get": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Whoami",
+        "description": "Returns information about the currently authenticated user.",
+        "operationId": "whoami",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/translate-prompt": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Translate Prompt",
+        "description": "Translates an image generation prompt from another language into English.\n\nThis endpoint accepts a prompt in any language and translates it into English.\nIt returns the original prompt, the translated result, and the reason the generation was completed.\n\nAccessible to all authenticated users.\n\nRaises:\n    HTTPException: If there is an error during the translation process.",
+        "operationId": "translate_prompt",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslatePromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Translation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslatePromptResponse"
+                },
+                "example": {
+                  "prompt": "Dornr\u00f6schen",
+                  "result": "Sleeping Beauty",
+                  "done_reason": "stop"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Translation service error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Translation service error"
                 }
               }
             }
@@ -1893,135 +2140,6 @@
           }
         }
       }
-    },
-    "/vapi/other/interrupt-engine": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Interrupt Engine",
-        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
-        "operationId": "interrupt_engine",
-        "responses": {
-          "204": {
-            "description": "Engine interrupt initiated successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Admin privilege required",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Admin privilege required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/shutdown-server": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Shutdown Server",
-        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
-        "operationId": "shutdown_server",
-        "responses": {
-          "204": {
-            "description": "Server shutdown initiated successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Admin privilege required",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Admin privilege required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/whoami": {
-      "get": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Whoami",
-        "description": "Returns information about the currently authenticated user.",
-        "operationId": "whoami",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/translate-prompt": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Translate Prompt",
-        "description": "Translates an image generation prompt from another language into English.\n\nThis endpoint accepts a prompt in any language and translates it into English.\nIt returns the original prompt, the translated result, and the reason the generation was completed.\n\nAccessible to all authenticated users.\n\nRaises:\n    HTTPException: If there is an error during the translation process.",
-        "operationId": "translate_prompt",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TranslatePromptRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Translation successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TranslatePromptResponse"
-                },
-                "example": {
-                  "prompt": "Dornr\u00f6schen",
-                  "result": "Sleeping Beauty",
-                  "done_reason": "stop"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Translation service error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Translation service error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -2753,6 +2871,59 @@
         ],
         "title": "NodeProfiling",
         "description": "Represents profiling information for a single node in the workflow."
+      },
+      "OrphanModel": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "The relative path of the orphaned model file within 'models_dir' directory."
+          },
+          "full_path": {
+            "type": "string",
+            "title": "Full Path",
+            "description": "Full path to the orphaned model file."
+          },
+          "size": {
+            "type": "number",
+            "title": "Size",
+            "description": "Size of the orphaned model file in bytes."
+          },
+          "creation_time": {
+            "type": "number",
+            "title": "Creation Time",
+            "description": "The file's creation time in seconds."
+          },
+          "res_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AIResourceModel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "AIResourceModel describing the file, if any matches."
+          },
+          "possible_flows": {
+            "items": {
+              "$ref": "#/components/schemas/Flow"
+            },
+            "type": "array",
+            "title": "Possible Flows",
+            "description": "List of possible flows that could potentially use this model.",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "full_path",
+          "size",
+          "creation_time"
+        ],
+        "title": "OrphanModel",
+        "description": "Represents an orphaned model file that is not associated with any currently installed flow.\n\nThis model provides detailed information about the orphaned file, including its\nsize, potential usage in flows, and any matching AIResourceModel, if available."
       },
       "SubFlow": {
         "properties": {
@@ -3729,7 +3900,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-15T08:38:49.120669Z"
+            "default": "2024-12-20T16:32:48.121085Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

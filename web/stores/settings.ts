@@ -245,6 +245,23 @@ export const useSettingsStore = defineStore('settingsStore', {
 				},
 			})
 		},
+
+		getOrphanModelsList() {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/models/orphan', {
+				method: 'GET',
+			}).then((res: any) => {
+				console.debug('[DEBUG] Orphan models:', res)
+				return res
+			})
+		},
+
+		deleteOrphanModel(full_path: string, creation_time: number) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch(`/models/orphan?full_orphan_path=${full_path}&file_creation_time=${creation_time}`, {
+				method: 'DELETE',
+			})
+		},
 	},
 })
 
@@ -274,4 +291,34 @@ export interface ComfyUiFolder {
 
 export interface ComfyUiFolderListing {
 	[key: string]: ComfyUiFolder[]
+}
+
+export interface ResModelHashes {
+	[key: string]: string
+}
+
+export interface ResModelRegEx {
+	input_value: string
+	input_name: string
+}
+
+export interface ResModel {
+	name: string
+	types: string[]
+	filename: string
+	url: string
+	homepage: string
+	hash: string
+	hashes: ResModelHashes
+	regexes: ResModelRegEx[]
+	gated: boolean
+}
+
+export interface OrphanModel {
+	path: string
+	full_path: string
+	size: number
+	creation_time: number
+	res_model: ResModel
+	possible_flows: string[]
 }

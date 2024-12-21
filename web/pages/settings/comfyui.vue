@@ -124,6 +124,7 @@ const fetchingNewComfyUiFolder = ref(false)
 const newComfyUiFolder = ref('')
 const newComfyUiFolderIsDefault = ref(false)
 const deletingComfyUiFolder = ref(false)
+const resettingComfyUiFolders = ref(false)
 const hideEmptyFolders = ref(true)
 </script>
 
@@ -260,6 +261,33 @@ const hideEmptyFolders = ref(true)
 								}">
 								Add ComfyUI folder
 							</UButton>
+							<UButton v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+								class="mt-3 ml-2"
+								color="red"
+								variant="outline"
+								icon="i-heroicons-trash-16-solid"
+								@click="() => {
+									resettingComfyUiFolders = true
+									settingsStore.saveGlobalSetting(settingsStore.settingsMap.comfyui_folders.key, '', settingsStore.settingsMap.comfyui_folders.sensitive)
+										.then(() => {
+											toast.add({
+												title: 'ComfyUI folders reset',
+												description: 'ComfyUI folders reset successfully',
+											})
+											settingsStore.settingsMap.comfyui_folders.value = ''
+										})
+										.catch((error) => {
+											toast.add({
+												title: 'Error resetting ComfyUI folders',
+												description: error.details,
+											})
+										})
+										.finally(() => {
+											resettingComfyUiFolders = false
+										})
+								}">
+								Reset ComfyUI folders
+							</UButton>
 						</UFormGroup>
 
 						<UModal v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
@@ -355,6 +383,7 @@ const hideEmptyFolders = ref(true)
 						</UModal>
 					</div>
 
+					<SettingsOrphanModels class="mt-3" />
 				</div>
 			</div>
 		</div>
