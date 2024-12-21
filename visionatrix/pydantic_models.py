@@ -53,7 +53,14 @@ class AIResourceModel(BaseModel):
         default=[],
         description="List of regex patterns that dynamically resolve model details based on workflow configurations.",
     )
-    gated: bool = Field(False, description="Flag showing is the model closed to public access")
+    gated: bool = Field(False, description="Flag showing is the model closed to public access.")
+    file_size: int = Field(..., description="The size of the model file in bytes.")
+    installed: bool | None = Field(
+        None,
+        description="Flag indicating whether the model is already installed. "
+        "Currently, this field is populated only by the "
+        "`/flows/installed` and `/flows/not-installed` endpoints.",
+    )
 
     def __hash__(self):
         return hash(self.name)
@@ -382,7 +389,7 @@ class OrphanModel(BaseModel):
 
     path: str = Field(..., description="The relative path of the orphaned model file within 'models_dir' directory.")
     full_path: str = Field(..., description="Full path to the orphaned model file.")
-    size: float = Field(..., description="Size of the orphaned model file in bytes.")
+    size: int = Field(..., description="Size of the orphaned model file in bytes.")
     creation_time: float = Field(..., description="The file's creation time in seconds.")
     res_model: AIResourceModel | None = Field(None, description="AIResourceModel describing the file, if any matches.")
     possible_flows: list[Flow] = Field([], description="List of possible flows that could potentially use this model.")

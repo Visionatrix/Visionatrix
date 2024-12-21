@@ -2200,15 +2200,33 @@
           "gated": {
             "type": "boolean",
             "title": "Gated",
-            "description": "Flag showing is the model closed to public access",
+            "description": "Flag showing is the model closed to public access.",
             "default": false
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "The size of the model file in bytes."
+          },
+          "installed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installed",
+            "description": "Flag indicating whether the model is already installed. Currently, this field is populated only by the `/flows/installed` and `/flows/not-installed` endpoints."
           }
         },
         "type": "object",
         "required": [
           "name",
           "url",
-          "hash"
+          "hash",
+          "file_size"
         ],
         "title": "AIResourceModel",
         "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
@@ -2885,7 +2903,7 @@
             "description": "Full path to the orphaned model file."
           },
           "size": {
-            "type": "number",
+            "type": "integer",
             "title": "Size",
             "description": "Size of the orphaned model file in bytes."
           },
@@ -3900,7 +3918,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-20T16:32:48.121085Z"
+            "default": "2024-12-21T06:56:44.974114Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
