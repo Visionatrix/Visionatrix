@@ -52,6 +52,9 @@ jobs:
       - name: Run Visionatrix install
         run: python3 -m visionatrix install
 
+      - name: Autoconfig Models Paths
+        run: AUTO_INIT_CONFIG_MODELS_DIR=./vix_models python3 scripts/easy_install.py
+
       - name: Install flows from CMD
         run: |
           echo "Y" | VIX_MODE=SERVER VIX_SERVER_FULL_MODELS=0 python3 -m visionatrix install-flow --name=*

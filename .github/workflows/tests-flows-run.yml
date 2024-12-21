@@ -86,7 +86,9 @@ jobs:
         run: python3 -m visionatrix install
 
       - name: Autoconfig Models Paths
-        run: AUTO_INIT_CONFIG_MODELS_DIR=vix_models python3 scripts/easy_install.py
+        run: python3 scripts/easy_install.py
+        env:
+          AUTO_INIT_CONFIG_MODELS_DIR: vix_models
 
       - name: Perform Tensor tests
         run: python3 tests/rm_background_bria.py
