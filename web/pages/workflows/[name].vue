@@ -156,13 +156,18 @@ const userStore = useUserStore()
 								v-if="flowStore.currentFlow?.models?.length > 0"
 								class="flex flex-row flex-wrap items-center text-md mb-2">
 								<UIcon name="i-heroicons-arrow-down-on-square-stack" class="mr-1" />
-								<b>Models ({{ flowStore.currentFlow?.models.length }}):</b>&nbsp;
+								<b>Models ({{ flowStore.currentFlow?.models.length }} - {{ formatBytes(flowStore.currentFlow?.models.reduce((acc, model: Model) => acc + model?.file_size || 0, 0)) }}):</b>&nbsp;
 								<UBadge
 									v-for="model in flowStore.currentFlow?.models"
 									:key="model.name"
 									class="m-1"
 									color="white"
 									variant="solid">
+									<UTooltip :text="model.installed ? 'Model installed' : 'Model not installed'">
+										<UIcon
+											:name="model.installed ? 'i-heroicons-check-circle-20-solid' : 'i-heroicons-x-mark-20-solid'"
+											:class="model.installed ? 'text-green-500' : 'text-orange-500'" />
+									</UTooltip>
 									<UTooltip
 										v-if="model.gated"
 										text="Gated model, requires auth token for download"
@@ -177,6 +182,9 @@ const userStore = useUserStore()
 										rel="noopener" target="_blank">
 										{{ model.name }}
 									</a>
+									<span v-if="model.file_size">
+										({{ formatBytes(model.file_size) }})
+									</span>
 								</UBadge>
 							</p>
 							<p
