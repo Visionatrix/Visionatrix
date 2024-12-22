@@ -50,6 +50,7 @@ VIDEO_EXTENSIONS = [
     ".mpe",
     ".asf",
     ".swf",
+    ".webp",
 ]
 
 
