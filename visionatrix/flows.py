@@ -43,6 +43,7 @@ CACHE_INSTALLED_FLOWS_EVENT = threading.Condition(CACHE_INSTALLED_FLOWS_LOCK)
 
 SUPPORTED_OUTPUTS = {
     "SaveImage": "image",
+    "SaveAnimatedWEBP": "image-animated",
     "VHS_VideoCombine": "video",
 }
 

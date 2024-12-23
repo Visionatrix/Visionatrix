@@ -3311,7 +3311,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Type of the result from the ComfyUI node - can be either 'image', 'image-mask' or 'video'."
+            "description": "Type of the result from the ComfyUI node - can be either 'image', 'image-mask', 'image-animated' or 'video'."
           },
           "file_size": {
             "type": "integer",
@@ -3918,7 +3918,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-21T06:56:44.974114Z"
+            "default": "2024-12-23T10:36:48.231196Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
