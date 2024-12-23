@@ -123,7 +123,7 @@ const bindAsChildTask = ref(false)
 const flowResultReady = computed(() => props.flowResult.progress === 100 && props.flowResult?.error === '')
 
 onBeforeMount(() => {
-	const outputType = props.flowResult.outputs[props.outputParamIndex].type ?? 'image'
+	const outputType = props.flowResult ? props?.flowResult?.outputs[props.outputParamIndex]?.type ?? 'image' : 'image'
 	flowStore.fetchSubFlows(outputType).then(() => {
 		selectedFlow.value = subFlows.value[0] || ''
 	})
