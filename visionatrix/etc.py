@@ -5,11 +5,9 @@ IMAGE_EXTENSIONS = [
     ".png",
     ".jpg",
     ".jpeg",
-    ".gif",
     ".bmp",
     ".tiff",
     ".tif",
-    ".webp",
     ".svg",
     ".ico",
     ".heif",
@@ -23,6 +21,10 @@ IMAGE_EXTENSIONS = [
     ".xcf",
 ]
 
+IMAGE_ANIMATED_EXTENSIONS = [
+    ".gif",
+    ".webp",
+]
 
 VIDEO_EXTENSIONS = [
     ".mp4",
@@ -50,7 +52,6 @@ VIDEO_EXTENSIONS = [
     ".mpe",
     ".asf",
     ".swf",
-    ".webp",
 ]
 
 
