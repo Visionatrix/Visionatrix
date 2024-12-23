@@ -227,7 +227,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
 					<WorkflowOutputImage
-						v-if="flowResult.outputs.some((output) => output.type === 'image')"
+						v-if="flowResult.outputs.some((output) => ['image', 'image-animated'].includes(output.type))"
 						:flow-result="flowResult"
 						:handle-send-to-flow="handleSendToFlow"
 						:open-image-modal="openImageModal" />

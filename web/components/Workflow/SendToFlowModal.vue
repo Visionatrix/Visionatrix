@@ -123,8 +123,8 @@ const bindAsChildTask = ref(false)
 const flowResultReady = computed(() => props.flowResult.progress === 100 && props.flowResult?.error === '')
 
 onBeforeMount(() => {
-	// TODO: change to dynamic according to the output type
-	flowStore.fetchSubFlows('image').then(() => {
+	const outputType = props.flowResult.outputs[props.outputParamIndex].type ?? 'image'
+	flowStore.fetchSubFlows(outputType).then(() => {
 		selectedFlow.value = subFlows.value[0] || ''
 	})
 	bindAsChildTask.value = false
