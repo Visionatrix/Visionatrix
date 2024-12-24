@@ -328,7 +328,8 @@ def get_possible_paths_for_model(model: AIResourceModel) -> list[(Path, str)]:
 
     if comfyui_folders_info is None:
         raise ValueError(
-            f"Error installing model '{model.name}': no directory found for any of the types: {model.types}"
+            f"Error installing model '{model.name}': no directory found for any of the types: {model.types}\n"
+            "Please add any of these paths to the file 'ComfyUI/extra_model_paths.yaml'."
         ) from None
 
     if not comfyui_folders_info[0]:
