@@ -1,7 +1,9 @@
+import asyncio
 import fnmatch
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import APIRouter, FastAPI, HTTPException, Query, responses, status
@@ -14,6 +16,7 @@ from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
+from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
 from .tasks_engine import (
     background_prompt_executor,
     remove_active_task_lock,
@@ -71,10 +74,19 @@ class VixAuthMiddleware:
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    routes.tasks_internal.VALIDATE_PROMPT, comfy_queue = comfyui_wrapper.load(task_progress_callback)
-    await start_tasks_engine(comfy_queue, events.EXIT_EVENT)
+    database.init_database_engine()
+
+    routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = comfyui_wrapper.load(
+        task_progress_callback
+    )
+    if options.VIX_MODE != "SERVER":
+        await start_tasks_engine(prompt_server_args, events.EXIT_EVENT)
+
     if options.UI_DIR:
+        app.mount("/comfy", StaticFiles(directory=Path(options.COMFYUI_DIR).joinpath("web"), html=False), name="comfy")
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
+
+    _ = asyncio.create_task(start_all_func())  # noqa
     yield
     events.EXIT_EVENT.set()
     comfyui_wrapper.interrupt_processing()
@@ -89,6 +101,18 @@ def custom_generate_unique_id(route: APIRoute):
 
 
 APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
+
+
+@APP.get("/comfy/")
+async def custom_index():
+    file_path = Path(options.COMFYUI_DIR).joinpath("web", "index.html")
+    response = responses.FileResponse(file_path)
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 API_ROUTER = APIRouter(prefix="/vapi")  # if you change the prefix, also change it in custom_openapi.py
 API_ROUTER.include_router(routes.flows.ROUTER)
 API_ROUTER.include_router(routes.models.ROUTER)
@@ -107,6 +131,7 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+APP.add_middleware(ComfyUIProxyMiddleware, comfy_url="127.0.0.1:8188")
 
 
 def run_vix(*args, **kwargs) -> None:
@@ -127,8 +152,8 @@ def run_vix(*args, **kwargs) -> None:
             uvicorn.run(
                 _app,
                 *args,
-                host=options.VIX_HOST if options.VIX_HOST else "localhost",
-                port=int(options.VIX_PORT) if options.VIX_PORT else 8288,
+                host=options.get_host_to_map(),
+                port=options.get_port_to_map(),
                 workers=int(options.VIX_SERVER_WORKERS),
                 **kwargs,
             )
@@ -136,10 +161,10 @@ def run_vix(*args, **kwargs) -> None:
             print("Visionatrix is shutting down.")
     else:
         register_heif_opener()
-        _, comfy_queue = comfyui_wrapper.load(task_progress_callback)
+        _, prompt_server_args, _ = comfyui_wrapper.load(task_progress_callback)
 
         try:
-            background_prompt_executor(comfy_queue, events.EXIT_EVENT)
+            background_prompt_executor(prompt_server_args, events.EXIT_EVENT)
         except KeyboardInterrupt:
             remove_active_task_lock()
             print("Visionatrix is shutting down.")

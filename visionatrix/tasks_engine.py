@@ -1,6 +1,5 @@
 import builtins
 import contextlib
-import gc
 import json
 import logging
 import os
@@ -801,14 +800,28 @@ def increase_current_task_progress(percent_finished: float) -> None:
 
 
 def task_progress_callback(event: str, data: dict, broadcast: bool = False):
+    global ACTIVE_TASK
     LOGGER.debug("%s(broadcast=%s): %s", event, broadcast, data)
-    if not ACTIVE_TASK:
-        LOGGER.warning("ACTIVE_TASK is empty, event = %s.", event)
+    if not data.get("prompt_id", "").startswith("vix-"):
         return
+
+    task_id = data["prompt_id"][4:]
+    if not ACTIVE_TASK:
+        LOGGER.warning("ACTIVE_TASK is empty, event = %s, task_id = %s.", event, task_id)
+        return
+
+    if event == "execution_start":
+        ACTIVE_TASK["execution_start_time"] = time.perf_counter()
+        threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
+        return
+
     node_percent = 99 / ACTIVE_TASK["nodes_count"]
 
     nodes_execution_profiler(ACTIVE_TASK, event, data)
     if event == "executing":
+        if data["node"] is None:
+            ACTIVE_TASK = {}
+            return
         if not ACTIVE_TASK["current_node"]:
             ACTIVE_TASK["current_node"] = data["node"]
         if ACTIVE_TASK["current_node"] != data["node"]:
@@ -828,26 +841,25 @@ def task_progress_callback(event: str, data: dict, broadcast: bool = False):
         increase_current_task_progress((len(data["nodes"]) - 1) * node_percent)
     elif event == "execution_interrupted":
         ACTIVE_TASK["interrupted"] = True
+    elif event == "execution_success":
+        current_time = time.perf_counter()
+        ACTIVE_TASK["execution_time"] = current_time - ACTIVE_TASK["execution_start_time"]
+        ACTIVE_TASK["progress"] = 100.0
 
 
-def background_prompt_executor(prompt_executor, exit_event: threading.Event):
+def background_prompt_executor(prompt_executor_args: tuple | list, exit_event: threading.Event):
     global ACTIVE_TASK
     reply_count_no_tasks = 0
     last_task_name = ""
-    last_gc_collect = 0
-    need_gc = False
+
+    threading.Thread(
+        target=comfyui_wrapper.background_prompt_executor_comfy, args=(prompt_executor_args, exit_event), daemon=True
+    ).start()
+
+    q = prompt_executor_args[0]
+    prompt_server = prompt_executor_args[1]
 
     while True:
-        if need_gc:
-            current_time = time.perf_counter()
-            if (current_time - last_gc_collect) > options.GC_COLLECT_INTERVAL:
-                LOGGER.debug("gc.collect")
-                gc.collect()
-                LOGGER.debug("soft_empty_cache")
-                comfyui_wrapper.soft_empty_cache(True)
-                last_gc_collect = current_time
-                need_gc = False
-
         if exit_event.wait(
             min(
                 options.MIN_PAUSE_INTERVAL + reply_count_no_tasks * options.MAX_PAUSE_INTERVAL / 10,
@@ -856,42 +868,49 @@ def background_prompt_executor(prompt_executor, exit_event: threading.Event):
         ):
             break
 
-        ACTIVE_TASK = get_incomplete_task_without_error(list(get_installed_flows()), last_task_name)
-        if not ACTIVE_TASK:
-            reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
-            continue
-        if init_active_task_inputs_from_server() is False:
-            ACTIVE_TASK = {}
-            continue
+        if not ACTIVE_TASK and not q.queue:
+            # ComfyUI queue is empty, can ask for a task from Visionatrix DB/Server
+            ACTIVE_TASK = get_incomplete_task_without_error(list(get_installed_flows()), last_task_name)
+            if not ACTIVE_TASK:
+                reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
+                continue
 
-        if ACTIVE_TASK.get("extra_flags") and ACTIVE_TASK["extra_flags"].get("unload_models"):
-            LOGGER.info("unload_models=True, unloading..")
-            comfyui_wrapper.unload_all_models()
-            gc.collect()
-            last_gc_collect = time.perf_counter()
-            comfyui_wrapper.soft_empty_cache(True)  # for AMD GPUs ComfyUI doesn't automatically clear cache
+            if init_active_task_inputs_from_server() is False:
+                ACTIVE_TASK = {}
+                continue
 
-        last_task_name = ACTIVE_TASK["name"]
-        ACTIVE_TASK["execution_details"] = comfyui_wrapper.get_engine_details()
-        ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
-        ACTIVE_TASK["current_node"] = ""
-        prompt_executor.server.last_prompt_id = str(ACTIVE_TASK["task_id"])
-        execution_start_time = time.perf_counter()
-        ACTIVE_TASK["execution_start_time"] = execution_start_time
-        threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
-        prompt_executor.execute(
-            ACTIVE_TASK["flow_comfy"],
-            str(ACTIVE_TASK["task_id"]),
-            {"client_id": "vix"},
-            [str(i["comfy_node_id"]) for i in ACTIVE_TASK["outputs"]],
-        )
-        current_time = time.perf_counter()
-        if ACTIVE_TASK.get("interrupted", False) is False and not ACTIVE_TASK["error"]:
-            ACTIVE_TASK["execution_time"] = current_time - execution_start_time
-            ACTIVE_TASK["progress"] = 100.0
-        ACTIVE_TASK = {}
-        LOGGER.info("Prompt executed in %f seconds", current_time - execution_start_time)
-        need_gc = True
+            last_task_name = ACTIVE_TASK["name"]
+            ACTIVE_TASK["execution_details"] = comfyui_wrapper.get_engine_details()
+            ACTIVE_TASK["nodes_count"] = len(list(ACTIVE_TASK["flow_comfy"].keys()))
+            ACTIVE_TASK["current_node"] = ""
+
+            json_data = {
+                "prompt": ACTIVE_TASK["flow_comfy"],
+                "client_id": "visionatrix",
+            }
+            json_data = prompt_server.trigger_on_prompt(json_data)
+
+            extra_data = {}
+            if "extra_data" in json_data:
+                extra_data = json_data["extra_data"]
+
+            if "client_id" in json_data:
+                extra_data["client_id"] = json_data["client_id"]
+
+            if ACTIVE_TASK.get("extra_flags") and ACTIVE_TASK["extra_flags"].get("unload_models"):
+                LOGGER.info("unload_models=True, models will be unloaded before execution..")
+                extra_data["unload_models"] = True
+
+            prompt_server.number += 1
+            prompt_server.prompt_queue.put(
+                (
+                    prompt_server.number,
+                    "vix-" + str(ACTIVE_TASK["task_id"]),
+                    json_data["prompt"],
+                    extra_data,
+                    [str(i["comfy_node_id"]) for i in ACTIVE_TASK["outputs"]],
+                )
+            )
 
 
 def update_task_progress_thread(active_task: dict) -> None:
