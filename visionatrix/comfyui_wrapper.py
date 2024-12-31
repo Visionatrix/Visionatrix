@@ -290,7 +290,11 @@ def get_comfy_prompt_server_class_instance(task_progress_callback):
                 return {"error": valid[1], "node_errors": valid[3]}
             return {"error": "no prompt", "node_errors": []}
 
-    return ComfyPromptServer(asyncio.get_running_loop())
+    try:
+        asyncio_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio_loop = None
+    return ComfyPromptServer(asyncio_loop)
 
 
 def get_node_class_mappings() -> dict[str, object]:
