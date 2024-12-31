@@ -103,7 +103,7 @@ def custom_generate_unique_id(route: APIRoute):
 APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
 
 
-@APP.get("/comfy/")
+@APP.get("/comfy/", description="Original ComfyUI user interface")
 async def custom_index():
     file_path = Path(options.COMFYUI_DIR).joinpath("web", "index.html")
     response = responses.FileResponse(file_path)
