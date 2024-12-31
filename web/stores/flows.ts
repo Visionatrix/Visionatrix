@@ -10,6 +10,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		pageSize: 9,
 		running: <FlowRunning[]>[],
 		installing: <FlowInstalling[]>[],
+		installingInterval: <any>{},
+		installingFlowsNames: <string[]>[],
 		resultsPage: 1,
 		resultsPageSize: 5,
 		outputMaxSize: 512,
@@ -163,9 +165,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 	},
 	actions: {
-		async fetchFlows() {
-			this.loading.flows_available = true
-			this.loading.flows_installed = true
+		async fetchFlows(toggleLoading: boolean = true) {
+			if (toggleLoading) {
+				this.loading.flows_available = true
+				this.loading.flows_installed = true
+			}
 			await Promise.all([
 				this.fetchFlowsAvailable(),
 				this.fetchFlowsInstalled(),
@@ -333,7 +337,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					flow_name: flow.name,
 					progress: 0,
 				})
-				this.startFlowInstallingPolling(flow.name)
+				this.installingFlowsNames.push(flow.name)
+				this.startFlowInstallingPolling()
 			}).catch((e) => {
 				console.debug(e)
 				const toast = useToast()
@@ -357,7 +362,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					flow_name: flow.name,
 					progress: 0,
 				})
-				this.startFlowInstallingPolling(flow.name)
+				this.installingFlowsNames.push(flow.name)
+				this.startFlowInstallingPolling()
 			}).catch((e) => {
 				console.debug(e)
 				const toast = useToast()
@@ -375,6 +381,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				method: 'DELETE',
 			}).then(() => {
 				this.installing = this.installing.filter(f => f.flow_name !== flow.name)
+				this.installingFlowsNames = this.installingFlowsNames.filter(name => name !== flow.name)
 				if (this.installing.length === 0 && this.running.length === 0) {
 					this.showNotificationChip = false
 				}
@@ -720,6 +727,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async restorePollingProcesses() {
 			// Restore installing flow polling
 			await this.getFlowsInstallProgress().then((progress: any) => {
+				let hasInstallingFlows = false
+				const installingFlows: string[] = []
 				progress.forEach((installing_progress: FlowInstallingProgress) => {
 					if (installing_progress.progress < 100) {
 						this.installing.push({
@@ -727,55 +736,67 @@ export const useFlowsStore = defineStore('flowsStore', {
 							progress: installing_progress.progress,
 							flow: installing_progress?.flow || null,
 						})
-						this.startFlowInstallingPolling(installing_progress.name)
+						hasInstallingFlows = true
+						installingFlows.push(installing_progress.name)
 					}
 				})
+				if (hasInstallingFlows) {
+					this.showNotificationChip = true
+					this.startFlowInstallingPolling()
+				}
 			})
 			Array.from(new Set(this.running.map(flow => flow.flow_name))).forEach(flow_name => {
 				this.startFlowProgressPolling(flow_name)
 			})
 		},
 
-		startFlowInstallingPolling(flow_name: string) {
+		handleFlowInstallProgress(flow_name: string, progress: FlowInstallingProgress[]) {
+			const flowInstalling = this.flowInstallingByName(flow_name)
+			const newProgress = progress.find((p: any) => p.name === flow_name)
+
+			if (!flowInstalling || !newProgress) {
+				return
+			}
+			flowInstalling.progress = <number> newProgress.progress
+
+			if (newProgress.error) {
+				flowInstalling.error = newProgress.error
+				const toast = useToast()
+				toast.add({
+					title: 'Failed to install flow - ' + flow_name,
+					description: newProgress.error,
+					timeout: 8000,
+				})
+				this.installingFlowsNames = this.installingFlowsNames.filter(name => name !== flow_name)
+			}
+			if (newProgress.progress === 100) {
+				// Remove finished flow from installing list
+				this.installing = this.installing.filter(flow => flow.flow_name !== flow_name)
+				this.installingFlowsNames = this.installingFlowsNames.filter(name => name !== flow_name)
+				this.fetchFlows(false)
+			}
+		},
+
+		startFlowInstallingPolling() {
 			if (this.installing.length === 0) {
 				return
 			}
-			let failedAttempts = 0
 			this.showNotificationChip = true
-			const interval = setInterval(async () => {
-				await this.getFlowsInstallProgress().then((progress: any) => {
-					if (failedAttempts > 3) {
-						clearInterval(interval)
-						return
-					}
 
-					const flowInstalling = this.flowInstallingByName(flow_name)
-					const newProgress = progress.find((p: any) => p.name === flow_name)
-					if (!flowInstalling || !newProgress) {
-						clearInterval(interval)
-						failedAttempts++
-						return
+			if (this.installingInterval) {
+				clearInterval(this.installingInterval)
+			}
+
+			this.installingInterval = setInterval(async () => {
+				this.getFlowsInstallProgress().then((progress: any) => {
+					this.installingFlowsNames.forEach(flow_name => {
+						this.handleFlowInstallProgress(flow_name, progress)
+					})
+					// If there are no more installing flows, stop polling
+					if (this.installing.length === 0) {
+						this.showNotificationChip = false
+						clearInterval(this.installingInterval)
 					}
-					flowInstalling.progress = <number> newProgress.progress
-					if (newProgress.error) {
-						clearInterval(interval)
-						flowInstalling.error = newProgress.error
-						const toast = useToast()
-						toast.add({
-							title: 'Failed to install flow - ' + flow_name,
-							description: newProgress.error,
-							timeout: 8000,
-						})
-					}
-					if (newProgress.progress === 100) {
-						clearInterval(interval)
-						// Remove finished flow from installing list
-						this.installing = this.installing.filter(flow => flow.flow_name !== flow_name)
-						this.fetchFlows()
-					}
-				}).catch((e) => {
-					console.debug(e)
-					failedAttempts++
 				})
 			}, 3000)
 		},
