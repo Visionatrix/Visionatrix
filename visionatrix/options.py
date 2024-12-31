@@ -113,6 +113,14 @@ def get_server_mode_options_as_env() -> dict[str, str]:
     }
 
 
+def get_host_to_map() -> str:
+    return VIX_HOST if VIX_HOST else "localhost"
+
+
+def get_port_to_map() -> int:
+    return int(VIX_PORT) if VIX_PORT else 8288
+
+
 def worker_auth() -> tuple[str, str]:
     name, password = WORKER_AUTH.split(":")
     return name, password
