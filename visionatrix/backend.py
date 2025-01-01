@@ -1,7 +1,9 @@
+import asyncio
 import fnmatch
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import APIRouter, FastAPI, HTTPException, Query, responses, status
@@ -14,13 +16,14 @@ from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
+from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
 from .tasks_engine import (
     background_prompt_executor,
     remove_active_task_lock,
     task_progress_callback,
 )
 from .tasks_engine_async import start_tasks_engine
-from .user_backends import perform_auth
+from .user_backends import perform_auth_http, perform_auth_ws
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -36,10 +39,14 @@ class VixAuthMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Method that will be called by Starlette for each event."""
-        if scope["type"] != "http":
+        if scope["type"] == "http":
+            await self._handle_http(scope, receive, send)
+        elif scope["type"] == "websocket":
+            await self._handle_websocket(scope, receive, send)
+        else:
             await self.app(scope, receive, send)
-            return
 
+    async def _handle_http(self, scope: Scope, receive: Receive, send: Send) -> None:
         conn = HTTPConnection(scope)
         url_path = conn.url.path.lstrip("/")
         if options.VIX_MODE == "DEFAULT":
@@ -51,7 +58,7 @@ class VixAuthMiddleware:
                 headers={"WWW-Authenticate": "Basic"},
             )
             try:
-                if (userinfo := await perform_auth(scope, conn)) is None:
+                if (userinfo := await perform_auth_http(scope, conn)) is None:
                     await bad_auth_response(scope, receive, send)
                     return
                 scope["user_info"] = userinfo
@@ -62,19 +69,64 @@ class VixAuthMiddleware:
 
         await self.app(scope, receive, send)
 
+    async def _handle_websocket(self, scope: Scope, receive: Receive, send: Send) -> None:
+        url_path = scope.get("path", "").lstrip("/")
+        if options.VIX_MODE == "DEFAULT":
+            scope["user_info"] = database.DEFAULT_USER
+        elif not fnmatch.filter(self._disable_for, url_path):
+            headers_dict, cookies_dict = parse_cookies_and_headers(scope)
+            try:
+                if (userinfo := await perform_auth_ws(scope, headers_dict, cookies_dict)) is None:
+                    await send({"type": "websocket.close", "code": 1008})  # Policy Violation
+                    return
+                scope["user_info"] = userinfo
+            except HTTPException:
+                await send({"type": "websocket.close", "code": 1011})  # Internal Error
+                return
+
+        await self.app(scope, receive, send)
+
     @staticmethod
     def _on_error(status_code: int = 400, content: str = "") -> responses.PlainTextResponse:
         return responses.PlainTextResponse(content, status_code=status_code)
+
+
+def parse_cookies_and_headers(scope: Scope) -> tuple[dict[str, str], dict[str, str]]:
+    """Pull out all raw headers from a WebSocket handshake, decode them,
+    and parse cookies as well. Returns (headers_dict, cookies_dict).
+    """
+    raw_headers = scope.get("headers", [])
+    headers_dict = {}
+    cookies_dict = {}
+    for key_bytes, value_bytes in raw_headers:
+        key = key_bytes.decode("latin-1").lower()
+        value = value_bytes.decode("latin-1")
+        headers_dict[key] = value
+        if key == "cookie":
+            cookie_pairs = value.split(";")
+            for cookie_str in cookie_pairs:
+                name, _, val = cookie_str.strip().partition("=")
+                cookies_dict[name] = val
+    return headers_dict, cookies_dict
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    routes.tasks_internal.VALIDATE_PROMPT, comfy_queue = comfyui_wrapper.load(task_progress_callback)
-    await start_tasks_engine(comfy_queue, events.EXIT_EVENT)
+    database.init_database_engine()
+
+    routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = comfyui_wrapper.load(
+        task_progress_callback
+    )
+    if options.VIX_MODE != "SERVER":
+        await start_tasks_engine(prompt_server_args, events.EXIT_EVENT)
+
     if options.UI_DIR:
+        app.mount("/comfy", StaticFiles(directory=Path(options.COMFYUI_DIR).joinpath("web"), html=False), name="comfy")
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
+
+    _ = asyncio.create_task(start_all_func())  # noqa
     yield
     events.EXIT_EVENT.set()
     comfyui_wrapper.interrupt_processing()
@@ -89,6 +141,18 @@ def custom_generate_unique_id(route: APIRoute):
 
 
 APP = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
+
+
+@APP.get("/comfy/", description="Original ComfyUI user interface")
+async def custom_index():
+    file_path = Path(options.COMFYUI_DIR).joinpath("web", "index.html")
+    response = responses.FileResponse(file_path)
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 API_ROUTER = APIRouter(prefix="/vapi")  # if you change the prefix, also change it in custom_openapi.py
 API_ROUTER.include_router(routes.flows.ROUTER)
 API_ROUTER.include_router(routes.models.ROUTER)
@@ -98,6 +162,7 @@ API_ROUTER.include_router(routes.settings_comfyui.ROUTER)
 API_ROUTER.include_router(routes.tasks.ROUTER)
 API_ROUTER.include_router(routes.workers.ROUTER)
 APP.include_router(API_ROUTER)
+APP.add_middleware(ComfyUIProxyMiddleware, comfy_url="127.0.0.1:8188")
 APP.add_middleware(VixAuthMiddleware)
 if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     APP.add_middleware(
@@ -127,8 +192,8 @@ def run_vix(*args, **kwargs) -> None:
             uvicorn.run(
                 _app,
                 *args,
-                host=options.VIX_HOST if options.VIX_HOST else "localhost",
-                port=int(options.VIX_PORT) if options.VIX_PORT else 8288,
+                host=options.get_host_to_map(),
+                port=options.get_port_to_map(),
                 workers=int(options.VIX_SERVER_WORKERS),
                 **kwargs,
             )
@@ -136,10 +201,10 @@ def run_vix(*args, **kwargs) -> None:
             print("Visionatrix is shutting down.")
     else:
         register_heif_opener()
-        _, comfy_queue = comfyui_wrapper.load(task_progress_callback)
+        _, prompt_server_args, _ = comfyui_wrapper.load(task_progress_callback)
 
         try:
-            background_prompt_executor(comfy_queue, events.EXIT_EVENT)
+            background_prompt_executor(prompt_server_args, events.EXIT_EVENT)
         except KeyboardInterrupt:
             remove_active_task_lock()
             print("Visionatrix is shutting down.")

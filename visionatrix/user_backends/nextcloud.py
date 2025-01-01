@@ -20,27 +20,38 @@ Example: '{"Content-Security-Policy": "frame-ancestors \\'self\\'", "Another-Hea
 """
 NEXTCLOUD_HEADERS_SET.update({"OCS-APIRequest": "true"})
 
-
 LOGGER = logging.getLogger("visionatrix")
 
 
-async def get_user_info(_scope: Scope, http_connection: HTTPConnection) -> UserInfo | None:
-    headers = []
+async def get_user_info_http(_scope: Scope, http_connection: HTTPConnection) -> UserInfo | None:
+    return await _fetch_from_nextcloud(_get_clean_headers(http_connection.headers), http_connection.cookies)
+
+
+async def get_user_info_ws(_scope: Scope, headers: dict[str, str], cookies: dict[str, str]) -> UserInfo | None:
+    return await _fetch_from_nextcloud(_get_clean_headers(headers), cookies)
+
+
+def _get_clean_headers(headers) -> list[tuple[str, str]]:
+    r_headers = []
     headers_to_remove = ["host", "content-length"]
-    for header in http_connection.headers:
-        if header not in headers_to_remove:
-            headers.append((header, http_connection.headers[header]))
+    for key, val in headers.items():
+        if key.lower() not in headers_to_remove:
+            r_headers.append((key, val))
+    return r_headers
+
+
+async def _fetch_from_nextcloud(headers: list[tuple[str, str]], cookies: dict[str, str]) -> UserInfo | None:
     async with AsyncClient(
         base_url=NEXTCLOUD_URL,
-        cookies=http_connection.cookies,
+        cookies=cookies,
         headers=headers,
         timeout=5.0,
     ) as client:
         r = await client.get("/ocs/v1.php/cloud/user?format=json", headers=NEXTCLOUD_HEADERS_SET)
         if r.status_code != 200:
-            LOGGER.error("Nextcloud return %s status code.", r.status_code)
+            LOGGER.error("Nextcloud returned %s status code.", r.status_code)
             return None
-    ocs_response = loads(r.text)
+    ocs_response = r.json()
     ocs_meta = ocs_response["ocs"]["meta"]
     if ocs_meta["status"] != "ok":
         LOGGER.error("OCS status: %s, message: %s", ocs_meta["status"], ocs_meta["message"])

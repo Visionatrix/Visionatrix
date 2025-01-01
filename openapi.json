@@ -5,6 +5,23 @@
     "version": "1.10.0.dev0"
   },
   "paths": {
+    "/comfy/": {
+      "get": {
+        "summary": "Custom Index",
+        "description": "Original ComfyUI user interface",
+        "operationId": "custom_index",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/flows/installed": {
       "get": {
         "tags": [
@@ -3918,7 +3935,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-12-23T10:36:48.231196Z"
+            "default": "2024-12-31T09:17:00.808220Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
