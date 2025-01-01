@@ -23,7 +23,7 @@ from .tasks_engine import (
     task_progress_callback,
 )
 from .tasks_engine_async import start_tasks_engine
-from .user_backends import perform_auth
+from .user_backends import perform_auth_http, perform_auth_ws
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -39,10 +39,14 @@ class VixAuthMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Method that will be called by Starlette for each event."""
-        if scope["type"] != "http":
+        if scope["type"] == "http":
+            await self._handle_http(scope, receive, send)
+        elif scope["type"] == "websocket":
+            await self._handle_websocket(scope, receive, send)
+        else:
             await self.app(scope, receive, send)
-            return
 
+    async def _handle_http(self, scope: Scope, receive: Receive, send: Send) -> None:
         conn = HTTPConnection(scope)
         url_path = conn.url.path.lstrip("/")
         if options.VIX_MODE == "DEFAULT":
@@ -54,7 +58,7 @@ class VixAuthMiddleware:
                 headers={"WWW-Authenticate": "Basic"},
             )
             try:
-                if (userinfo := await perform_auth(scope, conn)) is None:
+                if (userinfo := await perform_auth_http(scope, conn)) is None:
                     await bad_auth_response(scope, receive, send)
                     return
                 scope["user_info"] = userinfo
@@ -65,9 +69,45 @@ class VixAuthMiddleware:
 
         await self.app(scope, receive, send)
 
+    async def _handle_websocket(self, scope: Scope, receive: Receive, send: Send) -> None:
+        url_path = scope.get("path", "").lstrip("/")
+        if options.VIX_MODE == "DEFAULT":
+            scope["user_info"] = database.DEFAULT_USER
+        elif not fnmatch.filter(self._disable_for, url_path):
+            headers_dict, cookies_dict = parse_cookies_and_headers(scope)
+            try:
+                if (userinfo := await perform_auth_ws(scope, headers_dict, cookies_dict)) is None:
+                    await send({"type": "websocket.close", "code": 1008})  # Policy Violation
+                    return
+                scope["user_info"] = userinfo
+            except HTTPException:
+                await send({"type": "websocket.close", "code": 1011})  # Internal Error
+                return
+
+        await self.app(scope, receive, send)
+
     @staticmethod
     def _on_error(status_code: int = 400, content: str = "") -> responses.PlainTextResponse:
         return responses.PlainTextResponse(content, status_code=status_code)
+
+
+def parse_cookies_and_headers(scope: Scope) -> tuple[dict[str, str], dict[str, str]]:
+    """Pull out all raw headers from a WebSocket handshake, decode them,
+    and parse cookies as well. Returns (headers_dict, cookies_dict).
+    """
+    raw_headers = scope.get("headers", [])
+    headers_dict = {}
+    cookies_dict = {}
+    for key_bytes, value_bytes in raw_headers:
+        key = key_bytes.decode("latin-1").lower()
+        value = value_bytes.decode("latin-1")
+        headers_dict[key] = value
+        if key == "cookie":
+            cookie_pairs = value.split(";")
+            for cookie_str in cookie_pairs:
+                name, _, val = cookie_str.strip().partition("=")
+                cookies_dict[name] = val
+    return headers_dict, cookies_dict
 
 
 @asynccontextmanager
@@ -122,6 +162,7 @@ API_ROUTER.include_router(routes.settings_comfyui.ROUTER)
 API_ROUTER.include_router(routes.tasks.ROUTER)
 API_ROUTER.include_router(routes.workers.ROUTER)
 APP.include_router(API_ROUTER)
+APP.add_middleware(ComfyUIProxyMiddleware, comfy_url="127.0.0.1:8188")
 APP.add_middleware(VixAuthMiddleware)
 if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     APP.add_middleware(
@@ -131,7 +172,6 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
         allow_methods=["*"],
         allow_headers=["*"],
     )
-APP.add_middleware(ComfyUIProxyMiddleware, comfy_url="127.0.0.1:8188")
 
 
 def run_vix(*args, **kwargs) -> None:
