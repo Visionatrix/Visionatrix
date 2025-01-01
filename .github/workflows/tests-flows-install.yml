@@ -25,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:14
+        image: postgres:17
         env:
           POSTGRES_USER: vix_user
           POSTGRES_PASSWORD: vix_password
