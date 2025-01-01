@@ -3,6 +3,7 @@ import contextlib
 
 import httpx
 import websockets
+from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 # "/scripts" and "/kjweb_async" are here temporarily until someone fixes the situation upstream.
@@ -16,7 +17,6 @@ class ComfyUIProxyMiddleware:
     """
 
     def __init__(self, app: ASGIApp, comfy_url: str):
-        # TO-DO: only admins of Visionatrix allow to open ComfyUI
         self.app = app
         self.comfy_url_http = f"http://{comfy_url}"
         self.comfy_url_ws = f"ws://{comfy_url}"
@@ -24,6 +24,12 @@ class ComfyUIProxyMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         path = scope.get("path", "").lower()
         if any(path.startswith(proxy_path) for proxy_path in PATHS_TO_PROXY) and scope["type"] in ("http", "websocket"):
+            user_info = scope.get("user_info")
+            if not user_info or not user_info.is_admin:
+                unauthorized_response = Response("Only admins allow to access ComfyUI", status_code=403)
+                await unauthorized_response(scope, receive, send)
+                return
+
             if scope["type"] == "http":
                 await self.handle_http(scope, receive, send)
             else:
