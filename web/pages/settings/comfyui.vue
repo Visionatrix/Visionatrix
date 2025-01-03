@@ -125,6 +125,10 @@ function performComfyUiAutoconfig(modelsDir: string) {
 
 const resettingComfyUiFolders = ref(false)
 const hideEmptyFolders = ref(true)
+
+watch(() => settingsStore.localSettings.showComfyUiNavbarButton, () => {
+	settingsStore.saveLocalSettings()
+})
 </script>
 
 <template>
@@ -244,6 +248,25 @@ const hideEmptyFolders = ref(true)
 							</div>
 						</UModal>
 					</div>
+
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Show 'Open ComfyUI' navbar button"
+						description="Toggle Navbar button to open ComfyUI in a new tab (Stored in browser local storage	)">
+						<div class="flex items-center mt-2">
+							<UToggle v-model="settingsStore.localSettings.showComfyUiNavbarButton"
+								class="mr-3" />
+							<UButton
+								icon="i-heroicons-rectangle-group-16-solid"
+								variant="outline"
+								color="white"
+								:to="buildBackendUrl() + '/comfy'"
+								target="_blank">
+								Open ComfyUI
+							</UButton>
+						</div>
+					</UFormGroup>
 
 					<SettingsOrphanModels class="mt-3" />
 				</div>

@@ -13,7 +13,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 			},
 			{
 				label: 'ComfyUI',
-				icon: 'i-heroicons-folder-16-solid',
+				icon: 'i-heroicons-rectangle-group-16-solid',
 				to: '/settings/comfyui',
 			},
 		],
@@ -93,6 +93,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 				admin: true,
 			},
 		} as VixSettingsMap,
+		localSettings: {
+			showComfyUiNavbarButton: true,
+		},
 	}),
 
 	actions: {
@@ -239,6 +242,17 @@ export const useSettingsStore = defineStore('settingsStore', {
 				method: 'DELETE',
 			})
 		},
+
+		loadLocalSettings() {
+			const localSettings = localStorage.getItem('localSettings')
+			if (localSettings) {
+				this.localSettings = JSON.parse(localSettings)
+			}
+		},
+
+		saveLocalSettings() {
+			localStorage.setItem('localSettings', JSON.stringify(this.localSettings))
+		}
 	},
 })
 
