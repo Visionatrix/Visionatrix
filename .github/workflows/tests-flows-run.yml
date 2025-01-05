@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   github_flows_run_macos:
-    name: Flows Run GitHub macOS 14
-    runs-on: macos-14
+    name: Flows Run GitHub macOS 15
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -37,7 +37,7 @@ jobs:
         run: AUTO_INIT_CONFIG_MODELS_DIR=./vix_models python3 scripts/easy_install.py
 
       - name: Perform Tensor tests
-        run: python3 tests/rm_background_bria.py
+        run: python3 tests/rm_background.py
 
   github_flows_run_linux:
     name: Flows Run GitHub Ubuntu 22
@@ -63,7 +63,7 @@ jobs:
         run: AUTO_INIT_CONFIG_MODELS_DIR=./vix_models python3 scripts/easy_install.py
 
       - name: Perform Tensor tests
-        run: python3 tests/rm_background_bria.py
+        run: python3 tests/rm_background.py
 
   github_flows_run_windows:
     name: Flows Run GitHub Windows 2019
@@ -91,4 +91,4 @@ jobs:
           AUTO_INIT_CONFIG_MODELS_DIR: vix_models
 
       - name: Perform Tensor tests
-        run: python3 tests/rm_background_bria.py
+        run: python3 tests/rm_background.py

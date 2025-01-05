@@ -83,26 +83,6 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "ComfyUI-BiRefNet": {
-        "models": [
-            AIResourceModel(
-                name="ComfyUI-BiRefNet-EP480",
-                filename="models/BiRefNet/BiRefNet-ep480.pth",
-                url="https://huggingface.co/ViperYX/BiRefNet/resolve/main/BiRefNet-ep480.pth",
-                homepage="https://huggingface.co/ViperYX/BiRefNet",
-                hash="367a738b27e0556e703991e8160fe6b5217bec6c158a72a890d131dd11ba74f6",
-                file_size=848968257,
-            ),
-            AIResourceModel(
-                name="ComfyUI-BiRefNet-Swin-Large",
-                filename="models/BiRefNet/swin_large_patch4_window12_384_22kto1k.pth",
-                url="https://huggingface.co/ViperYX/BiRefNet/resolve/main/swin_large_patch4_window12_384_22kto1k.pth",
-                homepage="https://huggingface.co/ViperYX/BiRefNet",
-                hash="30762928cd6ee9229e24e26e200951b8fe635799b67db016ba747fa653b64db9",
-                file_size=800688955,
-            ),
-        ],
-    },
     "efficiency-nodes-comfyui": {
         "requirements": {
             "simpleeval": {},
@@ -168,4 +148,5 @@ BASIC_NODE_LIST = {
     "ComfyUI-KJNodes": {},
     "ComfyUI_LayerStyle": {},
     "ComfyUI-Easy-Use": {},
+    "ComfyUI_BiRefNet_ll": {},
 }

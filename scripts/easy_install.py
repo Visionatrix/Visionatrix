@@ -367,8 +367,10 @@ vix_models:
   vae: vae
   vae_approx: vae_approx
   pulid: pulid
+  birefnet: birefnet
   rmbg: rmbg
 """
+# TO-DO: remove "rmbg" entry from this list in March/April when "1.9" version will be absolute.
 
 
 if __name__ == "__main__":
