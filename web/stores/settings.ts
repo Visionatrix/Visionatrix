@@ -96,6 +96,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 		localSettings: {
 			showComfyUiNavbarButton: true,
 		},
+		isNextcloudIntegration: false,
 	}),
 
 	actions: {
@@ -247,6 +248,11 @@ export const useSettingsStore = defineStore('settingsStore', {
 			const localSettings = localStorage.getItem('localSettings')
 			if (localSettings) {
 				this.localSettings = JSON.parse(localSettings)
+			}
+
+			const config = useRuntimeConfig()
+			if (config.app.isNextcloudIntegration && config.app.isNextcloudIntegration === 'true') {
+				this.isNextcloudIntegration = true
 			}
 		},
 

@@ -250,6 +250,7 @@ watch(() => settingsStore.localSettings.showComfyUiNavbarButton, () => {
 					</div>
 
 					<UFormGroup
+						v-if="!settingsStore.isNextcloudIntegration"
 						size="md"
 						class="py-3"
 						label="Show 'Open ComfyUI' navbar button"
