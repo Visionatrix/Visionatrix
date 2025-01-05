@@ -261,7 +261,7 @@ watch(() => settingsStore.localSettings.showComfyUiNavbarButton, () => {
 								icon="i-heroicons-rectangle-group-16-solid"
 								variant="outline"
 								color="white"
-								:to="buildBackendUrl() + '/comfy'"
+								:to="buildBackendUrl() + '/comfy/'"
 								target="_blank">
 								Open ComfyUI
 							</UButton>

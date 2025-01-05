@@ -43,7 +43,7 @@ const settingsStore = useSettingsStore()
 							icon="i-heroicons-rectangle-group-16-solid"
 							variant="ghost"
 							color="white"
-							:to="buildBackendUrl() + '/comfy'"
+							:to="buildBackendUrl() + '/comfy/'"
 							target="_blank" />
 					</UTooltip>
 
