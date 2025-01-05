@@ -9,12 +9,12 @@ from PIL import Image, ImageMath
 # URLs to download images
 IMAGE_URLS = [
     "https://github.com/Visionatrix/VixFlowsDocs/blob/main/tests_data/source-cube_rm_background.png?raw=true",
-    "https://github.com/Visionatrix/VixFlowsDocs/blob/main/tests_data/result-cube_rm_background.png?raw=true"
+    "https://github.com/Visionatrix/VixFlowsDocs/blob/main/tests_data/result-cube_rm_background-birefnet1.png?raw=true"
 ]
 
 # Visionatrix details
 VISIONATRIX_HOST = "http://127.0.0.1:8288"
-FLOW_NAME = "remove_background_birefnet2_lite"
+FLOW_NAME = "remove_background_birefnet"
 CREATE_TASK_ENDPOINT = f"/vapi/tasks/create/{FLOW_NAME}"
 GET_TASK_PROGRESS_ENDPOINT = "/vapi/tasks/progress"
 GET_TASK_RESULTS_ENDPOINT = "/vapi/tasks/results"
