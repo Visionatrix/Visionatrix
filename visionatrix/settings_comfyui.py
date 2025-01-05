@@ -93,7 +93,7 @@ def autoconfigure_model_folders(models_dir: str) -> list[ComfyUIFolderPathDefini
         "vae": "vae",
         "vae_approx": "vae_approx",
         "pulid": "pulid",
-        "rmbg": "rmbg",
+        "birefnet": "birefnet",
     }
 
     comfyui_folders = []

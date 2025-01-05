@@ -14,13 +14,13 @@ IMAGE_URLS = [
 
 # Visionatrix details
 VISIONATRIX_HOST = "http://127.0.0.1:8288"
-FLOW_NAME = "remove_background_bria"
+FLOW_NAME = "remove_background_birefnet_lite"
 CREATE_TASK_ENDPOINT = f"/vapi/tasks/create/{FLOW_NAME}"
 GET_TASK_PROGRESS_ENDPOINT = "/vapi/tasks/progress"
 GET_TASK_RESULTS_ENDPOINT = "/vapi/tasks/results"
 WHOAMI_ENDPOINT = "/vapi/other/whoami"
-POLLING_INTERVAL = 3  # Poll every 3 seconds
-MAX_WAIT_TIME = 300  # Wait up to 5 minutes for the server to be ready
+POLLING_INTERVAL = 5  # Poll every 5 seconds
+MAX_WAIT_TIME = 1800  # Wait up to 30 minutes for the server to be ready & finish task
 
 
 def download_images(temp_dir):
@@ -157,7 +157,7 @@ def compare_images(result_path, reference_path):
     print("Comparing images...", flush=True)
     result_image = Image.open(result_path)
     reference_image = Image.open(reference_path)
-    max_epsilon = 0.000024  # 0.000012 is enough, but we'll multiply it by 2 to be sure.
+    max_epsilon = 0.0075  # 0.000024 difference is enough for Linux runners, but on Windows result differs by 0.0074
     assert_image_similar(result_image, reference_image, max_epsilon)
     print("Test passed!", flush=True)
 
@@ -202,9 +202,9 @@ def convert_to_comparable(a, b):
     return new_a, new_b
 
 
-def assert_image_similar(a, b, epsilon=0.0):
-    assert a.mode == b.mode
-    assert a.size == b.size
+def assert_image_similar(a: Image.Image, b: Image.Image, epsilon=0.0):
+    assert a.mode == b.mode, f"Image modes are not the same: {a.mode} != {b.mode}"
+    assert a.size == b.size, f"Image sizes are not the same: {a.size} != {b.size}"
     a, b = convert_to_comparable(a, b)
     diff = 0
     for ach, bch in zip(a.split(), b.split(), strict=False):

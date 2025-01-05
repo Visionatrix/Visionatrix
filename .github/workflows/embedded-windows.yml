@@ -77,7 +77,7 @@ jobs:
         shell: bash
         run: |
           cd vix_portable
-          ./python_embeded/python.exe ../tests/rm_background_bria.py
+          ./python_embeded/python.exe ../tests/rm_background.py
 
       - name: Upload to Artifacts
         if: ${{ always() && github.event_name == 'workflow_dispatch' }}

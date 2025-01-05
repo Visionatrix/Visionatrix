@@ -169,6 +169,12 @@ MODEL_LOAD_CLASSES = {
             "preset": True,
         },
     },
+    "LoadRembgByBiRefNetModel": {
+        "1": {
+            "path": ["inputs", "model"],
+            "type": "birefnet",
+        },
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
