@@ -6,8 +6,8 @@ import websockets
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-# "/scripts" and "/kjweb_async" are here temporarily until someone fixes the situation upstream.
-PATHS_TO_PROXY = ["/comfy", "/scripts", "/kjweb_async"]
+# "/scripts", "/kjweb_async", "/ollama" are here temporarily until someone fixes the situation upstream.
+PATHS_TO_PROXY = ["/comfy", "/scripts", "/kjweb_async", "/ollama"]
 
 
 class ComfyUIProxyMiddleware:
