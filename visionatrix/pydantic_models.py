@@ -343,17 +343,9 @@ class UserInfo(BaseModel):
 class ComfyUIFolderPath(BaseModel):
     """Represents a folder path in ComfyUI with metadata, including modification options, creation time, and size."""
 
-    readonly: bool = Field(
-        ...,
-        description=(
-            "Flag indicating whether the folder path can be modified or deleted. "
-            "Folders added from YAML files are read-only and cannot be modified."
-        ),
-    )
     full_path: str = Field(..., description="The full filesystem path of the folder.")
     create_time: datetime = Field(..., description="The folder's creation time as a datetime object.")
     total_size: int = Field(..., description="The total size of the folder in bytes.")
-    is_default: bool = Field(..., description="If True, adds the folder at the beginning of the list for its key.")
 
 
 class ComfyUIFolderPaths(BaseModel):
@@ -369,7 +361,6 @@ class ComfyUIFolderPathDefinition(BaseModel):
 
     folder_key: str = Field(..., description="The folder key (e.g., 'checkpoints', 'vae').")
     path: str = Field(..., description="The full or relative filesystem path to the folder.")
-    is_default: bool = Field(..., description="If True, adds the folder at the beginning of the list for its key.")
 
     def __hash__(self):
         return hash((self.folder_key, self.path))

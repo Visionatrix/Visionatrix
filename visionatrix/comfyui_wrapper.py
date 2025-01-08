@@ -9,7 +9,6 @@ https://github.com/comfyanonymous/ComfyUI
 import contextlib
 import importlib.util
 import inspect
-import json
 import logging
 import os
 import re
@@ -19,7 +18,6 @@ import typing
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from socket import gethostname
-from zlib import crc32
 
 from psutil import virtual_memory
 
@@ -36,8 +34,7 @@ SYSTEM_DETAILS = {
     "embedded_python": options.PYTHON_EMBEDED,
 }
 TORCH_VERSION: str | None = None
-COMFYUI_FOLDERS_SETTING: list[ComfyUIFolderPathDefinition] = []
-COMFYUI_FOLDERS_SETTING_CRC32: int | None = None
+COMFYUI_MODELS_FOLDER: str = ""
 
 
 def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
@@ -159,7 +156,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     import cuda_malloc  # noqa
 
     # TO-DO: maybe we should do this before "import main" by setting as the args?
-    process_extra_paths_configs(main.args)
+    process_extra_paths_configs()
     folder_paths.set_output_directory(str(Path(options.TASKS_FILES_DIR).joinpath("output")))
     folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
     # =================================================================
@@ -177,26 +174,57 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     return execution.validate_prompt, prompt_executor
 
 
-def process_extra_paths_configs(main_args) -> None:
+def process_extra_paths_configs() -> None:
     import utils.extra_config  # noqa
 
-    global COMFYUI_FOLDERS_SETTING_CRC32
+    global COMFYUI_MODELS_FOLDER
 
     default_outside_config = Path("./extra_model_paths.yaml").resolve()
     if default_outside_config.is_file():
         LOGGER.info("Loading Visionatrix default extra model path config: %s", default_outside_config)
         utils.extra_config.load_extra_path_config(default_outside_config)
 
-    if comfyui_folders_setting := get_global_setting("comfyui_folders", True):
-        COMFYUI_FOLDERS_SETTING_CRC32 = crc32(comfyui_folders_setting.encode("utf-8"))
-        COMFYUI_FOLDERS_SETTING.extend(
-            [ComfyUIFolderPathDefinition.model_validate(i) for i in json.loads(comfyui_folders_setting)]
-        )
-    for custom_folder in COMFYUI_FOLDERS_SETTING:
-        absolute_path = Path(custom_folder.path)
-        if not absolute_path.is_absolute():
-            absolute_path = Path(options.COMFYUI_DIR).joinpath(custom_folder.path).resolve()
-        add_model_folder_path(custom_folder.folder_key, str(absolute_path), custom_folder.is_default)
+    if COMFYUI_MODELS_FOLDER := get_global_setting("comfyui_models_folder", True):
+        for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
+            add_model_folder_path(i.folder_key, i.path, True)
+
+
+def get_autoconfigured_model_folders_from(models_dir: str) -> list[ComfyUIFolderPathDefinition]:
+    paths_to_preconfigure = {
+        "checkpoints": "checkpoints",
+        "text_encoders": "text_encoders",
+        "clip_vision": "clip_vision",
+        "controlnet": "controlnet",
+        "diffusion_models": "diffusion_models",
+        "diffusers": "diffusers",
+        "ipadapter": "ipadapter",
+        "instantid": "instantid",
+        "loras": ["loras", "photomaker"],
+        "photomaker": "photomaker",
+        "sams": "sams",
+        "style_models": "style_models",
+        "ultralytics": "ultralytics",
+        "ultralytics_bbox": "ultralytics/bbox",
+        "ultralytics_segm": "ultralytics/segm",
+        "unet": "unet",
+        "upscale_models": "upscale_models",
+        "vae": "vae",
+        "vae_approx": "vae_approx",
+        "pulid": "pulid",
+        "birefnet": "birefnet",
+    }
+
+    comfyui_folders = []
+    for folder_key, subpaths in paths_to_preconfigure.items():
+        if isinstance(subpaths, str):
+            subpaths = [subpaths]
+        for subpath in subpaths:
+            absolute_new_path = str(Path(models_dir).joinpath(subpath))
+            if not Path(absolute_new_path).is_absolute():
+                absolute_new_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_new_path).resolve())
+            folder_def = ComfyUIFolderPathDefinition(folder_key=folder_key, path=absolute_new_path)
+            comfyui_folders.append(folder_def)
+    return comfyui_folders
 
 
 def get_comfy_server_class(task_progress_callback):

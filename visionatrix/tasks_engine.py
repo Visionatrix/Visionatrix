@@ -17,7 +17,6 @@ from . import comfyui_wrapper, database, models_map, options, settings_comfyui
 from .db_queries import get_global_setting, get_installed_models, get_setting
 from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
-    ComfyUIFolderPathDefinition,
     ExecutionDetails,
     TaskDetails,
     TaskDetailsShort,
@@ -272,24 +271,12 @@ def get_incomplete_task_without_error_database(
             return {}
         task_details = lock_task_and_return_details(session, task)
         if task_details and options.VIX_MODE == "WORKER":
-            comfyui_folders_setting = get_global_setting(
-                "comfyui_folders", True, comfyui_wrapper.COMFYUI_FOLDERS_SETTING_CRC32
-            )
-            if comfyui_folders_setting:
-                new_paths = {
-                    ComfyUIFolderPathDefinition.model_validate(item) for item in json.loads(comfyui_folders_setting)
-                }
-                current_paths = set(comfyui_wrapper.COMFYUI_FOLDERS_SETTING)
-                folders_to_remove = current_paths - new_paths
-                for folder in folders_to_remove:
-                    with contextlib.suppress(ValueError):
-                        settings_comfyui.remove_folder_path(folder.folder_key, folder.path)
-
-                folders_to_add = new_paths - current_paths
-                for folder in folders_to_add:
-                    comfyui_wrapper.add_model_folder_path(folder.folder_key, folder.path, folder.is_default)
-
-                comfyui_wrapper.COMFYUI_FOLDERS_SETTING = list(new_paths)
+            comfyui_folders_setting = get_global_setting("comfyui_models_folder", True)
+            if comfyui_folders_setting != comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+                if comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+                    settings_comfyui.deconfigure_model_folders(comfyui_wrapper.COMFYUI_MODELS_FOLDER)
+                comfyui_wrapper.COMFYUI_FOLDERS_SETTING = comfyui_folders_setting
+                settings_comfyui.autoconfigure_model_folders(comfyui_folders_setting)
         return task_details
     except Exception as e:
         session.rollback()

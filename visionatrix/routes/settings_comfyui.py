@@ -1,12 +1,8 @@
-import json
-from json import loads
-from zlib import crc32
-
-from fastapi import APIRouter, Body, HTTPException, Request, status
+from fastapi import APIRouter, Body, Request, status
 
 from .. import comfyui_wrapper, settings_comfyui
-from ..db_queries import get_global_setting, set_global_setting
-from ..pydantic_models import ComfyUIFolderPathDefinition, ComfyUIFolderPaths
+from ..db_queries import set_global_setting
+from ..pydantic_models import ComfyUIFolderPaths
 from .helpers import require_admin
 
 ROUTER = APIRouter(prefix="/settings/comfyui", tags=["settings"])
@@ -23,70 +19,7 @@ def comfyui_get_folders_paths(request: Request) -> ComfyUIFolderPaths:
     Requires administrative privileges.
     """
     require_admin(request)
-
-    comfyui_folders: list[ComfyUIFolderPathDefinition] = []
-    if comfyui_folders_setting := get_global_setting("comfyui_folders", True):
-        comfyui_folders = [ComfyUIFolderPathDefinition.model_validate(i) for i in loads(comfyui_folders_setting)]
-
-    return settings_comfyui.compute_folder_paths(comfyui_folders)
-
-
-@ROUTER.post(
-    "/folders",
-    status_code=status.HTTP_201_CREATED,
-)
-def add_folder_path(
-    request: Request,
-    body: ComfyUIFolderPathDefinition = Body(...),
-) -> ComfyUIFolderPaths:
-    """
-    Adds a new folder path with a specified priority to the ComfyUI settings.
-
-    Requires administrative privileges.
-    """
-    require_admin(request)
-
-    try:
-        comfyui_folders = settings_comfyui.add_folder_path(body)
-    except ValueError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from None
-
-    raw_data = json.dumps([i.model_dump(mode="json") for i in comfyui_folders])
-    raw_data_crc32 = crc32(raw_data.encode("utf-8"))
-    comfyui_wrapper.COMFYUI_FOLDERS_SETTING_CRC32 = raw_data_crc32
-    set_global_setting("comfyui_folders", raw_data, sensitive=True, crc32=raw_data_crc32)
-    return settings_comfyui.compute_folder_paths(comfyui_folders)
-
-
-@ROUTER.delete(
-    "/folders",
-    status_code=status.HTTP_200_OK,
-)
-def remove_folder_path(
-    request: Request,
-    folder_key: str = Body(..., description="The folder key (e.g., 'checkpoints', 'vae')."),
-    path: str = Body(..., description="The full or relative filesystem path of the folder to remove."),
-) -> ComfyUIFolderPaths:
-    """
-    Removes a folder path from the ComfyUI settings.
-
-    Requires administrative privileges.
-    """
-    require_admin(request)
-
-    try:
-        comfyui_folders = settings_comfyui.remove_folder_path(folder_key, path)
-    except ValueError as e:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            str(e),
-        ) from None
-
-    raw_data = json.dumps([i.model_dump(mode="json") for i in comfyui_folders])
-    raw_data_crc32 = crc32(raw_data.encode("utf-8"))
-    comfyui_wrapper.COMFYUI_FOLDERS_SETTING_CRC32 = raw_data_crc32
-    set_global_setting("comfyui_folders", raw_data, sensitive=True, crc32=raw_data_crc32)
-    return settings_comfyui.compute_folder_paths(comfyui_folders)
+    return settings_comfyui.compute_folder_paths()
 
 
 @ROUTER.post(
@@ -104,17 +37,11 @@ def autoconfigure_model_folders(
     """
     require_admin(request)
 
-    if get_global_setting("comfyui_folders", True):
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "ComfyUI folder settings are not empty.",
-        )
+    if models_dir != comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+        if comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+            settings_comfyui.deconfigure_model_folders(comfyui_wrapper.COMFYUI_MODELS_FOLDER)
+        comfyui_wrapper.COMFYUI_MODELS_FOLDER = models_dir
+        settings_comfyui.autoconfigure_model_folders(models_dir)
+        set_global_setting("comfyui_models_folder", models_dir, True)
 
-    comfyui_folders = settings_comfyui.autoconfigure_model_folders(models_dir)
-
-    # Update the global setting once with all folder paths
-    raw_data = json.dumps([i.model_dump(mode="json") for i in comfyui_folders])
-    raw_data_crc32 = crc32(raw_data.encode("utf-8"))
-    comfyui_wrapper.COMFYUI_FOLDERS_SETTING_CRC32 = raw_data_crc32
-    set_global_setting("comfyui_folders", raw_data, sensitive=True, crc32=raw_data_crc32)
-    return settings_comfyui.compute_folder_paths(comfyui_folders)
+    return settings_comfyui.compute_folder_paths()
