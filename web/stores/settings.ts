@@ -80,8 +80,8 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
-			comfyui_folders: {
-				key: 'comfyui_folders',
+			comfyui_models_folder: {
+				key: 'comfyui_models_folder',
 				value: '',
 				sensitive: false,
 				admin: true,
@@ -213,29 +213,6 @@ export const useSettingsStore = defineStore('settingsStore', {
 			})
 		},
 
-		addComfyUiFolder(folder_key: string, path: string, is_default: boolean) {
-			const { $apiFetch } = useNuxtApp()
-			return $apiFetch('/settings/comfyui/folders', {
-				method: 'POST',
-				body: {
-					folder_key,
-					path,
-					is_default,
-				},
-			})
-		},
-
-		deleteComfyUiFolder(folder_key: string, path: string) {
-			const { $apiFetch } = useNuxtApp()
-			return $apiFetch('/settings/comfyui/folders', {
-				method: 'DELETE',
-				body: {
-					folder_key,
-					path,
-				},
-			})
-		},
-
 		performComfyUiAutoconfig(models_dir: string) {
 			const { $apiFetch } = useNuxtApp()
 			return $apiFetch('/settings/comfyui/folders/autoconfig', {
@@ -282,9 +259,7 @@ export interface SavedSetting {
 }
 
 export interface ComfyUiFolder {
-	readonly: boolean
 	full_path: string
-	is_default: boolean
 	create_time: string
 	total_size: number
 }
