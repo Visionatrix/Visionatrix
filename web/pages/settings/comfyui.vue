@@ -34,8 +34,6 @@ const currentFoldersListing = computed(() => {
 				full_path: folderName,
 				total_size: total_size,
 				create_time: null,
-				is_default: null,
-				readonly: null,
 			}
 		})
 	}
@@ -78,12 +76,6 @@ const columns = computed(() => {
 			sortable: true,
 			class: '',
 		})
-		columns.push({
-			key: 'actions',
-			label: 'Actions',
-			sortable: false,
-			class: '',
-		})
 	}
 	return columns
 })
@@ -95,17 +87,30 @@ function navigateToFolder(folder: ComfyUiFolder) {
 }
 
 const autoconfigLoading = ref(false)
-function performComfyUiAutoconfig() {
-	autoconfigLoading.value = true
-	settingsStore.performComfyUiAutoconfig(modelsDir.value).then((res: any) => {
+function performComfyUiAutoconfig(modelsDir: string) {
+	if (modelsDir === '') {
+		resettingComfyUiFolders.value = true
+	} else {
+		autoconfigLoading.value = true
+	}
+	settingsStore.performComfyUiAutoconfig(modelsDir).then((res: any) => {
 		if ('folders' in res) {
 			console.debug('[DEBUG] ComfyUI folders: ', res.folders)
-			foldersListing.value = res.folders
 			settingsStore.loadAllSettings()
-			toast.add({
-				title: 'Autoconfig performed',
-				description: 'Autoconfig performed successfully',
-			})
+			if (modelsDir !== '') {
+				foldersListing.value = res.folders
+				toast.add({
+					title: 'Autoconfig performed',
+					description: 'Autoconfig performed successfully',
+				})
+			} else {
+				foldersListing.value = []
+				settingsStore.settingsMap.comfyui_models_folder.value = ''
+				toast.add({
+					title: 'ComfyUI folders reset',
+					description: 'ComfyUI folders reset successfully',
+				})
+			}
 		}
 	}).catch((error) => {
 		toast.add({
@@ -114,16 +119,10 @@ function performComfyUiAutoconfig() {
 		})
 	}).finally(() => {
 		autoconfigLoading.value = false
+		resettingComfyUiFolders.value = false
 	})
 }
 
-const newComfyUiFolderInput: Ref<{ $refs: { input: HTMLInputElement } }|null> = ref(null)
-const addingComfyUiFolder = ref(false)
-const newComfyUiFolderKey = ref('')
-const fetchingNewComfyUiFolder = ref(false)
-const newComfyUiFolder = ref('')
-const newComfyUiFolderIsDefault = ref(false)
-const deletingComfyUiFolder = ref(false)
 const resettingComfyUiFolders = ref(false)
 const hideEmptyFolders = ref(true)
 </script>
@@ -142,7 +141,7 @@ const hideEmptyFolders = ref(true)
 							class="py-3"
 							label="ComfyUI models folder"
 							description="Relative or absolute path to the models folders">
-							<div v-if="settingsStore.settingsMap.comfyui_folders.value === ''">
+							<div v-if="settingsStore.settingsMap.comfyui_models_folder.value === ''">
 								<p class="text-gray-500">No ComfyUI folders initialized.</p>
 								<UInput v-model="modelsDir"
 									placeholder="ComfyUI folder path"
@@ -157,82 +156,12 @@ const hideEmptyFolders = ref(true)
 									icon="i-heroicons-cog-6-tooth-20-solid"
 									color="orange"
 									:loading="autoconfigLoading"
-									@click="performComfyUiAutoconfig">
+									@click="() => performComfyUiAutoconfig(modelsDir)">
 									Perform autoconfig
 								</UButton>
 							</div>
-							<div v-if="addingComfyUiFolder">
-								<div class="flex flex-row w-full md:flex-col">
-									<UInput
-										ref="newComfyUiFolderInput"
-										v-model="newComfyUiFolder"
-										placeholder="External folder to use for model types"
-										class="w-full mt-3"
-										type="text"
-										size="sm"
-										icon="i-heroicons-folder-16-solid"
-										autocomplete="off"
-										:disable="fetchingNewComfyUiFolder" />
-									<UInput
-										v-model="newComfyUiFolderKey"
-										placeholder="Folder Name (model type, e.g. checkpoints, loras, vae)"
-										class="w-full mt-3"
-										type="text"
-										size="sm"
-										icon="i-heroicons-folder-16-solid"
-										autocomplete="off"
-										:disable="fetchingNewComfyUiFolder" />
-									<UCheckbox v-model="newComfyUiFolderIsDefault"
-										class="mt-3"
-										label="Is default" />
-								</div>
-								<div class="flex mt-3">
-									<UButton
-										class="mr-2"
-										color="white"
-										icon="i-heroicons-x-mark"
-										variant="outline"
-										:disabled="fetchingNewComfyUiFolder"
-										@click="() => {
-											addingComfyUiFolder = false
-											newComfyUiFolder = ''
-											newComfyUiFolderKey = ''
-											newComfyUiFolderIsDefault = false
-										}">
-										Cancel
-									</UButton>
-									<UButton
-										icon="i-heroicons-check-16-solid"
-										:loading="fetchingNewComfyUiFolder"
-										@click="() => {
-											if (newComfyUiFolder === '') {
-												return
-											}
-											fetchingNewComfyUiFolder = true
-											settingsStore.addComfyUiFolder(newComfyUiFolderKey, newComfyUiFolder, newComfyUiFolderIsDefault).then((res: any) => {
-												if ('folders' in res) {
-													console.debug('[DEBUG] ComfyUI folders: ', res.folders)
-													foldersListing = res.folders
-													toast.add({
-														title: 'ComfyUI folder added',
-														description: 'ComfyUI folder added successfully',
-													})
-												}
-											}).catch((err) => {
-												toast.add({
-													title: 'Error adding ComfyUI folder',
-													description: err.details,
-												})
-											}).finally(() => {
-												fetchingNewComfyUiFolder = false
-											})
-										}">
-										Add
-									</UButton>
-								</div>
-							</div>
 							<UButton
-								v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+								v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"
 								class="mt-3"
 								icon="i-heroicons-folder-16-solid"
 								color="cyan"
@@ -245,52 +174,18 @@ const hideEmptyFolders = ref(true)
 								}">
 								Show ComfyUI folders
 							</UButton>
-							<UButton v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
-								class="mt-3 ml-2"
-								color="white"
-								variant="outline"
-								icon="i-heroicons-folder-plus-16-solid"
-								@click="() => {
-									addingComfyUiFolder = true
-									// focus on input on vue next tick
-									$nextTick(() => {
-										if (newComfyUiFolderInput) {
-											newComfyUiFolderInput.$refs.input.focus()
-										}
-									})
-								}">
-								Add ComfyUI folder
-							</UButton>
-							<UButton v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+
+							<UButton v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"
 								class="mt-3 ml-2"
 								color="red"
 								variant="outline"
 								icon="i-heroicons-trash-16-solid"
-								@click="() => {
-									resettingComfyUiFolders = true
-									settingsStore.saveGlobalSetting(settingsStore.settingsMap.comfyui_folders.key, '', settingsStore.settingsMap.comfyui_folders.sensitive)
-										.then(() => {
-											toast.add({
-												title: 'ComfyUI folders reset',
-												description: 'ComfyUI folders reset successfully',
-											})
-											settingsStore.settingsMap.comfyui_folders.value = ''
-										})
-										.catch((error) => {
-											toast.add({
-												title: 'Error resetting ComfyUI folders',
-												description: error.details,
-											})
-										})
-										.finally(() => {
-											resettingComfyUiFolders = false
-										})
-								}">
+								@click="() => performComfyUiAutoconfig('')">
 								Reset ComfyUI folders
 							</UButton>
 						</UFormGroup>
 
-						<UModal v-if="settingsStore.settingsMap.comfyui_folders.value !== ''"
+						<UModal v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"
 							v-model="showComfyUiFoldersModal"
 							class="z-[90]"
 							fullscreen>
@@ -344,39 +239,6 @@ const hideEmptyFolders = ref(true)
 									</template>
 									<template #create_time-data="{ row }">
 										{{ row.create_time && new Date(row.create_time).getTime() !== 0 ? new Date(row.create_time).toLocaleString() : '-' }}
-									</template>
-									<template #actions-data="{ row }">
-										<UButton
-											icon="i-heroicons-trash-16-solid"
-											variant="outline"
-											color="red"
-											:loading="deletingComfyUiFolder"
-											:disabled="row.readonly === true"
-											@click="() => {
-												deletingComfyUiFolder = true
-												settingsStore.deleteComfyUiFolder(path, row.full_path).then((res: any) => {
-													if ('folders' in res) {
-														console.debug('[DEBUG] ComfyUI folders: ', res.folders)
-														foldersListing = res.folders
-														toast.add({
-															title: 'ComfyUI folder removed',
-															description: 'ComfyUI folder removed successfully',
-														})
-														if (!foldersListing[path]) {
-															path = '' // reset path if last folder was removed
-														}
-													}
-												}).catch((error) => {
-													toast.add({
-														title: 'Error removing ComfyUI folder',
-														description: error.details,
-													})
-												}).finally(() => {
-													deletingComfyUiFolder = false
-												})
-											}">
-											Remove
-										</UButton>
 									</template>
 								</UTable>
 							</div>

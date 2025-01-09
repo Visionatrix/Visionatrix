@@ -43,6 +43,10 @@ function deleteSelectedOrphanModels() {
 const orphanModelsList = ref<OrphanModel[]>([])
 const selectedRows = ref<OrphanModel[]>([])
 const deletingOrphanModel = ref<boolean>(false)
+
+watch(() => settingsStore.settingsMap.comfyui_models_folder.value, () => {
+	fetchOrphanModels()
+})
 </script>
 
 <template>
