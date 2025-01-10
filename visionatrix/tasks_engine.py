@@ -799,10 +799,10 @@ def increase_current_task_progress(percent_finished: float) -> None:
     ACTIVE_TASK["progress"] = min(ACTIVE_TASK["progress"] + percent_finished, 99.0)
 
 
-def task_progress_callback(event: str, data: dict, broadcast: bool = False):
+def task_progress_callback(event: str, data: dict | tuple, broadcast: bool = False):
     global ACTIVE_TASK
     LOGGER.debug("%s(broadcast=%s): %s", event, broadcast, data)
-    if not data.get("prompt_id", "").startswith("vix-"):
+    if not isinstance(data, dict) or not data.get("prompt_id", "").startswith("vix-"):
         return
 
     task_id = data["prompt_id"][4:]
