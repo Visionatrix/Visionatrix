@@ -327,10 +327,10 @@ def unload_all_models() -> None:
     comfy.model_management.unload_all_models()
 
 
-def soft_empty_cache(force: bool = False) -> None:
+def soft_empty_cache() -> None:
     import comfy  # noqa
 
-    comfy.model_management.soft_empty_cache(force)
+    comfy.model_management.soft_empty_cache()
 
 
 def get_engine_details() -> dict:
@@ -422,7 +422,7 @@ def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_ev
     prompt_server = prompt_executor_args[1]
 
     current_time: float = 0.0
-    e = execution.PromptExecutor(prompt_server, lru_size=0)
+    e = execution.PromptExecutor(prompt_server, lru_size=comfy.cli_args.args.cache_lru)
     last_gc_collect = 0
     need_gc = False
     gc_collect_interval = 10.0
@@ -442,7 +442,7 @@ def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_ev
             if item[3].get("unload_models"):
                 comfy.model_management.unload_all_models()
                 gc.collect()
-                comfy.model_management.soft_empty_cache(True)
+                comfy.model_management.soft_empty_cache()
                 last_gc_collect = time.perf_counter()
 
             execution_start_time = time.perf_counter()
@@ -482,7 +482,7 @@ def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_ev
             current_time = time.perf_counter()
             if (current_time - last_gc_collect) > gc_collect_interval:
                 gc.collect()
-                comfy.model_management.soft_empty_cache(True)  # for AMD GPUs ComfyUI doesn't automatically clear cache
+                comfy.model_management.soft_empty_cache()
                 last_gc_collect = current_time
                 need_gc = False
 

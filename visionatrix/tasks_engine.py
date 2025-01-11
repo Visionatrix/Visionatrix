@@ -813,7 +813,6 @@ def task_progress_callback(event: str, data: dict | tuple, broadcast: bool = Fal
     if event == "execution_start":
         ACTIVE_TASK["execution_start_time"] = time.perf_counter()
         threading.Thread(target=update_task_progress_thread, args=(ACTIVE_TASK,), daemon=True).start()
-        return
 
     node_percent = 99 / ACTIVE_TASK["nodes_count"]
 
