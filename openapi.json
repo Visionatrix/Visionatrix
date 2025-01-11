@@ -2646,6 +2646,18 @@
             "title": "Is Translations Supported",
             "description": "Flag that determines whether Flow supports prompt translations.",
             "default": false
+          },
+          "is_macos_supported": {
+            "type": "boolean",
+            "title": "Is Macos Supported",
+            "description": "Flag indicating whether the macOS PyTorch version can correctly run this flow.",
+            "default": true
+          },
+          "is_supported_by_workers": {
+            "type": "boolean",
+            "title": "Is Supported By Workers",
+            "description": "Flag indicating if this flow can run on workers based on their capabilities.",
+            "default": true
           }
         },
         "type": "object",
@@ -3796,7 +3808,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-01-09T20:59:12.513686Z"
+            "default": "2025-01-11T07:19:07.362258Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

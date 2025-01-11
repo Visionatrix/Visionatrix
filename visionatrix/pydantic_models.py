@@ -103,6 +103,12 @@ class Flow(BaseModel):
     is_translations_supported: bool = Field(
         False, description="Flag that determines whether Flow supports prompt translations."
     )
+    is_macos_supported: bool = Field(
+        True, description="Flag indicating whether the macOS PyTorch version can correctly run this flow."
+    )
+    is_supported_by_workers: bool = Field(
+        True, description="Flag indicating if this flow can run on workers based on their capabilities."
+    )
 
     def __hash__(self):
         return hash(self.name)
