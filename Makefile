@@ -34,5 +34,5 @@ build-client:
 build-client-nextcloud:
 	@echo "Building client for Nextcloud..."
 	@rm -rf visionatrix/client && rm -rf web/.output/public/
-	@cd web && NUXT_APP_BASE_URL=/index.php/apps/app_api/proxy/visionatrix/ npm run build && \
+	@cd web && NUXT_APP_BASE_URL=/index.php/apps/app_api/proxy/visionatrix/ NEXTCLOUD_INTEGRATION=true npm run build && \
 		cp -r .output/public ../visionatrix/client

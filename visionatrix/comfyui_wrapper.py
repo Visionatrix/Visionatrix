@@ -6,7 +6,9 @@ https://github.com/comfyanonymous/ComfyUI
 
 # pylint: skip-file
 
+import asyncio
 import contextlib
+import gc
 import importlib.util
 import inspect
 import logging
@@ -14,7 +16,10 @@ import os
 import re
 import subprocess
 import sys
+import threading
+import time
 import typing
+import uuid
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from socket import gethostname
@@ -37,7 +42,7 @@ TORCH_VERSION: str | None = None
 COMFYUI_MODELS_FOLDER: str = ""
 
 
-def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any]:
+def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any, typing.Any]:
 
     # for diffusers/transformers library
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
@@ -161,17 +166,36 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
     # =================================================================
 
-    comfy_server = get_comfy_server_class(task_progress_callback)
+    # StartComfyUI: copy of code from ComfyUIs 'main.py'
+    if main.args.temp_directory:
+        temp_dir = os.path.join(os.path.abspath(main.args.temp_directory), "temp")
+        logging.info("Setting temp directory to: %s", temp_dir)
+        folder_paths.set_temp_directory(temp_dir)
+    main.cleanup_temp()
 
-    nodes.init_builtin_extra_nodes()
-    nodes.init_external_custom_nodes()
+    prompt_server = get_comfy_prompt_server_class_instance(task_progress_callback)
+    q = execution.PromptQueue(prompt_server)
+
+    nodes.init_extra_nodes(init_custom_nodes=True)
+
     main.cuda_malloc_warning()
 
-    main.hijack_progress(comfy_server)
+    prompt_server.add_routes()
+    main.hijack_progress(prompt_server)
 
-    main.cleanup_temp()
-    prompt_executor = get_comfy_prompt_executor(comfy_server, task_progress_callback, main.args.cache_lru)
-    return execution.validate_prompt, prompt_executor
+    os.makedirs(folder_paths.get_temp_directory(), exist_ok=True)
+
+    async def start_all():
+        await prompt_server.setup()
+        await main.run(
+            prompt_server,
+            address="127.0.0.1",
+            port=8188,
+            verbose=False,
+            call_on_start=None,
+        )
+
+    return execution.validate_prompt, [q, prompt_server], start_all
 
 
 def process_extra_paths_configs() -> None:
@@ -227,32 +251,50 @@ def get_autoconfigured_model_folders_from(models_dir: str) -> list[ComfyUIFolder
     return comfyui_folders
 
 
-def get_comfy_server_class(task_progress_callback):
+def get_comfy_prompt_server_class_instance(task_progress_callback):
+    import execution  # noqa
     import server  # noqa
 
-    class ComfyServer(server.PromptServer):
-
-        async def send(self, event, data, sid=None):  # noqa
-            LOGGER.warning("If you see this, please report, event =  %s", event)
-
-        async def send_bytes(self, event, data, sid=None):  # noqa
-            LOGGER.warning("If you see this, please report, event =  %s", event)
+    class ComfyPromptServer(server.PromptServer):
 
         def send_sync(self, event, data, sid=None):  # noqa
             task_progress_callback(event, data)
+            super().send_sync(event, data, sid)
 
-    return ComfyServer(None)
+        def post_prompt(self, json_data: dict):  # noqa
+            json_data = self.trigger_on_prompt(json_data)
 
+            if "number" in json_data:
+                number = float(json_data["number"])
+            else:
+                number = self.number
+                if json_data.get("front"):
+                    number = -number
 
-def get_comfy_prompt_executor(comfy_server, task_progress_callback, nodes_cache_args):
-    import execution  # noqa
+                self.number += 1
 
-    class ComfyPromptExecutor(execution.PromptExecutor):
+            if "prompt" in json_data:
+                prompt = json_data["prompt"]
+                valid = execution.validate_prompt(prompt)
+                extra_data = {}
+                if "extra_data" in json_data:
+                    extra_data = json_data["extra_data"]
 
-        def add_message(self, event, data, broadcast: bool):  # noqa
-            task_progress_callback(event, data, broadcast)
+                if "client_id" in json_data:
+                    extra_data["client_id"] = json_data["client_id"]
+                if valid[0]:
+                    prompt_id = json_data["prompt_id"] if "prompt_id" in json_data else str(uuid.uuid4())
+                    outputs_to_execute = valid[2]
+                    self.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
+                    return {"prompt_id": prompt_id, "number": number, "node_errors": valid[3]}
+                return {"error": valid[1], "node_errors": valid[3]}
+            return {"error": "no prompt", "node_errors": []}
 
-    return ComfyPromptExecutor(comfy_server, lru_size=nodes_cache_args)
+    try:
+        asyncio_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio_loop = None
+    return ComfyPromptServer(asyncio_loop)
 
 
 def get_node_class_mappings() -> dict[str, object]:
@@ -370,6 +412,79 @@ def need_cpu_flag() -> bool:
                 return False
     LOGGER.info("No CUDA or ROCM found, adding `--cpu` flag.")
     return True
+
+
+def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_event: threading.Event):
+    import comfy  # noqa
+    import execution  # noqa
+
+    q = prompt_executor_args[0]
+    prompt_server = prompt_executor_args[1]
+
+    current_time: float = 0.0
+    e = execution.PromptExecutor(prompt_server, lru_size=0)
+    last_gc_collect = 0
+    need_gc = False
+    gc_collect_interval = 10.0
+
+    while True:
+        timeout = 1.0
+        if need_gc:
+            timeout = max(gc_collect_interval - (current_time - last_gc_collect), 0.0)
+
+        queue_item = q.get(timeout=timeout)
+        if exit_event.is_set():
+            break
+
+        if queue_item is not None:
+            item, item_id = queue_item
+
+            if item[3].get("unload_models"):
+                comfy.model_management.unload_all_models()
+                gc.collect()
+                comfy.model_management.soft_empty_cache(True)
+                last_gc_collect = time.perf_counter()
+
+            execution_start_time = time.perf_counter()
+            prompt_id = item[1]
+            prompt_server.last_prompt_id = prompt_id
+
+            e.execute(item[2], prompt_id, item[3], item[4])
+            need_gc = True
+            q.task_done(
+                item_id,
+                e.history_result,
+                status=execution.PromptQueue.ExecutionStatus(
+                    status_str="success" if e.success else "error", completed=e.success, messages=e.status_messages
+                ),
+            )
+            if prompt_server.client_id is not None:
+                prompt_server.send_sync("executing", {"node": None, "prompt_id": prompt_id}, prompt_server.client_id)
+
+            current_time = time.perf_counter()
+            execution_time = current_time - execution_start_time
+            logging.info("Prompt executed in %.2f seconds", execution_time)
+
+        flags = q.get_flags()
+        free_memory = flags.get("free_memory", False)
+
+        if flags.get("unload_models", free_memory):
+            comfy.model_management.unload_all_models()
+            need_gc = True
+            last_gc_collect = 0
+
+        if free_memory:
+            e.reset()
+            need_gc = True
+            last_gc_collect = 0
+
+        if need_gc:
+            current_time = time.perf_counter()
+            if (current_time - last_gc_collect) > gc_collect_interval:
+                gc.collect()
+                comfy.model_management.soft_empty_cache(True)  # for AMD GPUs ComfyUI doesn't automatically clear cache
+                last_gc_collect = current_time
+                need_gc = False
 
 
 def add_arguments(parser):
