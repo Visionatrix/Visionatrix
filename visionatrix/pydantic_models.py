@@ -109,6 +109,9 @@ class Flow(BaseModel):
     is_supported_by_workers: bool = Field(
         True, description="Flag indicating if this flow can run on workers based on their capabilities."
     )
+    required_memory_gb: float = Field(
+        0.0, description="Minimum amount of memory (in gigabytes) required to execute this flow."
+    )
 
     def __hash__(self):
         return hash(self.name)

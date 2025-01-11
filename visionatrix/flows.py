@@ -711,6 +711,14 @@ async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
     for flow in flows.values():
         if flow.is_macos_supported is False:
             flow.is_supported_by_workers = any(worker.device_type != "mps" for worker in available_workers)
+        if flow.is_supported_by_workers is False:
+            continue  # Flow already marked as unsupported, skip additional checks
+        if flow.required_memory_gb:
+            required_memory_bytes = flow.required_memory_gb * 1024**3
+            # Check if any worker has sufficient available memory
+            flow.is_supported_by_workers = any(
+                worker.torch_vram_total >= required_memory_bytes for worker in available_workers
+            )
     return flows
 
 

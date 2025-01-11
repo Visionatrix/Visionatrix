@@ -2658,6 +2658,12 @@
             "title": "Is Supported By Workers",
             "description": "Flag indicating if this flow can run on workers based on their capabilities.",
             "default": true
+          },
+          "required_memory_gb": {
+            "type": "number",
+            "title": "Required Memory Gb",
+            "description": "Minimum amount of memory (in gigabytes) required to execute this flow.",
+            "default": 0.0
           }
         },
         "type": "object",
@@ -3808,7 +3814,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-01-11T07:19:07.362258Z"
+            "default": "2025-01-11T12:53:42.626594Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
