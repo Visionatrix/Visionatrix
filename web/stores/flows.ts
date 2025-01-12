@@ -21,6 +21,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_installed: <Flow[]>[],
 		flows_tags_filter: <string[]>[],
 		flows_search_filter: '',
+		show_unsupported_flows: false,
 		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
@@ -41,6 +42,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
+			}
+			if (!state.show_unsupported_flows) {
+				flows = flows.filter(flow => flow.is_supported_by_workers)
 			}
 			return flows
 		},
@@ -66,6 +70,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
 				console.debug('filter flows by search:', state.flows_search_filter, flows)
+			}
+			if (!state.show_unsupported_flows) {
+				flows = flows.filter(flow => flow.is_supported_by_workers)
 			}
 			return paginate(flows, state.page, state.pageSize) as Flow[]
 		},
