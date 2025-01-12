@@ -1020,6 +1020,9 @@ export interface Flow {
 	is_seed_supported: boolean
 	is_count_supported: boolean
 	is_translations_supported: boolean
+	is_supported_by_workers: boolean
+	is_macos_supported: boolean
+	required_memory_gb?: number
 }
 
 export interface Model {

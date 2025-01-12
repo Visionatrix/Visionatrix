@@ -109,12 +109,22 @@ const modelsSize = computed(() => {
 									text="This flow is local, manually added">
 									<UIcon
 										name="i-heroicons-lock-closed"
-										class="mr-2" />
+										class="mr-2"
+										:class="{
+											'text-stone-500': !flowStore.currentFlow?.is_supported_by_workers
+										}" />
 								</UTooltip>
 								<UIcon
 									:name="collapsedCard ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 									class="mr-2" />
-								{{ flowStore.currentFlow?.display_name }}
+								<UTooltip :text="flowStore.currentFlow?.is_supported_by_workers ? '' : 'No workers capable of running this flow'"
+									:popper="{ placement: 'top' }">
+									<span :class="{
+										'text-stone-500': !flowStore.currentFlow?.is_supported_by_workers
+									}">
+										{{ flowStore.currentFlow?.display_name }}
+									</span>
+								</UTooltip>
 							</h2>
 						</template>
 
@@ -207,6 +217,25 @@ const modelsSize = computed(() => {
 									</span>
 								</UBadge>
 							</p>
+							<p class="flex flex-row items-center mb-2">
+								<UIcon name="i-mdi-help-network-outline" class="mr-1" />
+								<b>Platforms:</b>&nbsp;
+								<UTooltip text="Linux">
+									<UIcon name="i-mdi-linux" class="mr-1" />
+								</UTooltip>
+								<UTooltip text="Microsoft Windows">
+									<UIcon name="i-mdi-microsoft-windows" class="mr-1" />
+								</UTooltip>
+								<UTooltip v-if="flowStore.currentFlow.is_macos_supported" text="macOS">
+									<UIcon name="i-mdi-apple" class="mr-1" />
+								</UTooltip>
+								<UTooltip v-if="flowStore.currentFlow?.required_memory_gb"
+									class="flex flex-row items-center"
+									text="Required VRAM memory (GB)">
+									(<UIcon name="i-mdi-memory" class="mr-1" />
+									<span>{{ flowStore.currentFlow?.required_memory_gb }} GB</span>)
+								</UTooltip>
+							</p>
 							<p
 								v-if="flowStore.currentFlow?.requires?.length > 0"
 								class="flex flex-row flex-wrap items-center text-md">
@@ -234,8 +263,15 @@ const modelsSize = computed(() => {
 										:class="{
 											'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
 											'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
+											'text-stone-500': flowStore.isFlowInstalled(route.params.name as string) && !flowStore.currentFlow?.is_supported_by_workers
 										}">
-										{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Installed' : 'Not installed' }}
+										{{ 
+											flowStore.isFlowInstalled(route.params.name as string)
+												? flowStore.currentFlow?.is_supported_by_workers
+													? 'Installed'
+													: 'Installed (no workers)'
+												: 'Not installed' 
+										}}
 									</span>
 								</div>
 								<UTooltip
