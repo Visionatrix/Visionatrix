@@ -76,8 +76,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 			return paginate(flows, state.page, state.pageSize) as Flow[]
 		},
-		flowByName() {
-			return (name: string) => this.flows.find(flow => flow.name === name)
+		flowByName(state) {
+			const flows: Flow[] = [
+				...state.flows_installed,
+				...state.flows_available,
+			]
+			return (name: string) => flows.find(flow => flow.name === name)
 		},
 		flowResultsByName(state) {
 			return (name: string) => {
@@ -983,6 +987,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				const options = JSON.parse(user_options)
 				this.resultsPageSize = Number(options.resultsPageSize) || 5
 				this.outputMaxSize = Number(options.outputMaxSize) || 512
+				this.show_unsupported_flows = options.showUnsupportedFlows || false
 			}
 		},
 
@@ -990,6 +995,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			localStorage.setItem('user_options', JSON.stringify({
 				resultsPageSize: this.resultsPageSize,
 				outputMaxSize: this.outputMaxSize,
+				showUnsupportedFlows: this.show_unsupported_flows,
 			}))
 		},
 

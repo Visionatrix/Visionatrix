@@ -27,6 +27,7 @@ function getFlowsOptions() {
 			slot: 'show_unsupported_flows',
 			click: () => {
 				flowsStore.$state.show_unsupported_flows = !flowsStore.$state.show_unsupported_flows
+				flowsStore.saveUserOptions()
 			},
 		}],
 		[{
