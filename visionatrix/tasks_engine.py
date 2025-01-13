@@ -240,16 +240,14 @@ def get_incomplete_task_without_error_database(
     last_task_name: str,
     user_id: str | None = None,
 ) -> dict:
-    if not tasks_to_ask:
-        return {}
     session = database.SESSION()
     try:
         worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
         result = session.execute(
             update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
         )
-        tasks_to_give = []
-        if result.rowcount == 0:
+        new_worker = result.rowcount == 0
+        if new_worker:
             session.add(
                 database.Worker(
                     user_id=worker_user_id,
@@ -258,15 +256,21 @@ def get_incomplete_task_without_error_database(
                     **worker_info_values,
                 )
             )
-        else:
+        session.commit()
+        if not tasks_to_ask:
+            return {}
+
+        tasks_to_give = []
+        if not new_worker:
+            # just an optimization to not fetch the "tasks_to_give" list if it's a newly created worker
             query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
             tasks_to_give = session.execute(query).scalar().tasks_to_give
+
         query = get_get_incomplete_task_without_error_query(
             tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
         )
         task = session.execute(query).scalar()
         if not task:
-            session.commit()
             return {}
         task_details = lock_task_and_return_details(session, task)
         if task_details and options.VIX_MODE == "WORKER":
