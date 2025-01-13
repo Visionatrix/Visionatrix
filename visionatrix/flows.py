@@ -717,7 +717,7 @@ async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
             required_memory_bytes = flow.required_memory_gb * 1024**3
             # Check if any worker has sufficient available memory
             flow.is_supported_by_workers = any(
-                worker.torch_vram_total >= required_memory_bytes for worker in available_workers
+                worker.vram_total >= required_memory_bytes for worker in available_workers
             )
     return flows
 
