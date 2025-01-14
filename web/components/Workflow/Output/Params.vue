@@ -31,9 +31,85 @@ const inputParams = computed(() => {
 onUnmounted(() => {
 	props.flowResult.showInputFiles = false
 })
+
+const hasProfilingDetails = computed(() => {
+	return (props.flowResult.execution_details)
+		&& props.flowResult.extra_flags !== null
+})
+const showProfilingDetailsModal = ref(false)
 </script>
 
 <template>
+	<UTooltip v-if="hasProfilingDetails" text="Show profiling details" :popper="{ placement: 'top' }">
+		<UButton
+			class="mb-2 mr-2"
+			color="orange"
+			size="xs"
+			variant="outline"
+			icon="i-mdi-bug"
+			@click="() => {
+				showProfilingDetailsModal = true
+			}" />
+		<UModal v-model="showProfilingDetailsModal">
+			<UButton
+				class="absolute top-4 right-4"
+				icon="i-heroicons-x-mark"
+				variant="ghost"
+				@click="() => showProfilingDetailsModal = false" />
+			<div class="w-full h-full p-4">
+				<h3 class="text-center font-bold">
+					Profiling details
+				</h3>
+
+				<h4 class="mt-2 flex items-center">
+					Extra flags
+					<UButton
+						class="ml-2"
+						icon="i-mdi-content-copy"
+						variant="outline"
+						size="xs"
+						color="gray"
+						@click="() => {
+							const clipboard = useCopyToClipboard()
+							clipboard.copy(JSON.stringify(props.flowResult.extra_flags, null, '\t'))
+							const toast = useToast()
+							toast.add({
+								title: 'Clipboard',
+								description: 'Extra flags copied to clipboard',
+								timeout: 2000,
+							})
+						}" />
+				</h4>
+				<pre class="mt-4 max-h-96 overflow-y-auto text-sm">
+					{{ JSON.stringify(props.flowResult.extra_flags, null, '\t') }}
+				</pre>
+
+				<h4 class="mt-2 flex items-center">
+					Execution details
+					<UButton
+						class="ml-2"
+						icon="i-mdi-content-copy"
+						variant="outline"
+						size="xs"
+						color="gray"
+						@click="() => {
+							const clipboard = useCopyToClipboard()
+							clipboard.copy(JSON.stringify(props.flowResult.execution_details, null, '\t'))
+							const toast = useToast()
+							toast.add({
+								title: 'Clipboard',
+								description: 'Execution details copied to clipboard',
+								timeout: 2000,
+							})
+						}" />
+				</h4>
+				<pre class="mt-4 max-h-96 overflow-y-auto text-sm">
+					{{ JSON.stringify(props.flowResult.execution_details, null, '\t') }}
+				</pre>
+			</div>
+		</UModal>
+	</UTooltip>
+
 	<UTooltip
 		v-if="flowResult.translated_input_params_mapped && Object.keys(flowResult.translated_input_params_mapped).length > 0"
 		:text="!showTranslatedParams ? 'Show translated input params' : 'Hide translated input params'"

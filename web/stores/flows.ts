@@ -324,6 +324,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 						progress: task.progress,
 						error: task?.error || '',
 						finished_at: task.finished_at,
+						execution_details: task.execution_details || null,
+						extra_flags: task.extra_flags || null,
 					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
@@ -441,7 +443,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 			count: number = 1,
 			translate: boolean = false,
 			child_task: boolean = false,
-			parent_task_id: number|null = null
+			parent_task_id: number|null = null,
+			headers: any = {},
 		) {
 			const formData = new FormData()
 
@@ -494,6 +497,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch(`/tasks/create/${flow.name}`, {
 				method: 'PUT',
 				body: formData,
+				headers: {
+					...headers,
+				},
 			}).then((res: any) => {
 				// Adding started flow to running list
 				res.tasks_ids.forEach((task_id: number, index: number) => {
@@ -878,6 +884,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 								error: progress[task_id]?.error || '',
 								finished_at: progress[task_id].finished_at,
 								input_files: progress[task_id].input_files || [],
+								execution_details: progress[task_id].execution_details || null,
+								extra_flags: progress[task_id].extra_flags || null,
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -1133,6 +1141,8 @@ export interface FlowResult {
 	error: string
 	finished_at: string
 	showInputFiles?: boolean
+	execution_details?: TaskExecutionDetails
+	extra_flags?: TaskExtraFlags
 }
 
 export interface TasksHistory {
@@ -1152,11 +1162,25 @@ export interface TaskHistoryInputParam {
 	[name: string]: any
 }
 
+export interface TaskExecutionDetails {
+	disable_smart_memory: boolean
+	max_memory_usage: number
+	nodes_execution_time: number
+	nodes_profiling: any[]
+	vram_state: string
+}
+
+export interface TaskExtraFlags {
+	[flag: string]: any
+}
+
 export interface TaskHistoryItem {
 	child_tasks: TaskHistoryItem[]
 	created_at: string
 	error?: string
+	execution_details: TaskExecutionDetails
 	execution_time: number
+	extra_flags: TaskExtraFlags
 	finished_at: string
 	flow_comfy: any
 	input_files: TaskInputFile[]

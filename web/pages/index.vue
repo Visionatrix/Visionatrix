@@ -32,7 +32,9 @@ function getFlowsOptions() {
 		}],
 		[{
 			label: 'Clear filters',
+			labelClass: 'text-xs',
 			icon: 'i-mdi-filter-off',
+			iconClass: 'w-4 h-4',
 			click: () => {
 				flowsStore.$state.flows_search_filter = ''
 				flowsStore.$state.flows_tags_filter = []
@@ -88,13 +90,13 @@ const filtersCount = computed(() => {
 						:items="getFlowsOptions()"
 						mode="click"
 						label="Options">
-						<UButton color="white" icon="i-heroicons-ellipsis-vertical-16-solid">
+						<UButton color="white" icon="i-mdi-filter">
 							<span>{{ flowsStore.flows.length }}</span>
 							<span v-if="filterEnabled">({{ filtersCount }})</span>
 						</UButton>
 						<template #show_unsupported_flows>
 							<UCheckbox v-model="flowsStore.$state.show_unsupported_flows" />
-							<span class="ml-2">Show unsupported flows</span>
+							<span class="text-xs">Show unsupported flows</span>
 						</template>
 					</UDropdown>
 				</div>
