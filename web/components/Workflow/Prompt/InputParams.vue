@@ -87,10 +87,10 @@ onBeforeMount(() => {
 						Execution settings
 					</h4>
 				</div>
-				<UCheckbox v-model="profilingEnabled"
-					label="Enable Execution settings"
-					class="mb-3" />
 				<div v-if="!profilingOptionsCollapsed" class="p-4">
+					<UCheckbox v-model="profilingEnabled"
+						label="Enable Execution settings"
+						class="mb-3" />
 					<UFormGroup v-for="key in Object.keys(profilingOptions)" :key="key" :label="key">
 						<div v-if="key === 'X-WORKER-ID'" class="flex items-center w-full max-w-xs">
 							<USelectMenu

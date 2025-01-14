@@ -80,9 +80,9 @@ const showProfilingDetailsModal = ref(false)
 							})
 						}" />
 				</h4>
-				<pre class="mt-4 max-h-96 overflow-y-auto text-sm">
+				<div class="mt-4 max-h-96 overflow-y-auto text-sm whitespace-pre-wrap">
 					{{ JSON.stringify(props.flowResult.extra_flags, null, '\t') }}
-				</pre>
+				</div>
 
 				<h4 class="mt-2 flex items-center">
 					Execution details
@@ -103,9 +103,9 @@ const showProfilingDetailsModal = ref(false)
 							})
 						}" />
 				</h4>
-				<pre class="mt-4 max-h-96 overflow-y-auto text-sm">
+				<div class="mt-4 max-h-96 overflow-y-auto text-sm whitespace-pre-wrap">
 					{{ JSON.stringify(props.flowResult.execution_details, null, '\t') }}
-				</pre>
+				</div>
 			</div>
 		</UModal>
 	</UTooltip>
