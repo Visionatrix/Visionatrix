@@ -200,6 +200,10 @@ class TaskDetailsShort(BaseModel):
     translated_input_params: dict | None = Field(
         None, description="If auto-translation feature is enabled, contains translations for input values."
     )
+    extra_flags: ExtraFlags | None = Field(
+        None,
+        description="Set of additional options and flags that affect how the task is executed.",
+    )
 
     @model_validator(mode="after")
     def adjust_priority(self) -> Self:
@@ -224,10 +228,6 @@ class TaskDetails(TaskDetailsShort):
     execution_details: ExecutionDetails | None = Field(
         None,
         description="Profiling information about task execution, present only if profiling was enabled for this task.",
-    )
-    extra_flags: ExtraFlags | None = Field(
-        None,
-        description="Set of additional options and flags that affect how the task is executed.",
     )
     custom_worker: str | None = Field(
         None, description="ID of the worker to which the task was explicitly assigned, if specified."

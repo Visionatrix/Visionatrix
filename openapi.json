@@ -3058,6 +3058,17 @@
             "title": "Translated Input Params",
             "description": "If auto-translation feature is enabled, contains translations for input values."
           },
+          "extra_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFlags"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set of additional options and flags that affect how the task is executed."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -3134,17 +3145,6 @@
               }
             ],
             "description": "Profiling information about task execution, present only if profiling was enabled for this task."
-          },
-          "extra_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ExtraFlags"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Set of additional options and flags that affect how the task is executed."
           },
           "custom_worker": {
             "anyOf": [
@@ -3359,6 +3359,17 @@
             ],
             "title": "Translated Input Params",
             "description": "If auto-translation feature is enabled, contains translations for input values."
+          },
+          "extra_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFlags"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set of additional options and flags that affect how the task is executed."
           }
         },
         "type": "object",
@@ -3814,7 +3825,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-01-11T12:53:42.626594Z"
+            "default": "2025-01-14T15:55:33.769629Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
