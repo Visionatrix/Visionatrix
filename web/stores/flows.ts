@@ -710,7 +710,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
-		async fetchFlowComfy(task_id: string) {
+		async fetchTaskHistoryItem(task_id: string): Promise<TaskHistoryItem> {
 			const { $apiFetch } = useNuxtApp()
 			return await $apiFetch(`/tasks/progress/${task_id}`, {
 				method: 'GET',
@@ -1008,7 +1008,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		downloadFlowComfy(flow_name: string, task_id: string) {
-			this.fetchFlowComfy(task_id).then((res: any) => {
+			this.fetchTaskHistoryItem(task_id).then((res: TaskHistoryItem) => {
 				console.debug('downloadFlowComfy', res.flow_comfy)
 				const blob = new Blob([JSON.stringify(res.flow_comfy, null, 2)], { type: 'application/json' })
 				const url = window.URL.createObjectURL(blob)
@@ -1141,6 +1141,7 @@ export interface FlowResult {
 	error: string
 	finished_at: string
 	showInputFiles?: boolean
+	showExecutionDetailsModal?: boolean
 	execution_details?: TaskExecutionDetails
 	extra_flags?: TaskExtraFlags
 }
@@ -1171,7 +1172,7 @@ export interface TaskExecutionDetails {
 }
 
 export interface TaskExtraFlags {
-	[flag: string]: any
+	[flag: string | 'profiler_execution' | 'unload_models']: any
 }
 
 export interface TaskHistoryItem {
