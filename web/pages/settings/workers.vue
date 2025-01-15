@@ -192,7 +192,7 @@ function getWorkerStatus(row: WorkerInfo) {
 	const lastSeenDate = new Date(row.last_seen.includes('Z') ? row.last_seen : row.last_seen + 'Z')
 	const currentTime = new Date().getTime()
 	const timeDifference = currentTime - lastSeenDate.getTime()
-	return timeDifference <= 120000 ? 'Online' : 'Offline'
+	return timeDifference <= 60 * 5 * 1000 ? 'Online' : 'Offline'
 }
 
 const selectedRows: any = ref([])

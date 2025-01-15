@@ -23,7 +23,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from . import _version, comfyui_class_info, db_queries, events, options
 from .comfyui_wrapper import get_node_class_mappings
 from .etc import is_english
-from .models import install_model
+from .models import fill_flows_model_installed_field, install_model
 from .models_map import process_flow_models
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import Flow
@@ -704,3 +704,24 @@ def get_nodes_for_translate(input_params: dict[str, typing.Any], flow_comfy: dic
                 }
             )
     return r
+
+
+async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
+    available_workers = db_queries.get_workers_details(None, 5 * 60, "")
+    for flow in flows.values():
+        if flow.is_macos_supported is False:
+            flow.is_supported_by_workers = any(worker.device_type != "mps" for worker in available_workers)
+        if flow.is_supported_by_workers is False:
+            continue  # Flow already marked as unsupported, skip additional checks
+        if flow.required_memory_gb:
+            required_memory_bytes = flow.required_memory_gb * 1024**3
+            # Check if any worker has sufficient available memory
+            flow.is_supported_by_workers = any(
+                worker.vram_total >= required_memory_bytes for worker in available_workers
+            )
+    return flows
+
+
+async def calculate_dynamic_fields_for_flows(flows: dict[str, Flow]) -> dict[str, Flow]:
+    flows_with_filled_fields = await fill_flows_model_installed_field(flows)
+    return await fill_flows_supported_field(flows_with_filled_fields)

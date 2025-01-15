@@ -482,7 +482,7 @@ def server_mode_ensure_model_exists(save_path: Path) -> None:
         file.write("SERVER MODE")
 
 
-def fill_installed_flag(flows: dict[str, Flow]) -> dict[str, Flow]:
+async def fill_flows_model_installed_field(flows: dict[str, Flow]) -> dict[str, Flow]:
     installed_models = db_queries.get_installed_models()
     for flow in flows.values():
         for model in flow.models:
