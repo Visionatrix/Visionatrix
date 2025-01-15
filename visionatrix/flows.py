@@ -714,7 +714,7 @@ async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
         if flow.is_supported_by_workers is False:
             continue  # Flow already marked as unsupported, skip additional checks
         if flow.required_memory_gb:
-            required_memory_bytes = flow.required_memory_gb * 1024**3
+            required_memory_bytes = flow.required_memory_gb * 1024 * 1024 * 1000  # GPU sometimes have less mem
             # Check if any worker has sufficient available memory
             flow.is_supported_by_workers = any(
                 worker.vram_total >= required_memory_bytes for worker in available_workers
