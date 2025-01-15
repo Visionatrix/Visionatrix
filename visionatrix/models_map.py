@@ -93,6 +93,12 @@ MODEL_LOAD_CLASSES = {
             "type": "pulid",
         },
     },
+    "PulidFluxModelLoader": {
+        "1": {
+            "path": ["inputs", "pulid_file"],
+            "type": "pulid",
+        }
+    },
     "Lora Loader Stack (rgthree)": {
         "1": {
             "path": ["inputs", "lora_01"],
