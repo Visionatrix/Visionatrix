@@ -362,6 +362,7 @@ def does_model_exist_in_fs(
                 check_result = False
                 break
             if check_result:
+                db_queries.complete_model_progress_install(model.name, flow_name)
                 return True
 
     return lookup_for_model_file(model, model_possible_directories, flow_name, model_progress_install)
