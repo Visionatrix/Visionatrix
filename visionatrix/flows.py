@@ -150,7 +150,7 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
                     r_flows[_flow_name] = _flow
                     r_flows_comfy[_flow_name] = _flow_comfy
     except Exception as e:
-        LOGGER.error("Failed to parse flows from %s: %s", flows_storage_url, str(e))
+        LOGGER.exception("Failed to parse flows from %s: %s", flows_storage_url, str(e))
         return None, None, etag
 
     return r_flows, r_flows_comfy, flows_content_etag
