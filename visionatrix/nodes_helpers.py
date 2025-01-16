@@ -1,7 +1,12 @@
-def get_node_value(node: dict, path: list[str]) -> str | int | float:
-    for key in path:
-        node = node[key]
-    return node
+import contextlib
+
+
+def get_node_value(node: dict, path: list[str]) -> str | int | float | None:
+    with contextlib.suppress(Exception):
+        for key in path:
+            node = node[key]
+        return node
+    return None
 
 
 def set_node_value(node: dict, path: list[str], value: str | int | float | list) -> None:
