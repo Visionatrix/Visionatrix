@@ -3,37 +3,61 @@ from .pydantic_models import AIResourceModel
 BASIC_NODE_LIST = {
     "ComfyUI-Impact-Pack": {
         "main_branch": "Main",
+        "models": [
+            AIResourceModel(
+                name="mmdet_anime-face_yolov3",
+                filename="models/mmdet/bbox/mmdet_anime-face_yolov3.pth",
+                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/mmdet/bbox/mmdet_anime-face_yolov3.pth",
+                homepage="https://huggingface.co/Bingsu/adetailer",
+                hash="38208bb6b8a4633193feba532e96ed9a7942129af8fe948b27bfcf8e9a30a12e",
+                file_size=246462357,
+            ),
+            AIResourceModel(
+                name="mmdet_anime-face_yolov3-config",
+                filename="models/ultralytics/bbox/mmdet_anime-face_yolov3.py",
+                url="https://huggingface.co/andrey18106/visionatrix_models/raw/main/mmdet/bbox/mmdet_anime-face_yolov3.py",
+                homepage="https://huggingface.co/Bingsu/adetailer",
+                hash="4deda4dde43497fd123d28b08bd1eaff12ab6dd5b1650de5cea41c95e812cd8c",
+                file_size=5418,
+            ),
+            AIResourceModel(
+                name="sam_vit_b_01ec64",
+                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/sams/sam_vit_b_01ec64.pth",
+                homepage="https://github.com/facebookresearch/segment-anything",
+                hash="ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
+                types=["sams"],
+                file_size=375042383,
+            ),
+        ],
+    },
+    "ComfyUI-Impact-Subpack": {
         "before_install": {
             "python": "-m pip install ultralytics",
         },
         "models": [
             AIResourceModel(
-                name="sam_vit_b_01ec64",
-                paths="models/sams/sam_vit_b_01ec64.pth",
-                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/sams/sam_vit_b_01ec64.pth",
-                homepage="https://github.com/facebookresearch/segment-anything",
-                hash="ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
-            ),
-            AIResourceModel(
-                name="face_yolov8m.pt",
-                paths="models/ultralytics/bbox/face_yolov8m.pt",
+                name="face_yolov8m",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/ultralytics/bbox/face_yolov8m.pt",
                 homepage="https://huggingface.co/Bingsu/adetailer",
                 hash="f02b8a23e6f12bd2c1b1f6714f66f984c728fa41ed749d033e7d6dea511ef70c",
+                types=["ultralytics_bbox"],
+                file_size=52026019,
             ),
             AIResourceModel(
-                name="hand_yolov8s.pt",
-                paths="models/ultralytics/bbox/hand_yolov8s.pt",
+                name="hand_yolov8s",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/ultralytics/bbox/hand_yolov8s.pt",
                 homepage="https://huggingface.co/Bingsu/adetailer",
                 hash="5c4faf8d17286ace2c3d3346c6d0d4a0c8d62404955263a7ae95c1dd7eb877af",
+                types=["ultralytics_bbox"],
+                file_size=22507707,
             ),
             AIResourceModel(
-                name="person_yolov8m-seg.pt",
-                paths="models/ultralytics/segm/person_yolov8m-seg.pt",
+                name="person_yolov8m-seg",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/ultralytics/segm/person_yolov8m-seg.pt",
                 homepage="https://huggingface.co/Bingsu/adetailer",
                 hash="9d881ec50b831f546e37977081b18f4e3bf65664aec163f97a311b0955499795",
+                types=["ultralytics_segm"],
+                file_size=54827683,
             ),
         ],
     },
@@ -44,7 +68,7 @@ BASIC_NODE_LIST = {
         "models": [
             AIResourceModel(
                 name="antelopev2",
-                paths="models/insightface/models/antelopev2.zip",
+                filename="models/insightface/models/antelopev2.zip",
                 url="https://huggingface.co/MonsterMMORPG/tools/resolve/main/antelopev2.zip",
                 homepage="https://github.com/deepinsight/insightface",
                 hash="8e182f14fc6e80b3bfa375b33eb6cff7ee05d8ef7633e738d1c89021dcf0c5c5",
@@ -55,35 +79,7 @@ BASIC_NODE_LIST = {
                     "glintr100.onnx": "4ab1d6435d639628a6f3e5008dd4f929edf4c4124b1a7169e1048f9fef534cdf",
                     "scrfd_10g_bnkps.onnx": "5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91",
                 },
-            ),
-        ],
-    },
-    "ComfyUI-BRIA_AI-RMBG": {
-        "models": [
-            AIResourceModel(
-                name="RMGB-1.4",
-                paths="custom_nodes/ComfyUI-BRIA_AI-RMBG/RMBG-1.4/model.pth",
-                url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/RMBG-1.4/model.pth",
-                homepage="https://huggingface.co/briaai/RMBG-1.4",
-                hash="893c16c340b1ddafc93e78457a4d94190da9b7179149f8574284c83caebf5e8c",
-            ),
-        ],
-    },
-    "ComfyUI-BiRefNet": {
-        "models": [
-            AIResourceModel(
-                name="ComfyUI-BiRefNet-EP480",
-                paths="models/BiRefNet/BiRefNet-ep480.pth",
-                url="https://huggingface.co/ViperYX/BiRefNet/resolve/main/BiRefNet-ep480.pth",
-                homepage="https://huggingface.co/ViperYX/BiRefNet",
-                hash="367a738b27e0556e703991e8160fe6b5217bec6c158a72a890d131dd11ba74f6",
-            ),
-            AIResourceModel(
-                name="ComfyUI-BiRefNet-Swin-Large",
-                paths="models/BiRefNet/swin_large_patch4_window12_384_22kto1k.pth",
-                url="https://huggingface.co/ViperYX/BiRefNet/resolve/main/swin_large_patch4_window12_384_22kto1k.pth",
-                homepage="https://huggingface.co/ViperYX/BiRefNet",
-                hash="30762928cd6ee9229e24e26e200951b8fe635799b67db016ba747fa653b64db9",
+                file_size=360662982,
             ),
         ],
     },
@@ -110,6 +106,11 @@ BASIC_NODE_LIST = {
             "python": "-m pip install --use-pep517 facexlib",
         },
     },
+    "ComfyUI_PuLID_Flux_ll": {
+        "before_install": {
+            "python": "-m pip install --use-pep517 facexlib",
+        },
+    },
     "ComfyUI_FizzNodes": {},
     "style_aligned_comfy": {
         "main_branch": "master",
@@ -120,7 +121,7 @@ BASIC_NODE_LIST = {
         "models": [
             AIResourceModel(
                 name="buffalo_l",
-                paths="models/insightface/models/buffalo_l.zip",
+                filename="models/insightface/models/buffalo_l.zip",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/insightface/buffalo_l.zip",
                 homepage="https://github.com/deepinsight/insightface",
                 hash="80ffe37d8a5940d59a7384c201a2a38d4741f2f3c51eef46ebb28218a7b0ca2f",
@@ -131,6 +132,7 @@ BASIC_NODE_LIST = {
                     "det_10g.onnx": "5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91",
                     "w600k_r50.onnx": "4c06341c33c2ca1f86781dab0e829f88ad5b64be9fba56e56bc9ebdefc619e43",
                 },
+                file_size=288621354,
             ),
         ],
     },
@@ -149,4 +151,8 @@ BASIC_NODE_LIST = {
         },
     },
     "Jovimetrix": {},
+    "ComfyUI-KJNodes": {},
+    "ComfyUI_LayerStyle": {},
+    "ComfyUI-Easy-Use": {},
+    "ComfyUI_BiRefNet_ll": {},
 }

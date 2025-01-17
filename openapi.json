@@ -2,9 +2,26 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.8.0.dev0"
+    "version": "1.10.0.dev0"
   },
   "paths": {
+    "/comfy/": {
+      "get": {
+        "summary": "Custom Index",
+        "description": "Original ComfyUI user interface",
+        "operationId": "custom_index",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/flows/installed": {
       "get": {
         "tags": [
@@ -386,6 +403,253 @@
         }
       }
     },
+    "/vapi/models/orphan": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Get Orphan Models",
+        "description": "Retrieves a list of orphaned AI model files not associated with any installed flow.\n\nOrphaned models are files found in ComfyUI's model directories that are not required\nby installed flows. This endpoint provides metadata for each orphaned model,\nincluding file path, size, and potential usage in flows.\n\nAccess to this endpoint is restricted to administrators.",
+        "operationId": "get_orphan_models",
+        "responses": {
+          "200": {
+            "description": "List of orphaned models retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrphanModel"
+                  },
+                  "title": "Response Get Orphan Models"
+                },
+                "example": [
+                  {
+                    "path": "models/example_model.ckpt",
+                    "full_path": "/absolute/path/to/models/example_model.ckpt",
+                    "size": 512.3,
+                    "creation_time": 1695724800.0,
+                    "possible_flows": []
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Ongoing installation prevents orphan model detection.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Cannot run orphan models detection during ongoing installations."
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Delete Orphan Model",
+        "description": "Deletes a specified orphaned model file.\n\nThis endpoint removes an orphaned model if:\n- There are no ongoing model or flow installations.\n- The specified `full_path` and `file_creation_time` correspond to an orphaned model.\n\nAccess to this endpoint is restricted to administrators.",
+        "operationId": "delete_orphan_model",
+        "parameters": [
+          {
+            "name": "full_orphan_path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Full Orphan Path"
+            }
+          },
+          {
+            "name": "file_creation_time",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "File Creation Time"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Orphaned model successfully deleted."
+          },
+          "400": {
+            "description": "Invalid input or ongoing installations prevent deletion.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Cannot delete orphan models during ongoing installations."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found at the specified path.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "File not found at path: /absolute/path/to/models/example_model.ckpt"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during deletion.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Failed to delete orphan model: Unknown error occurred."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/interrupt-engine": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Interrupt Engine",
+        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
+        "operationId": "interrupt_engine",
+        "responses": {
+          "204": {
+            "description": "Engine interrupt initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/shutdown-server": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Shutdown Server",
+        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
+        "operationId": "shutdown_server",
+        "responses": {
+          "204": {
+            "description": "Server shutdown initiated successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/whoami": {
+      "get": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Whoami",
+        "description": "Returns information about the currently authenticated user.",
+        "operationId": "whoami",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/other/translate-prompt": {
+      "post": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Translate Prompt",
+        "description": "Translates an image generation prompt from another language into English.\n\nThis endpoint accepts a prompt in any language and translates it into English.\nIt returns the original prompt, the translated result, and the reason the generation was completed.\n\nAccessible to all authenticated users.\n\nRaises:\n    HTTPException: If there is an error during the translation process.",
+        "operationId": "translate_prompt",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslatePromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Translation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslatePromptResponse"
+                },
+                "example": {
+                  "prompt": "Dornr\u00f6schen",
+                  "result": "Sleeping Beauty",
+                  "done_reason": "stop"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Translation service error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Translation service error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/settings/get": {
       "get": {
         "tags": [
@@ -671,6 +935,70 @@
                 },
                 "example": {
                   "user_setting_key": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/settings/comfyui/folders": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Comfyui Get Folders Paths",
+        "description": "Retrieves all folder paths and their metadata from the ComfyUI folder settings.\n\nRequires administrative privileges.",
+        "operationId": "comfyui_get_folders_paths",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComfyUIFolderPaths"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/settings/comfyui/folders/autoconfig": {
+      "post": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Autoconfigure Model Folders",
+        "description": "Autoconfigures model paths to the selected folder.\n\nRequires administrative privileges.",
+        "operationId": "autoconfigure_model_folders",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_autoconfigure_model_folders"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComfyUIFolderPaths"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1749,135 +2077,6 @@
           }
         }
       }
-    },
-    "/vapi/other/interrupt-engine": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Interrupt Engine",
-        "description": "Interrupts the currently executing task. This is primarily an internal function and should be used\ncautiously. For standard task management, prefer using the `task_queue_clear` or `tasks_queue_clear`\nendpoints. Requires administrative privileges to execute.",
-        "operationId": "interrupt_engine",
-        "responses": {
-          "204": {
-            "description": "Engine interrupt initiated successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Admin privilege required",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Admin privilege required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/shutdown-server": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Shutdown Server",
-        "description": "Shuts down the current instance of Vix. This endpoint queues a task to terminate the server process\nafter a short delay, ensuring any final operations can complete. Access is restricted to administrators only.",
-        "operationId": "shutdown_server",
-        "responses": {
-          "204": {
-            "description": "Server shutdown initiated successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Admin privilege required",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Admin privilege required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/whoami": {
-      "get": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Whoami",
-        "description": "Returns information about the currently authenticated user.",
-        "operationId": "whoami",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/vapi/other/translate-prompt": {
-      "post": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Translate Prompt",
-        "description": "Translates an image generation prompt from another language into English.\n\nThis endpoint accepts a prompt in any language and translates it into English.\nIt returns the original prompt, the translated result, and the reason the generation was completed.\n\nAccessible to all authenticated users.\n\nRaises:\n    HTTPException: If there is an error during the translation process.",
-        "operationId": "translate_prompt",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TranslatePromptRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Translation successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TranslatePromptResponse"
-                },
-                "example": {
-                  "prompt": "Dornr\u00f6schen",
-                  "result": "Sleeping Beauty",
-                  "done_reason": "stop"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Translation service error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "detail": "Translation service error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -1889,13 +2088,20 @@
             "title": "Name",
             "description": "Unique name of the model."
           },
-          "paths": {
+          "types": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Paths",
-            "description": "Paths where the model can be stored within the filesystem."
+            "title": "Types",
+            "description": "ComfyUI model types to which model belongs(e.g 'checkpoints', 'loras').",
+            "default": []
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "description": "Overridden file name under which the model should be stored in the file system.",
+            "default": ""
           },
           "url": {
             "type": "string",
@@ -1931,19 +2137,50 @@
           "gated": {
             "type": "boolean",
             "title": "Gated",
-            "description": "Flag showing is the model closed to public access",
+            "description": "Flag showing is the model closed to public access.",
             "default": false
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "The size of the model file in bytes."
+          },
+          "installed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installed",
+            "description": "Flag indicating whether the model is already installed. Currently, this field is populated only by the `/flows/installed` and `/flows/not-installed` endpoints."
           }
         },
         "type": "object",
         "required": [
           "name",
-          "paths",
           "url",
-          "hash"
+          "hash",
+          "file_size"
         ],
         "title": "AIResourceModel",
         "description": "Represents an AI model resource within a Flow.\n\nThis model provides a structured way to handle AI\nmodels that are integral to workflows, ensuring that each model can be dynamically\nresolved, downloaded, and verified before use."
+      },
+      "Body_autoconfigure_model_folders": {
+        "properties": {
+          "models_dir": {
+            "type": "string",
+            "title": "Models Dir",
+            "description": "The default folder for models."
+          }
+        },
+        "type": "object",
+        "required": [
+          "models_dir"
+        ],
+        "title": "Body_autoconfigure_model_folders"
       },
       "Body_get_next_task": {
         "properties": {
@@ -2150,6 +2387,55 @@
         "type": "object",
         "title": "ComfyEngineDetails",
         "description": "Performance options that ComfyUI is running with."
+      },
+      "ComfyUIFolderPath": {
+        "properties": {
+          "full_path": {
+            "type": "string",
+            "title": "Full Path",
+            "description": "The full filesystem path of the folder."
+          },
+          "create_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Create Time",
+            "description": "The folder's creation time as a datetime object."
+          },
+          "total_size": {
+            "type": "integer",
+            "title": "Total Size",
+            "description": "The total size of the folder in bytes."
+          }
+        },
+        "type": "object",
+        "required": [
+          "full_path",
+          "create_time",
+          "total_size"
+        ],
+        "title": "ComfyUIFolderPath",
+        "description": "Represents a folder path in ComfyUI with metadata, including modification options, creation time, and size."
+      },
+      "ComfyUIFolderPaths": {
+        "properties": {
+          "folders": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/ComfyUIFolderPath"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Folders",
+            "description": "A mapping of folder keys to a list of folder paths with metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "folders"
+        ],
+        "title": "ComfyUIFolderPaths",
+        "description": "Represents a mapping of folder keys to their corresponding folder paths and metadata."
       },
       "ExecutionDetails": {
         "properties": {
@@ -2360,6 +2646,24 @@
             "title": "Is Translations Supported",
             "description": "Flag that determines whether Flow supports prompt translations.",
             "default": false
+          },
+          "is_macos_supported": {
+            "type": "boolean",
+            "title": "Is Macos Supported",
+            "description": "Flag indicating whether the macOS PyTorch version can correctly run this flow.",
+            "default": true
+          },
+          "is_supported_by_workers": {
+            "type": "boolean",
+            "title": "Is Supported By Workers",
+            "description": "Flag indicating if this flow can run on workers based on their capabilities.",
+            "default": true
+          },
+          "required_memory_gb": {
+            "type": "number",
+            "title": "Required Memory Gb",
+            "description": "Minimum amount of memory (in gigabytes) required to execute this flow.",
+            "default": 0.0
           }
         },
         "type": "object",
@@ -2481,6 +2785,59 @@
         ],
         "title": "NodeProfiling",
         "description": "Represents profiling information for a single node in the workflow."
+      },
+      "OrphanModel": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "The relative path of the orphaned model file within 'models_dir' directory."
+          },
+          "full_path": {
+            "type": "string",
+            "title": "Full Path",
+            "description": "Full path to the orphaned model file."
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size",
+            "description": "Size of the orphaned model file in bytes."
+          },
+          "creation_time": {
+            "type": "number",
+            "title": "Creation Time",
+            "description": "The file's creation time in seconds."
+          },
+          "res_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AIResourceModel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "AIResourceModel describing the file, if any matches."
+          },
+          "possible_flows": {
+            "items": {
+              "$ref": "#/components/schemas/Flow"
+            },
+            "type": "array",
+            "title": "Possible Flows",
+            "description": "List of possible flows that could potentially use this model.",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "full_path",
+          "size",
+          "creation_time"
+        ],
+        "title": "OrphanModel",
+        "description": "Represents an orphaned model file that is not associated with any currently installed flow.\n\nThis model provides detailed information about the orphaned file, including its\nsize, potential usage in flows, and any matching AIResourceModel, if available."
       },
       "SubFlow": {
         "properties": {
@@ -2701,6 +3058,17 @@
             "title": "Translated Input Params",
             "description": "If auto-translation feature is enabled, contains translations for input values."
           },
+          "extra_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFlags"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set of additional options and flags that affect how the task is executed."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2778,17 +3146,6 @@
             ],
             "description": "Profiling information about task execution, present only if profiling was enabled for this task."
           },
-          "extra_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ExtraFlags"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Set of additional options and flags that affect how the task is executed."
-          },
           "custom_worker": {
             "anyOf": [
               {
@@ -2850,7 +3207,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Type of the result from the ComfyUI node - can be either 'image', 'image-mask' or 'video'."
+            "description": "Type of the result from the ComfyUI node - can be either 'image', 'image-mask', 'image-animated' or 'video'."
           },
           "file_size": {
             "type": "integer",
@@ -3002,6 +3359,17 @@
             ],
             "title": "Translated Input Params",
             "description": "If auto-translation feature is enabled, contains translations for input values."
+          },
+          "extra_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFlags"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set of additional options and flags that affect how the task is executed."
           }
         },
         "type": "object",
@@ -3457,7 +3825,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2024-11-27T08:01:41.974463Z"
+            "default": "2025-01-14T15:55:33.769629Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

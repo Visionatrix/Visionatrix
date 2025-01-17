@@ -1,0 +1,95 @@
+name: Flows Run
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flows_run-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+# https://github.com/pytorch/vision/issues/7490
+#  github_flows_run_macos:
+#    name: Flows Run GitHub macOS 15
+#    runs-on: macos-15
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        python-version: ["3.10", "3.12"]
+#
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#
+#      - name: Install Visionatrix dependencies
+#        run: python3 -m pip install .
+#
+#      - name: Run Visionatrix install
+#        run: python3 -m visionatrix install
+#
+#      - name: Autoconfig Models Paths
+#        run: AUTO_INIT_CONFIG_MODELS_DIR=./vix_models python3 scripts/easy_install.py
+#
+#      - name: Perform Tensor tests
+#        run: python3 tests/rm_background.py
+
+  github_flows_run_linux:
+    name: Flows Run GitHub Ubuntu 22
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Visionatrix dependencies
+        run: python3 -m pip install .
+
+      - name: Run Visionatrix install
+        run: python3 -m visionatrix install
+
+      - name: Autoconfig Models Paths
+        run: AUTO_INIT_CONFIG_MODELS_DIR=./vix_models python3 scripts/easy_install.py
+
+      - name: Perform Tensor tests
+        run: python3 tests/rm_background.py
+
+  github_flows_run_windows:
+    name: Flows Run GitHub Windows 2019
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Visionatrix dependencies
+        run: python3 -m pip install .
+
+      - name: Run Visionatrix install
+        run: python3 -m visionatrix install
+
+      - name: Autoconfig Models Paths
+        run: python3 scripts/easy_install.py
+        env:
+          AUTO_INIT_CONFIG_MODELS_DIR: vix_models
+
+      - name: Perform Tensor tests
+        run: python3 tests/rm_background.py

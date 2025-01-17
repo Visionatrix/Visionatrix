@@ -10,6 +10,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		pageSize: 9,
 		running: <FlowRunning[]>[],
 		installing: <FlowInstalling[]>[],
+		installingInterval: <any>{},
+		installingFlowsNames: <string[]>[],
 		resultsPage: 1,
 		resultsPageSize: 5,
 		outputMaxSize: 512,
@@ -19,6 +21,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_installed: <Flow[]>[],
 		flows_tags_filter: <string[]>[],
 		flows_search_filter: '',
+		show_unsupported_flows: false,
 		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
@@ -39,6 +42,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
+			}
+			if (!state.show_unsupported_flows) {
+				flows = flows.filter(flow => flow.is_supported_by_workers)
 			}
 			return flows
 		},
@@ -65,10 +71,17 @@ export const useFlowsStore = defineStore('flowsStore', {
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
 				console.debug('filter flows by search:', state.flows_search_filter, flows)
 			}
+			if (!state.show_unsupported_flows) {
+				flows = flows.filter(flow => flow.is_supported_by_workers)
+			}
 			return paginate(flows, state.page, state.pageSize) as Flow[]
 		},
-		flowByName() {
-			return (name: string) => this.flows.find(flow => flow.name === name)
+		flowByName(state) {
+			const flows: Flow[] = [
+				...state.flows_installed,
+				...state.flows_available,
+			]
+			return (name: string) => flows.find(flow => flow.name === name)
 		},
 		flowResultsByName(state) {
 			return (name: string) => {
@@ -163,9 +176,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 	},
 	actions: {
-		async fetchFlows() {
-			this.loading.flows_available = true
-			this.loading.flows_installed = true
+		async fetchFlows(toggleLoading: boolean = true) {
+			if (toggleLoading) {
+				this.loading.flows_available = true
+				this.loading.flows_installed = true
+			}
 			await Promise.all([
 				this.fetchFlowsAvailable(),
 				this.fetchFlowsInstalled(),
@@ -309,6 +324,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 						progress: task.progress,
 						error: task?.error || '',
 						finished_at: task.finished_at,
+						execution_details: task.execution_details || null,
+						extra_flags: task.extra_flags || null,
 					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
@@ -333,7 +350,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					flow_name: flow.name,
 					progress: 0,
 				})
-				this.startFlowInstallingPolling(flow.name)
+				this.installingFlowsNames.push(flow.name)
+				this.startFlowInstallingPolling()
 			}).catch((e) => {
 				console.debug(e)
 				const toast = useToast()
@@ -357,7 +375,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 					flow_name: flow.name,
 					progress: 0,
 				})
-				this.startFlowInstallingPolling(flow.name)
+				this.installingFlowsNames.push(flow.name)
+				this.startFlowInstallingPolling()
 			}).catch((e) => {
 				console.debug(e)
 				const toast = useToast()
@@ -375,6 +394,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				method: 'DELETE',
 			}).then(() => {
 				this.installing = this.installing.filter(f => f.flow_name !== flow.name)
+				this.installingFlowsNames = this.installingFlowsNames.filter(name => name !== flow.name)
 				if (this.installing.length === 0 && this.running.length === 0) {
 					this.showNotificationChip = false
 				}
@@ -423,7 +443,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 			count: number = 1,
 			translate: boolean = false,
 			child_task: boolean = false,
-			parent_task_id: number|null = null
+			parent_task_id: number|null = null,
+			headers: any = {},
 		) {
 			const formData = new FormData()
 
@@ -476,6 +497,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch(`/tasks/create/${flow.name}`, {
 				method: 'PUT',
 				body: formData,
+				headers: {
+					...headers,
+				},
 			}).then((res: any) => {
 				// Adding started flow to running list
 				res.tasks_ids.forEach((task_id: number, index: number) => {
@@ -686,7 +710,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
-		async fetchFlowComfy(task_id: string) {
+		async fetchTaskHistoryItem(task_id: string): Promise<TaskHistoryItem> {
 			const { $apiFetch } = useNuxtApp()
 			return await $apiFetch(`/tasks/progress/${task_id}`, {
 				method: 'GET',
@@ -720,6 +744,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 		async restorePollingProcesses() {
 			// Restore installing flow polling
 			await this.getFlowsInstallProgress().then((progress: any) => {
+				let hasInstallingFlows = false
+				const installingFlows: string[] = []
 				progress.forEach((installing_progress: FlowInstallingProgress) => {
 					if (installing_progress.progress < 100) {
 						this.installing.push({
@@ -727,55 +753,67 @@ export const useFlowsStore = defineStore('flowsStore', {
 							progress: installing_progress.progress,
 							flow: installing_progress?.flow || null,
 						})
-						this.startFlowInstallingPolling(installing_progress.name)
+						hasInstallingFlows = true
+						installingFlows.push(installing_progress.name)
 					}
 				})
+				if (hasInstallingFlows) {
+					this.showNotificationChip = true
+					this.startFlowInstallingPolling()
+				}
 			})
 			Array.from(new Set(this.running.map(flow => flow.flow_name))).forEach(flow_name => {
 				this.startFlowProgressPolling(flow_name)
 			})
 		},
 
-		startFlowInstallingPolling(flow_name: string) {
+		handleFlowInstallProgress(flow_name: string, progress: FlowInstallingProgress[]) {
+			const flowInstalling = this.flowInstallingByName(flow_name)
+			const newProgress = progress.find((p: any) => p.name === flow_name)
+
+			if (!flowInstalling || !newProgress) {
+				return
+			}
+			flowInstalling.progress = <number> newProgress.progress
+
+			if (newProgress.error) {
+				flowInstalling.error = newProgress.error
+				const toast = useToast()
+				toast.add({
+					title: 'Failed to install flow - ' + flow_name,
+					description: newProgress.error,
+					timeout: 8000,
+				})
+				this.installingFlowsNames = this.installingFlowsNames.filter(name => name !== flow_name)
+			}
+			if (newProgress.progress === 100) {
+				// Remove finished flow from installing list
+				this.installing = this.installing.filter(flow => flow.flow_name !== flow_name)
+				this.installingFlowsNames = this.installingFlowsNames.filter(name => name !== flow_name)
+				this.fetchFlows(false)
+			}
+		},
+
+		startFlowInstallingPolling() {
 			if (this.installing.length === 0) {
 				return
 			}
-			let failedAttempts = 0
 			this.showNotificationChip = true
-			const interval = setInterval(async () => {
-				await this.getFlowsInstallProgress().then((progress: any) => {
-					if (failedAttempts > 3) {
-						clearInterval(interval)
-						return
-					}
 
-					const flowInstalling = this.flowInstallingByName(flow_name)
-					const newProgress = progress.find((p: any) => p.name === flow_name)
-					if (!flowInstalling || !newProgress) {
-						clearInterval(interval)
-						failedAttempts++
-						return
+			if (this.installingInterval) {
+				clearInterval(this.installingInterval)
+			}
+
+			this.installingInterval = setInterval(async () => {
+				this.getFlowsInstallProgress().then((progress: any) => {
+					this.installingFlowsNames.forEach(flow_name => {
+						this.handleFlowInstallProgress(flow_name, progress)
+					})
+					// If there are no more installing flows, stop polling
+					if (this.installing.length === 0) {
+						this.showNotificationChip = false
+						clearInterval(this.installingInterval)
 					}
-					flowInstalling.progress = <number> newProgress.progress
-					if (newProgress.error) {
-						clearInterval(interval)
-						flowInstalling.error = newProgress.error
-						const toast = useToast()
-						toast.add({
-							title: 'Failed to install flow - ' + flow_name,
-							description: newProgress.error,
-							timeout: 8000,
-						})
-					}
-					if (newProgress.progress === 100) {
-						clearInterval(interval)
-						// Remove finished flow from installing list
-						this.installing = this.installing.filter(flow => flow.flow_name !== flow_name)
-						this.fetchFlows()
-					}
-				}).catch((e) => {
-					console.debug(e)
-					failedAttempts++
 				})
 			}, 3000)
 		},
@@ -846,6 +884,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 								error: progress[task_id]?.error || '',
 								finished_at: progress[task_id].finished_at,
 								input_files: progress[task_id].input_files || [],
+								execution_details: progress[task_id].execution_details || null,
+								extra_flags: progress[task_id].extra_flags || null,
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -955,6 +995,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				const options = JSON.parse(user_options)
 				this.resultsPageSize = Number(options.resultsPageSize) || 5
 				this.outputMaxSize = Number(options.outputMaxSize) || 512
+				this.show_unsupported_flows = options.showUnsupportedFlows || false
 			}
 		},
 
@@ -962,11 +1003,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 			localStorage.setItem('user_options', JSON.stringify({
 				resultsPageSize: this.resultsPageSize,
 				outputMaxSize: this.outputMaxSize,
+				showUnsupportedFlows: this.show_unsupported_flows,
 			}))
 		},
 
 		downloadFlowComfy(flow_name: string, task_id: string) {
-			this.fetchFlowComfy(task_id).then((res: any) => {
+			this.fetchTaskHistoryItem(task_id).then((res: TaskHistoryItem) => {
 				console.debug('downloadFlowComfy', res.flow_comfy)
 				const blob = new Blob([JSON.stringify(res.flow_comfy, null, 2)], { type: 'application/json' })
 				const url = window.URL.createObjectURL(blob)
@@ -999,6 +1041,9 @@ export interface Flow {
 	is_seed_supported: boolean
 	is_count_supported: boolean
 	is_translations_supported: boolean
+	is_supported_by_workers: boolean
+	is_macos_supported: boolean
+	required_memory_gb?: number
 }
 
 export interface Model {
@@ -1009,6 +1054,8 @@ export interface Model {
 	homepage: string
 	hash: string
 	gated: boolean
+	file_size: number
+	installed: boolean
 }
 
 export interface FlowInputParam {
@@ -1094,6 +1141,9 @@ export interface FlowResult {
 	error: string
 	finished_at: string
 	showInputFiles?: boolean
+	showExecutionDetailsModal?: boolean
+	execution_details?: TaskExecutionDetails
+	extra_flags?: TaskExtraFlags
 }
 
 export interface TasksHistory {
@@ -1113,11 +1163,25 @@ export interface TaskHistoryInputParam {
 	[name: string]: any
 }
 
+export interface TaskExecutionDetails {
+	disable_smart_memory: boolean
+	max_memory_usage: number
+	nodes_execution_time: number
+	nodes_profiling: any[]
+	vram_state: string
+}
+
+export interface TaskExtraFlags {
+	[flag: string | 'profiler_execution' | 'unload_models']: any
+}
+
 export interface TaskHistoryItem {
 	child_tasks: TaskHistoryItem[]
 	created_at: string
 	error?: string
+	execution_details: TaskExecutionDetails
 	execution_time: number
+	extra_flags: TaskExtraFlags
 	finished_at: string
 	flow_comfy: any
 	input_files: TaskInputFile[]

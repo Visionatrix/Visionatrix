@@ -9,19 +9,6 @@ useHead({
 	],
 })
 
-const links = [
-	{
-		label: 'Settings',
-		icon: 'i-heroicons-cog-6-tooth-20-solid',
-		to: '/settings',
-	},
-	{
-		label: 'Workers information',
-		icon: 'i-heroicons-chart-bar-16-solid',
-		to: '/settings/workers',
-	},
-]
-
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 const toast = useToast()
@@ -101,7 +88,7 @@ onBeforeMount(() => {
 <template>
 	<AppContainer class="lg:h-dvh">
 		<div class="flex flex-col md:flex-row">
-			<UVerticalNavigation :links="links" class="md:w-1/5" />
+			<UVerticalNavigation :links="settingsStore.links" class="md:w-1/5" />
 			<div class="px-5 pb-5 md:w-4/5">
 				<div v-if="userStore.isAdmin" class="admin-settings mb-3">
 					<h3 class="mb-3 text-xl font-bold">Admin preferences (global settings)</h3>
@@ -120,6 +107,21 @@ onBeforeMount(() => {
 							autocomplete="off"
 						/>
 					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="CivitAI Auth Token"
+						description="Auth token for CivitAI flows and models.">
+						<UInput
+							v-model="settingsStore.settingsMap.civitai_auth_token.value"
+							placeholder="CivitAI Auth Token"
+							class="w-full"
+							type="password"
+							icon="i-heroicons-shield-check"
+							size="md"
+							autocomplete="off"
+						/>
+					</UFormGroup>
 					<UAlert
 						color="blue"
 						variant="soft"
@@ -127,7 +129,7 @@ onBeforeMount(() => {
 						title="Note">
 						<template #description>
 							Access tokens are required for gated models.
-							More information can be found <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/GatedModels.html" target="_blank">here</a>.
+							More information can be found <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/" target="_blank">here</a>.
 						</template>
 					</UAlert>
 
@@ -276,6 +278,7 @@ onBeforeMount(() => {
 						</div>
 					</UFormGroup>
 				</div>
+
 				<div v-if="userStore.isAdmin" class="mb-5 py-4">
 					<h4 class="mb-3 font-bold">Upload Flow</h4>
 					<p class="text-gray-400 text-sm mb-3">
@@ -309,8 +312,8 @@ onBeforeMount(() => {
 							Custom workflows may require manual installation of dependencies (e.g., custom nodes) before upload.
 						</template>
 					</UAlert>
-						
 				</div>
+
 				<div class="user-settings mb-3">
 					<h3 class="mb-3 text-xl font-bold">User preferences (overrides global)</h3>
 					<UFormGroup

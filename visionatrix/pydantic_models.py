@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
@@ -38,7 +38,10 @@ class AIResourceModel(BaseModel):
     """
 
     name: str = Field(..., description="Unique name of the model.")
-    paths: list[str] = Field(..., description="Paths where the model can be stored within the filesystem.")
+    types: list[str] = Field([], description="ComfyUI model types to which model belongs(e.g 'checkpoints', 'loras').")
+    filename: str = Field(
+        "", description="Overridden file name under which the model should be stored in the file system."
+    )
     url: str = Field(..., description="URL from which the model can be downloaded.")
     homepage: str = Field("", description="Webpage with detailed information about the model.")
     hash: str = Field(..., description="SHA256 hash of the model file for integrity verification.")
@@ -50,20 +53,20 @@ class AIResourceModel(BaseModel):
         default=[],
         description="List of regex patterns that dynamically resolve model details based on workflow configurations.",
     )
-    gated: bool = Field(False, description="Flag showing is the model closed to public access")
+    gated: bool = Field(False, description="Flag showing is the model closed to public access.")
+    file_size: int = Field(..., description="The size of the model file in bytes.")
+    installed: bool | None = Field(
+        None,
+        description="Flag indicating whether the model is already installed. "
+        "Currently, this field is populated only by the "
+        "`/flows/installed` and `/flows/not-installed` endpoints.",
+    )
 
     def __hash__(self):
         return hash(self.name)
 
     def __eq__(self, other):
         return isinstance(other, AIResourceModel) and self.name == other.name
-
-    @model_validator(mode="before")
-    @classmethod
-    def validator_before(cls, data: Any) -> Any:
-        if isinstance(data, dict) and isinstance(data.get("paths", []), str):
-            data["paths"] = [data["paths"]]
-        return data
 
 
 class Flow(BaseModel):
@@ -100,6 +103,15 @@ class Flow(BaseModel):
     is_translations_supported: bool = Field(
         False, description="Flag that determines whether Flow supports prompt translations."
     )
+    is_macos_supported: bool = Field(
+        True, description="Flag indicating whether the macOS PyTorch version can correctly run this flow."
+    )
+    is_supported_by_workers: bool = Field(
+        True, description="Flag indicating if this flow can run on workers based on their capabilities."
+    )
+    required_memory_gb: float = Field(
+        0.0, description="Minimum amount of memory (in gigabytes) required to execute this flow."
+    )
 
     def __hash__(self):
         return hash(self.name)
@@ -134,6 +146,7 @@ class ModelProgressInstall(BaseModel):
     file_mtime: float | None = Field(
         None, description="Last modification time of the model file, as a floating-point timestamp."
     )
+    filename: str | None = Field(None, description="Filename of the model on the filesystem.")
 
 
 class TaskDetailsInput(BaseModel):
@@ -149,7 +162,8 @@ class TaskDetailsOutput(BaseModel):
     comfy_node_id: int = Field(..., description="ID of the ComfyUI node containing the result.")
     type: str = Field(
         ...,
-        description="Type of the result from the ComfyUI node - can be either 'image', 'image-mask' or 'video'.",
+        description="Type of the result from the ComfyUI node - "
+        "can be either 'image', 'image-mask', 'image-animated' or 'video'.",
     )
     file_size: int = Field(-1, description="Size of file(s) in bytes.")
     batch_size: int = Field(-1, description="Count of outputs(files) produced by node.")
@@ -186,6 +200,10 @@ class TaskDetailsShort(BaseModel):
     translated_input_params: dict | None = Field(
         None, description="If auto-translation feature is enabled, contains translations for input values."
     )
+    extra_flags: ExtraFlags | None = Field(
+        None,
+        description="Set of additional options and flags that affect how the task is executed.",
+    )
 
     @model_validator(mode="after")
     def adjust_priority(self) -> Self:
@@ -210,10 +228,6 @@ class TaskDetails(TaskDetailsShort):
     execution_details: ExecutionDetails | None = Field(
         None,
         description="Profiling information about task execution, present only if profiling was enabled for this task.",
-    )
-    extra_flags: ExtraFlags | None = Field(
-        None,
-        description="Set of additional options and flags that affect how the task is executed.",
     )
     custom_worker: str | None = Field(
         None, description="ID of the worker to which the task was explicitly assigned, if specified."
@@ -335,6 +349,37 @@ class UserInfo(BaseModel):
     is_admin: bool = Field(False, description="Flag showing is user is admin.")
 
 
+class ComfyUIFolderPath(BaseModel):
+    """Represents a folder path in ComfyUI with metadata, including modification options, creation time, and size."""
+
+    full_path: str = Field(..., description="The full filesystem path of the folder.")
+    create_time: datetime = Field(..., description="The folder's creation time as a datetime object.")
+    total_size: int = Field(..., description="The total size of the folder in bytes.")
+
+
+class ComfyUIFolderPaths(BaseModel):
+    """Represents a mapping of folder keys to their corresponding folder paths and metadata."""
+
+    folders: dict[str, list[ComfyUIFolderPath]] = Field(
+        ..., description="A mapping of folder keys to a list of folder paths with metadata."
+    )
+
+
+class ComfyUIFolderPathDefinition(BaseModel):
+    """Represents a simplified version of ComfyUI folder paths for storage purposes in the database."""
+
+    folder_key: str = Field(..., description="The folder key (e.g., 'checkpoints', 'vae').")
+    path: str = Field(..., description="The full or relative filesystem path to the folder.")
+
+    def __hash__(self):
+        return hash((self.folder_key, self.path))
+
+    def __eq__(self, other):
+        if not isinstance(other, ComfyUIFolderPathDefinition):
+            return False
+        return self.folder_key == other.folder_key and self.path == other.path
+
+
 class OrphanModel(BaseModel):
     """
     Represents an orphaned model file that is not associated with any currently installed flow.
@@ -344,8 +389,9 @@ class OrphanModel(BaseModel):
     """
 
     path: str = Field(..., description="The relative path of the orphaned model file within 'models_dir' directory.")
-    size: float = Field(..., description="Size of the orphaned file in megabytes.")
-    creation_time: float = Field(..., description="The file's creation time in UNIX timestamp format.")
+    full_path: str = Field(..., description="Full path to the orphaned model file.")
+    size: int = Field(..., description="Size of the orphaned model file in bytes.")
+    creation_time: float = Field(..., description="The file's creation time in seconds.")
     res_model: AIResourceModel | None = Field(None, description="AIResourceModel describing the file, if any matches.")
     possible_flows: list[Flow] = Field([], description="List of possible flows that could potentially use this model.")
 

@@ -19,6 +19,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     create_engine,
+    text,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -128,6 +129,7 @@ class GlobalSettings(Base):
     name = Column(String, nullable=False, unique=True)
     value = Column(String, nullable=False)
     sensitive = Column(Boolean, default=True)
+    crc32 = Column(BigInteger, nullable=True)
 
 
 class UserSettings(Base):
@@ -161,6 +163,7 @@ class ModelsInstallStatus(Base):
     started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     file_mtime = Column(Float, nullable=True)
+    filename = Column(String, default="")
 
 
 def init_database_engine() -> None:
@@ -170,10 +173,24 @@ def init_database_engine() -> None:
     connect_args = {}
     database_uri = options.DATABASE_URI
     if database_uri.startswith("sqlite:"):
-        connect_args = {"check_same_thread": False}
+        connect_args = {
+            "check_same_thread": False,
+            "timeout": 10,
+        }
         if database_uri.startswith("sqlite:///."):
             database_uri = f"sqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[10:]))}"
+
     engine = create_engine(database_uri, connect_args=connect_args)
+
+    if database_uri.startswith("sqlite:"):
+        with engine.connect() as connection:
+            current_mode = connection.execute(text("PRAGMA journal_mode;")).scalar()
+            if current_mode.lower() != "wal":
+                new_mode = connection.execute(text("PRAGMA journal_mode=WAL;")).scalar()
+                if new_mode.lower() != "wal":
+                    raise RuntimeError("Failed to set SQLite journal mode to WAL.")
+                LOGGER.info("SQLite journal mode set to WAL.")
+
     SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
     run_db_migrations(database_uri)
     if options.VIX_MODE == "SERVER":

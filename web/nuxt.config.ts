@@ -7,6 +7,7 @@ export default defineNuxtConfig({
 			backendApiUrl: process.env.BACKEND_API_URL || '',
 			authUser: process.env.AUTH_USER || '',
 			authPassword: process.env.AUTH_PASSWORD || '',
+			isNextcloudIntegration: process.env.NEXTCLOUD_INTEGRATION || 'false',
 		}
 	},
 	ssr: false, // we use only client side rendering,

@@ -35,12 +35,14 @@ def get_setting(user_id: str, key: str, admin: bool) -> str:
     return get_global_setting(key, admin)
 
 
-def get_global_setting(key: str, admin: bool) -> str:
+def get_global_setting(key: str, admin: bool, crc32: int | None = None) -> str:
     session = database.SESSION()
     try:
         query = select(database.GlobalSettings.value, database.GlobalSettings.sensitive).where(
             database.GlobalSettings.name == key
         )
+        if crc32 is not None:
+            query = query.where(database.GlobalSettings.crc32 != crc32)
         result = session.execute(query).one_or_none()
         if result is None:
             return ""
@@ -70,18 +72,18 @@ def get_user_setting(user_id: str, key: str) -> str:
         session.close()
 
 
-def set_global_setting(key: str, value: str, sensitive: bool) -> None:
+def set_global_setting(key: str, value: str, sensitive: bool, crc32: int | None = None) -> None:
     session = database.SESSION()
     try:
         if value:
             stmt = (
                 update(database.GlobalSettings)
                 .where(database.GlobalSettings.name == key)
-                .values(value=value, sensitive=sensitive)
+                .values(value=value, sensitive=sensitive, crc32=crc32)
             )
             result = session.execute(stmt)
             if result.rowcount == 0:
-                session.add(database.GlobalSettings(name=key, value=value, sensitive=sensitive))
+                session.add(database.GlobalSettings(name=key, value=value, sensitive=sensitive, crc32=crc32))
             session.commit()
         else:
             result = session.execute(delete(database.GlobalSettings).where(database.GlobalSettings.name == key))
@@ -407,7 +409,26 @@ def delete_old_model_progress_install(name: str) -> bool:
         session.close()
 
 
-def add_model_progress_install(name: str, flow_name: str) -> datetime | None:
+def delete_model_by_time_and_filename(mtime: float, file_name: str) -> bool:
+    session = database.SESSION()
+    try:
+        stmt = (
+            delete(database.ModelsInstallStatus)
+            .where(database.ModelsInstallStatus.file_mtime == mtime)
+            .where(database.ModelsInstallStatus.filename.like(f"%{file_name}"))
+        )
+        result = session.execute(stmt)
+        session.commit()
+        return result.rowcount > 0
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to delete model by mtime `%s` and filename `%s`", mtime, file_name)
+        raise
+    finally:
+        session.close()
+
+
+def add_model_progress_install(name: str, flow_name: str, filename: str | None = None) -> datetime | None:
     session = database.SESSION()
     try:
         new_updated_at = datetime.now(timezone.utc)
@@ -417,6 +438,7 @@ def add_model_progress_install(name: str, flow_name: str) -> datetime | None:
             progress=0.0,
             started_at=datetime.now(timezone.utc),
             updated_at=new_updated_at,
+            filename=filename,
         )
         session.add(new_model)
         session.commit()
@@ -433,7 +455,7 @@ def add_model_progress_install(name: str, flow_name: str) -> datetime | None:
         session.close()
 
 
-def update_model_progress_install(name: str, flow_name: str, progress: float) -> bool:
+def update_model_progress_install(name: str, flow_name: str, progress: float, not_critical=False) -> bool:
     session = database.SESSION()
     try:
         stmt = (
@@ -449,7 +471,8 @@ def update_model_progress_install(name: str, flow_name: str, progress: float) ->
         session.commit()
 
         if result.rowcount == 0:
-            LOGGER.warning(
+            LOGGER.log(
+                logging.INFO if not_critical else logging.ERROR,
                 "Model installation progress not updated for `%s`. Either it doesn't exist or already has an error.",
                 name,
             )
@@ -458,6 +481,45 @@ def update_model_progress_install(name: str, flow_name: str, progress: float) ->
     except Exception:
         session.rollback()
         LOGGER.exception("Failed to update installation progress for model `%s`.", name)
+        raise
+    finally:
+        session.close()
+
+
+def complete_model_progress_install(name: str, flow_name: str) -> bool:
+    session = database.SESSION()
+    try:
+        stmt = (
+            update(database.ModelsInstallStatus)
+            .where(database.ModelsInstallStatus.name == name)
+            .values(
+                flow_name=flow_name,
+                progress=100.0,
+                error="",
+                file_mtime=None,
+                filename="",
+                updated_at=datetime.now(timezone.utc),
+            )
+        )
+        result = session.execute(stmt)
+
+        if result.rowcount == 0:
+            now_time = datetime.now(timezone.utc)
+            new_model = database.ModelsInstallStatus(
+                name=name,
+                flow_name=flow_name,
+                progress=100.0,
+                error="",
+                started_at=now_time,
+                updated_at=now_time,
+            )
+            session.add(new_model)
+
+        session.commit()
+        return True
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to finalize model installation progress for `%s` under flow `%s`", name, flow_name)
         raise
     finally:
         session.close()
@@ -494,13 +556,46 @@ def set_model_progress_install_error(name: str, flow_name: str, error: str) -> b
         session.close()
 
 
-def update_model_mtime(name: str, new_mtime: float, flow_name: str | None = None) -> bool:
+def reset_model_progress_install_error(name: str, flow_name: str) -> bool:
+    session = database.SESSION()
+    try:
+        stmt = (
+            update(database.ModelsInstallStatus)
+            .where(
+                database.ModelsInstallStatus.name == name,
+                database.ModelsInstallStatus.error != "",
+                database.ModelsInstallStatus.flow_name == flow_name,
+            )
+            .values(error="")
+        )
+        result = session.execute(stmt)
+        session.commit()
+
+        if result.rowcount == 0:
+            LOGGER.info("Failed to reset model installation error for `%s`", name)
+            return False
+        return True
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to reset model installation error for `%s`", name)
+        raise
+    finally:
+        session.close()
+
+
+def update_model_mtime(
+    name: str, new_mtime: float, flow_name: str | None = None, new_filename: str | None = None
+) -> bool:
     session = database.SESSION()
     try:
         stmt = update(database.ModelsInstallStatus).where(database.ModelsInstallStatus.name == name)
         if flow_name:
             stmt = stmt.where(database.ModelsInstallStatus.flow_name == flow_name)
-        stmt = stmt.values(file_mtime=new_mtime)
+        stmt = (
+            stmt.values(file_mtime=new_mtime, filename=new_filename)
+            if new_filename
+            else stmt.values(file_mtime=new_mtime)
+        )
         result = session.execute(stmt)
         session.commit()
         if result.rowcount == 0:

@@ -75,6 +75,22 @@ const copyPromptInputs = function (inputs: any[]) {
 }
 
 const userStore = useUserStore()
+
+const installedModelsSize = computed(() => {
+	return flowStore.currentFlow?.models.filter((model) => model.installed).reduce((acc, model: Model) => acc + model?.file_size || 0, 0)
+})
+const totalModelsSize = computed(() => {
+	return flowStore.currentFlow?.models.reduce((acc, model: Model) => acc + model?.file_size || 0, 0)
+})
+const modelsSize = computed(() => {
+	if (!installedModelsSize.value && !totalModelsSize.value) {
+		return ''
+	}
+	if (installedModelsSize.value === totalModelsSize.value) {
+		return ` - ${formatBytes(totalModelsSize.value)}`
+	}
+	return ` - ${formatBytes(installedModelsSize.value)} / ${formatBytes(totalModelsSize.value)}`
+})
 </script>
 
 <template>
@@ -93,12 +109,22 @@ const userStore = useUserStore()
 									text="This flow is local, manually added">
 									<UIcon
 										name="i-heroicons-lock-closed"
-										class="mr-2" />
+										class="mr-2"
+										:class="{
+											'text-stone-500': !flowStore.currentFlow?.is_supported_by_workers
+										}" />
 								</UTooltip>
 								<UIcon
 									:name="collapsedCard ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 									class="mr-2" />
-								{{ flowStore.currentFlow?.display_name }}
+								<UTooltip :text="flowStore.currentFlow?.is_supported_by_workers ? '' : 'No workers capable of running this flow'"
+									:popper="{ placement: 'top' }">
+									<span :class="{
+										'text-stone-500': !flowStore.currentFlow?.is_supported_by_workers
+									}">
+										{{ flowStore.currentFlow?.display_name }}
+									</span>
+								</UTooltip>
 							</h2>
 						</template>
 
@@ -156,13 +182,22 @@ const userStore = useUserStore()
 								v-if="flowStore.currentFlow?.models?.length > 0"
 								class="flex flex-row flex-wrap items-center text-md mb-2">
 								<UIcon name="i-heroicons-arrow-down-on-square-stack" class="mr-1" />
-								<b>Models ({{ flowStore.currentFlow?.models.length }}):</b>&nbsp;
+								<UTooltip
+									:text="totalModelsSize - installedModelsSize > 0 ? `${formatBytes(totalModelsSize - installedModelsSize)} to download` : 'All models installed'"
+									:popper="{ placement: 'top' }">
+									<b>Models ({{ flowStore.currentFlow?.models.length }}{{ modelsSize }}):</b>&nbsp;
+								</UTooltip>
 								<UBadge
 									v-for="model in flowStore.currentFlow?.models"
 									:key="model.name"
 									class="m-1"
 									color="white"
 									variant="solid">
+									<UTooltip :text="model.installed ? 'Model installed' : 'Model not installed'">
+										<UIcon
+											:name="model.installed ? 'i-heroicons-check-circle-20-solid' : 'i-heroicons-x-mark-20-solid'"
+											:class="model.installed ? 'text-green-500' : 'text-orange-500'" />
+									</UTooltip>
 									<UTooltip
 										v-if="model.gated"
 										text="Gated model, requires auth token for download"
@@ -177,7 +212,29 @@ const userStore = useUserStore()
 										rel="noopener" target="_blank">
 										{{ model.name }}
 									</a>
+									<span v-if="model.file_size">
+										({{ formatBytes(model.file_size) }})
+									</span>
 								</UBadge>
+							</p>
+							<p class="flex flex-row items-center mb-2">
+								<UIcon name="i-mdi-help-network-outline" class="mr-1" />
+								<b>Platforms:</b>&nbsp;
+								<UTooltip text="Linux">
+									<UIcon name="i-mdi-linux" class="mr-1" />
+								</UTooltip>
+								<UTooltip text="Microsoft Windows">
+									<UIcon name="i-mdi-microsoft-windows" class="mr-1" />
+								</UTooltip>
+								<UTooltip v-if="flowStore.currentFlow.is_macos_supported" text="macOS">
+									<UIcon name="i-mdi-apple" class="mr-1" />
+								</UTooltip>
+								<UTooltip v-if="flowStore.currentFlow?.required_memory_gb"
+									class="flex flex-row items-center"
+									text="Required VRAM memory (GB)">
+									(<UIcon name="i-mdi-memory" class="mr-1" />
+									<span>{{ flowStore.currentFlow?.required_memory_gb }} GB</span>)
+								</UTooltip>
 							</p>
 							<p
 								v-if="flowStore.currentFlow?.requires?.length > 0"
@@ -206,8 +263,15 @@ const userStore = useUserStore()
 										:class="{
 											'text-green-500': flowStore.isFlowInstalled(route.params.name as string),
 											'text-red-500': !flowStore.isFlowInstalled(route.params.name as string),
+											'text-stone-500': flowStore.isFlowInstalled(route.params.name as string) && !flowStore.currentFlow?.is_supported_by_workers
 										}">
-										{{ flowStore.isFlowInstalled(route.params.name as string) ? 'Installed' : 'Not installed' }}
+										{{ 
+											flowStore.isFlowInstalled(route.params.name as string)
+												? flowStore.currentFlow?.is_supported_by_workers
+													? 'Installed'
+													: 'Installed (no workers)'
+												: 'Not installed' 
+										}}
 									</span>
 								</div>
 								<UTooltip

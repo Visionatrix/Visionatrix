@@ -99,6 +99,32 @@ function handleSendToFlow(flowResult: FlowResult, outputIndex: number = 0) {
 }
 
 function buildResultDropdownItems(flowResult: FlowResult) {
+	const hasExecutionDetails = flowResult.extra_flags !== null && flowResult?.extra_flags?.profiler_execution
+	const groupOptions = [{
+		label: 'Comfy flow',
+		labelClass: 'text-blue-500 text-sm',
+		icon: 'i-heroicons-arrow-down-tray',
+		iconClass: 'bg-blue-500 h-4 w-4',
+		click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
+	}]
+	if (hasExecutionDetails) {
+		groupOptions.push({
+			label: 'Execution details',
+			labelClass: 'text-orange-500 text-sm',
+			icon: 'i-mdi-bug',
+			iconClass: 'bg-orange-500 h-4 w-4',
+			click: () => {
+				if (!flowResult.execution_details) {
+					flowStore.fetchTaskHistoryItem(flowResult.task_id).then((res: TaskHistoryItem) => {
+						flowResult.execution_details = res.execution_details
+						flowResult.showExecutionDetailsModal = true
+					})
+				} else {
+					flowResult.showExecutionDetailsModal = true
+				}
+			}
+		})
+	}
 	const taskDropdownItems: any[] = [
 		[{
 			label: 'Use params',
@@ -107,13 +133,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			iconClass: 'bg-cyan-500 h-4 w-4',
 			click: () => copyPromptInputs(flowResult),
 		}],
-		[{
-			label: 'Comfy flow',
-			labelClass: 'text-blue-500 text-sm',
-			icon: 'i-heroicons-arrow-down-tray',
-			iconClass: 'bg-blue-500 h-4 w-4',
-			click: () => flowStore.downloadFlowComfy(flowStore.currentFlow?.name, flowResult.task_id),
-		}]
+		groupOptions,
 	]
 	if (flowResult.outputs.length === 1 && flowResult.outputs.every((output) => output.type === 'image')) {
 		taskDropdownItems.splice(1, 0, [{
@@ -227,7 +247,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:key="flowResult.task_id"
 					class="flex flex-col justify-center mx-auto mb-5">
 					<WorkflowOutputImage
-						v-if="flowResult.outputs.some((output) => output.type === 'image')"
+						v-if="flowResult.outputs.some((output) => ['image', 'image-animated'].includes(output.type))"
 						:flow-result="flowResult"
 						:handle-send-to-flow="handleSendToFlow"
 						:open-image-modal="openImageModal" />

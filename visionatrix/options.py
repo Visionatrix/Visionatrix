@@ -10,9 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PYTHON_EMBEDED = path.split(path.split(sys.executable)[0])[1] == "python_embeded"
-BACKEND_DIR = environ.get(
-    "BACKEND_DIR", str(Path("vix_backend") if PYTHON_EMBEDED else Path("./vix_backend").resolve())
-)
+COMFYUI_DIR = environ.get("COMFYUI_DIR", str(Path("ComfyUI") if PYTHON_EMBEDED else Path("./ComfyUI").resolve()))
 TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
 
 VIX_HOST = environ.get("VIX_HOST", "")
@@ -41,16 +39,16 @@ VIX_SERVER_FULL_MODELS = environ.get("VIX_SERVER_FULL_MODELS", "0")
 
 In the case of installation on one server machine or when you have mapped MODELS folder between different machines."""
 
-DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./tasks_history.db")
+DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./visionatrix.db")
 """for SQLite: if path is relative than it is always relative to the current directory"""
 
 ORG_URL = "https://github.com/Visionatrix/"  # organization from which ComfyUI nodes will be installed
 
 FLOWS_URL = environ.get("FLOWS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/")
-"""URLs or file paths (separated by ';') that point to locations of archive files
-containing lists and definitions of Visionatrix workflows.
+"""URLs or file paths (separated by ';') that point to locations of archive files containing Visionatrix workflows.
 
-Each URL or path can point to an archive containing flows, more information:
+Each URL or path can point to an archive containing flows. If a URL ends with `/`,
+Visionatrix fetches an archive matching its version. More information:
 https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/#workflows-storage
 """
 
@@ -59,8 +57,13 @@ https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information
 # And uncomment the next line to use the local version.
 # FLOWS_URL = "./flows.zip"
 
-MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/models_catalog.json")
-"""URL or file path to fetch the models catalog for ComfyUI workflows. This catalog specifies available models."""
+MODELS_CATALOG_URL = environ.get("MODELS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/")
+"""URLs or file paths (separated by ';') that point to models catalog JSON files.
+
+Each URL or path can point to a models catalog. If a URL ends with `/`,
+Visionatrix fetches a catalog matching its version. More information:
+https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/technical_information/#models-storage
+"""
 
 # MODELS_CATALOG_URL = "../VixFlowsDocs/models_catalog.json"  # uncomment this to use local version for development.
 
@@ -89,10 +92,10 @@ MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
 """Maximum number of attempts to perform 'git clone' operations during installation."""
 
 
-def init_dirs_values(backend: str | None, tasks_files: str | None) -> None:
-    global BACKEND_DIR, TASKS_FILES_DIR
-    if backend:
-        BACKEND_DIR = str(Path(backend).resolve())
+def init_dirs_values(comfyui: str | None, tasks_files: str | None) -> None:
+    global COMFYUI_DIR, TASKS_FILES_DIR
+    if comfyui:
+        COMFYUI_DIR = str(Path(comfyui).resolve())
     if tasks_files:
         TASKS_FILES_DIR = str(Path(tasks_files).resolve())
 
@@ -100,7 +103,7 @@ def init_dirs_values(backend: str | None, tasks_files: str | None) -> None:
 def get_server_mode_options_as_env() -> dict[str, str]:
     return {
         "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
-        "BACKEND_DIR": BACKEND_DIR,
+        "COMFYUI_DIR": COMFYUI_DIR,
         "TASKS_FILES_DIR": TASKS_FILES_DIR,
         "VIX_HOST": VIX_HOST,
         "VIX_PORT": VIX_PORT,
@@ -108,6 +111,14 @@ def get_server_mode_options_as_env() -> dict[str, str]:
         "VIX_MODE": VIX_MODE,
         "VIX_SERVER_WORKERS": VIX_SERVER_WORKERS,
     }
+
+
+def get_host_to_map() -> str:
+    return VIX_HOST if VIX_HOST else "localhost"
+
+
+def get_port_to_map() -> int:
+    return int(VIX_PORT) if VIX_PORT else 8288
 
 
 def worker_auth() -> tuple[str, str]:

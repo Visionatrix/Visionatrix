@@ -13,11 +13,21 @@ AUTH_CACHE = {}
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-async def get_user_info(_scope: Scope, http_connection: HTTPConnection) -> UserInfo | None:
+async def get_user_info_http(_scope: Scope, http_connection: HTTPConnection) -> UserInfo | None:
     authorization: str = http_connection.headers.get("Authorization")
     if not authorization:
         return None
+    return await _parse_and_verify(authorization)
 
+
+async def get_user_info_ws(_scope: Scope, headers: dict[str, str], _cookies: dict[str, str]) -> UserInfo | None:
+    authorization = headers.get("authorization")
+    if not authorization:
+        return None
+    return await _parse_and_verify(authorization)
+
+
+async def _parse_and_verify(authorization: str) -> UserInfo | None:
     try:
         scheme, encoded_credentials = authorization.split()
         if scheme.lower() != "basic":

@@ -53,11 +53,19 @@ jobs:
           else
             ./python_embeded/python.exe easy_install.py
           fi
-          rm -rf Visionatrix tasks_history.db
+          AUTO_INIT_CONFIG_MODELS_DIR="VixModels" ./python_embeded/python.exe ../scripts/easy_install.py
+          rm -rf Visionatrix visionatrix.db
           ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
         env:
           COMPUTE_DEVICE: "CPU"
+
+      - name: Listing archive content
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "Listing contents of the 'vix_portable' directory:"
+          ls -la vix_portable
 
       - name: Archive Vix
         if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -69,7 +77,7 @@ jobs:
         shell: bash
         run: |
           cd vix_portable
-          ./python_embeded/python.exe ../tests/rm_background_bria.py
+          ./python_embeded/python.exe ../tests/rm_background.py
 
       - name: Upload to Artifacts
         if: ${{ always() && github.event_name == 'workflow_dispatch' }}

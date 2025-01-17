@@ -1,0 +1,60 @@
+name: Flows Install
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flows_install-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  github_flows_install_linux:
+    name: Flows Install GitHub Ubuntu 22
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    env:
+      DATABASE_URI: postgresql+psycopg://vix_user:vix_password@localhost:5432/vix_db
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: vix_user
+          POSTGRES_PASSWORD: vix_password
+          POSTGRES_DB: vix_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Visionatrix dependencies
+        run: |
+          python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          python3 -m pip install ".[pgsql]"
+
+      - name: Run Visionatrix install
+        run: python3 -m visionatrix install
+
+      - name: Autoconfig Models Paths
+        run: AUTO_INIT_CONFIG_MODELS_DIR=./vix_models python3 scripts/easy_install.py
+
+      - name: Install flows from CMD
+        run: |
+          echo "Y" | VIX_MODE=SERVER VIX_SERVER_FULL_MODELS=0 python3 -m visionatrix install-flow --name=*

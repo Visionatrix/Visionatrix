@@ -1,5 +1,6 @@
 import builtins
 import concurrent.futures
+import contextlib
 import io
 import json
 import logging
@@ -7,6 +8,7 @@ import math
 import os
 import random
 import shutil
+import threading
 import time
 import typing
 import zipfile
@@ -18,11 +20,11 @@ import httpx
 from packaging.version import Version, parse
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from . import _version, comfyui_class_info, db_queries, options
-from .comfyui import get_node_class_mappings
+from . import _version, comfyui_class_info, db_queries, events, options
+from .comfyui_wrapper import get_node_class_mappings
 from .etc import is_english
-from .models import install_model
-from .models_map import get_flow_models
+from .models import fill_flows_model_installed_field, install_model
+from .models_map import process_flow_models
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import Flow
 
@@ -36,9 +38,12 @@ CACHE_INSTALLED_FLOWS = {
     "flows": {},
     "flows_comfy": {},
 }
+CACHE_INSTALLED_FLOWS_LOCK = threading.Lock()
+CACHE_INSTALLED_FLOWS_EVENT = threading.Condition(CACHE_INSTALLED_FLOWS_LOCK)
 
 SUPPORTED_OUTPUTS = {
     "SaveImage": "image",
+    "SaveAnimatedWEBP": "image-animated",
     "VHS_VideoCombine": "video",
 }
 
@@ -145,7 +150,7 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
                     r_flows[_flow_name] = _flow
                     r_flows_comfy[_flow_name] = _flow_comfy
     except Exception as e:
-        LOGGER.error("Failed to parse flows from %s: %s", flows_storage_url, str(e))
+        LOGGER.exception("Failed to parse flows from %s: %s", flows_storage_url, str(e))
         return None, None, etag
 
     return r_flows, r_flows_comfy, flows_content_etag
@@ -169,11 +174,47 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
         flows_comfy = {}
     else:
         flows_comfy.clear()
-    if time.time() < CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS:
-        flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
-        return CACHE_INSTALLED_FLOWS["flows"]
+    current_time = time.time()
 
-    CACHE_INSTALLED_FLOWS["update_time"] = time.time()
+    # Acquire the lock
+    with CACHE_INSTALLED_FLOWS_LOCK:
+        # Check cache validity after acquiring lock
+        cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
+        if current_time < cache_expiry_time:
+            flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
+            return CACHE_INSTALLED_FLOWS["flows"]
+
+        # If another thread is updating the cache, wait
+        if CACHE_INSTALLED_FLOWS.get("updating", False):
+            while CACHE_INSTALLED_FLOWS.get("updating", False):
+                CACHE_INSTALLED_FLOWS_EVENT.wait()
+            # Re-check cache validity after being notified
+            cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
+            if current_time < cache_expiry_time:
+                flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
+                return CACHE_INSTALLED_FLOWS["flows"]
+        # Set the updating flag to indicate cache is being updated
+        CACHE_INSTALLED_FLOWS["updating"] = True
+
+    # Release the lock before performing long-running operations
+    # Perform the operations without holding the lock
+    updated_data = _update_installed_flows()
+
+    # Acquire the lock again to update the cache
+    with CACHE_INSTALLED_FLOWS_LOCK:
+        # Update the cache with new data
+        CACHE_INSTALLED_FLOWS.update(updated_data)
+        CACHE_INSTALLED_FLOWS["update_time"] = time.time()
+        CACHE_INSTALLED_FLOWS["updating"] = False  # Clear the updating flag
+        # Notify all waiting threads that the cache has been updated
+        CACHE_INSTALLED_FLOWS_EVENT.notify_all()
+
+    # Update flows_comfy with the new cache data
+    flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
+    return CACHE_INSTALLED_FLOWS["flows"]
+
+
+def _update_installed_flows():
     available_flows = get_available_flows({})
     public_flows_names = list(available_flows)
     installed_flows = db_queries.get_installed_flows()
@@ -188,10 +229,7 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
             installed_flow.flow.new_version_available = _fresh_flow_info.version
         r[installed_flow.name] = installed_flow.flow
         r_comfy[installed_flow.name] = installed_flow.flow_comfy
-    CACHE_INSTALLED_FLOWS.update({"flows": r, "flows_comfy": r_comfy})
-    if flows_comfy is not None:
-        flows_comfy.update(r_comfy)
-    return r
+    return {"flows": r, "flows_comfy": r_comfy}
 
 
 def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | None:
@@ -209,38 +247,53 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
     progress_for_model = 97 / max(len(flow.models), 1)
     if not __flow_install_callback(flow.name, 1.0, "", False):
         return False
-    hf_auth_token = ""
-    gated_models = [i for i in flow.models if i.gated]
-    if gated_models:
-        if "HF_AUTH_TOKEN" in os.environ:
-            hf_auth_token = os.environ["HF_AUTH_TOKEN"]
+    auth_tokens = {"huggingface_auth_token": "", "civitai_auth_token": ""}
+    for token_env, token_key in [("HF_AUTH_TOKEN", "huggingface_auth_token"), ("CA_AUTH_TOKEN", "civitai_auth_token")]:
+        if token_env in os.environ:
+            auth_tokens[token_key] = os.environ[token_env]
         elif options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-            r = httpx.get(
-                options.VIX_SERVER.rstrip("/") + "/setting",
-                params={"key": "huggingface_auth_token"},
-                auth=options.worker_auth(),
-                timeout=float(options.WORKER_NET_TIMEOUT),
-            )
-            if not httpx.codes.is_error(r.status_code):
-                hf_auth_token = r.text
-        else:
-            hf_auth_token = db_queries.get_global_setting("huggingface_auth_token", True)
-        if not hf_auth_token:
-            LOGGER.warning("Flow has gated model(s): %s; AccessToken was not found.", [i.name for i in gated_models])
-
-    install_models_results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [
-            executor.submit(install_model, model, flow.name, progress_for_model, __flow_install_callback, hf_auth_token)
-            for model in flow.models
-        ]
-        for future in concurrent.futures.as_completed(futures):
             try:
-                install_models_result = future.result()
-                install_models_results.append(install_models_result)
+                r = httpx.get(
+                    options.VIX_SERVER.rstrip("/") + "/setting",
+                    params={"key": token_key},
+                    auth=options.worker_auth(),
+                    timeout=float(options.WORKER_NET_TIMEOUT),
+                )
+                if not httpx.codes.is_error(r.status_code):
+                    auth_tokens[token_key] = r.text.strip()
             except Exception as e:
-                LOGGER.exception("Error during models installation: %s", e)
-                return False
+                LOGGER.error("Error fetching `%s`: %s", token_key, str(e))
+        else:
+            auth_tokens[token_key] = db_queries.get_global_setting(token_key, True)
+
+    try:
+        install_models_results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [
+                executor.submit(
+                    install_model,
+                    model,
+                    flow.name,
+                    progress_for_model,
+                    __flow_install_callback,
+                    (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
+                )
+                for model in flow.models
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    install_models_result = future.result()
+                    install_models_results.append(install_models_result)
+                except Exception as e:
+                    LOGGER.exception("Error during models installation: %s", e)
+                    return False
+    except KeyboardInterrupt:
+        # this will only work for the "install-flow" command when run from terminal
+        events.EXIT_EVENT.set()
+        for future in futures:
+            with contextlib.suppress(Exception):
+                future.result()
+        return False
 
     if not all(install_models_results):
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
@@ -262,6 +315,10 @@ def __flow_install_callback(name: str, progress: float, error: str, relative_pro
     if progress == 100.0:
         LOGGER.info("Installation of %s flow completed", name)
         return db_queries.update_flow_progress_install(name, progress, False)
+
+    if events.EXIT_EVENT.is_set():
+        db_queries.set_flow_progress_install_error(name, "Installation interrupted by user.")
+        return False
 
     if LOGGER.getEffectiveLevel() <= logging.INFO:
         current_progress_info = db_queries.get_flow_progress_install(name)
@@ -460,7 +517,7 @@ def get_vix_flow(flow_comfy: dict[str, dict]) -> Flow:
     vix_flow = get_flow_metadata(flow_comfy)
     vix_flow["sub_flows"] = get_flow_subflows(flow_comfy)
     vix_flow["input_params"] = get_flow_inputs(flow_comfy)
-    vix_flow["models"] = get_flow_models(flow_comfy)
+    vix_flow["models"] = process_flow_models(flow_comfy, {})
     return Flow.model_validate(vix_flow)
 
 
@@ -647,3 +704,24 @@ def get_nodes_for_translate(input_params: dict[str, typing.Any], flow_comfy: dic
                 }
             )
     return r
+
+
+async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
+    available_workers = db_queries.get_workers_details(None, 5 * 60, "")
+    for flow in flows.values():
+        if flow.is_macos_supported is False:
+            flow.is_supported_by_workers = any(worker.device_type != "mps" for worker in available_workers)
+        if flow.is_supported_by_workers is False:
+            continue  # Flow already marked as unsupported, skip additional checks
+        if flow.required_memory_gb:
+            required_memory_bytes = flow.required_memory_gb * 1024 * 1024 * 1000  # GPU sometimes have less mem
+            # Check if any worker has sufficient available memory
+            flow.is_supported_by_workers = any(
+                worker.vram_total >= required_memory_bytes for worker in available_workers
+            )
+    return flows
+
+
+async def calculate_dynamic_fields_for_flows(flows: dict[str, Flow]) -> dict[str, Flow]:
+    flows_with_filled_fields = await fill_flows_model_installed_field(flows)
+    return await fill_flows_supported_field(flows_with_filled_fields)

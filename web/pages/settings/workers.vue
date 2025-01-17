@@ -10,6 +10,7 @@ useHead({
 })
 
 const workersStore = useWorkersStore()
+const settingsStore = useSettingsStore()
 
 onMounted(() => {
 	workersStore.startPolling()
@@ -18,20 +19,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
 	workersStore.stopPolling()
 })
-
-const links = [
-	{
-		label: 'Settings',
-		icon: 'i-heroicons-cog-6-tooth-20-solid',
-		to: '/settings',
-	},
-	{
-		label: 'Workers information',
-		icon: 'i-heroicons-chart-bar-16-solid',
-		to: '/settings/workers',
-	},
-]
-
 
 const tableHeadersMap = [
 	{
@@ -131,9 +118,16 @@ if (selectedColumnsFromLocalStorage !== null) {
 	savedSelectedColumns.sort(sortColumnsOrder)
 }
 const selectedColumns = ref(savedSelectedColumns || [...columns])
+// TODO: Remove after UTable bug first column removed fix is released in nuxt/ui
+selectedColumns.value.unshift({
+	key: '',
+	label: '',
+	sortable: false,
+	class: '',
+})
 
 // watch for changes in selected columns and save to local storage
-watch(selectedColumns, (value) => {
+watch(selectedColumns, (value: any) => {
 	localStorage.setItem('selectedColumns', JSON.stringify(Object.values(columns).filter((column) => value.includes(column)).map((column) => column.key)))
 	value.sort(sortColumnsOrder)
 })
@@ -143,7 +137,7 @@ function sortColumnsOrder(a: any, b: any) {
 }
 
 const flowsStore = useFlowsStore()
-const flowsAvailableOptions = computed(() => flowsStore.flows.map((flow) => {
+const flowsAvailableOptions = computed(() => flowsStore.flows.map((flow: Flow) => {
 	return {
 		label: flow.display_name,
 		value: flow.name,
@@ -187,7 +181,7 @@ function updateSelectedTasksToGive() {
 const filterQuery = ref('')
 const rows = computed(() => workersStore.$state.workers)
 const rowsFiltered = computed(() => {
-	return rows.value.filter((row) => {
+	return rows.value.filter((row: WorkerInfo) => {
 		return Object.values(row).some((value) => {
 			return String(value).toLowerCase().includes(filterQuery.value.toLowerCase())
 		})
@@ -195,15 +189,18 @@ const rowsFiltered = computed(() => {
 })
 
 function getWorkerStatus(row: WorkerInfo) {
-	return new Date().getTime() - new Date(row.last_seen).getTime() <= 120000 ? 'Online' : 'Offline'
+	const lastSeenDate = new Date(row.last_seen.includes('Z') ? row.last_seen : row.last_seen + 'Z')
+	const currentTime = new Date().getTime()
+	const timeDifference = currentTime - lastSeenDate.getTime()
+	return timeDifference <= 60 * 5 * 1000 ? 'Online' : 'Offline'
 }
 
 const selectedRows: any = ref([])
-watch(rows, (newRows) => {
+watch(rows, (newRows: WorkerInfo[]) => {
 	// restore selected rows after data is updated
 	if (selectedRows.value.length > 0) {
 		const selectedRowsIds = selectedRows.value.map((row: WorkerInfo) => row.id)
-		selectedRows.value = newRows.filter((row) => selectedRowsIds.includes(row.id))
+		selectedRows.value = newRows.filter((row: WorkerInfo) => selectedRowsIds.includes(row.id))
 	}
 })
 </script>
@@ -211,7 +208,7 @@ watch(rows, (newRows) => {
 <template>
 	<AppContainer class="lg:h-dvh">
 		<div class="flex flex-col md:flex-row">
-			<UVerticalNavigation :links="links" class="md:w-1/5" />
+			<UVerticalNavigation :links="settingsStore.links" class="md:w-1/5" />
 			<div class="px-5 md:w-4/5">
 				<h2 class="mb-3 text-xl">Workers</h2>
 				<div class="flex flex-col lg:flex-row px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
@@ -226,7 +223,7 @@ watch(rows, (newRows) => {
 					<div v-if="selectedRows.length >= 1" class="flex flex-col md:flex-row items-center">
 						<USelectMenu
 							v-model="tasksToGive"
-							class="mr-3 my-3 lg:mx-3 lg:my-0 w-full max-w-64"
+							class="mr-3 my-3 lg:mx-3 lg:my-0 w-full max-w-64 min-w-64"
 							:options="flowsAvailableOptions"
 							multiple>
 							<template #label>

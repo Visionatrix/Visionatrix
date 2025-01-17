@@ -532,6 +532,8 @@ async def get_task_results(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"No such node in the flow for task=`{task_id}`.")
     if output_node["type"] == "image":
         relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_EXTENSIONS)]
+    elif output_node["type"] == "image-animated":
+        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_ANIMATED_EXTENSIONS)]
     elif output_node["type"] == "video":
         relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.VIDEO_EXTENSIONS)]
     if not relevant_files:

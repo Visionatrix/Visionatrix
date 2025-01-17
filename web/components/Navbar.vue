@@ -23,6 +23,15 @@ const themingToggleIconClass = computed(() => {
 	}
 	return 'i-heroicons-computer-desktop-20-solid'
 })
+
+const userStore = useUserStore()
+const settingsStore = useSettingsStore()
+
+const showComfyUiButton = computed(() => {
+	return userStore.isAdmin
+		&& settingsStore.localSettings.showComfyUiNavbarButton
+		&& !settingsStore.isNextcloudIntegration
+})
 </script>
 
 <template>
@@ -33,6 +42,17 @@ const themingToggleIconClass = computed(() => {
 					<span class="font-bold text-neutral-400 hover:text-neutral-300 mr-1">Visionatrix</span>
 				</ULink>
 				<div class="flex items-center">
+					<UTooltip v-if="showComfyUiButton"
+						text="Open ComfyUI">
+						<UButton 
+							class="lg:px-3 py-2"
+							icon="i-heroicons-rectangle-group-16-solid"
+							variant="ghost"
+							color="white"
+							:to="buildBackendUrl() + '/comfy/'"
+							target="_blank" />
+					</UTooltip>
+
 					<ULink to="/settings">
 						<UButton class="lg:px-3 py-2" icon="i-heroicons-cog-6-tooth-20-solid" variant="ghost" color="white" />
 					</ULink>

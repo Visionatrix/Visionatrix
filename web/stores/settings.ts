@@ -1,5 +1,22 @@
 export const useSettingsStore = defineStore('settingsStore', {
 	state: () => ({
+		links: [
+			{
+				label: 'Settings',
+				icon: 'i-heroicons-cog-6-tooth-20-solid',
+				to: '/settings',
+			},
+			{
+				label: 'Workers information',
+				icon: 'i-heroicons-chart-bar-16-solid',
+				to: '/settings/workers',
+			},
+			{
+				label: 'ComfyUI',
+				icon: 'i-heroicons-rectangle-group-16-solid',
+				to: '/settings/comfyui',
+			},
+		],
 		settingsMap: {
 			huggingface_auth_token: {
 				key: 'huggingface_auth_token',
@@ -63,7 +80,23 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			comfyui_models_folder: {
+				key: 'comfyui_models_folder',
+				value: '',
+				sensitive: false,
+				admin: true,
+			},
+			civitai_auth_token: {
+				key: 'civitai_auth_token',
+				value: '',
+				sensitive: true,
+				admin: true,
+			},
 		} as VixSettingsMap,
+		localSettings: {
+			showComfyUiNavbarButton: true,
+		},
+		isNextcloudIntegration: false,
 	}),
 
 	actions: {
@@ -176,6 +209,56 @@ export const useSettingsStore = defineStore('settingsStore', {
 				}),
 			})
 		},
+
+		getComfyUiFolderListing() {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/comfyui/folders', {
+				method: 'GET',
+			})
+		},
+
+		performComfyUiAutoconfig(models_dir: string) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/settings/comfyui/folders/autoconfig', {
+				method: 'POST',
+				body: {
+					models_dir,
+				},
+			})
+		},
+
+		getOrphanModelsList() {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/models/orphan', {
+				method: 'GET',
+			}).then((res: any) => {
+				console.debug('[DEBUG] Orphan models:', res)
+				return res
+			})
+		},
+
+		deleteOrphanModel(full_path: string, creation_time: number) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch(`/models/orphan?full_orphan_path=${full_path}&file_creation_time=${creation_time}`, {
+				method: 'DELETE',
+			})
+		},
+
+		loadLocalSettings() {
+			const localSettings = localStorage.getItem('localSettings')
+			if (localSettings) {
+				this.localSettings = JSON.parse(localSettings)
+			}
+
+			const config = useRuntimeConfig()
+			if (config.app.isNextcloudIntegration && config.app.isNextcloudIntegration === 'true') {
+				this.isNextcloudIntegration = true
+			}
+		},
+
+		saveLocalSettings() {
+			localStorage.setItem('localSettings', JSON.stringify(this.localSettings))
+		}
 	},
 })
 
@@ -193,4 +276,44 @@ export interface VixSetting {
 
 export interface SavedSetting {
 	[key: string]: any
+}
+
+export interface ComfyUiFolder {
+	full_path: string
+	create_time: string
+	total_size: number
+}
+
+export interface ComfyUiFolderListing {
+	[key: string]: ComfyUiFolder[]
+}
+
+export interface ResModelHashes {
+	[key: string]: string
+}
+
+export interface ResModelRegEx {
+	input_value: string
+	input_name: string
+}
+
+export interface ResModel {
+	name: string
+	types: string[]
+	filename: string
+	url: string
+	homepage: string
+	hash: string
+	hashes: ResModelHashes
+	regexes: ResModelRegEx[]
+	gated: boolean
+}
+
+export interface OrphanModel {
+	path: string
+	full_path: string
+	size: number
+	creation_time: number
+	res_model: ResModel
+	possible_flows: string[]
 }

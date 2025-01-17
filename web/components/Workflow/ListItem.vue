@@ -20,9 +20,17 @@ const flowsStore = useFlowsStore()
 							text="This flow is local, manually added">
 							<UIcon
 								name="i-heroicons-lock-closed"
-								class="mr-2" />
+								class="mr-2"
+								:class="{
+									'text-stone-500': !flow.is_supported_by_workers
+								}" />
 						</UTooltip>
-						{{ flow?.display_name }}
+						<UTooltip :text="flow.is_supported_by_workers ? '' : 'No workers capable of running this flow'"
+							:popper="{ placement: 'top' }">
+							<span :class="{
+								'text-stone-500': !flow.is_supported_by_workers
+							}">{{ flow?.display_name }}</span>
+						</UTooltip>
 					</h2>
 					<UTooltip
 						v-if="flowsStore.isFlowInstalled(flow?.name)"
@@ -57,7 +65,7 @@ const flowsStore = useFlowsStore()
 					<a v-if="flow?.documentation" class="hover:underline" :href="flow?.documentation" rel="noopener" target="_blank">Documentation</a>
 					<span v-else>No documentation</span>
 				</p>
-				<p class="flex flex-row items-center">
+				<p class="flex flex-row items-center mb-2">
 					<UIcon name="i-heroicons-tag" class="mr-1" />
 					<b>Tags:</b>&nbsp;
 					<template v-if="flow?.tags.length > 0">
@@ -72,6 +80,25 @@ const flowsStore = useFlowsStore()
 					<template v-else>
 						<UBadge label="No tags" color="white" variant="solid" class="m-1" />
 					</template>
+				</p>
+				<p class="flex flex-row items-center">
+					<UIcon name="i-mdi-help-network-outline" class="mr-1" />
+					<b>Platforms:</b>&nbsp;
+					<UTooltip text="Linux">
+						<UIcon name="i-mdi-linux" class="mr-1" />
+					</UTooltip>
+					<UTooltip text="Microsoft Windows">
+						<UIcon name="i-mdi-microsoft-windows" class="mr-1" />
+					</UTooltip>
+					<UTooltip v-if="flow.is_macos_supported" text="macOS">
+						<UIcon name="i-mdi-apple" class="mr-1" />
+					</UTooltip>
+					<UTooltip v-if="flow?.required_memory_gb"
+						class="flex flex-row items-center"
+						text="Required VRAM memory (GB)">
+						(<UIcon name="i-mdi-memory" class="mr-1" />
+						<span>{{ flow?.required_memory_gb }} GB</span>)
+					</UTooltip>
 				</p>
 			</div>
 

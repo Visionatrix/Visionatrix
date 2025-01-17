@@ -28,6 +28,7 @@ from ..db_queries_async import (
 )
 from ..flows import (
     Flow,
+    calculate_dynamic_fields_for_flows,
     get_available_flows,
     get_installed_flows,
     get_not_installed_flows,
@@ -49,7 +50,7 @@ async def get_installed() -> list[Flow]:
     includes details such as the name, display name, description, author, homepage URL, and other relevant
     information about each flow.
     """
-    return list(get_installed_flows().values())
+    return list((await calculate_dynamic_fields_for_flows(get_installed_flows())).values())
 
 
 @ROUTER.get("/not-installed")
@@ -58,7 +59,7 @@ async def get_not_installed() -> list[Flow]:
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
     similar to the installed flows, which includes metadata and configuration parameters.
     """
-    return list(get_not_installed_flows().values())
+    return list((await calculate_dynamic_fields_for_flows(get_not_installed_flows())).values())
 
 
 @ROUTER.get("/subflows")

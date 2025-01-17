@@ -1,14 +1,13 @@
 import asyncio
 import logging
 import threading
-import typing
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-from . import database, options
-from .comfyui import interrupt_processing
+from . import database
+from .comfyui_wrapper import interrupt_processing
 from .pydantic_models import (
     ExecutionDetails,
     TaskDetails,
@@ -288,13 +287,11 @@ async def task_restart_database_async(task_id: int) -> bool:
     return False
 
 
-async def start_tasks_engine(comfy_queue: typing.Any, exit_event: threading.Event) -> None:
+async def start_tasks_engine(prompt_executor_args: tuple | list, exit_event: threading.Event) -> None:
     async def start_background_tasks_engine(prompt_executor):
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
-    database.init_database_engine()
-    if options.VIX_MODE != "SERVER":
-        _ = asyncio.create_task(start_background_tasks_engine(comfy_queue))  # noqa
+    _ = asyncio.create_task(start_background_tasks_engine(prompt_executor_args))  # noqa
 
 
 async def update_task_info_database_async(task_id: int, update_fields: dict) -> bool:

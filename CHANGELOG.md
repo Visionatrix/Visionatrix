@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0 - 2024-12-17]
+
+Please rename **tasks_history.db** to **visionatrix.db** before or after the update.
+
+### Added
+
+- New built-in node added: **ComfyUI-KJNodes**. #257
+- New built-in node added: **ComfyUI_LayerStyle**. #259
+- New built-in node added: **ComfyUI-Easy-Use**. #270
+- New `Flux Extend` and `Pencil Sketch` flows.
+- Support for the CivitAI API key. #258
+- `easy_install` script: ability to create `extra_model_paths.yaml` later, after installation. #262
+- Flows Developing: [GUI](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/models_catalog/) to easily add models to the **model catalog**.
+
+### Changed
+
+- Changed the default **SQLite** database name to **visionatrix.db** as we start storing much more data in the database.
+- Improved parallel installation of flows, model downloads, and more robust integration with the part of ComfyUI responsible for these tasks.
+
+### Fixes
+
+- `Database is locked` error for **SQLite** database. #269
+- Correct handling of **ctrl+c** for the "install-flow" terminal command.
+- Pinned to the latest version of ComfyUI, which fixes the `Photomaker` flow and some other issues.
+- Added correct path mappings to `ultralytics_bbox` and `ultralytics_segm` models folders. #273
+- Added correct path mappings to `sams` models folder with fix in `comfyui-art-venture` node. #272
+- UI: `Worker` with invalid status `offline` when it should be `online`.
+- UI: Updated Node.js packages. #265
+
+## [1.8.0 - 2024-11-29]
+
+This release introduces some breaking changes that are incompatible with previous versions.
+Feel free to create issues or discussions if anything is unclear. We are working towards providing a much smoother experience starting with the `2.0` series.
+
+### Added
+
+- Support for the `--extra-model-paths-config` ComfyUI argument. #240
+- The `MODELS_CATALOG_URL` option now supports multiple addresses. #251
+- Model catalogs now use the same versioning scheme as `FLOWS_URL`, which will help prevent a situation where a format change for new versions causes all old ones to stop working. #252
+- **Parallel** installation of (work)flows is now supported. #244
+
+### Changed
+
+- The `--flows_dir` argument and `FLOWS_DIR` environment variable have been removed. This information is now stored in the database. #242
+- The `vix_backend` folder has been renamed to `ComfyUI`. Please rename it manually if you are updating from a previous version, or perform a clean installation. #250
+- The default CUDA version for new installations has been updated from `12.1` to `12.4`. #239
+
+### Fixed
+
+- Resolved cases where the `buffalo_l.zip` installation (InsightFace) led to duplicate models in the filesystem. #249
+
 ## [1.7.0 - 2024-11-23]
 
 Emergency release due to update of `yolo`(Impact-Node) HuggingFace models, which broke our all new installations for all versions.
