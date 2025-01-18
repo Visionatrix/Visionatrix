@@ -269,7 +269,7 @@ def get_incomplete_task_without_error_database(
             session.commit()
             return {}
         task_details = lock_task_and_return_details(session, task)
-        if task_details and options.VIX_MODE == "WORKER":
+        if task_details and options.VIX_MODE == "WORKER" and not options.VIX_SERVER:
             comfyui_folders_setting = get_global_setting("comfyui_models_folder", True)
             if comfyui_folders_setting != comfyui_wrapper.COMFYUI_MODELS_FOLDER:
                 if comfyui_wrapper.COMFYUI_MODELS_FOLDER:
