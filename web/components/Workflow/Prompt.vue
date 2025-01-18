@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const flowStore  = useFlowsStore()
+const userStore = useUserStore()
 
 // load input_params_map object from local storage by flow name
 let prev_input_params_map: TaskHistoryInputParam|any = localStorage.getItem(`input_params_map_${flowStore.currentFlow?.name}`)
@@ -237,6 +238,20 @@ const requiredInputParamsValid = computed(() => {
 		}
 	})
 })
+
+const profilingOptions = ref({
+	'X-WORKER-UNLOAD-MODELS': 1,
+	'X-WORKER-EXECUTION-PROFILER': 1,
+	'X-WORKER-ID': null,
+})
+const profilingEnabled = ref(false)
+
+watch(() => profilingOptions.value, () => {
+	if (!userStore.isAdmin) {
+		return
+	}
+	localStorage.setItem(`profilingOptions_${flowStore.currentFlow?.name}`, JSON.stringify(profilingOptions.value))
+}, { deep: true })
 </script>
 
 <template>
@@ -263,6 +278,8 @@ const requiredInputParamsValid = computed(() => {
 				v-if="additionalInputParamsMap.length > 0"
 				v-model:input-params-map="inputParamsMap"
 				v-model:additional-input-params-map="additionalInputParamsMap"
+				v-model:profiling-options="profilingOptions"
+				v-model:profiling-enabled="profilingEnabled"
 				:advanced="true" />
 
 			<UFormGroup v-if="flowStore.currentFlow.is_count_supported" label="Number of results">
@@ -299,11 +316,29 @@ const requiredInputParamsValid = computed(() => {
 						:disabled="!requiredInputParamsValid"
 						@click="() => {
 							running = true
+							let headers = {}
+							if (userStore.isAdmin && profilingEnabled) {
+								headers = Object.fromEntries(
+									Object.entries(profilingOptions)
+										.filter(([_, value]) => {
+											return value !== null
+										})
+										.map(([key, value]) => {
+											if (key === 'X-WORKER-ID') {
+												// @ts-ignore
+												return [key, value?.value]
+											}
+											return [key, value]
+										})
+								)
+							}
 							flowStore.runFlow(
 								flowStore.currentFlow,
 								[...inputParamsMap, ...additionalInputParamsMap],
 								batchSize,
-								shouldTranslate && translatePrompt
+								shouldTranslate && translatePrompt,
+								false, null,
+								headers
 							).finally(() => {
 								running = false
 								const seed = additionalInputParamsMap.find((inputParam: any) => {

@@ -21,6 +21,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_installed: <Flow[]>[],
 		flows_tags_filter: <string[]>[],
 		flows_search_filter: '',
+		show_unsupported_flows: false,
 		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
@@ -41,6 +42,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
+			}
+			if (!state.show_unsupported_flows) {
+				flows = flows.filter(flow => flow.is_supported_by_workers)
 			}
 			return flows
 		},
@@ -67,10 +71,17 @@ export const useFlowsStore = defineStore('flowsStore', {
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
 				console.debug('filter flows by search:', state.flows_search_filter, flows)
 			}
+			if (!state.show_unsupported_flows) {
+				flows = flows.filter(flow => flow.is_supported_by_workers)
+			}
 			return paginate(flows, state.page, state.pageSize) as Flow[]
 		},
-		flowByName() {
-			return (name: string) => this.flows.find(flow => flow.name === name)
+		flowByName(state) {
+			const flows: Flow[] = [
+				...state.flows_installed,
+				...state.flows_available,
+			]
+			return (name: string) => flows.find(flow => flow.name === name)
 		},
 		flowResultsByName(state) {
 			return (name: string) => {
@@ -313,6 +324,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 						progress: task.progress,
 						error: task?.error || '',
 						finished_at: task.finished_at,
+						execution_details: task.execution_details || null,
+						extra_flags: task.extra_flags || null,
 					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
@@ -430,7 +443,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 			count: number = 1,
 			translate: boolean = false,
 			child_task: boolean = false,
-			parent_task_id: number|null = null
+			parent_task_id: number|null = null,
+			headers: any = {},
 		) {
 			const formData = new FormData()
 
@@ -483,6 +497,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return await $apiFetch(`/tasks/create/${flow.name}`, {
 				method: 'PUT',
 				body: formData,
+				headers: {
+					...headers,
+				},
 			}).then((res: any) => {
 				// Adding started flow to running list
 				res.tasks_ids.forEach((task_id: number, index: number) => {
@@ -693,7 +710,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			})
 		},
 
-		async fetchFlowComfy(task_id: string) {
+		async fetchTaskHistoryItem(task_id: string): Promise<TaskHistoryItem> {
 			const { $apiFetch } = useNuxtApp()
 			return await $apiFetch(`/tasks/progress/${task_id}`, {
 				method: 'GET',
@@ -867,6 +884,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 								error: progress[task_id]?.error || '',
 								finished_at: progress[task_id].finished_at,
 								input_files: progress[task_id].input_files || [],
+								execution_details: progress[task_id].execution_details || null,
+								extra_flags: progress[task_id].extra_flags || null,
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -976,6 +995,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				const options = JSON.parse(user_options)
 				this.resultsPageSize = Number(options.resultsPageSize) || 5
 				this.outputMaxSize = Number(options.outputMaxSize) || 512
+				this.show_unsupported_flows = options.showUnsupportedFlows || false
 			}
 		},
 
@@ -983,11 +1003,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 			localStorage.setItem('user_options', JSON.stringify({
 				resultsPageSize: this.resultsPageSize,
 				outputMaxSize: this.outputMaxSize,
+				showUnsupportedFlows: this.show_unsupported_flows,
 			}))
 		},
 
 		downloadFlowComfy(flow_name: string, task_id: string) {
-			this.fetchFlowComfy(task_id).then((res: any) => {
+			this.fetchTaskHistoryItem(task_id).then((res: TaskHistoryItem) => {
 				console.debug('downloadFlowComfy', res.flow_comfy)
 				const blob = new Blob([JSON.stringify(res.flow_comfy, null, 2)], { type: 'application/json' })
 				const url = window.URL.createObjectURL(blob)
@@ -1020,6 +1041,9 @@ export interface Flow {
 	is_seed_supported: boolean
 	is_count_supported: boolean
 	is_translations_supported: boolean
+	is_supported_by_workers: boolean
+	is_macos_supported: boolean
+	required_memory_gb?: number
 }
 
 export interface Model {
@@ -1117,6 +1141,9 @@ export interface FlowResult {
 	error: string
 	finished_at: string
 	showInputFiles?: boolean
+	showExecutionDetailsModal?: boolean
+	execution_details?: TaskExecutionDetails
+	extra_flags?: TaskExtraFlags
 }
 
 export interface TasksHistory {
@@ -1136,11 +1163,25 @@ export interface TaskHistoryInputParam {
 	[name: string]: any
 }
 
+export interface TaskExecutionDetails {
+	disable_smart_memory: boolean
+	max_memory_usage: number
+	nodes_execution_time: number
+	nodes_profiling: any[]
+	vram_state: string
+}
+
+export interface TaskExtraFlags {
+	[flag: string | 'profiler_execution' | 'unload_models']: any
+}
+
 export interface TaskHistoryItem {
 	child_tasks: TaskHistoryItem[]
 	created_at: string
 	error?: string
+	execution_details: TaskExecutionDetails
 	execution_time: number
+	extra_flags: TaskExtraFlags
 	finished_at: string
 	flow_comfy: any
 	input_files: TaskInputFile[]

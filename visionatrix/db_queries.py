@@ -486,6 +486,45 @@ def update_model_progress_install(name: str, flow_name: str, progress: float, no
         session.close()
 
 
+def complete_model_progress_install(name: str, flow_name: str) -> bool:
+    session = database.SESSION()
+    try:
+        stmt = (
+            update(database.ModelsInstallStatus)
+            .where(database.ModelsInstallStatus.name == name)
+            .values(
+                flow_name=flow_name,
+                progress=100.0,
+                error="",
+                file_mtime=None,
+                filename="",
+                updated_at=datetime.now(timezone.utc),
+            )
+        )
+        result = session.execute(stmt)
+
+        if result.rowcount == 0:
+            now_time = datetime.now(timezone.utc)
+            new_model = database.ModelsInstallStatus(
+                name=name,
+                flow_name=flow_name,
+                progress=100.0,
+                error="",
+                started_at=now_time,
+                updated_at=now_time,
+            )
+            session.add(new_model)
+
+        session.commit()
+        return True
+    except Exception:
+        session.rollback()
+        LOGGER.exception("Failed to finalize model installation progress for `%s` under flow `%s`", name, flow_name)
+        raise
+    finally:
+        session.close()
+
+
 def set_model_progress_install_error(name: str, flow_name: str, error: str) -> bool:
     session = database.SESSION()
     try:
