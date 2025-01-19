@@ -150,6 +150,7 @@ BASIC_NODE_LIST = {
             "tqdm": {},
         },
     },
+    "Jovimetrix": {},
     "ComfyUI-KJNodes": {},
     "ComfyUI_LayerStyle": {},
     "ComfyUI-Easy-Use": {},
