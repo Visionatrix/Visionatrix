@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0 - 2025-01-19]
+
+If you use `extra_model_path.yaml` for configuring path to models, please add `birefnet` entry to it.
+
+### Added
+
+- `ComfyUI` can now be opened from the Visionatrix UI (**alpha**, not all features are functional). #279
+- New flows: `LTXV-video`, `Pencil Sketch Portrait`, `Animal Clothing`, `SD3.5-Large`, `SD3.5-Medium`, `PixArt E`, `Aura Flow`.
+- UI: Added a filter for `supported` flows and memory requirements for each flow. #285
+- UI: Orphan models are now accessible in `Settings -> ComfyUI`. #274
+- UI: Displays required size for each model and for all models in a flow. #275
+- New `ComfyUI_BiRefNet_ll` node. #281
+- New `ComfyUI_PuLID_Flux_ll` node. #289
+- The `SaveAnimatedWEBP` output node is now supported. #276
+
+### Changed
+
+- All `Remove background` flows now use the new `ComfyUI_BiRefNet_ll` node, which supports path mappings.
+
+### Fixed
+
+- Improved description of steps to take if the `extra_model_paths.yaml` file is missing entries.
+- UI: Reduced spam requests to the backend when installing multiple flows in parallel. #280
+- The `--cache_lru` ComfyUI command-line argument is now correctly supported. #286
+- Resolved an issue where flows using `Ollama` occasionally broke due to Visionatrix generating an unsupported random seed value for the Ollama node.
+
 ## [1.9.0 - 2024-12-17]
 
 Please rename **tasks_history.db** to **visionatrix.db** before or after the update.

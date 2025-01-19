@@ -16,7 +16,7 @@ const toast = useToast()
 const showComfyUiFoldersModal = ref(false)
 const loadingFoldersListing = ref(false)
 const foldersListing = ref([] as ComfyUiFolderListing|ComfyUiFolder[]|any)
-const modelsDir = ref('../vix_models') // default comfyui folder used in Visionatrix
+const modelsDir = ref('../vix_models') // by default relative to Visionatrix/ComfyUI folder
 const path = ref('')
 const currentFoldersListing = computed(() => {
 	if (foldersListing.value.length === 0) {
@@ -144,7 +144,7 @@ watch(() => settingsStore.localSettings.showComfyUiNavbarButton, () => {
 							size="md"
 							class="py-3"
 							label="ComfyUI models folder"
-							description="Relative or absolute path to the models folders">
+							description="Relative (to ComfyUI folder) or absolute path to the models folders">
 							<div v-if="settingsStore.settingsMap.comfyui_models_folder.value === ''">
 								<p class="text-gray-500">No ComfyUI folders initialized.</p>
 								<UInput v-model="modelsDir"

@@ -26,6 +26,8 @@
 
 Access the Visionatrix UI at [http://localhost:8288](http://localhost:8288) (default).
 
+> **Note:** Starting from version **1.10** Visionatrix launches ComfyUI webserver at http://127.0.0.1:8188
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/screenshot_1_dark.jpeg">
@@ -103,6 +105,16 @@ Currently, we provide versions for CUDA/CPU. If there's demand, we can add a Dir
 ### Manual Installation
 
 For manual installation steps, please refer to our [detailed documentation](https://visionatrix.github.io/VixFlowsDocs/AdminManual/installation/).
+
+## ⚙️ Post-setup Configuration
+
+1. Starting from version **1.10**, we highly recommend using the `UI` to perform autoconfiguration for the external `models` directory:
+
+    Go to `Settings` in the UI, click on the `ComfyUI` menu on the left, and enter the full or relative path to the directory where models are located.
+
+2. We highly recommend filling in both the
+[CivitAI](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/#civitai-api-key) token and the
+[HuggingFace](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/#huggingface-token) token in the settings.
 
 ## 🔄 Updating Visionatrix
 
