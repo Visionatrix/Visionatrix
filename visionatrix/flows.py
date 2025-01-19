@@ -45,6 +45,7 @@ SUPPORTED_OUTPUTS = {
     "SaveImage": "image",
     "SaveAnimatedWEBP": "image-animated",
     "VHS_VideoCombine": "video",
+    "SaveAudio": "audio",
 }
 
 SUPPORTED_TEXT_TYPES_INPUTS = ["text", "number", "list", "bool", "range", "range_scale"]
