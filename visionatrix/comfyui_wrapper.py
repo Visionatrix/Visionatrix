@@ -293,7 +293,8 @@ def get_comfy_prompt_server_class_instance(task_progress_callback):
     try:
         asyncio_loop = asyncio.get_running_loop()
     except RuntimeError:
-        asyncio_loop = None
+        asyncio_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(asyncio_loop)
     return ComfyPromptServer(asyncio_loop)
 
 
