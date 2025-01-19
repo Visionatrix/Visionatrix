@@ -54,6 +54,11 @@ VIDEO_EXTENSIONS = [
     ".swf",
 ]
 
+AUDIO_EXTENSIONS = [
+    ".mp3",
+    ".flac",
+]
+
 
 def get_log_level(log_level_str):
     """Convert log level string to logging module log level."""

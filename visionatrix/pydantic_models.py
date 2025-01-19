@@ -163,7 +163,7 @@ class TaskDetailsOutput(BaseModel):
     type: str = Field(
         ...,
         description="Type of the result from the ComfyUI node - "
-        "can be either 'image', 'image-mask', 'image-animated' or 'video'.",
+        "can be either 'image', 'image-mask', 'image-animated', 'video' or 'audio'.",
     )
     file_size: int = Field(-1, description="Size of file(s) in bytes.")
     batch_size: int = Field(-1, description="Count of outputs(files) produced by node.")
