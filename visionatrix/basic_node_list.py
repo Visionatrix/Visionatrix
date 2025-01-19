@@ -106,6 +106,11 @@ BASIC_NODE_LIST = {
             "python": "-m pip install --use-pep517 facexlib",
         },
     },
+    "ComfyUI_PuLID_Flux_ll": {
+        "before_install": {
+            "python": "-m pip install --use-pep517 facexlib",
+        },
+    },
     "ComfyUI_FizzNodes": {},
     "style_aligned_comfy": {
         "main_branch": "master",

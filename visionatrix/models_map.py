@@ -93,6 +93,12 @@ MODEL_LOAD_CLASSES = {
             "type": "pulid",
         },
     },
+    "PulidFluxModelLoader": {
+        "1": {
+            "path": ["inputs", "pulid_file"],
+            "type": "pulid",
+        }
+    },
     "Lora Loader Stack (rgthree)": {
         "1": {
             "path": ["inputs", "lora_01"],
@@ -175,6 +181,25 @@ MODEL_LOAD_CLASSES = {
             "type": "birefnet",
         },
     },
+    "StyleModelLoader": {
+        "1": {
+            "path": ["inputs", "style_model_name"],
+            "type": "style_models",
+        },
+    },
+    "Power Lora Loader (rgthree)": {
+        str(i): {
+            "path": ["inputs", f"lora_{i}", "lora"],
+            "type": "loras",
+        }
+        for i in range(1, 32)
+    },
+    "CLIPVisionLoader": {
+        "1": {
+            "path": ["inputs", "clip_name"],
+            "type": "clip_vision",
+        },
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
@@ -218,7 +243,7 @@ def process_flow_models(
             continue
         for k, node_model_load_info in load_class.items():
             node_input_model_name = get_node_value(node_details, node_model_load_info["path"])
-            if node_input_model_name == "None":
+            if node_input_model_name in (None, "None"):
                 continue
             not_found = True
             for model, model_details in models_catalog.items():
