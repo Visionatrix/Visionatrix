@@ -679,7 +679,9 @@ def get_google_nodes(flow_comfy: dict) -> list[str]:
     return r
 
 
-def get_nodes_for_translate(input_params: dict[str, typing.Any], flow_comfy: dict) -> list[dict[str, typing.Any]]:
+def get_nodes_for_translate(
+    input_params: dict[str, typing.Any], flow_comfy: dict[str, dict]
+) -> list[dict[str, typing.Any]]:
     r = []
     for input_param, input_param_value in input_params.items():
         if input_param.startswith("in_param_"):
@@ -726,3 +728,8 @@ async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
 async def calculate_dynamic_fields_for_flows(flows: dict[str, Flow]) -> dict[str, Flow]:
     flows_with_filled_fields = await fill_flows_model_installed_field(flows)
     return await fill_flows_supported_field(flows_with_filled_fields)
+
+
+async def flow_add_model(_flow_comfy: dict[str, dict], _civitai_model_url: str) -> dict[str, dict]:
+    # TO-DO: add the
+    pass

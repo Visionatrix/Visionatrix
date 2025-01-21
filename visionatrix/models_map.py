@@ -210,7 +210,10 @@ def process_flow_models(
     nodes_with_models = {key: value["models"] for key, value in BASIC_NODE_LIST.items() if value.get("models")}
     nodes_class_mappings = get_node_class_mappings()
 
-    models_catalog = get_models_catalog()
+    models_catalog = get_models_catalog().copy()
+    embedded_models_catalog = get_embedded_models_catalog(flow_comfy)
+    for model_name, model_details in embedded_models_catalog.items():
+        models_catalog[model_name] = model_details
     simple_model_load_classes = get_simple_model_load_classes(models_catalog)
 
     models_info: list[AIResourceModel] = []
@@ -411,3 +414,10 @@ def get_simple_model_load_classes(models_catalog: dict[str, dict]) -> dict[str, 
             for i in model_details["regexes"]:
                 simple_load_classes[i["class_name"]] = model_name
     return simple_load_classes
+
+
+def get_embedded_models_catalog(flow_comfy: dict[str, dict]) -> dict[str, dict]:
+    for node_details in flow_comfy.values():
+        if node_details.get("_meta", {}).get("title", "") == "WF_MODELS":  # Text Multiline (Code Compatible)
+            return json.loads(node_details["inputs"]["text"])
+    return {}
