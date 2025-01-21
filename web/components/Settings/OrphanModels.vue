@@ -13,7 +13,6 @@ function fetchOrphanModels() {
 }
 
 const columns = [
-	{ key: '', label: '', sortable: false, class: '', }, // TODO: Remove after UTable bug fixed
 	{ key: 'full_path', label: 'Path', sortable: true, class: '' },
 	{ key: 'size', label: 'Size', sortable: true, class: '' },
 	{ key: 'creation_time', label: 'Created time', sortable: true, class: '' },
