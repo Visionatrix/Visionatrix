@@ -210,12 +210,8 @@ def process_flow_models(
     nodes_with_models = {key: value["models"] for key, value in BASIC_NODE_LIST.items() if value.get("models")}
     nodes_class_mappings = get_node_class_mappings()
 
-    models_catalog = get_models_catalog().copy()
-    embedded_models_catalog = get_embedded_models_catalog(flow_comfy)
-    for model_name, model_details in embedded_models_catalog.items():
-        models_catalog[model_name] = model_details
+    models_catalog = get_united_model_catalog(flow_comfy)
     simple_model_load_classes = get_simple_model_load_classes(models_catalog)
-
     models_info: list[AIResourceModel] = []
     for node_details in flow_comfy.values():
         class_type = node_details.get("class_type")
@@ -269,6 +265,14 @@ def process_flow_models(
             if not_found:
                 LOGGER.error("Cannot map model(%s) for %s(%s):\n%s", node_input_model_name, class_type, k, node_details)
     return models_info
+
+
+def get_united_model_catalog(flow_comfy: dict[str, dict]) -> dict[str, dict]:
+    models_catalog = get_models_catalog().copy()
+    embedded_models_catalog = get_embedded_models_catalog(flow_comfy)
+    for model_name, model_details in embedded_models_catalog.items():
+        models_catalog[model_name] = model_details
+    return models_catalog
 
 
 def match_replace_model(

@@ -28,11 +28,11 @@ from .etc import is_english
 from .models import fill_flows_model_installed_field, install_model
 from .models_map import (
     get_embedded_models_catalog,
-    get_models_catalog,
+    get_united_model_catalog,
     process_flow_models,
 )
 from .nodes_helpers import get_node_value, set_node_value
-from .pydantic_models import Flow
+from .pydantic_models import CustomLoraDefinition, Flow, LoraConnectionPoint
 
 SECONDS_TO_CACHE_INSTALLED_FLOWS = 10
 SECONDS_TO_CACHE_AVAILABLE_FLOWS = 3 * 60
@@ -522,6 +522,7 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
 
 def get_vix_flow(flow_comfy: dict[str, dict]) -> Flow:
     vix_flow = get_flow_metadata(flow_comfy)
+    vix_flow["lora_support_points"] = get_flow_lora_support_points(flow_comfy)
     vix_flow["sub_flows"] = get_flow_subflows(flow_comfy)
     vix_flow["input_params"] = get_flow_inputs(flow_comfy)
     vix_flow["models"] = process_flow_models(flow_comfy, {})
@@ -805,13 +806,9 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
         raise ValueError("No SHA256 hash found for this file in CivitAI metadata.")
 
     # 3) Avoid duplicates if the model hash is already recognized system-wide
-    for existing_val in get_models_catalog().values():
+    for existing_val in get_united_model_catalog(flow_comfy).values():
         if existing_val.get("hash", "").lower() == sha256.lower():
-            return flow_comfy  # Already in global catalog
-
-    for embedded_val in get_embedded_models_catalog(flow_comfy).values():
-        if embedded_val.get("hash", "").lower() == sha256.lower():
-            return flow_comfy  # Already in embedded
+            return flow_comfy  # Already in catalog
 
     # 4) Build new embedded model entry
     filename = file_info["name"]
@@ -882,3 +879,103 @@ async def flow_remove_model(flow_comfy: dict[str, dict], model_name: str) -> dic
     else:
         node_details["inputs"]["text"] = json.dumps(models_dict, indent=2)
     return flow_copy
+
+
+def get_flow_lora_support_points(flow_comfy: dict[str, dict]) -> list[LoraConnectionPoint]:
+    """
+    Identify all VixDynamicLoraDefinition nodes in the flow, build a LoraConnectionPoint for each, and gather any
+    connected LoraLoader nodes as 'connected_loras'.
+    """
+
+    lora_points: list[LoraConnectionPoint] = []
+    dynamic_lora_connection_point_nodes = [
+        (node_id, node_details)
+        for node_id, node_details in flow_comfy.items()
+        if node_details.get("class_type") == "VixDynamicLoraDefinition"
+    ]
+    models_catalog = get_united_model_catalog(flow_comfy)
+    for node_id, node_details in dynamic_lora_connection_point_nodes:
+        lora_points.append(
+            LoraConnectionPoint(
+                name=node_id,
+                description=node_details["inputs"]["description"],
+                base_model_type=node_details["inputs"]["base_model_type"],
+                connected_loras=get_connected_loras(node_id, flow_comfy, models_catalog),
+            )
+        )
+    return lora_points
+
+
+def get_connected_loras(
+    node_id: str, flow_comfy: dict[str, dict], models_catalog: dict[str, dict]
+) -> list[CustomLoraDefinition]:
+    """
+    BFS from the given 'VixDynamicLoraDefinition' node, collecting all
+    reachable 'LoraLoader' nodes (possibly chained) and returning a
+    list of fully resolved CustomLoraDefinition objects.
+
+    We only follow edges to child nodes that reference `node_id` in
+    any of their inputs. If the child's class_type is:
+      - "LoraLoader": we collect it, and continue BFS from there,
+      - "VixDynamicLoraDefinition": we skip continuing from that node,
+      - anything else: we break that path (do not continue BFS).
+    """
+
+    visited: set[str] = set()
+    queue: list[str] = [node_id]
+    result: list[CustomLoraDefinition] = []
+
+    while queue:
+        current = queue.pop(0)
+        visited.add(current)
+
+        # Look for children referencing `current`
+        for child_id, child_details in flow_comfy.items():
+            if child_id in visited:
+                continue
+
+            # Check if child references `current` in any of its inputs
+            # Typically: child_details["inputs"][some_input] == [current, port_idx]
+            inputs_dict: dict = child_details.get("inputs", {})
+            if inputs_dict.get("clip", [None])[0] != current or inputs_dict.get("model", [None])[0] != current:
+                continue
+
+            child_class = child_details["class_type"]
+            if child_class != "LoraLoader":
+                visited.add(child_id)
+
+            lora_filename = child_details["inputs"]["lora_name"]
+            model_found = find_ai_resource_for_lora(
+                lora_filename, child_class, models_catalog, child_details["inputs"]["strength_model"]
+            )
+            if not model_found:
+                raise ValueError(f"Cannot map model({lora_filename}) for {child_class['class_type']}({child_id})")
+
+            result.append(model_found)
+            visited.add(child_id)
+            # Continue BFS from this LoraLoader to find subsequent LoraLoaders
+            queue.append(child_id)
+    return result
+
+
+def find_ai_resource_for_lora(
+    lora_name: str,
+    class_type: str,
+    models_catalog: dict[str, dict],
+    strength_model: float,
+) -> CustomLoraDefinition | None:
+    """
+    Finds a fully resolved CustomLoraDefinition for the given lora_name from the united models_catalog,
+    if any matches via regexes & type=loras.
+    """
+    for model_key, model_details in models_catalog.items():
+        if "types" not in model_details or "loras" not in model_details["types"]:
+            continue
+
+        for rgx in model_details.get("regexes", []):
+            if "input_value" in rgx and not re.match(rgx["input_value"], lora_name):
+                continue
+            if "class_name" in rgx and not re.match(rgx["class_name"], class_type):
+                continue
+            return CustomLoraDefinition(**model_details, name=model_key, strength_model=strength_model)
+    return None
