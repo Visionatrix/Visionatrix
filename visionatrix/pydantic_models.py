@@ -70,9 +70,11 @@ class AIResourceModel(BaseModel):
 
 
 class CustomLoraDefinition(AIResourceModel):
-    """Definition of custom LoRA added to the flow. UI client should autogenerate inputs for it."""
+    """Definition of custom LoRA added to the flow. Backend will automatically generate inputs for it."""
 
     strength_model: float = Field(1.0, description="Default strength of the LoRA model.")
+    display_name: str = Field("", description="Text to display for the LoRA slider.")
+    node_id: str = Field(..., description="ComfyUI Node ID from which this definition was created.")
 
 
 class LoraConnectionPoint(BaseModel):
@@ -144,7 +146,7 @@ class Flow(BaseModel):
     required_memory_gb: float = Field(
         0.0, description="Minimum amount of memory (in gigabytes) required to execute this flow."
     )
-    lora_support_points: list[LoraConnectionPoint] = Field(
+    lora_connect_points: list[LoraConnectionPoint] = Field(
         [],
         description="A list of connection points in the flow where LoRAs "
         "can be dynamically integrated, enabling the addition of custom LoRAs at specific locations.",
