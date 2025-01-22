@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import random
+import re
 import shutil
 import threading
 import time
@@ -14,7 +15,7 @@ import typing
 import zipfile
 from base64 import b64decode
 from copy import deepcopy
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 from packaging.version import Version, parse
@@ -22,9 +23,14 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from . import _version, comfyui_class_info, db_queries, events, options
 from .comfyui_wrapper import get_node_class_mappings
+from .db_queries_async import get_global_setting_async
 from .etc import is_english
 from .models import fill_flows_model_installed_field, install_model
-from .models_map import process_flow_models
+from .models_map import (
+    get_embedded_models_catalog,
+    get_models_catalog,
+    process_flow_models,
+)
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import Flow
 
@@ -730,6 +736,149 @@ async def calculate_dynamic_fields_for_flows(flows: dict[str, Flow]) -> dict[str
     return await fill_flows_supported_field(flows_with_filled_fields)
 
 
-async def flow_add_model(_flow_comfy: dict[str, dict], _civitai_model_url: str) -> dict[str, dict]:
-    # TO-DO: add the
-    pass
+async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, types: list[str]) -> dict[str, dict]:
+    """
+    Adds a new model entry into a ComfyUI flow's embedded WF_MODELS node.
+
+    The key point is to handle:
+      - Direct links that already have a '?modelVersionId=XYZ'.
+      - Links without '?modelVersionId', e.g. 'https://civitai.com/models/1234/SomeName'
+        for which we fetch the model's metadata, pick the *first* version, and proceed.
+
+    If the model's hash is already in the global catalog or embedded, do nothing.
+    Returns a copy of flow_comfy with an updated WF_MODELS node.
+    """
+
+    parsed_url = urlparse(civitai_model_url)
+    model_version_id = parse_qs(parsed_url.query).get("modelVersionId", [None])[0]
+
+    civitai_token = await get_global_setting_async("civitai_auth_token", True)
+    headers = {}
+    if civitai_token:
+        headers["Authorization"] = f"Bearer {civitai_token}"
+
+    # If there's no modelVersionId, parse modelId and fetch the *latest* version
+    if not model_version_id:
+        match = re.search(r"/models/(\d+)", parsed_url.path)
+        if not match:
+            # No modelVersionId and no /models/<id> => we cannot proceed
+            raise ValueError("CivitAI URL is missing both '?modelVersionId=...' query param and /models/<id> in path.")
+        possible_model_id = match.group(1)
+
+        # 1) Fetch the model info from the /models/ endpoint
+        model_api_url = f"https://civitai.com/api/v1/models/{possible_model_id}"
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.get(model_api_url, timeout=10, headers=headers)
+                r.raise_for_status()
+                model_data = r.json()
+        except Exception as e:
+            raise ValueError(f"Failed to fetch model info from CivitAI: {e}") from e
+
+        versions = model_data.get("modelVersions", [])
+        if not versions:
+            raise ValueError(f"No versions found for modelId={possible_model_id} on CivitAI.")
+        # We'll pick the first version in the array, matching the model_catalog_editor logic
+        model_version_id = versions[0].get("id")
+        if not model_version_id:
+            raise ValueError(f"Cannot extract a valid modelVersionId from /models/{possible_model_id} on CivitAI.")
+
+    # 2) Now we have a model_version_id to fetch
+    version_api_url = f"https://civitai.com/api/v1/model-versions/{model_version_id}"
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(version_api_url, timeout=10, headers=headers)
+            r.raise_for_status()
+            version_data = r.json()
+    except Exception as e:
+        raise ValueError(f"Failed to fetch version metadata from CivitAI: {e}") from e
+
+    files = version_data.get("files", [])
+    if not files:
+        raise ValueError("This version has no files in CivitAI metadata.")
+    if len(files) > 1:
+        raise ValueError("This version has multiple files. Provide a specific file link.")
+
+    file_info = files[0]
+    sha256 = file_info.get("hashes", {}).get("SHA256")
+    if not sha256:
+        raise ValueError("No SHA256 hash found for this file in CivitAI metadata.")
+
+    # 3) Avoid duplicates if the model hash is already recognized system-wide
+    for existing_val in get_models_catalog().values():
+        if existing_val.get("hash", "").lower() == sha256.lower():
+            return flow_comfy  # Already in global catalog
+
+    for embedded_val in get_embedded_models_catalog(flow_comfy).values():
+        if embedded_val.get("hash", "").lower() == sha256.lower():
+            return flow_comfy  # Already in embedded
+
+    # 4) Build new embedded model entry
+    filename = file_info["name"]
+    model_id = version_data.get("modelId", "")
+
+    new_entry = {
+        "regexes": [{"input_value": rf"(?i)(?:[^\/\\]*[\/\\]?)?{re.escape(filename)}$"}],
+        "url": file_info["downloadUrl"],
+        "homepage": f"https://civitai.com/models/{model_id}" if model_id else "",
+        "hash": sha256.lower(),
+        "types": types,
+        "filename": filename,
+        "file_size": int(file_info["sizeKB"] * 1024),
+        "gated": True,
+    }
+
+    # 5) Embed into a copy of the flow
+    flow_copy = deepcopy(flow_comfy)
+    wf_models_node_id = None
+    for node_id, node_details in flow_copy.items():
+        if node_details.get("_meta", {}).get("title", "") == "WF_MODELS":
+            wf_models_node_id = node_id
+            break
+
+    if wf_models_node_id is None:
+        wf_models_node_id = str(max(int(k) for k in flow_copy) + 1)
+        flow_copy[wf_models_node_id] = {
+            "inputs": {"text": "{}"},
+            "class_type": "Text Multiline (Code Compatible)",
+            "_meta": {"title": "WF_MODELS"},
+        }
+
+    node_details = flow_copy[wf_models_node_id]
+    embedded_dict = json.loads(node_details["inputs"]["text"])
+
+    # Construct a key for our new model: "CivitAI-<modelId>-<modelVersionId>"
+    resolved_model_id = model_id or "unknown"
+    key_for_model = f"CivitAI-{resolved_model_id}-{model_version_id}"
+    embedded_dict[key_for_model] = new_entry
+
+    node_details["inputs"]["text"] = json.dumps(embedded_dict, indent=2)
+    return flow_copy
+
+
+async def flow_remove_model(flow_comfy: dict[str, dict], model_name: str) -> dict[str, dict]:
+    """Removes a model entry from the embedded WF_MODELS node."""
+    wf_node_id = None
+    for node_id, node_details in flow_comfy.items():
+        if node_details.get("_meta", {}).get("title", "") == "WF_MODELS":
+            wf_node_id = node_id
+            break
+    if wf_node_id is None:
+        return flow_comfy
+
+    embedded_catalog = get_embedded_models_catalog(flow_comfy)
+    if model_name not in embedded_catalog:
+        return flow_comfy
+
+    flow_copy = deepcopy(flow_comfy)
+    node_details = flow_copy[wf_node_id]
+    models_dict = json.loads(node_details["inputs"]["text"])
+    if model_name not in models_dict:
+        return flow_comfy
+    del models_dict[model_name]
+
+    if len(models_dict) == 0:
+        del flow_copy[wf_node_id]
+    else:
+        node_details["inputs"]["text"] = json.dumps(models_dict, indent=2)
+    return flow_copy
