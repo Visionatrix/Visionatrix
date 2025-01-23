@@ -1,20 +1,22 @@
 import json
 import re
-from copy import deepcopy
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 
+from . import options
+from .db_queries import get_global_setting
 from .db_queries_async import get_global_setting_async
 from .models_map import get_embedded_models_catalog, get_united_model_catalog
+from .nodes_helpers import remove_node_from_comfy_flow
 from .pydantic_models import CustomLoraDefinition, LoraConnectionPoint
 
 
 def add_loras_inputs(
-    input_params: list[dict[str, str | list | dict]], loras_connection_points: list[LoraConnectionPoint]
+    input_params: list[dict[str, str | list | dict]], loras_connection_points: dict[str, LoraConnectionPoint]
 ) -> None:
     order_value = 50
-    for loras_connection_point in loras_connection_points:
+    for loras_connection_point in loras_connection_points.values():
         for lora in loras_connection_point.connected_loras:
             input_params.append(
                 {
@@ -28,12 +30,16 @@ def add_loras_inputs(
                     "display_name": lora.display_name,
                     "name": "loras_in_param_" + lora.node_id,
                     "default": lora.strength_model,
+                    "comfy_node_id": {lora.node_id: ["inputs", "strength_model"]},
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
                 }
             )
             order_value += 1
 
 
-async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, types: list[str]) -> dict[str, dict]:
+async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, types: list[str]) -> str:
     """
     Adds a new model entry into a ComfyUI flow's embedded WF_MODELS node.
 
@@ -43,13 +49,16 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
         for which we fetch the model's metadata, pick the *first* version, and proceed.
 
     If the model's hash is already in the global catalog or embedded, do nothing.
-    Returns a copy of flow_comfy with an updated WF_MODELS node.
+    Returns model's filename.
     """
 
     parsed_url = urlparse(civitai_model_url)
     model_version_id = parse_qs(parsed_url.query).get("modelVersionId", [None])[0]
 
-    civitai_token = await get_global_setting_async("civitai_auth_token", True)
+    if options.VIX_MODE == "SERVER":
+        civitai_token = await get_global_setting_async("civitai_auth_token", True)
+    else:
+        civitai_token = get_global_setting("civitai_auth_token", True)
     headers = {}
     if civitai_token:
         headers["Authorization"] = f"Bearer {civitai_token}"
@@ -104,7 +113,7 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     # 3) Avoid duplicates if the model hash is already recognized system-wide
     for existing_val in get_united_model_catalog(flow_comfy).values():
         if existing_val.get("hash", "").lower() == sha256.lower():
-            return flow_comfy  # Already in catalog
+            return existing_val.get("filename", urlparse(existing_val["url"]).path.split("/")[-1])  # Already in catalog
 
     # 4) Build new embedded model entry
     filename = file_info["name"]
@@ -122,22 +131,21 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     }
 
     # 5) Embed into a copy of the flow
-    flow_copy = deepcopy(flow_comfy)
     wf_models_node_id = None
-    for node_id, node_details in flow_copy.items():
+    for node_id, node_details in flow_comfy.items():
         if node_details.get("_meta", {}).get("title", "") == "WF_MODELS":
             wf_models_node_id = node_id
             break
 
     if wf_models_node_id is None:
-        wf_models_node_id = str(max(int(k) for k in flow_copy) + 1)
-        flow_copy[wf_models_node_id] = {
+        wf_models_node_id = str(max(int(k) for k in flow_comfy) + 1)
+        flow_comfy[wf_models_node_id] = {
             "inputs": {"text": "{}"},
             "class_type": "Text Multiline (Code Compatible)",
             "_meta": {"title": "WF_MODELS"},
         }
 
-    node_details = flow_copy[wf_models_node_id]
+    node_details = flow_comfy[wf_models_node_id]
     embedded_dict = json.loads(node_details["inputs"]["text"])
 
     # Construct a key for our new model: "CivitAI-<modelId>-<modelVersionId>"
@@ -146,10 +154,10 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     embedded_dict[key_for_model] = new_entry
 
     node_details["inputs"]["text"] = json.dumps(embedded_dict, indent=2)
-    return flow_copy
+    return filename
 
 
-async def flow_remove_model(flow_comfy: dict[str, dict], model_name: str) -> dict[str, dict]:
+def flow_remove_model(flow_comfy: dict[str, dict], model_name: str) -> None:
     """Removes a model entry from the embedded WF_MODELS node."""
     wf_node_id = None
     for node_id, node_details in flow_comfy.items():
@@ -157,33 +165,31 @@ async def flow_remove_model(flow_comfy: dict[str, dict], model_name: str) -> dic
             wf_node_id = node_id
             break
     if wf_node_id is None:
-        return flow_comfy
+        return
 
     embedded_catalog = get_embedded_models_catalog(flow_comfy)
     if model_name not in embedded_catalog:
-        return flow_comfy
+        return
 
-    flow_copy = deepcopy(flow_comfy)
-    node_details = flow_copy[wf_node_id]
+    node_details = flow_comfy[wf_node_id]
     models_dict = json.loads(node_details["inputs"]["text"])
     if model_name not in models_dict:
-        return flow_comfy
+        return
     del models_dict[model_name]
 
     if len(models_dict) == 0:
-        del flow_copy[wf_node_id]
+        del flow_comfy[wf_node_id]
     else:
         node_details["inputs"]["text"] = json.dumps(models_dict, indent=2)
-    return flow_copy
 
 
-def get_flow_lora_connect_points(flow_comfy: dict[str, dict]) -> list[LoraConnectionPoint]:
+def get_flow_lora_connect_points(flow_comfy: dict[str, dict]) -> dict[str, LoraConnectionPoint]:
     """
     Identify all VixDynamicLoraDefinition nodes in the flow, build a LoraConnectionPoint for each, and gather any
     connected LoraLoader nodes as 'connected_loras'.
     """
 
-    lora_points: list[LoraConnectionPoint] = []
+    lora_points: dict[str, LoraConnectionPoint] = {}
     dynamic_lora_connection_point_nodes = [
         (node_id, node_details)
         for node_id, node_details in flow_comfy.items()
@@ -191,13 +197,10 @@ def get_flow_lora_connect_points(flow_comfy: dict[str, dict]) -> list[LoraConnec
     ]
     models_catalog = get_united_model_catalog(flow_comfy)
     for node_id, node_details in dynamic_lora_connection_point_nodes:
-        lora_points.append(
-            LoraConnectionPoint(
-                name=node_id,
-                description=node_details["inputs"]["description"],
-                base_model_type=node_details["inputs"]["base_model_type"],
-                connected_loras=get_connected_loras(node_id, flow_comfy, models_catalog),
-            )
+        lora_points[node_id] = LoraConnectionPoint(
+            description=node_details["inputs"]["description"],
+            base_model_type=node_details["inputs"]["base_model_type"],
+            connected_loras=get_connected_loras(node_id, flow_comfy, models_catalog),
         )
     return lora_points
 
@@ -309,3 +312,100 @@ def get_ui_input_attribute(node_details: dict, attr_name: str) -> bool | str | i
         elif attribute == attr_name:
             return True
     return attributes_defaults.get(attr_name)
+
+
+def remove_all_consecutive_loras_for_node(node_id: str, flow_comfy: dict[str, dict]) -> None:
+    """
+    Removes all consecutive LoRA nodes (i.e., nodes whose _meta['title'] starts with 'lora-input;')
+    after 'node_id' in a linear chain, reconnecting the graph so that each child of the removed node
+    is linked back to the removed node's parent(s).
+
+    This function repeatedly:
+      - Finds the next node referencing 'node_id' in its inputs
+      - Checks if its _meta['title'] starts with 'lora-input;'
+      - If so, calls remove_node_from_comfy_flow() for that node
+      - Continues until no further 'lora-input;' nodes are found in the chain
+    """
+
+    # We'll do a loop searching for the next "lora-input;" node in the chain and remove it
+    while True:
+        # 1) Find any child node referencing 'node_id'
+        lora_node_id = None
+        for other_id, other_details in flow_comfy.items():
+            if other_id == node_id:
+                continue
+            # Search inputs for reference to 'node_id'
+            for _, inp_val in other_details.get("inputs", {}).items():
+                if isinstance(inp_val, list) and len(inp_val) == 2 and inp_val[0] == node_id:
+                    # Found a child referencing node_id and heck if it's a "lora-input;" node
+                    title = other_details.get("_meta", {}).get("title", "")
+                    if title.startswith("lora-input;"):
+                        lora_node_id = other_id
+                        break
+            if lora_node_id:
+                break
+
+        if not lora_node_id:
+            break  # No more child referencing 'node_id' with "lora-input;", we are done
+
+        # 2) Remove that LoRA node from flow
+        remove_node_from_comfy_flow(lora_node_id, flow_comfy)
+
+
+def insert_lora_in_comfy_flow(
+    node_id: str, display_name: str, strength_model: float, lora_name: str, flow_comfy: dict[str, dict]
+) -> str:
+    """
+    Inserts a new 'LoraLoader' node in the flow *between* the existing 'node_id' and its children.
+
+    The result is a chain:
+      [node_id] --(model,clip)--> [new LoRA node] --> [children that used to reference node_id]
+
+    This modifies 'flow_comfy' in place.
+
+    :param node_id: Existing node after which we insert the LoRA node.
+    :param display_name: A descriptive text used in the new node's _meta["title"].
+    :param strength_model: The 'strength_model' field for the LoraLoader node.
+    :param lora_name: The filename or identifier for the LoRA to load (stored in 'lora_name').
+    :param flow_comfy: The ComfyUI workflow graph to modify in place.
+    :return: The newly created node ID as a string.
+    """
+
+    if node_id not in flow_comfy:
+        raise ValueError(f"Node '{node_id}' not found in flow.")
+
+    # 1) Allocate a new numeric ID
+    existing_ids = [int(k) for k in flow_comfy if k.isdigit()]
+    new_id_int = (max(existing_ids) + 1) if existing_ids else 1
+    new_node_id = str(new_id_int)
+
+    # 2) Construct the new LoraLoader node referencing node_id
+    new_node = {
+        "class_type": "LoraLoader",
+        "_meta": {"title": f"lora-input;{display_name}"},
+        "inputs": {
+            "lora_name": lora_name,
+            "strength_model": strength_model,
+            "strength_clip": 1,
+            "model": [node_id, 0],
+            "clip": [node_id, 1],
+        },
+    }
+
+    flow_comfy[new_node_id] = new_node
+
+    # 3) Find every child that references node_id and redirect them
+    #    For each child node:
+    #      child_details["inputs"][some_input] == [node_id, port_idx]
+    #    we set them to [new_node_id, port_idx] instead.
+    for child_id, child_details in flow_comfy.items():
+        if child_id in (new_node_id, node_id):
+            continue
+
+        for input_name, input_val in child_details.get("inputs", {}).items():
+            if isinstance(input_val, list) and len(input_val) == 2 and input_val[0] == node_id:
+                # This child references node_id
+                # Keep the same port index, just switch to new_node_id
+                child_details["inputs"][input_name] = [new_node_id, input_val[1]]
+
+    return new_node_id
