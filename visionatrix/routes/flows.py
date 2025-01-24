@@ -300,13 +300,12 @@ async def clone_flow(request: Request, b_tasks: BackgroundTasks, data: FlowClone
             status.HTTP_404_NOT_FOUND,
             f"Cannot find original flow named '{data.original_flow_name}'.",
         )
-    flow_comfy = flows_comfy[data.original_flow_name.lower()]
     try:
-        new_flow_comfy = await create_new_flow(flow, flow_comfy, data)
+        new_flow_comfy = await create_new_flow(flow, flows_comfy[data.original_flow_name.lower()], data)
     except Exception as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Error cloning flow: {e}") from e
 
     flow = get_vix_flow(new_flow_comfy)
     if flows_installation_in_progress(flow.name):
         raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
-    b_tasks.add_task(install_custom_flow, flow, flow_comfy)
+    b_tasks.add_task(install_custom_flow, flow, new_flow_comfy)

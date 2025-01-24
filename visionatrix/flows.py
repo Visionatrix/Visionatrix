@@ -753,6 +753,11 @@ async def create_new_flow(flow: Flow, flow_comfy: dict[str, dict], data: FlowClo
         remove_all_consecutive_loras_for_node(root_node_id, flow_comfy_new)
 
     if data.lora_connection_points:
+        lora_connection_keys = list(flow.lora_connect_points.keys())
+        for node_id in data.lora_connection_points:
+            if node_id not in lora_connection_keys:
+                raise ValueError(f"No such '{node_id}' LoRA connection point defined in flow: {lora_connection_keys}")
+
         for node_id, lora_details_list in data.lora_connection_points.items():
             for lora_details in reversed(lora_details_list):
                 model_filename = await flow_add_model(flow_comfy_new, lora_details.model_url, types=["loras"])
