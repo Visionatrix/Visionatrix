@@ -47,13 +47,18 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
       - Direct links that already have a '?modelVersionId=XYZ'.
       - Links without '?modelVersionId', e.g. 'https://civitai.com/models/1234/SomeName'
         for which we fetch the model's metadata, pick the *first* version, and proceed.
+      - Direct download links like 'https://civitai.com/api/download/models/309330'
 
     If the model's hash is already in the global catalog or embedded, do nothing.
     Returns model's filename.
     """
 
     parsed_url = urlparse(civitai_model_url)
-    model_version_id = parse_qs(parsed_url.query).get("modelVersionId", [None])[0]
+    # For direct download links, extract the model_version_id from the URL path.
+    if parsed_url.path.startswith("/api/download/models/"):
+        model_version_id = parsed_url.path.split("/")[-1]
+    else:
+        model_version_id = parse_qs(parsed_url.query).get("modelVersionId", [None])[0]
 
     if options.VIX_MODE == "SERVER":
         civitai_token = await get_global_setting_async("civitai_auth_token", True)
