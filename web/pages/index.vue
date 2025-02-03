@@ -10,6 +10,7 @@ useHead({
 })
 
 const flowsStore = useFlowsStore()
+const toast = useToast()
 
 watch(() => flowsStore.paginatedFlows, () => {
 	if (flowsStore.flows.length <= flowsStore.$state.pageSize) {
@@ -54,6 +55,14 @@ const filtersCount = computed(() => {
 		+ flowsStore.$state.flows_tags_filter.length
 		+ (flowsStore.$state.show_unsupported_flows ? 1 : 0)
 })
+
+function retryLoadData() {
+	toast.clear()
+	useSettingsStore().loadLocalSettings()
+	useSettingsStore().fetchAllSettings()
+	useFlowsStore().fetchFlows()
+	useWorkersStore().loadWorkers()
+}
 </script>
 
 <template>
@@ -101,6 +110,38 @@ const filtersCount = computed(() => {
 					</UDropdown>
 				</div>
 			</div>
+			<UAlert v-if="flowsStore.$state.error.flows_available"
+				class="my-4"
+				title="Error fetching flows"
+				icon="i-mdi-alert-circle"
+				:description="(flowsStore.$state.error.flows_available ? flowsStore.$state.error.flows_available : 'An error occurred while fetching flows. Please try again later.')"
+				variant="soft" color="red">
+				<template #actions>
+					<UButton
+						icon="i-heroicons-arrow-path-solid"
+						variant="outline"
+						color="white"
+						@click="retryLoadData">
+						Retry
+					</UButton>
+				</template>
+			</UAlert>
+			<UAlert v-if="flowsStore.$state.error.flows_installed"
+				class="my-4"
+				title="Error fetching installed flows"
+				icon="i-mdi-alert-circle"
+				:description="(flowsStore.$state.error.flows_installed ? flowsStore.$state.error.flows_installed : 'An error occurred while fetching installed flows. Please try again later.')"
+				variant="soft" color="red">
+				<template #actions>
+					<UButton
+						icon="i-heroicons-arrow-path-solid"
+						variant="outline"
+						color="white"
+						@click="retryLoadData">
+						Retry
+					</UButton>
+				</template>
+			</UAlert>
 			<div v-if="flowsStore.flows.length > 0" class="flex flex-wrap justify-center items-center mb-10">
 				<WorkflowListItem v-for="flow in flowsStore.paginatedFlows" :key="flow.name" :flow="flow" />
 			</div>

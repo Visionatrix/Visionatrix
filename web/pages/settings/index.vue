@@ -83,6 +83,14 @@ watch(() => flowsStore.outputMaxSize, () => {
 onBeforeMount(() => {
 	settingsStore.loadAllSettings()
 })
+
+const passwordInputs = ref({
+	huggingface_auth_token: false,
+	civitai_auth_token: false,
+	google_api_key: false,
+	google_api_key_user: false,
+	google_proxy: false,
+})
 </script>
 
 <template>
@@ -97,30 +105,50 @@ onBeforeMount(() => {
 						class="py-3"
 						label="Huggingface Auth token"
 						description="Bearer authentication token from your Huggingface account to allow downloading gated models with limited access.">
-						<UInput
-							v-model="settingsStore.settingsMap['huggingface_auth_token'].value"
-							placeholder="Huggingface Auth token"
-							class="w-full"
-							type="password"
-							icon="i-heroicons-shield-check"
-							size="md"
-							autocomplete="off"
-						/>
+						<div class="flex items-center relative">
+							<UInput
+								v-model="settingsStore.settingsMap.huggingface_auth_token.value"
+								placeholder="Huggingface Auth token"
+								class="w-full"
+								:type="passwordInputs.huggingface_auth_token ? 'text' : 'password'"
+								icon="i-heroicons-shield-check"
+								size="md"
+								autocomplete="off"
+							/>
+							<UButton
+								:icon="passwordInputs.huggingface_auth_token ? 'i-heroicons-eye-slash-solid' : 'i-heroicons-eye-solid'"
+								variant="ghost"
+								color="white"
+								class="ml-1 absolute right-1"
+								@click="() => {
+									passwordInputs.huggingface_auth_token = !passwordInputs.huggingface_auth_token
+								}" />
+						</div>
 					</UFormGroup>
 					<UFormGroup
 						size="md"
 						class="py-3"
 						label="CivitAI Auth Token"
 						description="Auth token for CivitAI flows and models.">
-						<UInput
-							v-model="settingsStore.settingsMap.civitai_auth_token.value"
-							placeholder="CivitAI Auth Token"
-							class="w-full"
-							type="password"
-							icon="i-heroicons-shield-check"
-							size="md"
-							autocomplete="off"
-						/>
+						<div class="flex items-center relative">
+							<UInput
+								v-model="settingsStore.settingsMap.civitai_auth_token.value"
+								placeholder="CivitAI Auth Token"
+								class="w-full"
+								:type="passwordInputs.civitai_auth_token ? 'text' : 'password'"
+								icon="i-heroicons-shield-check"
+								size="md"
+								autocomplete="off"
+							/>
+							<UButton
+								:icon="passwordInputs.civitai_auth_token ? 'i-heroicons-eye-slash-solid' : 'i-heroicons-eye-solid'"
+								variant="ghost"
+								color="white"
+								class="ml-1 absolute right-1"
+								@click="() => {
+									passwordInputs.civitai_auth_token = !passwordInputs.civitai_auth_token
+								}" />
+						</div>
 					</UFormGroup>
 					<UAlert
 						color="blue"
@@ -144,15 +172,25 @@ onBeforeMount(() => {
 							Global Google API key, required for Flows, e.g. where ComfyUI-Gemini Node is used.
 							Instruction how to obtain key can be found <a class="hover:underline font-bold" href="https://ai.google.dev/gemini-api/docs/api-key">here</a>.
 						</template>
-						<UInput
-							v-model="settingsStore.settingsMap['google_api_key'].value"
-							placeholder="Google API key"
-							class="w-full"
-							type="password"
-							icon="i-heroicons-shield-check"
-							size="md"
-							autocomplete="off"
-						/>
+						<div class="flex items-center relative">
+							<UInput
+								v-model="settingsStore.settingsMap.google_api_key.value"
+								placeholder="Google API key"
+								class="w-full"
+								:type="passwordInputs.google_api_key ? 'text' : 'password'"
+								icon="i-heroicons-shield-check"
+								size="md"
+								autocomplete="off"
+							/>
+							<UButton
+								:icon="passwordInputs.google_api_key ? 'i-heroicons-eye-slash-solid' : 'i-heroicons-eye-solid'"
+								variant="ghost"
+								color="white"
+								class="ml-1 absolute right-1"
+								@click="() => {
+									passwordInputs.google_api_key = !passwordInputs.google_api_key
+								}" />
+						</div>
 					</UFormGroup>
 					<UFormGroup
 						size="md"
@@ -182,14 +220,26 @@ onBeforeMount(() => {
 						<template #description>
 							Proxy to access Gemini configuration <a class="hover:underline font-bold" href="https://visionatrix.github.io/VixFlowsDocs/AdminManual/Installation/proxy_gemini/">string</a>.
 						</template>
-						<UInput
-							v-model="settingsStore.settingsMap.google_proxy.value"
-							placeholder="Proxy"
-							class="w-full"
-							type="text"
-							size="md"
-							autocomplete="off"
-						/>
+						<div class="flex items-center relative">
+							<UInput
+								v-model="settingsStore.settingsMap.google_proxy.value"
+								placeholder="Proxy"
+								class="w-full"
+								:type="passwordInputs.google_proxy ? 'text' : 'password'"
+								size="md"
+								icon="i-heroicons-shield-check"
+								autocomplete="off"
+							/>
+							<UButton
+								:icon="passwordInputs.google_proxy ? 'i-heroicons-eye-slash-solid' : 'i-heroicons-eye-solid'"
+								variant="ghost"
+								color="white"
+								class="ml-1 absolute right-1"
+								@click="() => {
+									passwordInputs.google_proxy = !passwordInputs.google_proxy
+								}" />
+						</div>
+
 					</UFormGroup>
 
 					<UDivider class="mt-3" label="Ollama" />
@@ -324,15 +374,25 @@ onBeforeMount(() => {
 							Google API key, required for Flows, e.g. where ComfyUI-Gemini Node is used.
 							Instruction how to obtain key <a class="hover:underline font-bold" href="https://ai.google.dev/gemini-api/docs/api-key">here</a>.
 						</template>
-						<UInput
-							v-model="settingsStore.settingsMap.google_api_key_user.value"
-							placeholder="Google API key"
-							class="w-full"
-							type="password"
-							icon="i-heroicons-shield-check"
-							size="md"
-							autocomplete="off"
-						/>
+						<div class="flex items-center relative">
+							<UInput
+								v-model="settingsStore.settingsMap.google_api_key_user.value"
+								placeholder="Google API key"
+								class="w-full"
+								:type="passwordInputs.google_api_key_user ? 'text' : 'password'"
+								icon="i-heroicons-shield-check"
+								size="md"
+								autocomplete="off"
+							/>
+							<UButton
+								:icon="passwordInputs.google_api_key_user ? 'i-heroicons-eye-slash-solid' : 'i-heroicons-eye-solid'"
+								variant="ghost"
+								color="white"
+								class="ml-1 absolute right-1"
+								@click="() => {
+									passwordInputs.google_api_key_user = !passwordInputs.google_api_key_user
+								}" />
+						</div>
 					</UFormGroup>
 
 					<UDivider class="mt-3" label="UI preferences" />
