@@ -263,28 +263,82 @@ const passwordInputs = ref({
 						class="py-3"
 						label="Ollama Vision Model"
 						description="Override Ollama Vision model used by default.">
-						<UInput
-							v-model="settingsStore.settingsMap.ollama_vision_model.value"
-							placeholder="Ollama Vision Model"
-							class="w-full"
-							type="text"
-							size="md"
-							autocomplete="off"
-						/>
+						<UAlert v-if="settingsStore.ollamaFetchError !== ''"
+							color="red"
+							variant="soft"
+							icon="i-heroicons-exclamation-circle"
+							title="Error fetching Ollama models list. Try again later"
+							:description="settingsStore.ollamaFetchError">
+							<template #actions>
+								<UButton
+									icon="i-heroicons-arrow-path-solid"
+									variant="outline"
+									color="white"
+									@click="() => settingsStore.getOllamaModelsList()">
+									Retry
+								</UButton>
+							</template>
+						</UAlert>
+						<div class="flex w-full items-center my-2">
+							<USelectMenu
+								v-model="settingsStore.settingsMap.ollama_vision_model.value"
+								class="w-full"
+								:options="settingsStore.settingsMap.ollama_vision_model.options.map((item: any) => {
+									item.label = `${item.model} (${formatBytes(item.size)})`
+									return item
+								})"
+								value-attribute="model"
+								:loading="settingsStore.settingsMap.ollama_vision_model.loading"
+								placeholder="Ollama Vision Model" />
+							<UButton
+								v-if="settingsStore.settingsMap.ollama_vision_model.value"
+								icon="i-heroicons-x-mark"
+								variant="outline"
+								color="white"
+								class="ml-2"
+								@click="() => settingsStore.settingsMap.ollama_vision_model.value = ''" />
+						</div>
 					</UFormGroup>
 					<UFormGroup
 						size="md"
 						class="py-3"
 						label="Ollama LLM Model"
 						description="Override Ollama LLM model used by default.">
-						<UInput
-							v-model="settingsStore.settingsMap.ollama_llm_model.value"
-							placeholder="Ollama LLM Model"
-							class="w-full"
-							type="text"
-							size="md"
-							autocomplete="off"
-						/>
+						<UAlert v-if="settingsStore.ollamaFetchError !== ''"
+							color="red"
+							variant="soft"
+							icon="i-heroicons-exclamation-circle"
+							title="Error fetching Ollama models list. Try again later"
+							:description="settingsStore.ollamaFetchError">
+							<template #actions>
+								<UButton
+									icon="i-heroicons-arrow-path-solid"
+									variant="outline"
+									color="white"
+									@click="() => settingsStore.getOllamaModelsList()">
+									Retry
+								</UButton>
+							</template>
+						</UAlert>
+						<div class="flex w-full items-center my-2">
+							<USelectMenu
+								v-model="settingsStore.settingsMap.ollama_llm_model.value"
+								class="w-full"
+								:options="settingsStore.settingsMap.ollama_llm_model.options.map((item: any) => {
+									item.label = `${item.model} (${formatBytes(item.size)})`
+									return item
+								})"
+								value-attribute="model"
+								:loading="settingsStore.settingsMap.ollama_llm_model.loading"
+								placeholder="Ollama LLM Model" />
+							<UButton
+								v-if="settingsStore.settingsMap.ollama_llm_model.value"
+								icon="i-heroicons-x-mark"
+								variant="outline"
+								color="white"
+								class="ml-2"
+								@click="() => settingsStore.settingsMap.ollama_llm_model.value = ''" />
+						</div>
 					</UFormGroup>
 					<UFormGroup
 						size="md"

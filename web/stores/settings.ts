@@ -60,12 +60,16 @@ export const useSettingsStore = defineStore('settingsStore', {
 				value: '',
 				sensitive: false,
 				admin: true,
+				loading: false,
+				options: [] as OllamaModelItem[],
 			},
 			ollama_llm_model: {
 				key: 'ollama_llm_model',
 				value: '',
 				sensitive: false,
 				admin: true,
+				loading: false,
+				options: [] as OllamaModelItem[],
 			},
 			ollama_keepalive: {
 				key: 'ollama_keepalive',
@@ -97,6 +101,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 			showComfyUiNavbarButton: true,
 		},
 		isNextcloudIntegration: false,
+		ollamaFetchError: '',
 	}),
 
 	actions: {
@@ -149,6 +154,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 			return Promise.all([
 				this.fetchAllUserSettings(),
 				this.fetchAllGlobalSettings(),
+				this.getOllamaModelsList(),
 			])
 		},
 
@@ -237,6 +243,27 @@ export const useSettingsStore = defineStore('settingsStore', {
 			})
 		},
 
+		getOllamaModelsList() {
+			const { $apiFetch } = useNuxtApp()
+			this.settingsMap.ollama_vision_model.loading = true
+			this.settingsMap.ollama_llm_model.loading = true
+			return $apiFetch('/settings/ollama/models', {
+				method: 'GET',
+			}).then((res: any) => {
+				console.debug('[DEBUG] Ollama models:', res)
+				this.ollamaFetchError = ''
+				this.settingsMap.ollama_vision_model.options = res || []
+				this.settingsMap.ollama_llm_model.options = res || []
+				return res
+			}).catch((err) => {
+				console.debug('[DEBUG] Ollama models fetch error:', err)
+				this.ollamaFetchError = err || 'Failed to fetch Ollama models list'
+			}).finally(() => {
+				this.settingsMap.ollama_vision_model.loading = false
+				this.settingsMap.ollama_llm_model.loading = false
+			})
+		},
+
 		deleteOrphanModel(full_path: string, creation_time: number) {
 			const { $apiFetch } = useNuxtApp()
 			return $apiFetch(`/models/orphan?full_orphan_path=${full_path}&file_creation_time=${creation_time}`, {
@@ -258,7 +285,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 
 		saveLocalSettings() {
 			localStorage.setItem('localSettings', JSON.stringify(this.localSettings))
-		}
+		},
 	},
 })
 
@@ -271,7 +298,8 @@ export interface VixSetting {
 	value: any
 	sensitive: boolean
 	admin: boolean
-	options?: string[]
+	options?: any[]
+	loading?: boolean
 }
 
 export interface SavedSetting {
@@ -316,4 +344,10 @@ export interface OrphanModel {
 	creation_time: number
 	res_model: ResModel
 	possible_flows: string[]
+}
+
+export interface OllamaModelItem {
+	model: string
+	size: string
+	modified_at: string
 }

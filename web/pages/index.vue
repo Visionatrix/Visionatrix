@@ -110,28 +110,13 @@ function retryLoadData() {
 					</UDropdown>
 				</div>
 			</div>
-			<UAlert v-if="flowsStore.$state.error.flows_available"
+			<UAlert v-if="flowsStore.$state.error.flows_available || flowsStore.$state.error.flows_installed"
 				class="my-4"
 				title="Error fetching flows"
 				icon="i-mdi-alert-circle"
-				:description="(flowsStore.$state.error.flows_available ? flowsStore.$state.error.flows_available : 'An error occurred while fetching flows. Please try again later.')"
-				variant="soft" color="red">
-				<template #actions>
-					<UButton
-						icon="i-heroicons-arrow-path-solid"
-						variant="outline"
-						color="white"
-						@click="retryLoadData">
-						Retry
-					</UButton>
-				</template>
-			</UAlert>
-			<UAlert v-if="flowsStore.$state.error.flows_installed"
-				class="my-4"
-				title="Error fetching installed flows"
-				icon="i-mdi-alert-circle"
-				:description="(flowsStore.$state.error.flows_installed ? flowsStore.$state.error.flows_installed : 'An error occurred while fetching installed flows. Please try again later.')"
-				variant="soft" color="red">
+				:description="'An error occurred while fetching flows. Please try again later.'"
+				variant="soft"
+				color="red">
 				<template #actions>
 					<UButton
 						icon="i-heroicons-arrow-path-solid"
