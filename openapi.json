@@ -942,6 +942,52 @@
         }
       }
     },
+    "/vapi/settings/ollama/models": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Ollama Models",
+        "description": "Fetches a list of models from the configured Ollama server (filename, size, modified).\nRequires admin privileges.",
+        "operationId": "get_ollama_models",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of models installed in Ollama",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OllamaModelItem"
+                  },
+                  "type": "array",
+                  "title": "Response Get Ollama Models"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Admin privilege required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Admin privilege required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invalid Ollama URL configured or error fetching models",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Invalid Ollama URL configured or error fetching models."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/settings/comfyui/folders": {
       "get": {
         "tags": [
@@ -2786,6 +2832,33 @@
         "title": "NodeProfiling",
         "description": "Represents profiling information for a single node in the workflow."
       },
+      "OllamaModelItem": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "Name of the model."
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size",
+            "description": "Size of the model file in bytes."
+          },
+          "modified_at": {
+            "type": "number",
+            "title": "Modified At",
+            "description": "Unix timestamp of the last modification time of the model file."
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "size",
+          "modified_at"
+        ],
+        "title": "OllamaModelItem",
+        "description": "Represents a single model file on the Ollama server."
+      },
       "OrphanModel": {
         "properties": {
           "path": {
@@ -3825,7 +3898,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-01-19T12:53:59.314709Z"
+            "default": "2025-02-03T12:06:19.623194Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

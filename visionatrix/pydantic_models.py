@@ -421,6 +421,14 @@ class TaskUpdateRequest(BaseModel):
     ]
 
 
+class OllamaModelItem(BaseModel):
+    """Represents a single model file on the Ollama server."""
+
+    model: str = Field(..., description="Name of the model.")
+    size: int = Field(..., description="Size of the model file in bytes.")
+    modified_at: float = Field(..., description="Unix timestamp of the last modification time of the model file.")
+
+
 class TranslatePromptRequest(BaseModel):
     """Represents the request data for translating an image generation prompt."""
 
