@@ -34,12 +34,13 @@ def add_loras_inputs(
                     "min": 0.0,
                     "max": 1.0,
                     "step": 0.01,
+                    "trigger_words": lora.trigger_words,
                 }
             )
             order_value += 1
 
 
-async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, types: list[str]) -> str:
+async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, types: list[str]) -> [str, list[str]]:
     """
     Adds a new model entry into a ComfyUI flow's embedded WF_MODELS node.
 
@@ -159,7 +160,7 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     embedded_dict[key_for_model] = new_entry
 
     node_details["inputs"]["text"] = json.dumps(embedded_dict, indent=2)
-    return filename
+    return filename, version_data.get("trainedWords", [])
 
 
 def flow_remove_model(flow_comfy: dict[str, dict], model_name: str) -> None:
@@ -283,6 +284,7 @@ def create_lora_definition(
                 strength_model=child_details["inputs"]["strength_model"],
                 node_id=child_id,
                 display_name=get_ui_input_attribute(child_details, "display_name"),
+                trigger_words=json.loads(get_ui_input_attribute(child_details, "trigger_words") or "[]"),
             )
     return None
 
@@ -358,22 +360,18 @@ def remove_all_consecutive_loras_for_node(node_id: str, flow_comfy: dict[str, di
 
 
 def insert_lora_in_comfy_flow(
-    node_id: str, display_name: str, strength_model: float, lora_name: str, flow_comfy: dict[str, dict]
+    node_id: str,
+    display_name: str,
+    strength_model: float,
+    lora_name: str,
+    trigger_words: list[str],
+    flow_comfy: dict[str, dict],
 ) -> str:
     """
     Inserts a new 'LoraLoader' node in the flow *between* the existing 'node_id' and its children.
 
     The result is a chain:
       [node_id] --(model,clip)--> [new LoRA node] --> [children that used to reference node_id]
-
-    This modifies 'flow_comfy' in place.
-
-    :param node_id: Existing node after which we insert the LoRA node.
-    :param display_name: A descriptive text used in the new node's _meta["title"].
-    :param strength_model: The 'strength_model' field for the LoraLoader node.
-    :param lora_name: The filename or identifier for the LoRA to load (stored in 'lora_name').
-    :param flow_comfy: The ComfyUI workflow graph to modify in place.
-    :return: The newly created node ID as a string.
     """
 
     if node_id not in flow_comfy:
@@ -387,7 +385,7 @@ def insert_lora_in_comfy_flow(
     # 2) Construct the new LoraLoader node referencing node_id
     new_node = {
         "class_type": "LoraLoader",
-        "_meta": {"title": f"lora-input;{display_name}"},
+        "_meta": {"title": f"lora-input;{display_name};trigger_words={json.dumps(trigger_words)}"},
         "inputs": {
             "lora_name": lora_name,
             "strength_model": strength_model,

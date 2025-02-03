@@ -760,9 +760,16 @@ async def create_new_flow(flow: Flow, flow_comfy: dict[str, dict], data: FlowClo
 
         for node_id, lora_details_list in data.lora_connection_points.items():
             for lora_details in reversed(lora_details_list):
-                model_filename = await flow_add_model(flow_comfy_new, lora_details.model_url, types=["loras"])
+                model_filename, trigger_words = await flow_add_model(
+                    flow_comfy_new, lora_details.model_url, types=["loras"]
+                )
                 insert_lora_in_comfy_flow(
-                    node_id, lora_details.display_name, lora_details.strength_model, model_filename, flow_comfy_new
+                    node_id,
+                    lora_details.display_name,
+                    lora_details.strength_model,
+                    model_filename,
+                    trigger_words,
+                    flow_comfy_new,
                 )
 
     return flow_comfy_new

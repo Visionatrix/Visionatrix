@@ -74,6 +74,7 @@ class CustomLoraDefinition(AIResourceModel):
 
     strength_model: float = Field(1.0, description="Default strength of the LoRA model.")
     display_name: str = Field("", description="Text to display for the LoRA slider.")
+    trigger_words: list[str] = Field([], description="List of words to trigger the LoRA.")
     node_id: str = Field(..., description="ComfyUI Node ID from which this definition was created.")
 
 
