@@ -250,12 +250,12 @@ def install_graphics_card_packages():
         if sys.platform.lower() == "win32":
             venv_run(pip_install + "torch-directml")
         else:
-            venv_run(pip_install + "torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2")
+            venv_run(pip_install + "torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4")
     elif c == "nvidia":
         print("Installing packages for NVIDIA graphics card...")
         if sys.platform.lower() == "win32":
             venv_run(
-                pip_install + "torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124"
+                pip_install + "torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"
             )  # noqa # !!! do not forget to change PyTorch version in `visionatrix/comfyui_wrapper.py` !!!
         else:
             venv_run(pip_install + "torch torchvision torchaudio")
