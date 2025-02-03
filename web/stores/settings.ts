@@ -257,7 +257,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				return res
 			}).catch((err) => {
 				console.debug('[DEBUG] Ollama models fetch error:', err)
-				this.ollamaFetchError = err || 'Failed to fetch Ollama models list'
+				if (err.response.status === 404) {
+					this.ollamaFetchError = 'Set correct Ollama URL, save settings, and try again.'
+				} else {
+					this.ollamaFetchError = err.message || 'Failed to fetch Ollama models list'
+				}
+				return err
 			}).finally(() => {
 				this.settingsMap.ollama_vision_model.loading = false
 				this.settingsMap.ollama_llm_model.loading = false
