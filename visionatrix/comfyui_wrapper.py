@@ -73,7 +73,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
                         "torchvision",
                         "torchaudio",
                         "--index-url",
-                        "https://download.pytorch.org/whl/cu124",
+                        "https://download.pytorch.org/whl/cu126",
                         # !!! do not forget to change PyTorch version in "scripts/easy_install.py" !!!
                     ]
                 )
@@ -194,6 +194,8 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
             verbose=False,
             call_on_start=None,
         )
+
+    main.args.disable_compres_response_body = True  # disable ComfyUI response compression
 
     return execution.validate_prompt, [q, prompt_server], start_all
 

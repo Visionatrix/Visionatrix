@@ -6,6 +6,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 			tasks_history: false,
 			current_flow: true,
 		},
+		error: {
+			flows_available: '',
+			flows_installed: '',
+			tasks_history: '',
+			current_flow: '',
+		},
 		page: 1,
 		pageSize: 9,
 		running: <FlowRunning[]>[],
@@ -211,16 +217,29 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}).then((res) => {
 				console.debug('not_installed: ', res)
 				this.loading.flows_available = false
+				this.error.flows_available = ''
 				this.flows_available = <Flow[]>res
 				this.flows_available.sort(this.sortByFlowNameCallback)
-			}).catch((e) => {
-				console.debug('error fetching flows:', e)
+			}).catch((err) => {
+				console.debug('error fetching flows:', err)
 				this.loading.flows_available = false
+				this.error.flows_available = err.detail || 'Failed to fetch available flows. See console for more details.'
 				const toast = useToast()
+				const actions = [
+					{
+						label: 'Retry',
+						click: () => {
+							this.error.flows_available = ''
+							this.loading.flows_available = true
+							this.fetchFlowsAvailable()
+						}
+					}
+				]
 				toast.add({
 					title: 'Failed to fetch available flows',
-					description: e.message,
+					description: err.message,
 					timeout: 0,
+					actions,
 				})
 			})
 			return flows
@@ -235,19 +254,32 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}).then((res: any) => {
 				console.debug('installed_flows: ', res)
 				this.loading.flows_installed = false
+				this.error.flows_installed = ''
 				this.flows_installed = <Flow[]>res.map((flow: Flow) => {
 					flow.input_params = flow.input_params.filter((input_param: FlowInputParam) => input_param.hidden !== true)
 					return flow
 				})
 				this.flows_installed.sort(this.sortByFlowNameCallback)
-			}).catch((e) => {
-				console.debug('error fetching installed flows:', e)
+			}).catch((err) => {
+				console.debug('error fetching installed flows:', err)
 				this.loading.flows_installed = false
+				this.error.flows_installed = err.detail || 'Failed to fetch installed flows. See console for more details.'
 				const toast = useToast()
+				const actions = [
+					{
+						label: 'Retry',
+						click: () => {
+							this.error.flows_installed = ''
+							this.loading.flows_installed = true
+							this.fetchFlowsInstalled()
+						}
+					}
+				]
 				toast.add({
 					title: 'Failed to fetch installed flows',
-					description: e.message,
+					description: err.message,
 					timeout: 0,
+					actions,
 				})
 			})
 			return flows
@@ -261,6 +293,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}).then((res) => {
 				this.loading.tasks_history = false
 				return <TasksHistory>res
+			}).catch((err) => {
+				console.debug('error fetching tasks history:', err)
+				this.loading.tasks_history = false
+				this.error.tasks_history = err.detail || 'Failed to fetch tasks history. See console for more details.'
+				return <TasksHistory>{}
 			})
 		},
 
@@ -759,6 +796,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				})
 				if (hasInstallingFlows) {
 					this.showNotificationChip = true
+					this.installingFlowsNames = installingFlows
 					this.startFlowInstallingPolling()
 				}
 			})
@@ -804,9 +842,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 				clearInterval(this.installingInterval)
 			}
 
-			this.installingInterval = setInterval(async () => {
+			this.installingInterval = setInterval(() => {
 				this.getFlowsInstallProgress().then((progress: any) => {
-					this.installingFlowsNames.forEach(flow_name => {
+					this.installingFlowsNames.forEach((flow_name) => {
 						this.handleFlowInstallProgress(flow_name, progress)
 					})
 					// If there are no more installing flows, stop polling

@@ -118,14 +118,6 @@ if (selectedColumnsFromLocalStorage !== null) {
 	savedSelectedColumns.sort(sortColumnsOrder)
 }
 const selectedColumns = ref(savedSelectedColumns || [...columns])
-// TODO: Remove after UTable bug first column removed fix is released in nuxt/ui
-selectedColumns.value.unshift({
-	key: '',
-	label: '',
-	sortable: false,
-	class: '',
-})
-
 // watch for changes in selected columns and save to local storage
 watch(selectedColumns, (value: any) => {
 	localStorage.setItem('selectedColumns', JSON.stringify(Object.values(columns).filter((column) => value.includes(column)).map((column) => column.key)))
