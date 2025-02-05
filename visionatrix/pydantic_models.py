@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing_extensions import Self
 
 
@@ -149,6 +149,11 @@ class Flow(BaseModel):
         "Key is a unique ID that used to reference specific connection during Flow editing.",
     )
 
+    @field_validator("name", mode="after")
+    @classmethod
+    def lowercase_name(cls, value: str) -> str:
+        return value.lower()
+
     def __hash__(self):
         return hash(self.name)
 
@@ -167,6 +172,11 @@ class FlowProgressInstall(BaseModel):
     error: str = Field("", description="Details of any error encountered during the installation process.")
     started_at: datetime = Field(..., description="Timestamp when the installation process started.")
     updated_at: datetime = Field(..., description="Timestamp of the last update to the installation progress.")
+
+    @field_validator("name", mode="after")
+    @classmethod
+    def lowercase_name(cls, value: str) -> str:
+        return value.lower()
 
 
 class ModelProgressInstall(BaseModel):
