@@ -1057,8 +1057,55 @@ export const useFlowsStore = defineStore('flowsStore', {
 				window.URL.revokeObjectURL(url)
 			})
 		},
+
+		cloneFlow(flow: Flow, params: any) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/flows/clone-flow', {
+				method: 'POST',
+				body: {
+					original_flow_name: flow.name,
+					new_name: params.new_name,
+					new_display_name: params.new_display_name || flow.display_name,
+					description: params.new_description || flow.description,
+					license: params.new_license || flow.license,
+					required_memory_gb: params.new_required_memory_gb || flow.required_memory_gb || null,
+					version: params.new_version || flow.version,
+					lora_connection_points: params.new_lora_connection_points || {},
+				},
+			})
+		},
 	}
 })
+
+export interface Model {
+	name: string
+	save_path: string
+	url: string
+	license: string
+	homepage: string
+	hash: string
+	hashes: any
+	gated: boolean
+	file_size: number
+	installed: boolean
+}
+
+export interface LoraPoint extends Model {
+	display_name: string
+	filename: string
+	node_id: string
+	types: string[]
+}
+
+export interface LoraPointsDefinition {
+	base_model_type: string
+	connected_loras: LoraPoint[]
+	description: string
+}
+
+export interface LoraPoints {
+	[key: string|number]: LoraPointsDefinition
+}
 
 export interface Flow {
 	id: string
@@ -1082,18 +1129,7 @@ export interface Flow {
 	is_supported_by_workers: boolean
 	is_macos_supported: boolean
 	required_memory_gb?: number
-}
-
-export interface Model {
-	name: string
-	save_path: string
-	url: string
-	license: string
-	homepage: string
-	hash: string
-	gated: boolean
-	file_size: number
-	installed: boolean
+	lora_connect_points: LoraPoints
 }
 
 export interface FlowInputParam {
@@ -1111,6 +1147,8 @@ export interface FlowInputParam {
 	source_input_name?: string
 	hidden: boolean
 	translatable?: boolean
+	dynamic_lora?: boolean
+	trigger_words?: string[]
 }
 
 export interface FlowOutputParam {

@@ -26,6 +26,8 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				advanced: input_param.advanced || false,
 				default: input_param.default || '',
 				translatable: input_param.translatable || false,
+				dynamic_lora: input_param.dynamic_lora || false,
+				trigger_words: input_param.trigger_words || [],
 			}
 		})
 	} else if (input_param.type === 'number') {
@@ -36,6 +38,8 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
 				default: input_param.default || 0,
+				dynamic_lora: input_param.dynamic_lora || false,
+				trigger_words: input_param.trigger_words || [],
 			}
 		})
 	} else if (input_param.type === 'image') {
@@ -45,6 +49,8 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				type: input_param.type,
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
+				dynamic_lora: input_param.dynamic_lora || false,
+				trigger_words: input_param.trigger_words || [],
 			}
 		})
 	} else if (input_param.type === 'image-mask') {
@@ -55,6 +61,8 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
 				source_input_name: input_param.source_input_name || null,
+				dynamic_lora: input_param.dynamic_lora || false,
+				trigger_words: input_param.trigger_words || [],
 			}
 		})
 	} else if (input_param.type === 'list') {
@@ -66,6 +74,8 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				options: input_param.options,
 				advanced: input_param.advanced || false,
 				default: Object.keys(input_param.options as object)[0] || '',
+				dynamic_lora: input_param.dynamic_lora || false,
+				trigger_words: input_param.trigger_words || [],
 			}
 		})
 	} else if (input_param.type === 'bool') {
@@ -76,6 +86,8 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				optional: input_param.optional,
 				advanced: input_param.advanced || false,
 				default: input_param.default || false,
+				dynamic_lora: input_param.dynamic_lora || false,
+				trigger_words: input_param.trigger_words || [],
 			}
 		})
 	} else if (['range', 'range_scale'].includes(input_param.type)) {
@@ -88,6 +100,8 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 			max: input_param.max || 100,
 			step: input_param.step || 1,
 			default: input_param.default || 0,
+			dynamic_lora: input_param.dynamic_lora || false,
+			trigger_words: input_param.trigger_words || [],
 		}
 		if (input_param.type === 'range_scale') {
 			param.source_input_name = input_param.source_input_name || null

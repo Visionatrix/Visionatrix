@@ -22,6 +22,7 @@ const setupButtonText = computed(() => {
 
 const deleting = ref(false)
 const showConfirmDelete = ref(false)
+const showLoraSelectorModal = ref(false)
 
 const flowActions = computed(() => {
 	const actions = [
@@ -38,6 +39,17 @@ const flowActions = computed(() => {
 			icon: 'i-heroicons-arrow-path',
 			click: () => {
 				flowStore.updateFlow(flowStore.currentFlow)
+			},
+		})
+	}
+
+	if (flowStore?.currentFlow?.lora_connect_points
+		&& Object.keys(flowStore.currentFlow.lora_connect_points).length > 0) {
+		actions[0].unshift({
+			label: 'Modify flow',
+			icon: 'i-heroicons-plus-circle',
+			click: () => {
+				showLoraSelectorModal.value = true
 			},
 		})
 	}
@@ -353,9 +365,7 @@ const modelsSize = computed(() => {
 					|| flowStore.flowResultsByName(route.params.name as string).length > 0"
 				@copy-prompt-inputs="(inputs: any[]) => copyPromptInputs(inputs)" />
 		</template>
-		<template v-else>
-			<UProgress class="mb-3" />
-		</template>
+		<UProgress v-else class="mb-3" />
 		<UModal
 			v-model="showConfirmDelete"
 			prevent-close>
@@ -392,5 +402,8 @@ const modelsSize = computed(() => {
 				</div>
 			</UCard>
 		</UModal>
+		<WorkflowLoraSelectorModal v-if="userStore.isAdmin && flowStore?.currentFlow"
+			v-model:show="showLoraSelectorModal"
+			:flow="flowStore.currentFlow" />
 	</AppContainer>
 </template>
