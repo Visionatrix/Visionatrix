@@ -705,6 +705,42 @@
       }
     },
     "/vapi/other/proxy": {
+      "delete": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Universal Proxy",
+        "description": "Universal proxy endpoint that relays a request to the specified remote URL.\n\n1. The request path is always /other/proxy.\n2. You must specify the remote URL via the `target` query parameter, e.g.:\n   GET /other/proxy?target=https://civitai.com/api/v1/models\n\nRequest Details:\n- Method: Determined by client's HTTP method (GET, POST, etc.).\n- Headers: Forwarded from client request except for certain hop-by-hop or irrelevant headers.\n- Body: If present (e.g. in POST/PUT), forwarded as-is.\n\nResponse:\n- Status code: Same as remote server's response.\n- Headers: Only critical ones are returned (Content-Type, etc.).\n- Body: Remote server's response body is relayed back to the client.\n\nNote: If you need to limit which domains can be accessed, add a domain check for `target`.",
+        "operationId": "universal_proxy",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The fully qualified remote URL to which the request should be proxied",
+              "title": "Target"
+            },
+            "description": "The fully qualified remote URL to which the request should be proxied"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "options": {
         "tags": [
           "other"
@@ -741,79 +777,7 @@
           }
         }
       },
-      "put": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Universal Proxy",
-        "description": "Universal proxy endpoint that relays a request to the specified remote URL.\n\n1. The request path is always /other/proxy.\n2. You must specify the remote URL via the `target` query parameter, e.g.:\n   GET /other/proxy?target=https://civitai.com/api/v1/models\n\nRequest Details:\n- Method: Determined by client's HTTP method (GET, POST, etc.).\n- Headers: Forwarded from client request except for certain hop-by-hop or irrelevant headers.\n- Body: If present (e.g. in POST/PUT), forwarded as-is.\n\nResponse:\n- Status code: Same as remote server's response.\n- Headers: Only critical ones are returned (Content-Type, etc.).\n- Body: Remote server's response body is relayed back to the client.\n\nNote: If you need to limit which domains can be accessed, add a domain check for `target`.",
-        "operationId": "universal_proxy",
-        "parameters": [
-          {
-            "name": "target",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "The fully qualified remote URL to which the request should be proxied",
-              "title": "Target"
-            },
-            "description": "The fully qualified remote URL to which the request should be proxied"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
       "patch": {
-        "tags": [
-          "other"
-        ],
-        "summary": "Universal Proxy",
-        "description": "Universal proxy endpoint that relays a request to the specified remote URL.\n\n1. The request path is always /other/proxy.\n2. You must specify the remote URL via the `target` query parameter, e.g.:\n   GET /other/proxy?target=https://civitai.com/api/v1/models\n\nRequest Details:\n- Method: Determined by client's HTTP method (GET, POST, etc.).\n- Headers: Forwarded from client request except for certain hop-by-hop or irrelevant headers.\n- Body: If present (e.g. in POST/PUT), forwarded as-is.\n\nResponse:\n- Status code: Same as remote server's response.\n- Headers: Only critical ones are returned (Content-Type, etc.).\n- Body: Remote server's response body is relayed back to the client.\n\nNote: If you need to limit which domains can be accessed, add a domain check for `target`.",
-        "operationId": "universal_proxy",
-        "parameters": [
-          {
-            "name": "target",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "The fully qualified remote URL to which the request should be proxied",
-              "title": "Target"
-            },
-            "description": "The fully qualified remote URL to which the request should be proxied"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
         "tags": [
           "other"
         ],
@@ -921,7 +885,43 @@
           }
         }
       },
-      "delete": {
+      "put": {
+        "tags": [
+          "other"
+        ],
+        "summary": "Universal Proxy",
+        "description": "Universal proxy endpoint that relays a request to the specified remote URL.\n\n1. The request path is always /other/proxy.\n2. You must specify the remote URL via the `target` query parameter, e.g.:\n   GET /other/proxy?target=https://civitai.com/api/v1/models\n\nRequest Details:\n- Method: Determined by client's HTTP method (GET, POST, etc.).\n- Headers: Forwarded from client request except for certain hop-by-hop or irrelevant headers.\n- Body: If present (e.g. in POST/PUT), forwarded as-is.\n\nResponse:\n- Status code: Same as remote server's response.\n- Headers: Only critical ones are returned (Content-Type, etc.).\n- Body: Remote server's response body is relayed back to the client.\n\nNote: If you need to limit which domains can be accessed, add a domain check for `target`.",
+        "operationId": "universal_proxy",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The fully qualified remote URL to which the request should be proxied",
+              "title": "Target"
+            },
+            "description": "The fully qualified remote URL to which the request should be proxied"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
         "tags": [
           "other"
         ],
@@ -4406,7 +4406,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-03T16:03:30.396659Z"
+            "default": "2025-02-05T15:37:13.697526Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
