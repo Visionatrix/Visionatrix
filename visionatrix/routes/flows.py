@@ -294,7 +294,9 @@ async def clone_flow(request: Request, b_tasks: BackgroundTasks, data: FlowClone
 
     require_admin(request)
     flows_comfy = {}
-    flow = get_available_flows(flows_comfy).get(data.original_flow_name.lower())
+    flow = get_installed_flows(flows_comfy).get(data.original_flow_name.lower())
+    if not flow:
+        flow = get_available_flows(flows_comfy).get(data.original_flow_name.lower())
     if not flow:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
