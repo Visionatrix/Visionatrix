@@ -7,7 +7,11 @@ import httpx
 from . import options
 from .db_queries import get_global_setting
 from .db_queries_async import get_global_setting_async
-from .models_map import get_embedded_models_catalog, get_united_model_catalog
+from .models_map import (
+    get_embedded_models_catalog,
+    get_models_catalog,
+    get_united_model_catalog,
+)
 from .nodes_helpers import remove_node_from_comfy_flow
 from .pydantic_models import CustomLoraDefinition, LoraConnectionPoint
 
@@ -53,6 +57,12 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     If the model's hash is already in the global catalog or embedded, do nothing.
     Returns model's filename.
     """
+
+    # Early check by URL and return if model is already present in global catalog.
+    united_model_catalog = get_models_catalog()
+    for existing_val in united_model_catalog.values():
+        if existing_val.get("url", "").lower() == civitai_model_url.lower():
+            return urlparse(existing_val["url"]).path.split("/")[-1], []
 
     parsed_url = urlparse(civitai_model_url)
     # For direct download links, extract the model_version_id from the URL path.
@@ -119,7 +129,9 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     # 3) Avoid duplicates if the model hash is already recognized system-wide
     for existing_val in get_united_model_catalog(flow_comfy).values():
         if existing_val.get("hash", "").lower() == sha256.lower():
-            return existing_val.get("filename", urlparse(existing_val["url"]).path.split("/")[-1])  # Already in catalog
+            return existing_val.get("filename", urlparse(existing_val["url"]).path.split("/")[-1]), version_data.get(
+                "trainedWords", []
+            )
 
     # 4) Build new embedded model entry
     filename = file_info["name"]
