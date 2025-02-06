@@ -591,3 +591,8 @@ class FlowCloneRequest(BaseModel):
         description="Optional LoRA connection points for the new flow. These should align with the connection points "
         "defined in the original flow.",
     )
+
+    @field_validator("original_flow_name", "new_name", mode="after")
+    @classmethod
+    def lowercase_name(cls, value: str) -> str:
+        return value.lower()

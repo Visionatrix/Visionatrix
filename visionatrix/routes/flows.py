@@ -294,16 +294,16 @@ async def clone_flow(request: Request, b_tasks: BackgroundTasks, data: FlowClone
 
     require_admin(request)
     flows_comfy = {}
-    flow = get_installed_flows(flows_comfy).get(data.original_flow_name.lower())
+    flow = get_installed_flows(flows_comfy).get(data.original_flow_name)
     if not flow:
-        flow = get_available_flows(flows_comfy).get(data.original_flow_name.lower())
+        flow = get_available_flows(flows_comfy).get(data.original_flow_name)
     if not flow:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             f"Cannot find original flow named '{data.original_flow_name}'.",
         )
     try:
-        new_flow_comfy = await create_new_flow(flow, flows_comfy[data.original_flow_name.lower()], data)
+        new_flow_comfy = await create_new_flow(flow, flows_comfy[data.original_flow_name], data)
     except Exception as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Error cloning flow: {e}") from e
 

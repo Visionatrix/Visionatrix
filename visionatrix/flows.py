@@ -156,7 +156,7 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
                 with zip_file.open(flow_comfy_path) as flow_comfy_file:
                     _flow_comfy = json.loads(flow_comfy_file.read())
                     _flow = get_vix_flow(_flow_comfy)
-                    _flow_name = _flow.name.lower()
+                    _flow_name = _flow.name
                     r_flows[_flow_name] = _flow
                     r_flows_comfy[_flow_name] = _flow_comfy
     except Exception as e:
