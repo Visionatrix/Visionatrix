@@ -151,7 +151,12 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
         if [
             i
             for i in ollama_nodes
-            if task_to_exec["flow_comfy"][i]["class_type"] in ("OllamaGenerate", "OllamaGenerateAdvance")
+            if task_to_exec["flow_comfy"][i]["class_type"]
+            in (
+                "OllamaGenerate",
+                "OllamaGenerateAdvance",
+                "OllamaConnectivityV2",
+            )
         ]:
             ollama_llm_model = get_worker_value("OLLAMA_LLM_MODEL", task_to_exec["user_id"])
         ollama_url = get_worker_value("OLLAMA_URL", task_to_exec["user_id"])
@@ -167,6 +172,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
             if ollama_llm_model and task_to_exec["flow_comfy"][node]["class_type"] in (
                 "OllamaGenerate",
                 "OllamaGenerateAdvance",
+                "OllamaConnectivityV2",
             ):
                 task_to_exec["flow_comfy"][node]["inputs"]["model"] = ollama_llm_model
 

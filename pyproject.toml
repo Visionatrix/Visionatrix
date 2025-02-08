@@ -50,7 +50,7 @@ dependencies = [
   "fastapi>=0.113",
   "google-generativeai",
   "httpx>=0.25.2",
-  "ollama",
+  "ollama>=0.4",
   "packaging",
   "passlib[bcrypt]",
   "pillow-heif",

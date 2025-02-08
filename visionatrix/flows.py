@@ -46,6 +46,7 @@ SUPPORTED_OUTPUTS = {
     "SaveAnimatedWEBP": "image-animated",
     "VHS_VideoCombine": "video",
     "SaveAudio": "audio",
+    "SaveText|pysssss": "text",
 }
 
 SUPPORTED_TEXT_TYPES_INPUTS = ["text", "number", "list", "bool", "range", "range_scale"]
@@ -487,7 +488,10 @@ def flow_prepare_output_params(
             raise RuntimeError(
                 f"class_type={r_node['class_type']}: only {supported_outputs} nodes are supported currently as outputs"
             )
-        r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
+        if r_node["class_type"] == "SaveText|pysssss":
+            r_node["inputs"]["file"] = f"{task_id}_{param}_.txt"
+        else:
+            r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
         task_details["outputs"].append(
             {
                 "comfy_node_id": int(param),
@@ -666,7 +670,12 @@ def get_node_ui_name_id(node_id: str, node_details: dict) -> str:
 def get_ollama_nodes(flow_comfy: dict) -> list[str]:
     r = []
     for node_id, node_details in flow_comfy.items():
-        if str(node_details["class_type"]) in ("OllamaVision", "OllamaGenerate", "OllamaGenerateAdvance"):
+        if str(node_details["class_type"]) in (
+            "OllamaVision",
+            "OllamaGenerate",
+            "OllamaGenerateAdvance",
+            "OllamaConnectivityV2",
+        ):
             r.append(node_id)
     return r
 

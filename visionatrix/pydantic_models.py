@@ -93,6 +93,9 @@ class Flow(BaseModel):
     version: str = Field("", description="Internal version of the flow in major.minor format.")
     requires: list[str] = Field(default=[], description="Required external workflow dependencies.")
     private: bool = Field(False, description="Whether the workflow is missing from the `FLOWS_CATALOG_URL`")
+    hidden: bool = Field(
+        False, description="Flag for hiding flow from UI when flow is intended for use only in some special cases."
+    )
     new_version_available: str = Field("", description="If not empty, contains the new version of the workflow.")
     is_seed_supported: bool = Field(
         True, description="Flag determining if 'Random Seed' input will be displayed in the UI."
