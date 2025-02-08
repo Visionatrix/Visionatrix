@@ -19,7 +19,7 @@ const columnsTable = [
 	{ key: 'name', label: 'Name', sortable: true, class: '' },
 	{ key: 'description', label: 'Description', sortable: false, class: '' },
 	{ key: 'trigger_words', label: 'Trigger words', sortable: false, class: '' },
-	{ key: 'nsfw', label: 'NSFW', sortable: true, class: '' },
+	{ key: 'nsfw', label: 'NSFW', sortable: false, class: '' },
 	{ key: 'statsDownloadCount', label: 'Download count', sortable: false, class: '' },
 	{ key: 'statsThumbsUpCount', label: 'Thumbs up', sortable: false, class: '' },
 	{ key: 'modelVersion', label: 'Model version', sortable: false, class: '' },
@@ -205,23 +205,20 @@ function applyAndInstall() {
 	console.debug('[DEBUG] Clone flow params: ', params)
 
 	loading.value = true
-	flowsStore.cloneFlow(props.flow, params).then((res: any) => {
+	flowsStore.cloneFlow(props.flow, params).then(() => {
 		flowsStore.fetchFlows()
-		if (['200', '204'].includes(res.response.status.toString())) {
-			const router = useRouter()
-			toast.add({
-				title: 'Flow applied and installed',
-				description: 'The flow has been successfully applied and installed.',
-				actions: [
-					{
-						label: 'View flow',
-						click: () => {
-							router.push('/workflows/' + newFlowName.value)
-						},
+		const router = useRouter()
+		toast.add({
+			title: 'Flow clone applied',
+			actions: [
+				{
+					label: 'View flow',
+					click: () => {
+						router.push('/workflows/' + newFlowName.value)
 					},
-				],
-			})
-		}
+				},
+			],
+		})
 	}).catch((e) => {
 		console.error('Error applying and installing flow: ', e.message || 'Unknown error')
 		toast.add({
