@@ -15,7 +15,7 @@ const loras: any = ref({
 const hasCivitAiToken = computed(() => settingsStore.settingsMap.civitai_auth_token.value !== '')
 const token = computed(() => settingsStore.settingsMap.civitai_auth_token.value || '')
 
-const defaultColumns = [
+const columnsTable = [
 	{ key: 'name', label: 'Name', sortable: true, class: '' },
 	{ key: 'description', label: 'Description', sortable: false, class: '' },
 	{ key: 'trigger_words', label: 'Trigger words', sortable: false, class: '' },
@@ -27,21 +27,11 @@ const defaultColumns = [
 ]
 
 const selectedRows = ref<ModelApiItem[]>([])
-const selectedColumns = ref(defaultColumns)
-const columnsTable = computed(() => defaultColumns.filter(column => selectedColumns.value.includes(column)))
-const excludeSelectColumn = computed(() => defaultColumns.filter(v => v.key !== 'select'))
 const expand = ref({
 	openedRows: [],
 	row: {}
 })
-const page = ref(1)
-const pageCount = ref(50)
-const pageTotal = computed(() => {
-	return loras.value.items.length === 0 ? pageCount.value : loras.value.items.length
-})
-
 const filter = ref('')
-
 const resetFilters = () => {
 	filter.value = ''
 }
@@ -73,7 +63,7 @@ const rows = computed<ModelApiItem[]>(() => {
 		})
 	})
 
-	return items.slice((page.value - 1) * Number(pageCount.value), (page.value) * Number(pageCount.value))
+	return items
 })
 
 const loraSelectedModelVersions: any = ref({})
@@ -88,40 +78,34 @@ function getModelApiItemTrainedWords(row: ModelApiItem) {
 		|| row.modelVersions[0].trainedWords || []
 }
 
-watch(() => page.value, () => {
-	if (rows.value.length === 0) {
-		fetchLoras(true)
-	}
-	// reset expand
-	expand.value = {
-		openedRows: [],
-		row: {},
-	}
-})
-
+const keepPreviousLoras = ref(true)
 const newFlowName = ref('')
 const newDisplayName = ref(props.flow.display_name)
 const newFlowDescription = ref(props.flow.description)
 const license = ref(props.flow.license)
 const requiredMemoryGb = ref(props.flow.required_memory_gb || 0)
 const version = ref(props.flow.version)
-const newFlowConnectionPoints = computed(() => {
+
+function getNewFlowConnectionPoints() {
 	const key = Object.keys(props.flow.lora_connect_points)[0]
 	const previousLoras = props.flow.lora_connect_points[key].connected_loras
 
+	const previousLorasMapped = previousLoras.filter((lora: any) => {
+		// Filter-out if current flow's LORA was deselected
+		return currentFlowLorasInfo.value[lora.hash] !== null
+	}).map((lora: any) => {
+		return {
+			display_name: lora.display_name,
+			model_url: lora.url,
+			strength_model: lora.strength_model,
+		}
+	})
+
 	const loraConnectionPoints: any = {
-		[key]: [
-			...previousLoras.filter((lora: any) => {
-				// Filter-out if current flow's LORA was deselected
-				return currentFlowLorasInfo.value[lora.hash] !== null
-			}).map((lora: any) => {
-				return {
-					display_name: lora.display_name,
-					model_url: lora.url,
-					strength_model: lora.strength_model,
-				}
-			}),
-		],
+		[key]: [],
+	}
+	if (keepPreviousLoras.value) {
+		loraConnectionPoints[key].push(...previousLorasMapped)
 	}
 
 	const selectedNewLoras = selectedRows.value.reduce((carry: any[], row: ModelApiItem) => {
@@ -133,7 +117,6 @@ const newFlowConnectionPoints = computed(() => {
 			// Skip current flow LORAs
 			return carry
 		}
-		console.debug('[DEBUG] selectedModelVersion: ', selectedModelVersion)
 		const item = {
 			strength_model: 1,
 			model_url: selectedModelVersion.downloadUrl,
@@ -147,8 +130,7 @@ const newFlowConnectionPoints = computed(() => {
 
 	console.debug('[DEBUG] newFlowConnectionPoints: ', loraConnectionPoints)
 	return loraConnectionPoints
-})
-
+}
 
 function removeCurrentLora(row: ModelApiItem) {
 	const selectedModelVersion = row.modelVersions.find((v: any) => v.name === loraSelectedModelVersions.value[row.id])
@@ -217,16 +199,15 @@ function applyAndInstall() {
 		new_license: license.value,
 		new_required_memory_gb: requiredMemoryGb.value,
 		new_version: version.value,
-		new_lora_connection_points: newFlowConnectionPoints.value,
+		new_lora_connection_points: getNewFlowConnectionPoints(),
 	}
 
 	console.debug('[DEBUG] Clone flow params: ', params)
 
 	loading.value = true
 	flowsStore.cloneFlow(props.flow, params).then((res: any) => {
-		console.debug('[DEBUG] Clone flow res: ', res)
+		flowsStore.fetchFlows()
 		if (['200', '204'].includes(res.response.status.toString())) {
-			flowsStore.fetchFlows()
 			const router = useRouter()
 			toast.add({
 				title: 'Flow applied and installed',
@@ -293,7 +274,7 @@ function fetchLoras(nextPage = false) {
 	}
 
 	// @ts-ignore
-	return civitAiStore.fetchFlowLoras(props.flow, token.value, pageCount.value, nextPageUrl).then((res: any) => {
+	return civitAiStore.fetchFlowLoras(props.flow, token.value, 50, nextPageUrl).then((res: any) => {
 		console.debug('Fetched flow "' + props.flow.name + '" loras: ', res)
 
 		// Filter-out model versions by original flow base model type
@@ -335,12 +316,12 @@ function fetchLoras(nextPage = false) {
 
 <template>
 	<UModal v-model="show" fullscreen>
-		<UButton
-			class="absolute top-3 right-3"
-			icon="i-heroicons-x-mark"
-			variant="ghost"
-			@click="() => show = false" />
-		<div class="p-4 overflow-y-auto">
+		<div class="p-4 overflow-y-auto relative">
+			<UButton
+				class="absolute top-3 right-3"
+				icon="i-heroicons-x-mark"
+				variant="ghost"
+				@click="() => show = false" />
 			<h2 class="text-xl font-bold">Modify flow</h2>
 			<p class="text-sm text-slate-500 my-2">
 				Select LoRAs to modify the flow. New Flow will be created and installed with selected LoRAs.
@@ -422,227 +403,19 @@ function fetchLoras(nextPage = false) {
 						header: { padding: 'px-4 py-5' },
 						body: { padding: '', base: 'divide-y divide-gray-200 dark:divide-gray-700' },
 						footer: { padding: 'p-4' }
-					}"
-				>
-					<div class="flex items-center justify-between gap-3 px-4 py-3">
-						<UInput
-							v-model="filter"
-							icon="i-heroicons-magnifying-glass-20-solid"
-							placeholder="Filter by name..." />
-					</div>
-
-					<div class="flex justify-between items-center w-full px-4 py-3">
+					}">
+					<div class="flex flex-col md:flex-row flex-wrap gap-2 justify-between items-center w-full px-4 py-3">
 						<div class="flex items-center gap-1.5">
-							<span class="text-sm leading-5">Rows per page:</span>
-
-							<USelect
-								v-model="pageCount"
-								:options="[3, 5, 10, 20, 30, 40, 50, 100]"
-								class="me-2 w-20"
-								size="xs"
-							/>
+							<UInput
+								v-model="filter"
+								icon="i-heroicons-magnifying-glass-20-solid"
+								placeholder="Filter by name..." />
 						</div>
 						<div class="flex gap-1.5 items-center">
-							<USelectMenu v-model="selectedColumns" :options="excludeSelectColumn" multiple>
-								<UButton
-									icon="i-heroicons-view-columns"
-									color="gray"
-									size="xs"
-								>
-									Columns
-								</UButton>
-							</USelectMenu>
-
-							<UButton
-								icon="i-heroicons-funnel"
-								color="gray"
-								size="xs"
-								:disabled="filter === ''"
-								@click="resetFilters"
-							>
-								Reset
-							</UButton>
-						</div>
-					</div>
-					<div class="overflow-y-auto"
-						style="max-height: 60vh;">
-						<UTable v-model="selectedRows"
-							v-model:expand="expand"
-							:columns="columnsTable"
-							:rows="rows"
-							:loading="loading"
-							:ui="{
-								thead: 'sticky top-0 dark:bg-gray-800 bg-white z-10',
-								tr: {
-									base: 'dark:hover:bg-slate-800',
-								},
-							}">
-
-							<template #caption>
-								<caption class="text-slate-500 text-sm py-1">Only supported LORAs and the same model type are listed</caption>
-							</template>
-
-							<template #select-header="{ indeterminate, checked, change }">
-								<div class="flex items-center h-5">
-									<input type="checkbox"
-										class="h-4 w-4 dark:checked:bg-current dark:checked:border-transparent dark:indeterminate:bg-current dark:indeterminate:border-transparent disabled:opacity-50 disabled:cursor-not-allowed focus:ring-0 focus:ring-transparent focus:ring-offset-transparent form-checkbox rounded bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 text-primary-500 dark:text-primary-400"
-										aria-label="Select row"
-										:checked="checked"
-										:indeterminate="indeterminate && hasSelectedLoras"
-										@change="(e: any) => change(e.target.checked)">
-								</div>
-							</template>
-
-							<template #select-data="{ checked, change, row }">
-								<div v-if="!row?.currentFlowLora" class="flex items-center h-5">
-									<input type="checkbox"
-										class="h-4 w-4 dark:checked:bg-current dark:checked:border-transparent dark:indeterminate:bg-current dark:indeterminate:border-transparent disabled:opacity-50 disabled:cursor-not-allowed focus:ring-0 focus:ring-transparent focus:ring-offset-transparent form-checkbox rounded bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 text-primary-500 dark:text-primary-400"
-										aria-label="Select row"
-										:checked="checked"
-										@change="(e: any) => change(e.target.checked)">
-								</div>
-							</template>
-
-							<template #name-data="{ row }">
-								<a :href="`https://civitai.com/models/${row.id}`" target="_blank" class="text-blue-500 underline">{{ row.name }}</a>
-							</template>
-							<template #description-data="{ row }">
-								<UPopover>
-									<UButton
-										color="white"
-										label="Description"
-										trailing-icon="i-heroicons-chevron-down-20-solid" />
-
-									<template #panel>
-										<div class="model-description p-4 max-h-64 max-w-xl overflow-y-auto"
-											v-html="row.description" />
-									</template>
-								</UPopover>
-							</template>
-							<template #trigger_words-data="{ row }">
-								<UPopover>
-									<UButton
-										color="white"
-										:label="`Trigger words (${getModelApiItemTrainedWords(row).length})`"
-										trailing-icon="i-heroicons-chevron-down-20-solid" />
-
-									<template #panel>
-										<div class="p-4 max-h-64 max-w-xl overflow-y-auto">
-											<template v-if="getModelApiItemTrainedWords(row).length === 0">
-												<p>No trigger words available for this model version.</p>
-											</template>
-											<template v-else>
-												<UBadge
-													v-for="word in getModelApiItemTrainedWords(row)"
-													:key="word"
-													class="flex flex-wrap gap-3 my-1"
-													:label="word"
-													color="white"
-													variant="outline" />
-											</template>
-										</div>
-									</template>
-								</UPopover>
-							</template>
-							<template #nsfw-data="{ row }">
-								<UTooltip :text="`NSFW level: ${row.nsfwLevel}`"
-									class="pl-4">
-									<UIcon :name="row.nsfw ? 'i-heroicons-x-circle' : 'i-heroicons-check-circle'"
-										:class="{
-											'text-red-500': row.nsfw,
-											'text-green-500': !row.nsfw,
-										}" />
-								</UTooltip>
-							</template>
-							<template #statsThumbsUpCount-data="{ row }">
-								<div class="flex items-center">
-									<UIcon
-										name="i-heroicons-hand-thumb-up-solid"
-										class="text-green-500 mr-1" />
-									<span>{{ row.stats.thumbsUpCount }}</span>
-								</div>
-							</template>
-							<template #statsDownloadCount-data="{ row }">
-								<div class="flex items-center">
-									<UIcon
-										name="i-heroicons-arrow-down-circle"
-										class="text-blue-500 mr-1" />
-									<span>{{ row.stats.downloadCount }}</span>
-								</div>
-							</template>
-							<template #modelVersion-data="{ row }">
-								<USelectMenu v-model="loraSelectedModelVersions[row.id]"
-									:options="row.modelVersions.map((v: any) => {
-										return v.name
-									})" />
-							</template>
-							<template #actions-data="{ row }">
-								<UButton v-if="!row?.currentFlowLora"
-									:icon="selectedRows.includes(row) ? 'i-heroicons-check-16-solid' : 'i-heroicons-plus-16-solid'"
-									variant="outline"
-									:color="selectedRows.includes(row) ? 'green' : 'white'"
-									@click="() => {
-										if (selectedRows.includes(row)) {
-											selectedRows.splice(selectedRows.indexOf(row), 1)
-											return
-										}
-										selectedRows.push(row)
-									}" />
-								<UTooltip v-else
-									text="Remove previously selected LoRA">
-									<UButton
-										icon="i-heroicons-minus-16-solid"
-										variant="outline"
-										color="orange"
-										@click="removeCurrentLora(row)" />
-								</UTooltip>
-							</template>
-							<template #expand="{ row }">
-								<div v-if="getModelApiItemImages(row).length > 0"
-									class="flex justify-center space-x-2 w-full">
-									<UCarousel
-										v-slot="{ item }"
-										class="mb-3 rounded-lg overflow-hidden"
-										:items="getModelApiItemImages(row).map((img: any) => {
-											return {
-												id: img.id,
-												url: img.url,
-											}
-										})"
-										:page="page">
-										<NuxtImg
-											:src="item.url"
-											class="rounded-lg shadow-lg p-3"
-											style="height: 50vh;"
-											draggable="false"
-											alt="Image" />
-									</UCarousel>
-								</div>
-								<UAlert v-else
-									title="No images"
-									description="No images available for this model version."
-									variant="soft"
-									color="amber" />
-							</template>
-						</UTable>
-					</div>
-					<template #footer>
-						<div class="flex justify-end px-3 py-3.5">
-							<UButton
-								class="mr-2"
-								variant="outline"
-								icon="i-heroicons-arrow-down-on-square-stack"
-								color="blue"
-								:disabled="loras.items.length === 0 || (loras.items.length > 0 && !loras.metadata.nextPage)"
-								:loading="loading"
-								@click="() => {
-									fetchLoras(true)
-								}">
-								Load more
-							</UButton>
-							<UPagination v-model="page" :page-count="Number(pageCount)" :total="Number(pageTotal)" />
-						</div>
-						<div class="flex justify-end">
+							<UCheckbox v-if="hasSelectedLoras"
+								v-model="keepPreviousLoras"
+								label="Keep previous LoRAs"
+								class="mr-2" />
 							<UButton v-if="hasSelectedLoras"
 								variant="outline"
 								icon="i-heroicons-x-circle"
@@ -661,6 +434,191 @@ function fetchLoras(nextPage = false) {
 									Apply and install
 								</UButton>
 							</UTooltip>
+						</div>
+					</div>
+					<UTable v-model="selectedRows"
+						v-model:expand="expand"
+						:columns="columnsTable"
+						:rows="rows"
+						:loading="loading"
+						:ui="{
+							thead: 'sticky top-0 dark:bg-gray-800 bg-white z-10',
+							tr: {
+								base: 'dark:hover:bg-slate-800',
+							},
+						}">
+
+						<template #caption>
+							<caption class="text-slate-500 text-sm py-1">Only supported LORAs for the basic model type are listed</caption>
+						</template>
+
+						<template #select-header="{ indeterminate, checked, change }">
+							<div class="flex items-center h-5">
+								<input type="checkbox"
+									class="h-4 w-4 dark:checked:bg-current dark:checked:border-transparent dark:indeterminate:bg-current dark:indeterminate:border-transparent disabled:opacity-50 disabled:cursor-not-allowed focus:ring-0 focus:ring-transparent focus:ring-offset-transparent form-checkbox rounded bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 text-primary-500 dark:text-primary-400"
+									aria-label="Select row"
+									:checked="checked"
+									:indeterminate="indeterminate && hasSelectedLoras"
+									@change="(e: any) => change(e.target.checked)">
+							</div>
+						</template>
+
+						<template #select-data="{ checked, change, row }">
+							<div v-if="!row?.currentFlowLora" class="flex items-center h-5">
+								<input type="checkbox"
+									class="h-4 w-4 dark:checked:bg-current dark:checked:border-transparent dark:indeterminate:bg-current dark:indeterminate:border-transparent disabled:opacity-50 disabled:cursor-not-allowed focus:ring-0 focus:ring-transparent focus:ring-offset-transparent form-checkbox rounded bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 text-primary-500 dark:text-primary-400"
+									aria-label="Select row"
+									:checked="checked"
+									@change="(e: any) => change(e.target.checked)">
+							</div>
+						</template>
+
+						<template #name-data="{ row }">
+							<a :href="`https://civitai.com/models/${row.id}`" target="_blank" class="text-blue-500 underline">{{ row.name }}</a>
+						</template>
+						<template #description-data="{ row }">
+							<UPopover>
+								<UButton
+									color="white"
+									label="Description"
+									trailing-icon="i-heroicons-chevron-down-20-solid" />
+
+								<template #panel>
+									<div class="model-description p-4 max-h-64 max-w-xl overflow-y-auto"
+										v-html="row.description" />
+								</template>
+							</UPopover>
+						</template>
+						<template #trigger_words-data="{ row }">
+							<UPopover>
+								<UButton
+									color="white"
+									:label="`Trigger words (${getModelApiItemTrainedWords(row).length})`"
+									trailing-icon="i-heroicons-chevron-down-20-solid" />
+
+								<template #panel>
+									<div class="p-4 max-h-64 max-w-xl overflow-y-auto">
+										<template v-if="getModelApiItemTrainedWords(row).length === 0">
+											<p>No trigger words available for this model version.</p>
+										</template>
+										<template v-else>
+											<UBadge
+												v-for="word in getModelApiItemTrainedWords(row)"
+												:key="word"
+												class="flex flex-wrap gap-3 my-1 whitespace-normal"
+												:label="word"
+												color="white"
+												variant="outline" />
+										</template>
+									</div>
+								</template>
+							</UPopover>
+						</template>
+						<template #nsfw-data="{ row }">
+							<UTooltip :text="`NSFW level: ${row.nsfwLevel}`"
+								class="pl-4">
+								<UIcon :name="row.nsfw ? 'i-heroicons-x-circle' : 'i-heroicons-check-circle'"
+									:class="{
+										'text-red-500': row.nsfw,
+										'text-green-500': !row.nsfw,
+									}" />
+							</UTooltip>
+						</template>
+						<template #statsThumbsUpCount-data="{ row }">
+							<div class="flex items-center">
+								<UIcon
+									name="i-heroicons-hand-thumb-up-solid"
+									class="text-green-500 mr-1" />
+								<span>{{ row.stats.thumbsUpCount }}</span>
+							</div>
+						</template>
+						<template #statsDownloadCount-data="{ row }">
+							<div class="flex items-center">
+								<UIcon
+									name="i-heroicons-arrow-down-circle"
+									class="text-blue-500 mr-1" />
+								<span>{{ row.stats.downloadCount }}</span>
+							</div>
+						</template>
+						<template #modelVersion-data="{ row }">
+							<USelectMenu v-model="loraSelectedModelVersions[row.id]"
+								:options="row.modelVersions.map((v: any) => {
+									return v.name
+								})" />
+						</template>
+						<template #actions-data="{ row }">
+							<UButton v-if="!row?.currentFlowLora"
+								:icon="selectedRows.includes(row) ? 'i-heroicons-check-16-solid' : 'i-heroicons-plus-16-solid'"
+								variant="outline"
+								:color="selectedRows.includes(row) ? 'green' : 'white'"
+								@click="() => {
+									if (selectedRows.includes(row)) {
+										selectedRows.splice(selectedRows.indexOf(row), 1)
+										return
+									}
+									selectedRows.push(row)
+								}" />
+							<UTooltip v-else
+								text="Remove previously selected LoRA">
+								<UButton
+									icon="i-heroicons-minus-16-solid"
+									variant="outline"
+									color="orange"
+									@click="removeCurrentLora(row)" />
+							</UTooltip>
+						</template>
+						<template #expand="{ row }">
+							<div v-if="getModelApiItemImages(row).length > 0"
+								class="flex justify-center space-x-2 w-full">
+								<UCarousel
+									v-slot="{ item }"
+									class="my-3"
+									:items="getModelApiItemImages(row).map((img: any) => {
+										return {
+											id: img.id,
+											url: img.url,
+											type: img?.type || 'image',
+										}
+									})"
+									:ui="{
+										item: 'mx-1',
+									}">
+									<NuxtImg
+										v-if="item.type === 'image'"
+										:src="item.url"
+										:height="256"
+										:width="256"
+										loading="lazy"
+										draggable="false" />
+									<video v-else
+										controls
+										:width="256"
+										:height="256">
+										<source :src="item.url">
+									</video>
+								</UCarousel>
+							</div>
+							<UAlert v-else
+								title="No images"
+								description="No images available for this model version."
+								variant="soft"
+								color="amber" />
+						</template>
+					</UTable>
+					<template #footer>
+						<div class="flex justify-end">
+							<UButton
+								class="mr-2"
+								variant="outline"
+								icon="i-heroicons-arrow-down-on-square-stack"
+								color="blue"
+								:disabled="loras.items.length === 0 || (loras.items.length > 0 && !loras.metadata.nextPage)"
+								:loading="loading"
+								@click="() => {
+									fetchLoras(true)
+								}">
+								Load more
+							</UButton>
 						</div>
 					</template>
 				</UCard>

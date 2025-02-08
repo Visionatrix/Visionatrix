@@ -26,6 +26,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_available: <Flow[]>[],
 		flows_installed: <Flow[]>[],
 		flows_tags_filter: <string[]>[],
+		flows_private_filter: false,
 		flows_search_filter: '',
 		show_unsupported_flows: false,
 		sub_flows: <Flow[]>[],
@@ -49,6 +50,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
 			}
+			if (state.flows_private_filter) {
+				flows = flows.filter(flow => flow.private)
+			}
 			if (!state.show_unsupported_flows) {
 				flows = flows.filter(flow => flow.is_supported_by_workers)
 			}
@@ -68,14 +72,15 @@ export const useFlowsStore = defineStore('flowsStore', {
 			]
 			if (state.flows_tags_filter.length > 0) {
 				flows = flows.filter(flow => state.flows_tags_filter.every(tag => flow.tags.includes(tag)))
-				console.debug('filter flows by tags:', state.flows_tags_filter, flows)
 			}
 			if (state.flows_search_filter !== '') {
 				flows = flows
 					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
-				console.debug('filter flows by search:', state.flows_search_filter, flows)
+			}
+			if (state.flows_private_filter) {
+				flows = flows.filter(flow => flow.private)
 			}
 			if (!state.show_unsupported_flows) {
 				flows = flows.filter(flow => flow.is_supported_by_workers)
@@ -1034,6 +1039,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				this.resultsPageSize = Number(options.resultsPageSize) || 5
 				this.outputMaxSize = Number(options.outputMaxSize) || 512
 				this.show_unsupported_flows = options.showUnsupportedFlows || false
+				this.flows_private_filter = options.showPrivateFlows || false
 			}
 		},
 
@@ -1042,6 +1048,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				resultsPageSize: this.resultsPageSize,
 				outputMaxSize: this.outputMaxSize,
 				showUnsupportedFlows: this.show_unsupported_flows,
+				showPrivateFlows: this.flows_private_filter,
 			}))
 		},
 
