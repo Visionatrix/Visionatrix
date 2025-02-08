@@ -1,12 +1,11 @@
 export const useCivitAiStore = defineStore('civitAiStore', {
 	actions: {
-		fetchFlowLoras(flow: Flow, token: string, limit: number = 10, nextPageUrl?: string) {
+		fetchFlowLoras(flow: Flow, token: string, limit: number = 10, nextPageUrl: string|null = null) {
 			if (!flow.lora_connect_points || Object.keys(flow.lora_connect_points).length !== 1) {
 				console.debug('Flow does not have lora_connect_points or has more than one, skipping fetching loras')
 				return
 			}
 			const { $apiFetch } = useNuxtApp()
-			// @ts-ignore
 			const modelType = flow.lora_connect_points[Object.keys(flow.lora_connect_points)[0]].base_model_type
 			let url = `https://civitai.com/api/v1/models?query=${modelType}&types=LORA&limit=${limit}`
 			if (nextPageUrl) {
@@ -16,7 +15,7 @@ export const useCivitAiStore = defineStore('civitAiStore', {
 			return $apiFetch(proxiedUrl, {
 				method: 'GET',
 				headers: {
-					Authentication: 'Bearer' + token,
+					Authentication: 'Bearer ' + token,
 					Accept: 'application/json',
 				}
 			})
@@ -32,7 +31,7 @@ export const useCivitAiStore = defineStore('civitAiStore', {
 			return $apiFetch(proxiedUrl, {
 				method: 'GET',
 				headers: {
-					Authentication: 'Bearer' + token,
+					Authentication: 'Bearer ' + token,
 					Accept: 'application/json',
 				}
 			})

@@ -184,9 +184,8 @@ onBeforeUnmount(() => {
 						color="gray"
 						class="mr-2" />
 					<template #panel>
-						<div class="p-2 w-48 h-48 not-italic">
-							<h4>Trigger words for dynamic lora:</h4>
-							<!-- <p class="text-sm">{{ inputParam.trigger_words.join('') }}</p> -->
+						<div class="p-2 max-w-48 max-h-48 not-italic">
+							<h4 class="mb-2 text-center">Trigger words</h4>
 							<UBadge
 								v-for="triggerWord in inputParam.trigger_words"
 								:key="triggerWord"

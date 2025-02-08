@@ -35,8 +35,10 @@ const expand = ref({
 	row: {}
 })
 const page = ref(1)
-const pageCount = ref(5)
-const pageTotal = ref(pageCount.value * 2)
+const pageCount = ref(50)
+const pageTotal = computed(() => {
+	return loras.value.items.length === 0 ? pageCount.value : loras.value.items.length
+})
 
 const filter = ref('')
 
@@ -54,8 +56,8 @@ const rows = computed<ModelApiItem[]>(() => {
 	}
 
 	items.forEach((item: ModelApiItem) => {
-		if (!loraSelectedModelVersions.value[item.id]) {
-			loraSelectedModelVersions.value[item.id] = item.modelVersions[0].name
+		if (!loraSelectedModelVersions.value[item.id] && item?.modelVersions.length > 0) {
+			loraSelectedModelVersions.value[item.id] = item?.modelVersions[0].name
 		}
 
 		const currentLorasHashes = Object.keys(currentFlowLorasInfo.value)
@@ -71,19 +73,19 @@ const rows = computed<ModelApiItem[]>(() => {
 		})
 	})
 
-	return items.slice((page.value - 1) * pageCount.value, (page.value) * pageCount.value)
+	return items.slice((page.value - 1) * Number(pageCount.value), (page.value) * Number(pageCount.value))
 })
 
 const loraSelectedModelVersions: any = ref({})
 
 function getModelApiItemImages(row: ModelApiItem) {
 	return row.modelVersions.find((v: any) => v.name === loraSelectedModelVersions.value[row.id])?.images
-		|| row.modelVersions[0].images
+		|| row.modelVersions[0].images || []
 }
 
 function getModelApiItemTrainedWords(row: ModelApiItem) {
 	return row.modelVersions.find((v: any) => v.name === loraSelectedModelVersions.value[row.id])?.trainedWords
-		|| row.modelVersions[0].trainedWords
+		|| row.modelVersions[0].trainedWords || []
 }
 
 watch(() => page.value, () => {
@@ -252,13 +254,12 @@ function applyAndInstall() {
 
 const currentFlowLorasInfo = ref<{[hash: string]: any}>({})
 function fetchCurrentFlowLorasInfo() {
-	// @ts-ignore
-	const flowLoras: LoraPointsDefinition[] = props.flow.lora_connect_points[Object.keys(props.flow.lora_connect_points)[0]].connected_loras
+	const flowLoras: LoraPoint[] = props.flow.lora_connect_points[Object.keys(props.flow.lora_connect_points)[0]].connected_loras
 	console.debug('Flow LORAs: ', flowLoras)
 
 	Promise.all(
 		flowLoras.map((lora: any) => {
-			return civitAiStore.fetchFlowLorasByHash(props.flow, token.value, lora.hash)?.then((res: any) => {
+			return civitAiStore.fetchFlowLorasByHash(props.flow, token.value, lora.hash)?.then((res: ModelApiItem|any) => {
 				if (!(lora.hash in currentFlowLorasInfo.value)) {
 					currentFlowLorasInfo.value[lora.hash] = res
 				}
@@ -277,32 +278,48 @@ function fetchCurrentFlowLorasInfo() {
 }
 
 function fetchLoras(nextPage = false) {
-	loading.value = true
 	if (!props.flow || !token.value) {
-		loading.value = false
 		return
 	}
-	fetchCurrentFlowLorasInfo()
+
+	loading.value = true
+	if (!nextPage) {
+		fetchCurrentFlowLorasInfo()
+	}
 
 	let nextPageUrl = null
-	if (nextPage && loras.value.metadata.nextPage) {
+	if (nextPage && loras.value.metadata?.nextPage) {
 		nextPageUrl = loras.value.metadata.nextPage
 	}
 
 	// @ts-ignore
-	return civitAiStore.fetchFlowLoras(props.flow, token, pageCount.value, nextPageUrl).then((res: any) => {
+	return civitAiStore.fetchFlowLoras(props.flow, token.value, pageCount.value, nextPageUrl).then((res: any) => {
 		console.debug('Fetched flow "' + props.flow.name + '" loras: ', res)
 
 		// Filter-out model versions by original flow base model type
 		const modelType = props.flow.lora_connect_points[Object.keys(props.flow.lora_connect_points)[0]].base_model_type
-		loras.value.items.push(...res.items.map((item: any) => {
+		const items = res.items.reduce((carry: ModelApiItem[], item: ModelApiItem) => {
 			item.modelVersions = item.modelVersions.filter((v: any) => v.baseModel === modelType)
-			return item
-		}))
-		loras.value.metadata = res.metadata
-		if (pageTotal.value <= loras.value.items.length + 1) {
-			pageTotal.value = loras.value.items.length + 1
+
+			if (item.modelVersions.length > 0) {
+				if (!loras.value.items.find((i: ModelApiItem) => i.id === item.id)) {
+					carry.push(item)
+				}
+			}
+
+			return carry
+		}, [])
+
+		if (items.length === 0) {
+			toast.add({
+				title: 'No more supported LoRAs',
+				description: 'No supported LoRAs available for the flow.',
+			})
 		}
+
+		loras.value.items.push(...items)
+		loras.value.metadata = res.metadata
+
 		return res
 	}).catch((err: any) => {
 		console.error('Error fetching flow "' + props.flow.name + '" loras: ', err)
@@ -420,7 +437,7 @@ function fetchLoras(nextPage = false) {
 
 							<USelect
 								v-model="pageCount"
-								:options="[3, 5, 10, 20, 30, 40]"
+								:options="[3, 5, 10, 20, 30, 40, 50, 100]"
 								class="me-2 w-20"
 								size="xs"
 							/>
@@ -461,6 +478,10 @@ function fetchLoras(nextPage = false) {
 								},
 							}">
 
+							<template #caption>
+								<caption class="text-slate-500 text-sm py-1">Only supported LORAs and the same model type are listed</caption>
+							</template>
+
 							<template #select-header="{ indeterminate, checked, change }">
 								<div class="flex items-center h-5">
 									<input type="checkbox"
@@ -493,7 +514,7 @@ function fetchLoras(nextPage = false) {
 										trailing-icon="i-heroicons-chevron-down-20-solid" />
 
 									<template #panel>
-										<div class="model-description p-4 h-64 max-w-xl overflow-y-auto"
+										<div class="model-description p-4 max-h-64 max-w-xl overflow-y-auto"
 											v-html="row.description" />
 									</template>
 								</UPopover>
@@ -607,7 +628,19 @@ function fetchLoras(nextPage = false) {
 					</div>
 					<template #footer>
 						<div class="flex justify-end px-3 py-3.5">
-							<UPagination v-model="page" :page-count="pageCount" :total="pageTotal" />
+							<UButton
+								class="mr-2"
+								variant="outline"
+								icon="i-heroicons-arrow-down-on-square-stack"
+								color="blue"
+								:disabled="loras.items.length === 0 || (loras.items.length > 0 && !loras.metadata.nextPage)"
+								:loading="loading"
+								@click="() => {
+									fetchLoras(true)
+								}">
+								Load more
+							</UButton>
+							<UPagination v-model="page" :page-count="Number(pageCount)" :total="Number(pageTotal)" />
 						</div>
 						<div class="flex justify-end">
 							<UButton v-if="hasSelectedLoras"
