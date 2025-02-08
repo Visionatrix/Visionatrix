@@ -195,8 +195,6 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
             call_on_start=None,
         )
 
-    main.args.disable_compres_response_body = True  # disable ComfyUI response compression
-
     return execution.validate_prompt, [q, prompt_server], start_all
 
 
