@@ -2861,6 +2861,12 @@
             "description": "Whether the workflow is missing from the `FLOWS_CATALOG_URL`",
             "default": false
           },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "description": "Flag for hiding flow from UI when flow is intended for use only in some special cases.",
+            "default": false
+          },
           "new_version_available": {
             "type": "string",
             "title": "New Version Available",
@@ -4222,7 +4228,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-09T07:29:30.874204Z"
+            "default": "2025-02-09T12:35:03.557591Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
