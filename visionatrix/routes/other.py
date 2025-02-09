@@ -3,11 +3,14 @@ import os
 import signal
 import time
 
+import httpx
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     HTTPException,
+    Query,
     Request,
+    Response,
     responses,
     status,
 )
@@ -136,3 +139,69 @@ def translate_prompt(request: Request, data: TranslatePromptRequest) -> Translat
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Translation service error",
         ) from e
+
+
+@ROUTER.api_route(
+    "/proxy",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+    response_class=Response,
+    include_in_schema=False,
+)
+async def universal_proxy(
+    request: Request,
+    target: str = Query(..., description="The fully qualified remote URL to which the request should be proxied"),
+):
+    """
+    Universal proxy endpoint that relays a request to the specified remote URL.
+
+    1. The request path is always /other/proxy.
+    2. You must specify the remote URL via the `target` query parameter, e.g.:
+       GET /other/proxy?target=https://civitai.com/api/v1/models
+
+    Request Details:
+    - Method: Determined by client's HTTP method (GET, POST, etc.).
+    - Headers: Forwarded from client request except for certain hop-by-hop or irrelevant headers.
+    - Body: If present (e.g. in POST/PUT), forwarded as-is.
+
+    Response:
+    - Status code: Same as remote server's response.
+    - Headers: Only critical ones are returned (Content-Type, etc.).
+    - Body: Remote server's response body is relayed back to the client.
+
+    Note: If you need to limit which domains can be accessed, add a domain check for `target`.
+    """
+
+    # 1. Capture request method and body
+    method = request.method
+    body = b""
+    if method not in ("GET", "HEAD"):
+        body = await request.body()
+
+    # 2. Prepare headers for forwarding (filter out hop-by-hop headers or ones set by Starlette)
+    excluded_headers = {"host", "content-length", "transfer-encoding", "connection", "accept-encoding"}
+    forward_headers = {k: v for k, v in request.headers.items() if k.lower() not in excluded_headers}
+
+    # 3. Make the request to the remote server
+    async with httpx.AsyncClient(timeout=None, follow_redirects=True) as client:  # noqa
+        try:
+            remote_response = await client.request(
+                method=method,
+                url=target,
+                headers=forward_headers,
+                content=body,
+            )
+        except httpx.RequestError as exc:
+            LOGGER.error("Proxy request to %s failed: %s", target, exc)
+            return Response(
+                content=f"Request to remote server failed: {exc}",
+                status_code=status.HTTP_502_BAD_GATEWAY,
+            )
+
+    # 4. Build the response with content and matching status code
+    #    (If you need to preserve additional headers, add them here carefully.)
+    content_type = remote_response.headers.get("content-type", "application/octet-stream")
+    return Response(
+        content=remote_response.content,
+        status_code=remote_response.status_code,
+        media_type=content_type,
+    )

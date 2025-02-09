@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.10.1.dev0"
+    "version": "1.11.0.dev0"
   },
   "paths": {
     "/comfy/": {
@@ -386,6 +386,57 @@
               "application/json": {
                 "example": {
                   "detail": "Can't find `flow_name`."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/flows/clone-flow": {
+      "post": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Clone Flow",
+        "description": "Clones an existing flow with updated metadata or LoRA connection points.\nRequires admin privileges.",
+        "operationId": "clone_flow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowCloneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Flow cloned successfully."
+          },
+          "404": {
+            "description": "Original flow not found."
+          },
+          "400": {
+            "description": "Error occurred while cloning the flow."
+          },
+          "409": {
+            "description": "Installation of the same flow is already in progress",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Installation of this flow is already in progress."
                 }
               }
             }
@@ -2483,6 +2534,147 @@
         "title": "ComfyUIFolderPaths",
         "description": "Represents a mapping of folder keys to their corresponding folder paths and metadata."
       },
+      "CustomLoraDefinition": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Unique name of the model."
+          },
+          "types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Types",
+            "description": "ComfyUI model types to which model belongs(e.g 'checkpoints', 'loras').",
+            "default": []
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "description": "Overridden file name under which the model should be stored in the file system.",
+            "default": ""
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "URL from which the model can be downloaded."
+          },
+          "homepage": {
+            "type": "string",
+            "title": "Homepage",
+            "description": "Webpage with detailed information about the model.",
+            "default": ""
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash",
+            "description": "SHA256 hash of the model file for integrity verification."
+          },
+          "hashes": {
+            "type": "object",
+            "title": "Hashes",
+            "description": "For archives, may contain filename:hash pairs for integrity checks after the archive is deleted.",
+            "default": {}
+          },
+          "regexes": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Regexes",
+            "description": "List of regex patterns that dynamically resolve model details based on workflow configurations.",
+            "default": []
+          },
+          "gated": {
+            "type": "boolean",
+            "title": "Gated",
+            "description": "Flag showing is the model closed to public access.",
+            "default": false
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "The size of the model file in bytes."
+          },
+          "installed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installed",
+            "description": "Flag indicating whether the model is already installed. Currently, this field is populated only by the `/flows/installed` and `/flows/not-installed` endpoints."
+          },
+          "strength_model": {
+            "type": "number",
+            "title": "Strength Model",
+            "description": "Default strength of the LoRA model.",
+            "default": 1.0
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "Text to display for the LoRA slider.",
+            "default": ""
+          },
+          "trigger_words": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Trigger Words",
+            "description": "List of words to trigger the LoRA.",
+            "default": []
+          },
+          "node_id": {
+            "type": "string",
+            "title": "Node Id",
+            "description": "ComfyUI Node ID from which this definition was created."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "url",
+          "hash",
+          "file_size",
+          "node_id"
+        ],
+        "title": "CustomLoraDefinition",
+        "description": "Definition of custom LoRA added to the flow. Backend will automatically generate inputs for it."
+      },
+      "CustomLoraDefinitionRequest": {
+        "properties": {
+          "strength_model": {
+            "type": "number",
+            "title": "Strength Model",
+            "description": "Default strength of the LoRA model.",
+            "default": 1.0
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "Text to display for the LoRA slider."
+          },
+          "model_url": {
+            "type": "string",
+            "title": "Model Url",
+            "description": "The CivitAI URL for this model, allowing to embed this model in Flow."
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "model_url"
+        ],
+        "title": "CustomLoraDefinitionRequest",
+        "description": "Represents a custom LoRA model to be embedded in the flow."
+      },
       "ExecutionDetails": {
         "properties": {
           "disable_smart_memory": {
@@ -2710,6 +2902,15 @@
             "title": "Required Memory Gb",
             "description": "Minimum amount of memory (in gigabytes) required to execute this flow.",
             "default": 0.0
+          },
+          "lora_connect_points": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LoraConnectionPoint"
+            },
+            "type": "object",
+            "title": "Lora Connect Points",
+            "description": "Connection points in the flow where LoRAs can be dynamically integrated, enabling the addition of custom LoRAs at specific locations. Key is a unique ID that used to reference specific connection during Flow editing.",
+            "default": {}
           }
         },
         "type": "object",
@@ -2721,6 +2922,99 @@
         ],
         "title": "Flow",
         "description": "Flows serve as add-ons to ComfyUI workflows, determining the parameters to be displayed and populated.\nThey also allow for the modification of ComfyUI workflow behavior based on incoming parameters."
+      },
+      "FlowCloneRequest": {
+        "properties": {
+          "original_flow_name": {
+            "type": "string",
+            "title": "Original Flow Name",
+            "description": "Name of the installed flow to clone from."
+          },
+          "new_name": {
+            "type": "string",
+            "title": "New Name",
+            "description": "New internal name for the cloned flow (must be unique)."
+          },
+          "new_display_name": {
+            "type": "string",
+            "title": "New Display Name",
+            "description": "New display name for UI presentation."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional updated description of the new flow."
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License",
+            "description": "Optional updated license for the new flow."
+          },
+          "required_memory_gb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Memory Gb",
+            "description": "Optional updated memory requirement in GB."
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "Optional updated version number."
+          },
+          "lora_connection_points": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "$ref": "#/components/schemas/CustomLoraDefinitionRequest"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lora Connection Points",
+            "description": "Optional LoRA connection points for the new flow. These should align with the connection points defined in the original flow."
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_flow_name",
+          "new_name",
+          "new_display_name"
+        ],
+        "title": "FlowCloneRequest",
+        "description": "Represents the data required to clone and modify an existing flow.\n\nThis model is used to create a new flow by copying from an existing one\nand optionally updating its metadata, LoRA connection points, or other attributes.\nIt allows for targeted customization while preserving the base functionality of the original flow."
       },
       "FlowProgressInstall": {
         "properties": {
@@ -2792,6 +3086,36 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LoraConnectionPoint": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "A brief description of the functionality or purpose of this connection point for integrating LoRAs into the flow.",
+            "default": ""
+          },
+          "base_model_type": {
+            "type": "string",
+            "title": "Base Model Type",
+            "description": "Specifies the base model type in the CivitAI format that is compatible with this connection point, allowing the UI to filter applicable LoRAs."
+          },
+          "connected_loras": {
+            "items": {
+              "$ref": "#/components/schemas/CustomLoraDefinition"
+            },
+            "type": "array",
+            "title": "Connected Loras",
+            "description": "A list of LoRAs that are currently connected to this point in the flow.",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_model_type"
+        ],
+        "title": "LoraConnectionPoint",
+        "description": "Represents a connection point in the flow where LoRAs can be added.\nProvides details necessary for the UI to manage dynamic LoRA integration within the flow."
       },
       "NodeProfiling": {
         "properties": {
@@ -3898,7 +4222,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-03T12:06:19.623194Z"
+            "default": "2025-02-09T07:29:30.874204Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

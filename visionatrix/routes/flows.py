@@ -6,6 +6,7 @@ import typing
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Body,
     File,
     HTTPException,
     Query,
@@ -29,6 +30,7 @@ from ..db_queries_async import (
 from ..flows import (
     Flow,
     calculate_dynamic_fields_for_flows,
+    create_new_flow,
     get_available_flows,
     get_installed_flows,
     get_not_installed_flows,
@@ -36,7 +38,7 @@ from ..flows import (
     install_custom_flow,
     uninstall_flow,
 )
-from ..pydantic_models import FlowProgressInstall
+from ..pydantic_models import FlowCloneRequest, FlowProgressInstall
 from .helpers import require_admin
 
 LOGGER = logging.getLogger("visionatrix")
@@ -251,7 +253,7 @@ async def delete_install_progress(
     else:
         r = delete_flow_progress_install(name)
     if not r:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{name}`.")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{name}`.")
 
 
 @ROUTER.delete(
@@ -267,3 +269,46 @@ async def delete(request: Request, name: str = Query(..., description="Name of t
     """
     require_admin(request)
     uninstall_flow(name)
+
+
+@ROUTER.post(
+    "/clone-flow",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Flow cloned successfully."},
+        404: {"description": "Original flow not found."},
+        400: {"description": "Error occurred while cloning the flow."},
+        409: {
+            "description": "Installation of the same flow is already in progress",
+            "content": {
+                "application/json": {"example": {"detail": "Installation of this flow is already in progress."}}
+            },
+        },
+    },
+)
+async def clone_flow(request: Request, b_tasks: BackgroundTasks, data: FlowCloneRequest = Body(...)):
+    """
+    Clones an existing flow with updated metadata or LoRA connection points.
+    Requires admin privileges.
+    """
+
+    require_admin(request)
+    flows_comfy = {}
+    flow = get_installed_flows(flows_comfy).get(data.original_flow_name)
+    if not flow:
+        flow = get_available_flows(flows_comfy).get(data.original_flow_name)
+    if not flow:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            f"Cannot find original flow named '{data.original_flow_name}'.",
+        )
+    try:
+        new_flow_comfy = await create_new_flow(flow, flows_comfy[data.original_flow_name], data)
+    except Exception as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Error cloning flow: {e}") from e
+
+    flow = get_vix_flow(new_flow_comfy)
+    if flows_installation_in_progress(flow.name):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
+    b_tasks.add_task(install_custom_flow, flow, new_flow_comfy)

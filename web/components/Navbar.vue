@@ -35,7 +35,7 @@ const showComfyUiButton = computed(() => {
 </script>
 
 <template>
-	<AppContainer class="w-full z-[60]">
+	<AppContainer class="w-full">
 		<header class="flex w-full flex-col lg:flex-row justify-between items-center my-5">
 			<div class="flex w-full items-center justify-between">
 				<ULink to="/" class="text-lg mr-3">

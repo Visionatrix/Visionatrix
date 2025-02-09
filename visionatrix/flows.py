@@ -23,10 +23,19 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from . import _version, comfyui_class_info, db_queries, events, options
 from .comfyui_wrapper import get_node_class_mappings
 from .etc import is_english
+from .flows_loras import (
+    add_loras_inputs,
+    flow_add_model,
+    flow_remove_model,
+    get_flow_lora_connect_points,
+    get_ui_input_attribute,
+    insert_lora_in_comfy_flow,
+    remove_all_consecutive_loras_for_node,
+)
 from .models import fill_flows_model_installed_field, install_model
 from .models_map import process_flow_models
 from .nodes_helpers import get_node_value, set_node_value
-from .pydantic_models import Flow
+from .pydantic_models import Flow, FlowCloneRequest, LoraConnectionPoint
 
 SECONDS_TO_CACHE_INSTALLED_FLOWS = 10
 SECONDS_TO_CACHE_AVAILABLE_FLOWS = 3 * 60
@@ -148,7 +157,7 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
                 with zip_file.open(flow_comfy_path) as flow_comfy_file:
                     _flow_comfy = json.loads(flow_comfy_file.read())
                     _flow = get_vix_flow(_flow_comfy)
-                    _flow_name = _flow.name.lower()
+                    _flow_name = _flow.name
                     r_flows[_flow_name] = _flow
                     r_flows_comfy[_flow_name] = _flow_comfy
     except Exception as e:
@@ -520,8 +529,9 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
 
 def get_vix_flow(flow_comfy: dict[str, dict]) -> Flow:
     vix_flow = get_flow_metadata(flow_comfy)
+    vix_flow["lora_connect_points"] = get_flow_lora_connect_points(flow_comfy)
     vix_flow["sub_flows"] = get_flow_subflows(flow_comfy)
-    vix_flow["input_params"] = get_flow_inputs(flow_comfy)
+    vix_flow["input_params"] = get_flow_inputs(flow_comfy, vix_flow["lora_connect_points"])
     vix_flow["models"] = process_flow_models(flow_comfy, {})
     return Flow.model_validate(vix_flow)
 
@@ -546,7 +556,9 @@ def get_flow_subflows(flow_comfy: dict[str, dict]) -> list[dict[str, str | list 
     return []
 
 
-def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | dict]]:
+def get_flow_inputs(
+    flow_comfy: dict[str, dict], loras_connection_points: dict[str, LoraConnectionPoint]
+) -> list[dict[str, str | list | dict]]:
     input_params = []
     for node_id, node_details in flow_comfy.items():
         if not is_node_ui_input(node_details):
@@ -601,6 +613,7 @@ def get_flow_inputs(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | 
         elif class_type == "SDXLAspectRatioSelector":
             correct_aspect_ratio_default_options(input_param_data)
         input_params.append(input_param_data)
+    add_loras_inputs(input_params, loras_connection_points)
     return sorted(input_params, key=lambda x: x["order"])
 
 
@@ -630,44 +643,12 @@ def is_node_ui_input(node_details: dict) -> bool:
     return str(node_details["_meta"]["title"]).startswith("input;")
 
 
-def get_ui_input_attribute(node_details: dict, attr_name: str) -> bool | str | int:
-    attributes_defaults = {
-        "optional": False,
-        "advanced": False,
-        "translatable": False,
-        "hidden": False,
-        "mask": False,
-        "order": 99,
-        "custom_id": "",
-        "source_input_name": None,
-    }
-
-    if str(node_details["class_type"]).startswith("VixUi"):
-        return node_details["inputs"].get(attr_name, attributes_defaults.get(attr_name))
-
-    input_info = str(node_details["_meta"]["title"]).split(";")
-    input_info = [i.strip() for i in input_info]
-
-    if attr_name == "display_name":
-        return input_info[1] if len(input_info) > 1 else ""
-
-    other_attributes = [s.lower() for s in input_info[2:]]
-    for attribute in other_attributes:
-        if "=" in attribute:
-            key, value = attribute.split("=", 1)
-            if key == attr_name:
-                return int(value) if attr_name == "order" else value
-        elif attribute == attr_name:
-            return True
-    return attributes_defaults.get(attr_name)
-
-
 def get_node_ui_name_id(node_id: str, node_details: dict) -> str:
     custom_id = get_ui_input_attribute(node_details, "custom_id")
     return custom_id if custom_id else f"in_param_{node_id}"
 
 
-def get_ollama_nodes(flow_comfy: dict) -> list[str]:
+def get_ollama_nodes(flow_comfy: dict[str, dict]) -> list[str]:
     r = []
     for node_id, node_details in flow_comfy.items():
         if str(node_details["class_type"]) in (
@@ -680,7 +661,7 @@ def get_ollama_nodes(flow_comfy: dict) -> list[str]:
     return r
 
 
-def get_google_nodes(flow_comfy: dict) -> list[str]:
+def get_google_nodes(flow_comfy: dict[str, dict]) -> list[str]:
     r = []
     for node_id, node_details in flow_comfy.items():
         if str(node_details["class_type"]) == "Ask_Gemini":
@@ -688,7 +669,9 @@ def get_google_nodes(flow_comfy: dict) -> list[str]:
     return r
 
 
-def get_nodes_for_translate(input_params: dict[str, typing.Any], flow_comfy: dict) -> list[dict[str, typing.Any]]:
+def get_nodes_for_translate(
+    input_params: dict[str, typing.Any], flow_comfy: dict[str, dict]
+) -> list[dict[str, typing.Any]]:
     r = []
     for input_param, input_param_value in input_params.items():
         if input_param.startswith("in_param_"):
@@ -735,3 +718,92 @@ async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
 async def calculate_dynamic_fields_for_flows(flows: dict[str, Flow]) -> dict[str, Flow]:
     flows_with_filled_fields = await fill_flows_model_installed_field(flows)
     return await fill_flows_supported_field(flows_with_filled_fields)
+
+
+async def create_new_flow(flow: Flow, flow_comfy: dict[str, dict], data: FlowCloneRequest) -> dict[str, dict]:
+    """
+    Creates a new ComfyUI workflow JSON (`flow_comfy`) from an existing flow by:
+      1) Updating the metadata node (new name, display_name, etc.).
+      2) Removing old dynamic LoRA from the original flow.
+      3) Adding new dynamic LoRAs from `data.lora_connection_points` (each requiring a model URL).
+
+    Returns the updated ComfyUI dict that can then be saved or validated as a new flow.
+    """
+
+    flow_comfy_new = deepcopy(flow_comfy)
+
+    meta_node_id = None
+    for node_id, node_details in flow_comfy_new.items():
+        if node_details.get("class_type") == "VixUiWorkflowMetadata":
+            meta_node_id = node_id
+            break
+        if node_details.get("_meta", {}).get("title", "") == "WF_META":
+            meta_node_id = node_id
+            break
+
+    metadata_dict, mode = extract_metadata_dict(flow_comfy_new[meta_node_id])
+    if data.new_name:
+        metadata_dict["name"] = data.new_name
+    if data.new_display_name:
+        metadata_dict["display_name"] = data.new_display_name
+    if data.description is not None:
+        metadata_dict["description"] = data.description
+    if data.license is not None:
+        metadata_dict["license"] = data.license
+    if data.required_memory_gb is not None:
+        metadata_dict["required_memory_gb"] = data.required_memory_gb
+    if data.version is not None:
+        metadata_dict["version"] = data.version
+    store_metadata_dict(flow_comfy_new[meta_node_id], metadata_dict, mode)
+
+    for root_node_id, old_cp in flow.lora_connect_points.items():
+        for old_lora_def in old_cp.connected_loras:
+            flow_remove_model(flow_comfy_new, old_lora_def.name)
+        remove_all_consecutive_loras_for_node(root_node_id, flow_comfy_new)
+
+    if data.lora_connection_points:
+        lora_connection_keys = list(flow.lora_connect_points.keys())
+        for node_id in data.lora_connection_points:
+            if node_id not in lora_connection_keys:
+                raise ValueError(f"No such '{node_id}' LoRA connection point defined in flow: {lora_connection_keys}")
+
+        for node_id, lora_details_list in data.lora_connection_points.items():
+            for lora_details in reversed(lora_details_list):
+                model_filename, trigger_words = await flow_add_model(
+                    flow_comfy_new, lora_details.model_url, types=["loras"]
+                )
+                insert_lora_in_comfy_flow(
+                    node_id,
+                    lora_details.display_name,
+                    lora_details.strength_model,
+                    model_filename,
+                    trigger_words,
+                    flow_comfy_new,
+                )
+
+    return flow_comfy_new
+
+
+def extract_metadata_dict(meta_node: dict) -> tuple[dict, str]:
+    """
+    Extracts metadata as a Python dictionary from either:
+    1) `VixUiWorkflowMetadata` node (directly from `meta_node["inputs"]`) or
+    2) `WF_META` node (JSON stored in `meta_node["inputs"]["text"]`).
+
+    Returns: (metadata_dict, mode)
+      - metadata_dict: the extracted dictionary of metadata
+      - mode: either "direct" or "json" indicating which format is used
+    """
+    if meta_node.get("class_type") == "VixUiWorkflowMetadata":
+        return dict(meta_node["inputs"]), "direct"
+    if meta_node.get("_meta", {}).get("title", "") == "WF_META":
+        return json.loads(meta_node["inputs"]["text"]), "json"
+    return {}, "none"
+
+
+def store_metadata_dict(meta_node: dict, metadata_dict: dict, mode: str) -> None:
+    """Stores the updated metadata dictionary back into the node, depending on the `mode` ("direct" vs. "json")."""
+    if mode == "direct":
+        meta_node["inputs"] = metadata_dict
+    elif mode == "json":
+        meta_node["inputs"]["text"] = json.dumps(metadata_dict, indent=2)

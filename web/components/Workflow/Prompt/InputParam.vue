@@ -166,10 +166,50 @@ onBeforeUnmount(() => {
 <template>
 	<UFormGroup
 		v-if="(inputParam?.advanced || false) === advanced"
-		:label="formGroupLabel" class="mb-3"
+		class="mb-3"
+		:class="{
+			'italic': inputParam?.dynamic_lora,
+		}"
 		:help="formGroupHelp">
 		<template #hint>
 			<span v-if="!inputParam.optional" class="text-red-300">required</span>
+		</template>
+		<template #label>
+			<div class="flex items-center">
+				<UPopover v-if="inputParam?.dynamic_lora && inputParam.trigger_words.length > 0">
+					<UButton
+						icon="i-heroicons-information-circle"
+						variant="ghost"
+						size="xs"
+						color="gray"
+						class="mr-2" />
+					<template #panel>
+						<div class="p-2 max-w-48 max-h-48 not-italic">
+							<h4 class="mb-2 text-center">Trigger words</h4>
+							<UBadge
+								v-for="triggerWord in inputParam.trigger_words"
+								:key="triggerWord"
+								color="violet"
+								class="mr-1 cursor-pointer"
+								@click="() => {
+									const clipboard = useCopyToClipboard()
+									clipboard.copy(triggerWord)
+									const toast = useToast()
+									toast.add({
+										title: 'Clipboard',
+										description: `Trigger word copied to clipboard`,
+										timeout: 2000,
+									})
+								}">
+								{{ triggerWord }}
+							</UBadge>
+						</div>
+					</template>
+				</UPopover>
+				<label class="block font-medium text-gray-700 dark:text-gray-200">
+					{{ formGroupLabel }}
+				</label>
+			</div>
 		</template>
 		<template #default>
 			<UTextarea
