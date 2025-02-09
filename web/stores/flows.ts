@@ -151,7 +151,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowsRunningByName(state) {
 			return (name: string) => {
 				return state.running
-					.filter(flow => flow.flow_name === name && flow.parent_task_id === null)
+					.filter(flow => flow.flow_name === name && flow.parent_task_id === null && !flow.hidden)
 					.sort((a: FlowRunning, b: FlowRunning) => {
 						// if progress is available, sort by progress DESC
 						if (a.progress || b.progress) {
@@ -174,7 +174,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 		},
 		flowsRunningByNameWithErrors(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null) ?? null
+			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null && !flow.hidden) ?? null
 		},
 		currentFlow(state): Flow {
 			return state.current_flow
@@ -350,6 +350,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						execution_time: task.execution_time || null,
 						child_tasks: task.child_tasks || [],
 						parent_task_id: task.parent_task_id,
+						hidden: task.hidden || false,
 					})
 				} else if (task.progress === 100) {
 					finishedFlows.push(<FlowResult>{
@@ -368,6 +369,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						finished_at: task.finished_at,
 						execution_details: task.execution_details || null,
 						extra_flags: task.extra_flags || null,
+						hidden: task.hidden || false,
 					}) // TODO: refactor to use TaskHistoryItem common task structure in all places
 				}
 			})
@@ -1194,6 +1196,7 @@ export interface FlowRunning {
 	parent_task_id: number|null
 	child_tasks?: TaskHistoryItem[]
 	priority: number
+	hidden?: boolean
 }
 
 export interface FlowProgress {
@@ -1227,6 +1230,7 @@ export interface FlowResult {
 	showExecutionDetailsModal?: boolean
 	execution_details?: TaskExecutionDetails
 	extra_flags?: TaskExtraFlags
+	hidden?: boolean
 }
 
 export interface TasksHistory {
@@ -1281,4 +1285,5 @@ export interface TaskHistoryItem {
 	updated_at: string
 	user_id: string
 	worker_id: string
+	hidden?: boolean
 }

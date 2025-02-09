@@ -181,11 +181,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
 				<UPagination
-					v-if="results.filter((task: FlowResult) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
+					v-if="results.filter((task: FlowResult) => task.parent_task_id === null && !task?.hidden).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.$state.resultsPage"
 					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
-					:total="results.filter((task: FlowResult) => task.parent_task_id === null).length"
+					:total="results.filter((task: FlowResult) => task.parent_task_id === null && !task?.hidden).length"
 					show-first
 					show-last />
 				<div class="flex items-center justify-center">
@@ -258,6 +258,9 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 						:open-image-modal="openImageModal" />
 					<WorkflowOutputAudio
 						v-else-if="flowResult.outputs.some((output) => output.type === 'audio')"
+						:flow-result="flowResult" />
+					<WorkflowOutputText
+						v-else-if="flowResult.outputs.some((output) => output.type === 'text')"
 						:flow-result="flowResult" />
 					<div class="text-sm text-slate-500 text-center mb-1">
 						<div class="w-5/6 mx-auto flex flex-wrap items-center justify-center">
