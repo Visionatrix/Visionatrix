@@ -150,7 +150,10 @@ function removeCurrentLora(row: ModelApiItem) {
 
 
 const newFlowNameValid = computed(() => {
-	return newFlowName.value !== '' &&
+	const re = /^[a-z0-9_-]+$/i // Only letters, numbers, dashes and underscores
+	const charactersValid = re.test(newFlowName.value)
+
+	return newFlowName.value !== '' && charactersValid &&
 		flowsStore.flows_installed.findIndex((f: Flow) => f.name === newFlowName.value) === -1
 })
 
@@ -364,7 +367,12 @@ function fetchLoras(nextPage = false) {
 						<UFormGroup label="New flow name"
 							class="flex justify-center flex-col w-full"
 							:error="newFlowNameValid ? '' : 'Flow name is required and must be unique.'">
-							<UInput v-model="newFlowName" placeholder="unique_flow_name" />
+							<UInput
+								placeholder="unique_flow_name"
+								@input="(e) => {
+									newFlowName = e.target.value.toLowerCase()
+									e.target.value = newFlowName
+								}" />
 						</UFormGroup>
 						<UFormGroup label="New display name"
 							class="flex justify-center flex-col w-full"
