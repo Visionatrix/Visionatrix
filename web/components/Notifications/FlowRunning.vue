@@ -3,9 +3,13 @@ const flowStore = useFlowsStore()
 
 const running = computed(() => flowStore.running.reduce((running, runningFlow) => {
 	if (!running[runningFlow.flow_name]) {
-		running[runningFlow.flow_name] = []
+		if (!runningFlow.hidden || (runningFlow.hidden && flowStore.$state.flows_hidden_filter)) {
+			running[runningFlow.flow_name] = []
+		}
 	}
-	running[runningFlow.flow_name].push(runningFlow)
+	if (!runningFlow.hidden || (runningFlow.hidden && flowStore.$state.flows_hidden_filter)) {
+		running[runningFlow.flow_name].push(runningFlow)
+	}
 	return running
 }, {} as any))
 </script>

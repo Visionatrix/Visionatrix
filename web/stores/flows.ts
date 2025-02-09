@@ -28,6 +28,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_tags_filter: <string[]>[],
 		flows_private_filter: false,
 		flows_search_filter: '',
+		flows_hidden_filter: false,
 		show_unsupported_flows: false,
 		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
@@ -56,6 +57,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 			if (!state.show_unsupported_flows) {
 				flows = flows.filter(flow => flow.is_supported_by_workers)
 			}
+			if (!state.flows_hidden_filter) {
+				// filter-out hidden flows if not enabled
+				flows = flows.filter(flow => !flow.hidden)
+			}
 			return flows
 		},
 		flowsTags(state): string[] {
@@ -79,11 +84,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
 			}
-			if (state.flows_private_filter) {
-				flows = flows.filter(flow => flow.private)
-			}
 			if (!state.show_unsupported_flows) {
 				flows = flows.filter(flow => flow.is_supported_by_workers)
+			}
+			if (!state.flows_hidden_filter) {
+				flows = flows.filter(flow => !flow.hidden)
 			}
 			return paginate(flows, state.page, state.pageSize) as Flow[]
 		},
@@ -151,7 +156,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowsRunningByName(state) {
 			return (name: string) => {
 				return state.running
-					.filter(flow => flow.flow_name === name && flow.parent_task_id === null && !flow.hidden)
+					.filter(flow => flow.flow_name === name && flow.parent_task_id === null)
 					.sort((a: FlowRunning, b: FlowRunning) => {
 						// if progress is available, sort by progress DESC
 						if (a.progress || b.progress) {
@@ -174,7 +179,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 		},
 		flowsRunningByNameWithErrors(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null && !flow.hidden) ?? null
+			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null) ?? null
 		},
 		currentFlow(state): Flow {
 			return state.current_flow
@@ -561,6 +566,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						outputs: [], // outputs are dynamic and populated later by polling task progress
 						parent_task_id: parent_task_id,
 						priority: 0,
+						hidden: flow.hidden || false,
 					})
 				})
 				console.debug('running:', this.running)
@@ -1042,6 +1048,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				this.outputMaxSize = Number(options.outputMaxSize) || 512
 				this.show_unsupported_flows = options.showUnsupportedFlows || false
 				this.flows_private_filter = options.showPrivateFlows || false
+				this.flows_hidden_filter = options.showHiddenFlows || false
 			}
 		},
 
@@ -1051,6 +1058,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				outputMaxSize: this.outputMaxSize,
 				showUnsupportedFlows: this.show_unsupported_flows,
 				showPrivateFlows: this.flows_private_filter,
+				showHiddenFlows: this.flows_hidden_filter,
 			}))
 		},
 
@@ -1139,6 +1147,7 @@ export interface Flow {
 	is_macos_supported: boolean
 	required_memory_gb?: number
 	lora_connect_points: LoraPoints
+	hidden: boolean
 }
 
 export interface FlowInputParam {
@@ -1196,7 +1205,7 @@ export interface FlowRunning {
 	parent_task_id: number|null
 	child_tasks?: TaskHistoryItem[]
 	priority: number
-	hidden?: boolean
+	hidden: boolean
 }
 
 export interface FlowProgress {
@@ -1230,7 +1239,7 @@ export interface FlowResult {
 	showExecutionDetailsModal?: boolean
 	execution_details?: TaskExecutionDetails
 	extra_flags?: TaskExtraFlags
-	hidden?: boolean
+	hidden: boolean
 }
 
 export interface TasksHistory {
@@ -1285,5 +1294,5 @@ export interface TaskHistoryItem {
 	updated_at: string
 	user_id: string
 	worker_id: string
-	hidden?: boolean
+	hidden: boolean
 }
