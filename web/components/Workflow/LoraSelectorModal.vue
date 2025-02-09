@@ -149,12 +149,27 @@ function removeCurrentLora(row: ModelApiItem) {
 }
 
 
-const newFlowNameValid = computed(() => {
+const newFlowNameExists = computed(() => {
+	return flowsStore.flows.find((flow: Flow) => flow.name === newFlowName.value)
+})
+const newFlowNameCharactersValid = computed(() => {
 	const re = /^[a-z0-9_-]+$/i // Only letters, numbers, dashes and underscores
-	const charactersValid = re.test(newFlowName.value)
-
-	return newFlowName.value !== '' && charactersValid &&
-		flowsStore.flows_installed.findIndex((f: Flow) => f.name === newFlowName.value) === -1
+	return re.test(newFlowName.value)
+})
+const newFlowNameValid = computed(() => {
+	return newFlowName.value !== '' && newFlowNameCharactersValid && !newFlowNameExists.value
+})
+const newFlowNameValidationError = computed(() => {
+	if (newFlowName.value === '') {
+		return 'Flow name is required.'
+	}
+	if (!newFlowNameCharactersValid.value) {
+		return 'Flow name can only contain letters, numbers, dashes and underscores.'
+	}
+	if (newFlowNameExists.value) {
+		return 'Flow name already exists.'
+	}
+	return ''
 })
 
 const hasSelectedLoras = computed(() => selectedRows.value.filter((row: ModelApiItem) => {
@@ -366,34 +381,36 @@ function fetchLoras(nextPage = false) {
 					<div class="flex flex-col gap-2 lg:flex-row md:justify-end items-start w-full">
 						<UFormGroup label="New flow name"
 							class="flex justify-center flex-col w-full"
-							:error="newFlowNameValid ? '' : 'Flow name is required and must be unique.'">
+							:error="newFlowNameValidationError">
 							<UInput
+								v-model="newFlowName"
+								type="text"
 								placeholder="unique_flow_name"
 								@input="(e) => {
+									e.target.value = e.target.value.toLowerCase()
 									newFlowName = e.target.value.toLowerCase()
-									e.target.value = newFlowName
 								}" />
 						</UFormGroup>
 						<UFormGroup label="New display name"
 							class="flex justify-center flex-col w-full"
 							:error="newDisplayName !== '' ? '' : 'Display name is required.'">
-							<UInput v-model="newDisplayName" placeholder="Display name" />
+							<UInput v-model="newDisplayName" type="text" placeholder="Display name" />
 						</UFormGroup>
 						<UFormGroup label="New flow description"
 							class="flex justify-center flex-col w-full">
-							<UInput v-model="newFlowDescription" placeholder="Description" />
+							<UInput v-model="newFlowDescription" type="text" placeholder="Description" />
 						</UFormGroup>
 						<UFormGroup label="License (optional)"
 							class="flex justify-center flex-col w-full">
-							<UInput v-model="license" placeholder="License" />
+							<UInput v-model="license" type="text" placeholder="License" />
 						</UFormGroup>
 						<UFormGroup label="Required memory (GB)"
 							class="flex justify-center flex-col w-full">
-							<UInput v-model="requiredMemoryGb" placeholder="Required memory (GB)" />
+							<UInput v-model="requiredMemoryGb" type="text" placeholder="Required memory (GB)" />
 						</UFormGroup>
 						<UFormGroup label="Version"
 							class="flex justify-center flex-col w-full">
-							<UInput v-model="version" placeholder="Version" />
+							<UInput v-model="version" type="text" placeholder="Version" />
 						</UFormGroup>
 					</div>
 				</div>
