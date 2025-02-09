@@ -58,7 +58,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 				flows = flows.filter(flow => flow.is_supported_by_workers)
 			}
 			if (!state.flows_hidden_filter) {
-				// filter-out hidden flows if not enabled
 				flows = flows.filter(flow => !flow.hidden)
 			}
 			return flows
@@ -83,6 +82,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 					.filter(flow => flow.name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.display_name.toLowerCase().includes(state.flows_search_filter.toLowerCase())
 						|| flow.description.toLowerCase().includes(state.flows_search_filter.toLowerCase()))
+			}
+			if (state.flows_private_filter) {
+				flows = flows.filter(flow => flow.private)
 			}
 			if (!state.show_unsupported_flows) {
 				flows = flows.filter(flow => flow.is_supported_by_workers)
