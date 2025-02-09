@@ -145,6 +145,7 @@ def translate_prompt(request: Request, data: TranslatePromptRequest) -> Translat
     "/proxy",
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
     response_class=Response,
+    include_in_schema=False,
 )
 async def universal_proxy(
     request: Request,

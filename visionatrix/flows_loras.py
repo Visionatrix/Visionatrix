@@ -118,10 +118,18 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     files = version_data.get("files", [])
     if not files:
         raise ValueError("This version has no files in CivitAI metadata.")
-    if len(files) > 1:
-        raise ValueError("This version has multiple files. Provide a specific file link.")
+    if len(files) == 1:
+        file_info = files[0]
+    else:
+        file_info = None
+        for i in files:
+            if i["downloadUrl"] == civitai_model_url:
+                file_info = i
+                break
 
-    file_info = files[0]
+    if not file_info:
+        raise ValueError("This version has multiple files. Fail to detect what to select. Provide specific file link.")
+
     sha256 = file_info.get("hashes", {}).get("SHA256")
     if not sha256:
         raise ValueError("No SHA256 hash found for this file in CivitAI metadata.")

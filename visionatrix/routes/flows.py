@@ -273,9 +273,10 @@ async def delete(request: Request, name: str = Query(..., description="Name of t
 
 @ROUTER.post(
     "/clone-flow",
+    response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        200: {"description": "Flow cloned successfully."},
+        204: {"description": "Flow cloned successfully."},
         404: {"description": "Original flow not found."},
         400: {"description": "Error occurred while cloning the flow."},
         409: {

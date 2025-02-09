@@ -21,6 +21,7 @@
 - **👥 Multi-User Support**: Configure for multiple users with ease and integrate different user backends.
 - **🤖 LLM Integration**: Effortlessly incorporate Ollama/Gemini as your LLM for ComfyUI workflows.
 - **🔌 Seamless Integration**: Run as a service with backend endpoints for smooth project integration.
+- **😎 LoRA Integration**: Integrate LoRAs from CivitAI into your flows with basic models for enhanced creativity.
 
 ## 🖼️ User Interface
 
