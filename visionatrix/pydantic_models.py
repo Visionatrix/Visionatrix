@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing_extensions import Self
@@ -250,8 +250,10 @@ class TaskDetailsShort(BaseModel):
         None, description="If auto-translation feature is enabled, contains translations for input values."
     )
     extra_flags: ExtraFlags | None = Field(
-        None,
-        description="Set of additional options and flags that affect how the task is executed.",
+        None, description="Set of additional options and flags that affect how the task is executed."
+    )
+    hidden: bool = Field(
+        ..., description="Flag showing is this the internal task that should not be displayed by default."
     )
 
     @model_validator(mode="after")
@@ -262,6 +264,11 @@ class TaskDetailsShort(BaseModel):
         """
         self.priority = self.priority & 0b1111
         return self
+
+    @field_validator("hidden", mode="before")
+    @classmethod
+    def preprocess_hidden(cls, value: Any) -> bool:
+        return bool(value)
 
 
 class TaskDetails(TaskDetailsShort):

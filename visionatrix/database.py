@@ -74,6 +74,7 @@ class TaskDetails(Base):
     execution_details = Column(JSON, default=None, nullable=True)
     extra_flags = Column(JSON, default=None, nullable=True)
     custom_worker = Column(String, default=None, index=True)
+    hidden = Column(Boolean, nullable=True)
 
     __table_args__ = (Index("ix_parent_task", "parent_task_id", "parent_task_node_id"),)
 

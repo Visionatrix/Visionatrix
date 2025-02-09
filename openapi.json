@@ -3472,6 +3472,11 @@
             ],
             "description": "Set of additional options and flags that affect how the task is executed."
           },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "description": "Flag showing is this the internal task that should not be displayed by default."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -3572,6 +3577,7 @@
           "outputs",
           "input_files",
           "execution_time",
+          "hidden",
           "created_at",
           "flow_comfy",
           "user_id"
@@ -3773,6 +3779,11 @@
               }
             ],
             "description": "Set of additional options and flags that affect how the task is executed."
+          },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "description": "Flag showing is this the internal task that should not be displayed by default."
           }
         },
         "type": "object",
@@ -3784,7 +3795,8 @@
           "input_params",
           "outputs",
           "input_files",
-          "execution_time"
+          "execution_time",
+          "hidden"
         ],
         "title": "TaskDetailsShort",
         "description": "Brief information about the Task."
@@ -4228,7 +4240,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-09T12:35:03.557591Z"
+            "default": "2025-02-09T14:55:06.279978Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
