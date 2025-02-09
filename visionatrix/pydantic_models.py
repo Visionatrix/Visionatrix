@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing_extensions import Self
@@ -123,6 +123,9 @@ class Flow(BaseModel):
     version: str = Field("", description="Internal version of the flow in major.minor format.")
     requires: list[str] = Field([], description="Required external workflow dependencies.")
     private: bool = Field(False, description="Whether the workflow is missing from the `FLOWS_CATALOG_URL`")
+    hidden: bool = Field(
+        False, description="Flag for hiding flow from UI when flow is intended for use only in some special cases."
+    )
     new_version_available: str = Field("", description="If not empty, contains the new version of the workflow.")
     is_seed_supported: bool = Field(
         True, description="Flag determining if 'Random Seed' input will be displayed in the UI."
@@ -247,8 +250,10 @@ class TaskDetailsShort(BaseModel):
         None, description="If auto-translation feature is enabled, contains translations for input values."
     )
     extra_flags: ExtraFlags | None = Field(
-        None,
-        description="Set of additional options and flags that affect how the task is executed.",
+        None, description="Set of additional options and flags that affect how the task is executed."
+    )
+    hidden: bool = Field(
+        ..., description="Flag showing is this the internal task that should not be displayed by default."
     )
 
     @model_validator(mode="after")
@@ -259,6 +264,11 @@ class TaskDetailsShort(BaseModel):
         """
         self.priority = self.priority & 0b1111
         return self
+
+    @field_validator("hidden", mode="before")
+    @classmethod
+    def preprocess_hidden(cls, value: Any) -> bool:
+        return bool(value)
 
 
 class TaskDetails(TaskDetailsShort):

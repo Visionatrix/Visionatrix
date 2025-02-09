@@ -8,7 +8,7 @@ defineProps({
 </script>
 
 <template>
-	<div class="image-output">
+	<div class="audio-output">
 		<template v-if="flowResult.outputs.length === 1">
 			<audio controls class="mb-2 mx-auto rounded-lg"
 				:src="outputResultSrc({

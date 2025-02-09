@@ -18,7 +18,7 @@ const flowStore = useFlowsStore()
 </script>
 
 <template>
-	<div class="image-output">
+	<div class="video-output">
 		<template v-if="flowResult.outputs.length === 1">
 			<video
 				controls

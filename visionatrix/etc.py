@@ -59,6 +59,10 @@ AUDIO_EXTENSIONS = [
     ".flac",
 ]
 
+TEXT_EXTENSIONS = [
+    ".txt",
+]
+
 
 def get_log_level(log_level_str):
     """Convert log level string to logging module log level."""

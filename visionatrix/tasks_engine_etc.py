@@ -24,6 +24,7 @@ TASK_DETAILS_COLUMNS_SHORT = [
     database.TaskDetails.parent_task_node_id,
     database.TaskDetails.translated_input_params,
     database.TaskDetails.extra_flags,
+    database.TaskDetails.hidden,
 ]
 
 TASK_DETAILS_COLUMNS = [
@@ -81,6 +82,7 @@ def task_details_from_dict(task_details: dict) -> database.TaskDetails:
         translated_input_params=task_details.get("translated_input_params"),
         extra_flags=task_details.get("extra_flags"),
         custom_worker=task_details.get("custom_worker"),
+        hidden=task_details.get("hidden"),
     )
 
 
@@ -122,6 +124,7 @@ def task_details_short_to_dict(task_details: Row) -> dict:
         "child_tasks": [],
         "translated_input_params": task_details.translated_input_params,
         "extra_flags": task_details.extra_flags,
+        "hidden": task_details.hidden,
     }
 
 

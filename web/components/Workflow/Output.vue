@@ -259,6 +259,9 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					<WorkflowOutputAudio
 						v-else-if="flowResult.outputs.some((output) => output.type === 'audio')"
 						:flow-result="flowResult" />
+					<WorkflowOutputText
+						v-else-if="flowResult.outputs.some((output) => output.type === 'text')"
+						:flow-result="flowResult" />
 					<div class="text-sm text-slate-500 text-center mb-1">
 						<div class="w-5/6 mx-auto flex flex-wrap items-center justify-center">
 							<WorkflowOutputParams :flow-result="flowResult" />

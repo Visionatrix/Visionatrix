@@ -2861,6 +2861,12 @@
             "description": "Whether the workflow is missing from the `FLOWS_CATALOG_URL`",
             "default": false
           },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "description": "Flag for hiding flow from UI when flow is intended for use only in some special cases.",
+            "default": false
+          },
           "new_version_available": {
             "type": "string",
             "title": "New Version Available",
@@ -3466,6 +3472,11 @@
             ],
             "description": "Set of additional options and flags that affect how the task is executed."
           },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "description": "Flag showing is this the internal task that should not be displayed by default."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -3566,6 +3577,7 @@
           "outputs",
           "input_files",
           "execution_time",
+          "hidden",
           "created_at",
           "flow_comfy",
           "user_id"
@@ -3767,6 +3779,11 @@
               }
             ],
             "description": "Set of additional options and flags that affect how the task is executed."
+          },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "description": "Flag showing is this the internal task that should not be displayed by default."
           }
         },
         "type": "object",
@@ -3778,7 +3795,8 @@
           "input_params",
           "outputs",
           "input_files",
-          "execution_time"
+          "execution_time",
+          "hidden"
         ],
         "title": "TaskDetailsShort",
         "description": "Brief information about the Task."
@@ -4222,7 +4240,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-09T07:29:30.874204Z"
+            "default": "2025-02-09T14:55:06.279978Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
