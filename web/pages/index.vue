@@ -32,15 +32,6 @@ function getFlowsOptions() {
 			},
 		}],
 		[{
-			label: 'Show private flows',
-			icon: flowsStore.$state.flows_private_filter ? 'i-mdi-filter-check' : 'i-mdi-filter-minus',
-			slot: 'show_private_flows',
-			click: () => {
-				flowsStore.$state.flows_private_filter = !flowsStore.$state.flows_private_filter
-				flowsStore.saveUserOptions()
-			},
-		}],
-		[{
 			label: 'Show hidden flows',
 			icon: flowsStore.$state.flows_hidden_filter ? 'i-mdi-filter-check' : 'i-mdi-filter-minus',
 			slot: 'show_hidden_flows',
@@ -67,14 +58,12 @@ const filterEnabled = computed(() => {
 	return flowsStore.$state.flows_search_filter
 		|| flowsStore.$state.flows_tags_filter.length > 0
 		|| flowsStore.$state.show_unsupported_flows
-		|| flowsStore.$state.flows_private_filter
 		|| flowsStore.$state.flows_hidden_filter
 })
 const filtersCount = computed(() => {
 	return (flowsStore.$state.flows_search_filter ? 1 : 0)
 		+ (flowsStore.$state.flows_tags_filter.length > 0 ? 1 : 0)
 		+ (flowsStore.$state.show_unsupported_flows ? 1 : 0)
-		+ (flowsStore.$state.flows_private_filter ? 1 : 0)
 		+ (flowsStore.$state.flows_hidden_filter ? 1 : 0)
 })
 
@@ -130,10 +119,6 @@ function retryLoadData() {
 						<template #show_unsupported_flows>
 							<UCheckbox v-model="flowsStore.$state.show_unsupported_flows" />
 							<span class="text-xs">Show unsupported flows</span>
-						</template>
-						<template #show_private_flows>
-							<UCheckbox v-model="flowsStore.$state.flows_private_filter" />
-							<span class="text-xs">Show private flows</span>
 						</template>
 						<template #show_hidden_flows>
 							<UCheckbox v-model="flowsStore.$state.flows_hidden_filter" />
