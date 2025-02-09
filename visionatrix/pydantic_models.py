@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing_extensions import Self
 
 
@@ -69,6 +69,36 @@ class AIResourceModel(BaseModel):
         return isinstance(other, AIResourceModel) and self.name == other.name
 
 
+class CustomLoraDefinition(AIResourceModel):
+    """Definition of custom LoRA added to the flow. Backend will automatically generate inputs for it."""
+
+    strength_model: float = Field(1.0, description="Default strength of the LoRA model.")
+    display_name: str = Field("", description="Text to display for the LoRA slider.")
+    trigger_words: list[str] = Field([], description="List of words to trigger the LoRA.")
+    node_id: str = Field(..., description="ComfyUI Node ID from which this definition was created.")
+
+
+class LoraConnectionPoint(BaseModel):
+    """
+    Represents a connection point in the flow where LoRAs can be added.
+    Provides details necessary for the UI to manage dynamic LoRA integration within the flow.
+    """
+
+    description: str = Field(
+        "",
+        description="A brief description of the functionality or purpose"
+        " of this connection point for integrating LoRAs into the flow.",
+    )
+    base_model_type: str = Field(
+        ...,
+        description="Specifies the base model type in the CivitAI format "
+        "that is compatible with this connection point, allowing the UI to filter applicable LoRAs.",
+    )
+    connected_loras: list[CustomLoraDefinition] = Field(
+        [], description="A list of LoRAs that are currently connected to this point in the flow."
+    )
+
+
 class Flow(BaseModel):
     """
     Flows serve as add-ons to ComfyUI workflows, determining the parameters to be displayed and populated.
@@ -82,16 +112,16 @@ class Flow(BaseModel):
     homepage: str = Field("", description="A URL to the flow's homepage or the author's website.")
     license: str = Field("", description="The type of license under which the flow is made available.")
     documentation: str = Field("", description="A URL linking to detailed documentation for the flow.")
-    tags: list[str] = Field(default=[], description="Tags describing this flow.")
+    tags: list[str] = Field([], description="Tags describing this flow.")
     sub_flows: list[SubFlow] = Field(
-        default=[], description="A list of subflows derived from this flow, allowing customization or extension."
+        [], description="A list of subflows derived from this flow, allowing customization or extension."
     )
-    models: list[AIResourceModel] = Field(default=[], description="A list of models used by the ComfyUI workflow.")
+    models: list[AIResourceModel] = Field([], description="A list of models used by the ComfyUI workflow.")
     input_params: list[dict] = Field(
         ..., description="Initial set of parameters required to launch the flow, potentially modifiable by subflows."
     )
     version: str = Field("", description="Internal version of the flow in major.minor format.")
-    requires: list[str] = Field(default=[], description="Required external workflow dependencies.")
+    requires: list[str] = Field([], description="Required external workflow dependencies.")
     private: bool = Field(False, description="Whether the workflow is missing from the `FLOWS_CATALOG_URL`")
     new_version_available: str = Field("", description="If not empty, contains the new version of the workflow.")
     is_seed_supported: bool = Field(
@@ -112,6 +142,17 @@ class Flow(BaseModel):
     required_memory_gb: float = Field(
         0.0, description="Minimum amount of memory (in gigabytes) required to execute this flow."
     )
+    lora_connect_points: dict[str, LoraConnectionPoint] = Field(
+        {},
+        description="Connection points in the flow where LoRAs can be dynamically integrated, "
+        "enabling the addition of custom LoRAs at specific locations. "
+        "Key is a unique ID that used to reference specific connection during Flow editing.",
+    )
+
+    @field_validator("name", mode="after")
+    @classmethod
+    def lowercase_name(cls, value: str) -> str:
+        return value.lower()
 
     def __hash__(self):
         return hash(self.name)
@@ -131,6 +172,11 @@ class FlowProgressInstall(BaseModel):
     error: str = Field("", description="Details of any error encountered during the installation process.")
     started_at: datetime = Field(..., description="Timestamp when the installation process started.")
     updated_at: datetime = Field(..., description="Timestamp of the last update to the installation progress.")
+
+    @field_validator("name", mode="after")
+    @classmethod
+    def lowercase_name(cls, value: str) -> str:
+        return value.lower()
 
 
 class ModelProgressInstall(BaseModel):
@@ -512,3 +558,41 @@ class TaskCreationWithFullParams(
     TaskCreationTranslateParam, TaskCreationCountParam, TaskCreationSeedParam, TaskCreationBasicParams
 ):
     model_config = ConfigDict(extra="ignore")
+
+
+class CustomLoraDefinitionRequest(BaseModel):
+    """Represents a custom LoRA model to be embedded in the flow."""
+
+    strength_model: float = Field(1.0, description="Default strength of the LoRA model.")
+    display_name: str = Field(..., description="Text to display for the LoRA slider.")
+    model_url: str = Field(..., description="The CivitAI URL for this model, allowing to embed this model in Flow.")
+
+
+class FlowCloneRequest(BaseModel):
+    """
+    Represents the data required to clone and modify an existing flow.
+
+    This model is used to create a new flow by copying from an existing one
+    and optionally updating its metadata, LoRA connection points, or other attributes.
+    It allows for targeted customization while preserving the base functionality of the original flow.
+    """
+
+    original_flow_name: str = Field(..., description="Name of the installed flow to clone from.")
+
+    new_name: str = Field(..., description="New internal name for the cloned flow (must be unique).")
+    new_display_name: str = Field(..., description="New display name for UI presentation.")
+    description: str | None = Field(None, description="Optional updated description of the new flow.")
+    license: str | None = Field(None, description="Optional updated license for the new flow.")
+    required_memory_gb: float | None = Field(None, description="Optional updated memory requirement in GB.")
+    version: str | None = Field(None, description="Optional updated version number.")
+
+    lora_connection_points: dict[str, list[CustomLoraDefinitionRequest]] | None = Field(
+        default=None,
+        description="Optional LoRA connection points for the new flow. These should align with the connection points "
+        "defined in the original flow.",
+    )
+
+    @field_validator("original_flow_name", "new_name", mode="after")
+    @classmethod
+    def lowercase_name(cls, value: str) -> str:
+        return value.lower()

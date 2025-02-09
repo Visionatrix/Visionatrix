@@ -164,7 +164,7 @@ master.extension-pkg-allow-list = [
   "pydantic",
 ]
 design.max-attributes = 10
-design.max-locals = 28
+design.max-locals = 32
 design.max-branches = 25
 design.max-returns = 10
 design.max-args = 14

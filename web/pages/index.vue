@@ -32,6 +32,15 @@ function getFlowsOptions() {
 			},
 		}],
 		[{
+			label: 'Show private flows',
+			icon: flowsStore.$state.flows_private_filter ? 'i-mdi-filter-check' : 'i-mdi-filter-minus',
+			slot: 'show_private_flows',
+			click: () => {
+				flowsStore.$state.flows_private_filter = !flowsStore.$state.flows_private_filter
+				flowsStore.saveUserOptions()
+			},
+		}],
+		[{
 			label: 'Clear filters',
 			labelClass: 'text-xs',
 			icon: 'i-mdi-filter-off',
@@ -49,11 +58,13 @@ const filterEnabled = computed(() => {
 	return flowsStore.$state.flows_search_filter
 		|| flowsStore.$state.flows_tags_filter.length > 0
 		|| flowsStore.$state.show_unsupported_flows
+		|| flowsStore.$state.flows_private_filter
 })
 const filtersCount = computed(() => {
 	return (flowsStore.$state.flows_search_filter ? 1 : 0)
-		+ flowsStore.$state.flows_tags_filter.length
+		+ (flowsStore.$state.flows_tags_filter.length > 0 ? 1 : 0)
 		+ (flowsStore.$state.show_unsupported_flows ? 1 : 0)
+		+ (flowsStore.$state.flows_private_filter ? 1 : 0)
 })
 
 function retryLoadData() {
@@ -91,7 +102,9 @@ function retryLoadData() {
 						multiple
 						searchable>
 						<template #label>
-							<span v-if="flowsStore.$state.flows_tags_filter.length > 0" class="truncate">{{ flowsStore.$state.flows_tags_filter.join(',') }}</span>
+							<span v-if="flowsStore.$state.flows_tags_filter.length > 0" class="truncate">
+								{{ flowsStore.$state.flows_tags_filter.join(',') }}
+							</span>
 							<span v-else>Select tags to filter</span>
 						</template>
 					</USelectMenu>
@@ -106,6 +119,10 @@ function retryLoadData() {
 						<template #show_unsupported_flows>
 							<UCheckbox v-model="flowsStore.$state.show_unsupported_flows" />
 							<span class="text-xs">Show unsupported flows</span>
+						</template>
+						<template #show_private_flows>
+							<UCheckbox v-model="flowsStore.$state.flows_private_filter" />
+							<span class="text-xs">Show private flows</span>
 						</template>
 					</UDropdown>
 				</div>
