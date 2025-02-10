@@ -45,7 +45,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 			gemini_model: {
 				key: 'gemini_model',
 				value: '',
-				options: ['gemini-1.5-flash-002', 'gemini-1.5-pro-002'],
+				options: ['gemini-2.0-flash-001', 'gemini-1.5-flash-002', 'gemini-1.5-pro-002'],
 				sensitive: false,
 				admin: true,
 			},
