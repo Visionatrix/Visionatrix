@@ -92,7 +92,7 @@ def translate_prompt_with_gemini(user_id: str, is_admin: bool, data: TranslatePr
     google_api_key = get_setting(user_id, "google_api_key", is_admin)
     gemini_model = get_setting(user_id, "gemini_model", is_admin)
     if not gemini_model:
-        gemini_model = "gemini-1.5-flash-002"
+        gemini_model = "gemini-2.0-flash-001"
 
     if not google_api_key:
         raise ValueError("No GOOGLE_API_KEY defined, can't perform prompt translation")
@@ -121,7 +121,7 @@ async def translate_prompt_with_gemini_async(
     google_api_key = await get_setting_async(user_id, "google_api_key", is_admin)
     gemini_model = await get_setting_async(user_id, "gemini_model", is_admin)
     if not gemini_model:
-        gemini_model = "gemini-1.5-flash-002"
+        gemini_model = "gemini-2.0-flash-001"
 
     if not google_api_key:
         raise ValueError("No GOOGLE_API_KEY defined, can't perform prompt translation")
