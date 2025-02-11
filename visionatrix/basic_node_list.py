@@ -111,9 +111,6 @@ BASIC_NODE_LIST = {
         },
     },
     "ComfyUI_FizzNodes": {},
-    "style_aligned_comfy": {
-        "main_branch": "master",
-    },
     "ComfyUI-Gemini": {},
     "ComfyUI-Inpaint-CropAndStitch": {},
     "ComfyUI-PhotoMaker-Plus": {
