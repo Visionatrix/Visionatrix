@@ -96,7 +96,6 @@ BASIC_NODE_LIST = {
     "ComfyUI_IPAdapter_plus": {},
     "comfyui_controlnet_aux": {},
     "Skimmed_CFG": {},
-    "comfyui-art-venture": {},
     "was-node-suite-comfyui": {},
     "ComfyUI-Visionatrix": {},
     "comfyui-ollama": {},

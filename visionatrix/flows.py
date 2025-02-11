@@ -610,8 +610,25 @@ def get_flow_inputs(
                 input_param_data["options"] = {i: i for i in r}
             else:
                 input_param_data["options"] = r
-        elif class_type == "SDXLAspectRatioSelector":
+        elif class_type == "SDXLAspectRatioSelector":  # TO-DO: remove after release
             correct_aspect_ratio_default_options(input_param_data)
+        elif class_type == "VixUiAspectRatioSelector":
+            input_param_data["default"] = node_details["inputs"]["aspect_ratio"]
+            input_param_data["options"] = {
+                "1:1 (1024x1024)": "1:1 (1024x1024)",
+                "2:3 (832x1216)": "2:3 (832x1216)",
+                "3:4 (896x1152)": "3:4 (896x1152)",
+                "5:8 (768x1216)": "5:8 (768x1216)",
+                "9:16 (768x1344)": "9:16 (768x1344)",
+                "9:19 (704x1472)": "9:19 (704x1472)",
+                "9:21 (640x1536)": "9:21 (640x1536)",
+                "3:2 (1216x832)": "3:2 (1216x832)",
+                "4:3 (1152x896)": "4:3 (1152x896)",
+                "8:5 (1216x768)": "8:5 (1216x768)",
+                "16:9 (1344x768)": "16:9 (1344x768)",
+                "19:9 (1472x704)": "19:9 (1472x704)",
+                "21:9 (1536x640)": "21:9 (1536x640)",
+            }
         input_params.append(input_param_data)
     add_loras_inputs(input_params, loras_connection_points)
     return sorted(input_params, key=lambda x: x["order"])

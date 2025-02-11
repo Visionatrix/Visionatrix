@@ -3,6 +3,7 @@
 CLASS_INFO: dict[str, tuple[str, list[str]]] = {
     # class_name -> (type for UI, [path to value])
     "SDXLAspectRatioSelector": ("list", ["inputs", "aspect_ratio"]),
+    "VixUiAspectRatioSelector": ("list", ["inputs", "aspect_ratio"]),
     "LoadImage": ("image", ["inputs", "image"]),
     "VixUiCheckbox": ("bool", ["inputs", "state"]),
     "VixUiCheckboxLogic": ("bool", ["inputs", "state"]),
