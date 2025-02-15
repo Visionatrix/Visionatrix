@@ -21,7 +21,7 @@
 - **👥 Multi-User Support**: Configure for multiple users with ease and integrate different user backends.
 - **🤖 LLM Integration**: Effortlessly incorporate Ollama/Gemini as your LLM for ComfyUI workflows.
 - **🔌 Seamless Integration**: Run as a service with backend endpoints for smooth project integration.
-- **😎 LoRA Integration**: Integrate LoRAs from CivitAI into your flows with basic models for enhanced creativity.
+- **😎 LoRA Integration**: Easy integrate LoRAs from CivitAI into your flows.
 
 ## 🖼️ User Interface
 
@@ -54,7 +54,7 @@ Access the Visionatrix UI at [http://localhost:8288](http://localhost:8288) (def
 
 ### Requirements
 
-- **Python** `3.10` *(recommended)* or higher
+- **Python** `3.12` *(recommended)* or higher
 - **GPU** with at least `8 GB` of memory *(12GB recommended)*
 
 ### Quick Start (Linux/macOS/WSL)
