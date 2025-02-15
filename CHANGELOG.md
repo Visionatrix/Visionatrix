@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0 - 2025-02-16]
+
+Nodes `style_aligned_comfy` and `comfyui-art-venture` were removed. Feel free to remove them manually in old installations.
+
+### Added
+
+- Dynamic `LoRAs` support. For most basic Flows you can now easy add new loras from the `CivitAI`! #303
+- Added support for `OllamaConnectivityV2` node.
+- New `gemini-2.0-flash-001` model available for selection in settings. #305
+- Support for tasks with output text files as a results(node `SaveText|pysssss`). #304
+
+### Changed
+
+- Settings UI: For `Ollama` now dropdown list with available models displayed. #300
+
 ## [1.10.0 - 2025-01-19]
 
 If you use `extra_model_path.yaml` for configuring path to models, please add `birefnet` entry to it.
