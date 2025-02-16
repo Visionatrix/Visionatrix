@@ -48,6 +48,7 @@ function getFlowsOptions() {
 			click: () => {
 				flowsStore.$state.flows_search_filter = ''
 				flowsStore.$state.flows_tags_filter = []
+				flowsStore.$state.flows_hidden_filter = false
 				flowsStore.$state.show_unsupported_flows = false
 			},
 		}],

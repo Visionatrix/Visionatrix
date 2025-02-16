@@ -9,6 +9,9 @@ export const useCivitAiStore = defineStore('civitAiStore', {
 			const modelType = flow.lora_connect_points[Object.keys(flow.lora_connect_points)[0]].base_model_type
 			let url = `https://civitai.com/api/v1/models?baseModels=${modelType}&types=LORA&limit=${limit}`
 			if (nextPageUrl) {
+				if (nextPageUrl.includes(window.location.hostname)) {
+					nextPageUrl = nextPageUrl.replace(window.location.hostname, 'civitai.com')
+				}
 				url = nextPageUrl
 			}
 			const proxiedUrl = `/other/proxy?target=${encodeURIComponent(url)}`
