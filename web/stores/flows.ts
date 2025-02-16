@@ -512,6 +512,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				return ['image', 'image-mask'].includes(param[paramName].type)
 					&& ((param[paramName].value instanceof File && param[paramName].value.size > 0)
 						|| (typeof param[paramName].value === 'string' && param[paramName].value !== ''))
+						|| (param[paramName]?.nc_file)
 			})
 
 			console.debug('file_input_params:', file_input_params)
@@ -519,7 +520,14 @@ export const useFlowsStore = defineStore('flowsStore', {
 				file_input_params.forEach((param: any) => {
 					const paramName = Object.keys(param)[0]
 					console.debug('file:', param[paramName].value)
-					formData.append(paramName, param[paramName].value)
+					if (param[paramName]?.nc_file) {
+						formData.append(paramName, JSON.stringify({
+							remote_url: param[paramName].value.source,
+							type: 'nextcloud',
+						}))
+					} else {
+						formData.append(paramName, param[paramName].value)
+					}
 				})
 			}
 

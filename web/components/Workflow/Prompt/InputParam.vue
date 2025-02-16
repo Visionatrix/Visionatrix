@@ -20,6 +20,42 @@ const props = defineProps({
 	}
 })
 
+const config = useRuntimeConfig()
+const nextcloudStore = useNextcloudStore()
+const ncSelectedFile = computed<NextcloudFile|null>(() => {
+	// @ts-ignore
+	if (nextcloudStore.selectedFiles[props.inputParam.name]) {
+		// @ts-ignore
+		return nextcloudStore.selectedFiles[props.inputParam.name]
+	}
+	return null
+})
+const ncSelectedFilePreviewUrl = computed(() => {
+	if (!ncSelectedFile.value) {
+		return ''
+	}
+	const domain = window.location.origin
+	return `${domain}/index.php/core/preview?fileId=${ncSelectedFile.value?.id}&mimeFallback=true&a=1`
+})
+const ncSelectedFileSource = computed(() => {
+	if (!ncSelectedFile.value) {
+		return ''
+	}
+	return ncSelectedFile.value.source
+})
+
+watch(ncSelectedFile, (newFile) => {
+	if (newFile) {
+		props.inputParamsMap[props.index][props.inputParam.name].value = newFile
+		props.inputParamsMap[props.index][props.inputParam.name].image_preview_url = ncSelectedFileSource.value
+		props.inputParamsMap[props.index][props.inputParam.name].nc_file = true
+	} else {
+		props.inputParamsMap[props.index][props.inputParam.name].value = null
+		props.inputParamsMap[props.index][props.inputParam.name].image_preview_url = ''
+		props.inputParamsMap[props.index][props.inputParam.name].nc_file = false
+	}
+})
+
 const imagePreviewModalOpen = ref(false)
 
 const imageInput = ref(null)
@@ -155,6 +191,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
 	URL.revokeObjectURL(imagePreviewUrl.value)
 	URL.revokeObjectURL(imageInpaintMask.value)
+	nextcloudStore.removeSelectedFile(props.inputParam.name)
 
 	if (props.inputParam.type === 'text' && textareaInput.value) {
 		// @ts-ignore
@@ -271,6 +308,7 @@ onBeforeUnmount(() => {
 					class="w-full"
 					variant="outline"
 					color="gray"
+					:disabled="ncSelectedFile !== null"
 					:label="inputParam.display_name"
 					@change="(files: FileList) => {
 						console.debug('files', files)
@@ -279,21 +317,57 @@ onBeforeUnmount(() => {
 						imagePreviewUrl = createObjectUrl(file)
 						// set the preview url to the inputParamsMap so that it can be used in the image-mask inputParam
 						inputParamsMap[index][inputParam.name].image_preview_url = imagePreviewUrl
+						if (ncSelectedFile !== null) {
+							nextcloudStore.removeSelectedFile(inputParam.name)
+						}
 						console.debug('inputParamsMap', inputParamsMap)
 					}" />
-				<NuxtImg
-					v-if="imagePreviewUrl !== ''"
-					:src="!imageInpaintMask ? imagePreviewUrl : imageInpaintMask"
-					class="h-10 rounded-lg cursor-pointer ml-2"
-					@click="() => {
-						imagePreviewModalOpen = true
-					}" />
-				<UButton
-					v-if="imagePreviewUrl !== ''"
-					icon="i-heroicons-x-mark"
+				<UDivider v-if="config.app.isNextcloudIntegration"
+					class="mx-2"
+					orientation="vertical"
+					label="OR" />
+				<UButton v-if="config.app.isNextcloudIntegration"
+					icon="i-heroicons-cloud-arrow-down"
 					variant="outline"
-					class="ml-2"
-					@click="removeImagePreview" />
+					color="blue"
+					:disabled="ncSelectedFile !== null || imagePreviewUrl !== ''"
+					:title="ncSelectedFile !== null ? ncSelectedFile.attributes.filename : 'Choose from Nextcloud'"
+					@click="() => {
+						nextcloudStore.openNextcloudFilePicker(inputParam.name)
+					}">
+					Choose from Nextcloud
+				</UButton>
+				<template v-if="ncSelectedFilePreviewUrl !== ''">
+					<NuxtImg
+						:src="ncSelectedFilePreviewUrl"
+						class="h-10 rounded-lg cursor-pointer ml-2"
+						@click="() => {
+							imagePreviewModalOpen = true
+						}" />
+					<UButton
+						icon="i-heroicons-x-mark"
+						variant="outline"
+						class="ml-2"
+						@click="() => {
+							nextcloudStore.removeSelectedFile(inputParam.name)
+							if (imagePreviewUrl !== '') {
+								removeImagePreview()
+							}
+						}" />
+				</template>
+				<template v-else-if="imagePreviewUrl !== ''">
+					<NuxtImg
+						:src="!imageInpaintMask ? imagePreviewUrl : imageInpaintMask"
+						class="h-10 rounded-lg cursor-pointer ml-2"
+						@click="() => {
+							imagePreviewModalOpen = true
+						}" />
+					<UButton
+						icon="i-heroicons-x-mark"
+						variant="outline"
+						class="ml-2"
+						@click="removeImagePreview" />
+				</template>
 			</div>
 
 			<div
@@ -357,10 +431,16 @@ onBeforeUnmount(() => {
 						v-if="inputParam.type === 'image'"
 						class="flex items-center justify-center w-full h-full p-4"
 						@click.left="() => imagePreviewModalOpen = false">
+						<NuxtImg
+							v-if="imagePreviewUrl !== ''"
+							class="lg:h-full"
+							fit="contain"
+							:src="imagePreviewUrl" />
 						<NuxtImg 
+							v-if="ncSelectedFilePreviewUrl !== ''"
 							class="lg:h-full"
 							fit="inside"
-							:src="imagePreviewUrl" />
+							:src="ncSelectedFileSource" />
 					</div>
 					<WorkflowPromptImageInpaint
 						v-else

@@ -3,6 +3,11 @@ useSettingsStore().loadLocalSettings()
 useSettingsStore().fetchAllSettings()
 useFlowsStore().fetchFlows()
 useWorkersStore().loadWorkers()
+
+const config = useRuntimeConfig()
+if (config.app.isNextcloudIntegration) {
+	useNextcloudStore().registerListener()
+}
 </script>
 
 <template>

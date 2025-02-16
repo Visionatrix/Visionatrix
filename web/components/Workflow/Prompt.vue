@@ -245,8 +245,14 @@ const requiredInputParamsValid = computed(() => {
 			return input_param_value >= inputParam[input_param_name].min
 				&& input_param_value <= inputParam[input_param_name].max
 		} else if (inputParam[input_param_name].type === 'image') {
+			if (inputParam[input_param_name]?.nc_file) {
+				return true
+			}
 			return input_param_value instanceof File && input_param_value.size > 0
 		} else if (inputParam[input_param_name].type === 'image-mask') {
+			if (inputParam[input_param_name]?.nc_file) {
+				return (inputParam[input_param_name]?.mask_applied || false)
+			}
 			return input_param_value instanceof File && input_param_value.size > 0
 				&& (inputParam[input_param_name]?.mask_applied || false)
 		}
