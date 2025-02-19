@@ -22,30 +22,22 @@ from ..flows import (
 from ..pydantic_models import (
     ExecutionDetails,
     TaskCreationWithFullParams,
+    TaskDetails,
+    TaskDetailsShort,
     TaskRunResults,
     TaskUpdateRequest,
     WorkerDetailsRequest,
 )
 from ..tasks_engine import (
-    TaskDetails,
-    TaskDetailsShort,
     collect_child_task_ids,
     get_incomplete_task_without_error_database,
-    get_task,
     get_task_files,
-    get_tasks,
-    get_tasks_short,
     remove_task_by_id_database,
     remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name_and_group,
-    task_restart_database,
-    update_task_info_database,
-    update_task_outputs,
-    update_task_progress_database,
 )
 from ..tasks_engine_async import (
-    get_incomplete_task_without_error_database_async,
     get_task_async,
     get_tasks_async,
     get_tasks_short_async,
@@ -122,7 +114,7 @@ async def create_task(
         extra_flags = None
 
     flow_comfy = {}
-    flow = get_installed_flow(name, flow_comfy)
+    flow = await get_installed_flow(name, flow_comfy)
     if not flow:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
 
@@ -160,7 +152,7 @@ async def create_task(
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Invalid file input:{value}") from None
             if "task_id" not in input_file_info:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter") from None
-            if not get_task(int(input_file_info["task_id"]), user_id):
+            if not await get_task_async(int(input_file_info["task_id"]), user_id):
                 raise HTTPException(
                     status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
                 ) from None
@@ -217,23 +209,13 @@ async def get_tasks_progress(
     Retrieves the full tasks details information for a specific user.
     Optionally filter tasks by their name or a group number.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_tasks_async(
-            name=name,
-            group_scope=group_scope,
-            user_id=request.scope["user_info"].user_id,
-            fetch_child=True,
-            only_parent=only_parent,
-        )
-    else:
-        r = get_tasks(
-            name=name,
-            group_scope=group_scope,
-            user_id=request.scope["user_info"].user_id,
-            fetch_child=True,
-            only_parent=only_parent,
-        )
-    return r
+    return await get_tasks_async(
+        name=name,
+        group_scope=group_scope,
+        user_id=request.scope["user_info"].user_id,
+        fetch_child=True,
+        only_parent=only_parent,
+    )
 
 
 @ROUTER.get("/progress-summary")
@@ -247,23 +229,13 @@ async def get_tasks_progress_summary(
     Retrieves summary of the tasks progress details for a specific user.
     Optionally filter tasks by their name or a group number.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_tasks_short_async(
-            name=name,
-            group_scope=group_scope,
-            user_id=request.scope["user_info"].user_id,
-            fetch_child=True,
-            only_parent=only_parent,
-        )
-    else:
-        r = get_tasks_short(
-            name=name,
-            group_scope=group_scope,
-            user_id=request.scope["user_info"].user_id,
-            fetch_child=True,
-            only_parent=only_parent,
-        )
-    return r
+    return await get_tasks_short_async(
+        name=name,
+        group_scope=group_scope,
+        user_id=request.scope["user_info"].user_id,
+        fetch_child=True,
+        only_parent=only_parent,
+    )
 
 
 @ROUTER.get("/progress/{task_id}")
@@ -272,10 +244,7 @@ async def get_task_progress(request: Request, task_id: int) -> TaskDetails:
     Retrieves the full task details of a specified task by task ID.
     Access is restricted to the task owner or an administrator.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, request.scope["user_info"].user_id, fetch_child=True)
-    else:
-        r = get_task(task_id, request.scope["user_info"].user_id, fetch_child=True)
+    r = await get_task_async(task_id, request.scope["user_info"].user_id, fetch_child=True)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     try:
@@ -325,10 +294,7 @@ async def restart_task(
     This endpoint checks the task's current status and resets its progress, allowing it to be re-executed.
     Access to this action is restricted to the task's owner or an administrator.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, request.scope["user_info"].user_id)
-    else:
-        r = get_task(task_id, request.scope["user_info"].user_id)
+    r = await get_task_async(task_id, request.scope["user_info"].user_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["progress"] == 100.0:
@@ -336,10 +302,7 @@ async def restart_task(
     if not r["error"] and not force:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` has no error set.")
 
-    if options.VIX_MODE == "SERVER":
-        await task_restart_database_async(task_id)
-    else:
-        task_restart_database(task_id)
+    await task_restart_database_async(task_id)
     remove_task_lock_database(task_id)
 
 
@@ -361,17 +324,14 @@ async def delete_task(request: Request, task_id: int = Query(..., description="I
     Access is limited to the task owner or administrators.
     Also removes any child tasks associated with the specified task.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id, fetch_child=True)
-    else:
-        r = get_task(task_id, fetch_child=True)
+    r = await get_task_async(task_id, fetch_child=True)
     if r is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
     task_ids_to_remove = [task_id]
     collect_child_task_ids(r, task_ids_to_remove)
-    remove_task_by_id_database(task_ids_to_remove)
+    await remove_task_by_id_database(task_ids_to_remove)
 
 
 @ROUTER.delete(
@@ -394,29 +354,19 @@ async def clear_tasks(
     scoped to the requesting user and group scope.
     All child tasks associated with the parent tasks will also be deleted.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_tasks_async(
-            name,
-            group_scope,
-            True,
-            request.scope["user_info"].user_id,
-            fetch_child=True,
-            only_parent=True,
-        )
-    else:
-        r = get_tasks(
-            name,
-            group_scope,
-            True,
-            request.scope["user_info"].user_id,
-            fetch_child=True,
-            only_parent=True,
-        )
+    r = await get_tasks_async(
+        name,
+        group_scope,
+        True,
+        request.scope["user_info"].user_id,
+        fetch_child=True,
+        only_parent=True,
+    )
     task_ids_to_remove = []
     for task_id, task_details in r.items():
         task_ids_to_remove.append(task_id)
         collect_child_task_ids(task_details, task_ids_to_remove)
-    remove_task_by_id_database(task_ids_to_remove)
+    await remove_task_by_id_database(task_ids_to_remove)
 
 
 @ROUTER.get(
@@ -445,10 +395,7 @@ async def get_task_inputs(
     is used to select among multiple input files if more than one was provided for the task.
     Administrators can access inputs of any task, while regular users can only access inputs of their own tasks.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id)
-    else:
-        r = get_task(task_id)
+    r = await get_task_async(task_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
@@ -511,10 +458,7 @@ async def get_task_results(
     - `FileResponse`: The result file or a ZIP archive containing all result files if `batch_index` is -1.
     - `HTTPException`: If the task is not completed or the result file is not found.
     """
-    if options.VIX_MODE == "SERVER":
-        task = await get_task_async(task_id, request.scope["user_info"].user_id)
-    else:
-        task = get_task(task_id, request.scope["user_info"].user_id)
+    task = await get_task_async(task_id, request.scope["user_info"].user_id)
     if task is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if task["progress"] < 100.0:
@@ -586,7 +530,7 @@ async def remove_tasks_from_queue(
     Clears all unfinished tasks from the queue for a specific task name, scoped to the requesting user and group scope.
     Child tasks are ignored and not removed from the queue.
     """
-    remove_unfinished_tasks_by_name_and_group(name, request.scope["user_info"].user_id, group_scope)
+    await remove_unfinished_tasks_by_name_and_group(name, request.scope["user_info"].user_id, group_scope)
 
 
 @ROUTER.delete(
@@ -605,9 +549,9 @@ async def remove_task_from_queue(request: Request, task_id: int):
     """
     Removes a specific unfinished task from the queue using the task ID.
     """
-    if get_task(task_id, request.scope["user_info"].user_id) is None:
+    if await get_task_async(task_id, request.scope["user_info"].user_id) is None:
         raise HTTPException(status_code=404, detail=f"Task `{task_id}` was not found.")
-    remove_unfinished_task_by_id(task_id)
+    await remove_unfinished_task_by_id(task_id)
 
 
 @ROUTER.post(
@@ -634,14 +578,9 @@ async def get_next_task(
     it retrieves only those assigned to the user.
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
-    if options.VIX_MODE == "SERVER":
-        task = await get_incomplete_task_without_error_database_async(
-            request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
-        )
-    else:
-        task = get_incomplete_task_without_error_database(
-            request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
-        )
+    task = await get_incomplete_task_without_error_database(
+        request.scope["user_info"].user_id, worker_details, tasks_names, last_task_name, user_id
+    )
     if not task:
         return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
     return task
@@ -680,24 +619,15 @@ async def update_task_progress(
     and if the requester is authorized to update its progress. If the task is not found or unauthorized,
     a 404 HTTP error is raised, and `worker` should stop and consider the task canceled.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id)
-    else:
-        r = get_task(task_id)
+    r = await get_task_async(task_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     user_info = request.scope["user_info"]
     if r["user_id"] != user_info.user_id and not user_info.is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    if options.VIX_MODE == "SERVER":
-        update_success = await update_task_progress_database_async(
-            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
-        )
-    else:
-        update_success = update_task_progress_database(
-            task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
-        )
-    if not update_success:
+    if not await update_task_progress_database_async(
+        task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
+    ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task progress.")
     if r["webhook_url"]:
         b_tasks.add_task(
@@ -731,10 +661,7 @@ async def set_task_results(
     and if the `worker` making the request has the authorization to upload results.
     If the task is not found or unauthorized, a 404 HTTP error is raised.
     """
-    if options.VIX_MODE == "SERVER":
-        task_details = await get_task_async(task_id)
-    else:
-        task_details = get_task(task_id)
+    task_details = await get_task_async(task_id)
     if task_details is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if task_details["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
@@ -761,10 +688,7 @@ async def set_task_results(
                 i.file.close()
         task_output["file_size"] = file_size
         task_output["batch_size"] = batch_size
-    if options.VIX_MODE == "SERVER":
-        await update_task_outputs_async(task_id, task_details["outputs"])
-    else:
-        update_task_outputs(task_id, task_details["outputs"])
+    await update_task_outputs_async(task_id, task_details["outputs"])
 
 
 @ROUTER.delete(
@@ -787,10 +711,7 @@ async def remove_task_lock(
     and if the `worker` making the request has the authorization to unlock it.
     If the task is not found or unauthorized, a 404 HTTP error is raised.
     """
-    if options.VIX_MODE == "SERVER":
-        r = await get_task_async(task_id)
-    else:
-        r = get_task(task_id)
+    r = await get_task_async(task_id)
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
@@ -844,10 +765,7 @@ async def update_task_info(
 
     Access is restricted to the task owner or an administrator.
     """
-    if options.VIX_MODE == "SERVER":
-        task = await get_task_async(task_id)
-    else:
-        task = get_task(task_id)
+    task = await get_task_async(task_id)
     if task is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
 
@@ -868,10 +786,5 @@ async def update_task_info(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Priority cannot be greater than 15.")
 
     update_fields["priority"] = ((task["group_scope"] - 1) << 4) + update_fields["priority"]
-
-    if options.VIX_MODE == "SERVER":
-        success = await update_task_info_database_async(task_id, update_fields)
-    else:
-        success = update_task_info_database(task_id, update_fields)
-    if not success:
+    if not await update_task_info_database_async(task_id, update_fields):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to update task `{task_id}`.")

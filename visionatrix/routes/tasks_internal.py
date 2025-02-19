@@ -5,9 +5,8 @@ import httpx
 from fastapi import HTTPException, status
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from .. import models_map, options
+from .. import models_map
 from ..db_queries import get_installed_models, get_setting
-from ..db_queries_async import get_installed_models_async, get_setting_async
 from ..flows import (
     Flow,
     flow_prepare_output_params,
@@ -16,12 +15,10 @@ from ..flows import (
 )
 from ..prompt_translation import (
     translate_prompt_with_gemini,
-    translate_prompt_with_gemini_async,
     translate_prompt_with_ollama,
-    translate_prompt_with_ollama_async,
 )
 from ..pydantic_models import TranslatePromptRequest, UserInfo
-from ..tasks_engine import create_new_task, put_task_in_queue, remove_task_files
+from ..tasks_engine import remove_task_files
 from ..tasks_engine_async import create_new_task_async, put_task_in_queue_async
 
 LOGGER = logging.getLogger("visionatrix")
@@ -44,12 +41,8 @@ async def task_run(
     extra_flags: dict | None,
     custom_worker: str | None,
 ):
-    if options.VIX_MODE == "SERVER":
-        task_details = await create_new_task_async(name, input_params, user_info)
-        models_map.process_flow_models(flow_comfy, await get_installed_models_async())
-    else:
-        task_details = create_new_task(name, input_params, user_info)
-        models_map.process_flow_models(flow_comfy, get_installed_models())
+    task_details = await create_new_task_async(name, input_params, user_info)
+    models_map.process_flow_models(flow_comfy, await get_installed_models())
     input_params_copy = input_params.copy()
     for i, v in translated_input_params.items():
         input_params_copy[i] = v
@@ -91,10 +84,7 @@ async def task_run(
         task_details["custom_worker"] = custom_worker
     task_details["hidden"] = flow.hidden
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
-    if options.VIX_MODE == "SERVER":
-        await put_task_in_queue_async(task_details)
-    else:
-        put_task_in_queue(task_details)
+    await put_task_in_queue_async(task_details)
     return task_details
 
 
@@ -106,10 +96,7 @@ async def get_translated_input_params(
         nodes_for_translate = get_nodes_for_translate(input_params_dict, flow_comfy)
         if not nodes_for_translate:
             return translated_input_params_dict
-        if options.VIX_MODE == "SERVER":
-            translations_provider = await get_setting_async(user_id, "translations_provider", is_user_admin)
-        else:
-            translations_provider = get_setting(user_id, "translations_provider", is_user_admin)
+        translations_provider = await get_setting(user_id, "translations_provider", is_user_admin)
         if translations_provider:
             if translations_provider not in ("ollama", "gemini"):
                 raise HTTPException(
@@ -122,15 +109,9 @@ async def get_translated_input_params(
                     tr_req.system_prompt = node_to_translate["llm_prompt"]
                 try:
                     if translations_provider == "ollama":
-                        if options.VIX_MODE == "SERVER":
-                            r = await translate_prompt_with_ollama_async(user_id, is_user_admin, tr_req)
-                        else:
-                            r = translate_prompt_with_ollama(user_id, is_user_admin, tr_req)
+                        r = await translate_prompt_with_ollama(user_id, is_user_admin, tr_req)
                     else:
-                        if options.VIX_MODE == "SERVER":
-                            r = await translate_prompt_with_gemini_async(user_id, is_user_admin, tr_req)
-                        else:
-                            r = translate_prompt_with_gemini(user_id, is_user_admin, tr_req)
+                        r = await translate_prompt_with_gemini(user_id, is_user_admin, tr_req)
                 except Exception as e:
                     LOGGER.exception(
                         "Exception during prompt translation using `%s` for user `%s`", translations_provider, user_id

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -12,7 +13,7 @@ from .pydantic_models import OrphanModel
 LOGGER = logging.getLogger("visionatrix")
 
 
-def get_orphan_models() -> list[OrphanModel]:
+async def get_orphan_models() -> list[OrphanModel]:
     """
     Returns a list of OrphanModel objects representing files in the filesystem that do not belong to installed flows.
 
@@ -23,11 +24,11 @@ def get_orphan_models() -> list[OrphanModel]:
     Returns:
         A list of OrphanModel instances with information about orphaned files.
     """
-    installed_flows = get_installed_flows()
-    available_flows = get_available_flows()
+    installed_flows = await get_installed_flows()
+    available_flows = await get_available_flows()
     all_known_flows = available_flows | installed_flows
 
-    installed_models = db_queries.get_installed_models()
+    installed_models = await db_queries.get_installed_models()
     required_models = {}
     for flow in installed_flows.values():
         for model in flow.models:
@@ -102,11 +103,11 @@ def remove_orphan_model(orphan_path: str) -> bool:
 
 
 def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool) -> None:
-    if db_queries.models_installation_in_progress():
+    if asyncio.run(db_queries.models_installation_in_progress()):
         print("Some models have the status of being installed. Repeat the request in 3 minutes.")
         return
 
-    orphan_models = get_orphan_models()
+    orphan_models = asyncio.run(get_orphan_models())
     if not include_useful_models:
         orphan_models = [model for model in orphan_models if not model.possible_flows]
 

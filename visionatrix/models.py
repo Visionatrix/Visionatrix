@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import hashlib
 import logging
@@ -33,16 +34,16 @@ def install_model(
 
     # We need this part of code to be able to detect models that present on FS but not in Database
     if does_model_exist_in_fs(
-        model, flow_name, db_queries.get_installed_models().get(model.name), delete_invalid=False
+        model, flow_name, asyncio.run(db_queries.get_installed_models()).get(model.name), delete_invalid=False
     ):
         return progress_callback(flow_name, progress_for_model, "", True)
 
     while retries < max_retries:
-        installed_models = db_queries.get_installed_models()
+        installed_models = asyncio.run(db_queries.get_installed_models())
         if model.name in installed_models and does_model_exist_in_fs(model, flow_name, installed_models[model.name]):
             return progress_callback(flow_name, progress_for_model, "", True)
 
-        installing_models = db_queries.models_installation_in_progress(model.name)
+        installing_models = asyncio.run(db_queries.models_installation_in_progress(model.name))
         if not installing_models:
             # No other process is installing the model
             db_queries.delete_old_model_progress_install(model.name)
@@ -55,10 +56,10 @@ def install_model(
         total_added_progress = 0.0
         previous_model_progress = 0.0
         while True:
-            installing_models = db_queries.models_installation_in_progress(model.name)
+            installing_models = asyncio.run(db_queries.models_installation_in_progress(model.name))
             if not installing_models:
                 # Installation finished, check if the model was installed successfully
-                installed_models = db_queries.get_installed_models()
+                installed_models = asyncio.run(db_queries.get_installed_models())
                 if model.name in installed_models and does_model_exist_in_fs(
                     model, flow_name, installed_models[model.name]
                 ):
@@ -362,7 +363,7 @@ def does_model_exist_in_fs(
                 check_result = False
                 break
             if check_result:
-                db_queries.complete_model_progress_install(model.name, flow_name)
+                asyncio.run(db_queries.complete_model_progress_install(model.name, flow_name))
                 return True
 
     return lookup_for_model_file(model, model_possible_directories, flow_name, model_progress_install)
@@ -395,7 +396,7 @@ def check_model_file(
             if not model_progress_install:
                 LOGGER.debug("Adding model `%s` to the database.", model.name)
                 if not db_queries.add_model_progress_install(model.name, flow_name, model_filename):
-                    db_queries.reset_model_progress_install_error(model.name, flow_name)
+                    asyncio.run(db_queries.reset_model_progress_install_error(model.name, flow_name))
             db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime, new_filename=model_filename)
             db_queries.update_model_progress_install(model.name, flow_name, 100.0, not_critical=True)
             return True
@@ -484,7 +485,7 @@ def server_mode_ensure_model_exists(save_path: Path) -> None:
 
 
 async def fill_flows_model_installed_field(flows: dict[str, Flow]) -> dict[str, Flow]:
-    installed_models = db_queries.get_installed_models()
+    installed_models = await db_queries.get_installed_models()
     for flow in flows.values():
         for model in flow.models:
             model.installed = model.name in installed_models

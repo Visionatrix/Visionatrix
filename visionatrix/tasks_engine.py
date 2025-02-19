@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import contextlib
 import json
@@ -17,53 +18,20 @@ from .db_queries import get_global_setting, get_installed_models, get_setting
 from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
     ExecutionDetails,
-    TaskDetails,
     TaskDetailsShort,
-    UserInfo,
     WorkerDetailsRequest,
 )
 from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS,
     TASK_DETAILS_COLUMNS_SHORT,
     get_get_incomplete_task_without_error_query,
-    init_new_task_details,
     nodes_execution_profiler,
     prepare_worker_info_update,
-    task_details_from_dict,
-    task_details_short_to_dict,
-    task_details_to_dict,
 )
 
 LOGGER = logging.getLogger("visionatrix")
 
 ACTIVE_TASK: dict = {}
-
-
-def create_new_task(name: str, input_params: dict, user_info: UserInfo) -> dict:
-    with database.SESSION() as session:
-        try:
-            new_task_queue = database.TaskQueue()
-            session.add(new_task_queue)
-            session.commit()
-        except Exception:
-            session.rollback()
-            LOGGER.exception("Failed to add `%s` to TaskQueue(%s)", name, user_info.user_id)
-            raise
-    remove_task_files(new_task_queue.id, ["output", "input"])
-    return init_new_task_details(new_task_queue.id, name, input_params, user_info)
-
-
-def put_task_in_queue(task_details: dict) -> None:
-    LOGGER.debug("Put flow in queue: %s", task_details)
-    with database.SESSION() as session:
-        try:
-            session.add(task_details_from_dict(task_details))
-            session.commit()
-        except Exception:
-            session.rollback()
-            LOGGER.exception("Failed to put task in queue: %s", task_details["task_id"])
-            remove_task_files(task_details["task_id"], ["input"])
-            raise
 
 
 def __get_task_query(task_id: int, user_id: str | None):
@@ -88,52 +56,12 @@ def collect_child_task_ids(task: dict | TaskDetailsShort, output_ids: list) -> N
             collect_child_task_ids(child, output_ids)
 
 
-def fetch_child_tasks(session, parent_task_ids: list[int]) -> dict[int, list[TaskDetailsShort]]:
-    if not parent_task_ids:
-        return {}
-
-    query = (
-        select(*TASK_DETAILS_COLUMNS_SHORT)
-        .outerjoin(database.TaskLock, database.TaskLock.task_id == database.TaskDetails.task_id)
-        .filter(database.TaskDetails.parent_task_id.in_(parent_task_ids))
-    )
-    child_tasks = session.execute(query).all()
-
-    parent_to_children = {}
-    for task in child_tasks:
-        task_details = task_details_short_to_dict(task)
-        parent_to_children.setdefault(task.parent_task_id, []).append(task_details)
-
-    next_level_parent_ids = [task.task_id for task in child_tasks]
-    next_level_children = fetch_child_tasks(session, next_level_parent_ids)
-    for children in parent_to_children.values():
-        for child in children:
-            child["child_tasks"] = next_level_children.get(child["task_id"], [])
-    return parent_to_children
-
-
-def get_task(task_id: int, user_id: str | None = None, fetch_child: bool = False) -> dict | None:
-    with database.SESSION() as session:
-        try:
-            query = __get_task_query(task_id, user_id)
-            task = session.execute(query).one_or_none()
-            if task:
-                task_dict = task_details_to_dict(task)
-                if fetch_child:
-                    child_tasks = fetch_child_tasks(session, [task.task_id])
-                    task_dict["child_tasks"] = child_tasks.get(task.task_id, [])
-                return task_dict
-            return None
-        except Exception:
-            LOGGER.exception("Failed to retrieve task: %s", task_id)
-            raise
-
-
-def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: str) -> dict:
+async def get_incomplete_task_without_error(last_task_name: str) -> dict:
+    tasks_to_ask = list(await get_installed_flows())
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        task_to_exec = get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
+        task_to_exec = await get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
     else:
-        task_to_exec = get_incomplete_task_without_error_database(
+        task_to_exec = await get_incomplete_task_without_error_database(
             database.DEFAULT_USER.user_id,
             WorkerDetailsRequest.model_validate(comfyui_wrapper.get_worker_details()),
             tasks_to_ask,
@@ -146,7 +74,7 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
     if ollama_nodes:
         ollama_vision_model = ""
         if [i for i in ollama_nodes if task_to_exec["flow_comfy"][i]["class_type"] == "OllamaVision"]:
-            ollama_vision_model = get_worker_value("OLLAMA_VISION_MODEL", task_to_exec["user_id"])
+            ollama_vision_model = await get_worker_value("OLLAMA_VISION_MODEL", task_to_exec["user_id"])
         ollama_llm_model = ""
         if [
             i
@@ -158,9 +86,9 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
                 "OllamaConnectivityV2",
             )
         ]:
-            ollama_llm_model = get_worker_value("OLLAMA_LLM_MODEL", task_to_exec["user_id"])
-        ollama_url = get_worker_value("OLLAMA_URL", task_to_exec["user_id"])
-        ollama_keepalive = get_worker_value("OLLAMA_KEEPALIVE", task_to_exec["user_id"])
+            ollama_llm_model = await get_worker_value("OLLAMA_LLM_MODEL", task_to_exec["user_id"])
+        ollama_url = await get_worker_value("OLLAMA_URL", task_to_exec["user_id"])
+        ollama_keepalive = await get_worker_value("OLLAMA_KEEPALIVE", task_to_exec["user_id"])
 
         for node in ollama_nodes:
             if ollama_url:
@@ -178,9 +106,9 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
 
     google_nodes = get_google_nodes(task_to_exec["flow_comfy"])
     if google_nodes:
-        google_proxy = get_worker_value("GOOGLE_PROXY", task_to_exec["user_id"])
-        google_api_key = get_worker_value("GOOGLE_API_KEY", task_to_exec["user_id"])
-        gemini_model = get_worker_value("GEMINI_MODEL", task_to_exec["user_id"])
+        google_proxy = await get_worker_value("GOOGLE_PROXY", task_to_exec["user_id"])
+        google_api_key = await get_worker_value("GOOGLE_API_KEY", task_to_exec["user_id"])
+        gemini_model = await get_worker_value("GEMINI_MODEL", task_to_exec["user_id"])
         for node in google_nodes:
             if google_api_key:
                 task_to_exec["flow_comfy"][node]["inputs"]["api_key"] = google_api_key
@@ -188,45 +116,45 @@ def get_incomplete_task_without_error(tasks_to_ask: list[str], last_task_name: s
                 if gemini_model:
                     task_to_exec["flow_comfy"][node]["inputs"]["model"] = gemini_model
 
-    models_map.process_flow_models(task_to_exec["flow_comfy"], get_installed_models())
+    models_map.process_flow_models(task_to_exec["flow_comfy"], await get_installed_models())
 
     return task_to_exec
 
 
-def get_worker_value(key_name: str, user_id: str = "") -> str:
+async def get_worker_value(key_name: str, user_id: str = "") -> str:
     key_value = os.environ.get(key_name.upper(), "")
     if key_value:
         return key_value
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        r = httpx.get(
-            options.VIX_SERVER.rstrip("/") + "/api/settings/get",
-            params={"key": key_name.lower()},
-            auth=options.worker_auth(),
-            timeout=float(options.WORKER_NET_TIMEOUT),
-        )
+        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+            r = await client.get(
+                options.VIX_SERVER.rstrip("/") + "/api/settings/get",
+                params={"key": key_name.lower()},
+                auth=options.worker_auth(),
+            )
         if httpx.codes.is_error(r.status_code):
             LOGGER.error("Can not fetch `%s` from the server: %s", key_name, r.status_code)
         else:
             key_value = r.text
     elif user_id:
-        key_value = get_setting(user_id, key_name.lower(), True)
+        key_value = await get_setting(user_id, key_name.lower(), True)
     else:
-        key_value = get_global_setting(key_name.lower(), True)
+        key_value = await get_global_setting(key_name.lower(), True)
     return key_value
 
 
-def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
+async def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
     try:
-        r = httpx.post(
-            options.VIX_SERVER.rstrip("/") + "/api/tasks/next",
-            json={
-                "worker_details": comfyui_wrapper.get_worker_details(),
-                "tasks_names": tasks_to_ask,
-                "last_task_name": last_task_name,
-            },
-            auth=options.worker_auth(),
-            timeout=float(options.WORKER_NET_TIMEOUT),
-        )
+        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+            r = await client.post(
+                options.VIX_SERVER.rstrip("/") + "/api/tasks/next",
+                json={
+                    "worker_details": comfyui_wrapper.get_worker_details(),
+                    "tasks_names": tasks_to_ask,
+                    "last_task_name": last_task_name,
+                },
+                auth=options.worker_auth(),
+            )
         if r.status_code == httpx.codes.NO_CONTENT:
             return {}
         if not httpx.codes.is_error(r.status_code):
@@ -239,60 +167,60 @@ def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_
     return {}
 
 
-def get_incomplete_task_without_error_database(
+async def get_incomplete_task_without_error_database(
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
     tasks_to_ask: list[str],
     last_task_name: str,
     user_id: str | None = None,
 ) -> dict:
-    session = database.SESSION()
-    try:
-        worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
-        result = session.execute(
-            update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
-        )
-        new_worker = result.rowcount == 0
-        if new_worker:
-            session.add(
-                database.Worker(
-                    user_id=worker_user_id,
-                    worker_id=worker_id,
-                    device_name=worker_device_name,
-                    **worker_info_values,
-                )
+    async with database.SESSION_ASYNC() as session:
+        try:
+            worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(
+                worker_user_id, worker_details
             )
-        session.commit()
-        if not tasks_to_ask:
-            return {}
+            result = await session.execute(
+                update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
+            )
+            new_worker = result.rowcount == 0
+            if new_worker:
+                session.add(
+                    database.Worker(
+                        user_id=worker_user_id,
+                        worker_id=worker_id,
+                        device_name=worker_device_name,
+                        **worker_info_values,
+                    )
+                )
+            await session.commit()
+            if not tasks_to_ask:
+                return {}
 
-        tasks_to_give = []
-        if not new_worker:
-            # just an optimization to not fetch the "tasks_to_give" list if it's a newly created worker
-            query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
-            tasks_to_give = session.execute(query).scalar().tasks_to_give
+            tasks_to_give = []
+            if not new_worker:
+                # just an optimization to not fetch the "tasks_to_give" list if it's a newly created worker
+                query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
+                tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
 
-        query = get_get_incomplete_task_without_error_query(
-            tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
-        )
-        task = session.execute(query).scalar()
-        if not task:
+            query = get_get_incomplete_task_without_error_query(
+                tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
+            )
+            task = (await session.execute(query)).scalar()
+            if not task:
+                return {}
+            task_details = await lock_task_and_return_details(session, task)
+            if task_details and options.VIX_MODE == "WORKER" and not options.VIX_SERVER:
+                comfyui_folders_setting = await get_global_setting("comfyui_models_folder", True)
+                if comfyui_folders_setting != comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+                    if comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+                        settings_comfyui.deconfigure_model_folders(comfyui_wrapper.COMFYUI_MODELS_FOLDER)
+                    comfyui_wrapper.COMFYUI_FOLDERS_SETTING = comfyui_folders_setting
+                    settings_comfyui.autoconfigure_model_folders(comfyui_folders_setting)
+            return task_details
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to retrieve task for processing: %s", e)
             return {}
-        task_details = lock_task_and_return_details(session, task)
-        if task_details and options.VIX_MODE == "WORKER" and not options.VIX_SERVER:
-            comfyui_folders_setting = get_global_setting("comfyui_models_folder", True)
-            if comfyui_folders_setting != comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-                if comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-                    settings_comfyui.deconfigure_model_folders(comfyui_wrapper.COMFYUI_MODELS_FOLDER)
-                comfyui_wrapper.COMFYUI_FOLDERS_SETTING = comfyui_folders_setting
-                settings_comfyui.autoconfigure_model_folders(comfyui_folders_setting)
-        return task_details
-    except Exception as e:
-        session.rollback()
-        LOGGER.exception("Failed to retrieve task for processing: %s", e)
-        return {}
-    finally:
-        session.close()
 
 
 def __lock_task_and_return_details(task: type[database.TaskDetails] | database.TaskDetails):
@@ -313,13 +241,13 @@ def __lock_task_and_return_details(task: type[database.TaskDetails] | database.T
     }
 
 
-def lock_task_and_return_details(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
+async def lock_task_and_return_details(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
     try:
         session.add(database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow()))
-        session.commit()
+        await session.commit()
         return __lock_task_and_return_details(task)
     except IntegrityError:
-        session.rollback()
+        await session.rollback()
         return {}
 
 
@@ -354,145 +282,73 @@ def __get_tasks_query(
     return query
 
 
-def get_tasks(
-    name: str | None = None,
-    group_scope: int = 1,
-    finished: bool | None = None,
-    user_id: str | None = None,
-    fetch_child: bool = False,
-    only_parent: bool = False,
-) -> dict[int, TaskDetails]:
-    with database.SESSION() as session:
-        try:
-            query = __get_tasks_query(name, group_scope, finished, user_id, only_parent=only_parent)
-            results = session.execute(query).all()
-            tasks = {}
-            task_ids = [task.task_id for task in results]
-            child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
-            for task in results:
-                task_details = task_details_to_dict(task)
-                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
-                tasks[task.task_id] = TaskDetails.model_validate(task_details)
-            return tasks
-        except Exception:
-            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
-            raise
-
-
-def get_tasks_short(
-    user_id: str,
-    name: str | None = None,
-    group_scope: int = 1,
-    finished: bool | None = None,
-    fetch_child: bool = False,
-    only_parent: bool = False,
-) -> dict[int, TaskDetailsShort]:
-    with database.SESSION() as session:
-        try:
-            query = __get_tasks_query(name, group_scope, finished, user_id, full_info=False, only_parent=only_parent)
-            results = session.execute(query).all()
-            tasks = {}
-            task_ids = [task.task_id for task in results]
-            child_tasks = fetch_child_tasks(session, task_ids) if fetch_child else {}
-            for task in results:
-                task_details = task_details_short_to_dict(task)
-                task_details["child_tasks"] = child_tasks.get(task.task_id, [])
-                tasks[task.task_id] = TaskDetailsShort.model_validate(task_details)
-            return tasks
-        except Exception:
-            LOGGER.exception("Failed to retrieve tasks: `%s`, finished=%s", name, finished)
-            raise
-
-
-def remove_task_by_id(task_id: int) -> bool:
-    if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        return remove_task_by_id_server(task_id)
-    return remove_task_by_id_database([task_id])
-
-
-def remove_task_by_id_database(task_ids: list[int]) -> bool:
-    session = database.SESSION()
+async def remove_task_by_id_database(task_ids: list[int]) -> bool:
+    session = database.SESSION_ASYNC()
     try:
-        lock_result = session.execute(delete(database.TaskLock).where(database.TaskLock.task_id.in_(task_ids)))
-        details_result = session.execute(delete(database.TaskDetails).where(database.TaskDetails.task_id.in_(task_ids)))
+        lock_result = await session.execute(delete(database.TaskLock).where(database.TaskLock.task_id.in_(task_ids)))
+        details_result = await session.execute(
+            delete(database.TaskDetails).where(database.TaskDetails.task_id.in_(task_ids))
+        )
         if lock_result.rowcount + details_result.rowcount > 0:
-            session.commit()
+            await session.commit()
             return True
     except Exception:
-        session.rollback()
+        await session.rollback()
         LOGGER.exception("Failed to remove tasks: %s", task_ids)
         raise
     finally:
-        session.close()
+        await session.close()
         for i in task_ids:
             remove_task_files(i, ["output", "input"])
     return False
 
 
-def remove_task_by_id_server(task_id: int) -> bool:
+async def remove_unfinished_task_by_id(task_id: int) -> bool:
+    session = database.SESSION_ASYNC()
     try:
-        r = httpx.delete(
-            options.VIX_SERVER.rstrip("/") + "/api/tasks/task",
-            params={"task_id": task_id},
-            auth=options.worker_auth(),
-            timeout=float(options.WORKER_NET_TIMEOUT),
-        )
-        if not httpx.codes.is_error(r.status_code):
-            return True
-        LOGGER.warning("Task %s: server return status: %s", task_id, r.status_code)
-    except Exception as e:
-        LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
-    return False
-
-
-def remove_unfinished_task_by_id(task_id: int) -> bool:
-    session = database.SESSION()
-    try:
-        session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
-        details_result = session.execute(
+        await session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
+        details_result = await session.execute(
             delete(database.TaskDetails).where(
                 and_(database.TaskDetails.progress != 100.0, database.TaskDetails.task_id == task_id)
             )
         )
         if details_result.rowcount > 0:
-            session.commit()
+            await session.commit()
             remove_task_files(task_id, ["output", "input"])
             return True
     except Exception:
-        session.rollback()
+        await session.rollback()
         LOGGER.exception("Failed to remove task: %s", task_id)
         raise
     finally:
-        session.close()
+        await session.close()
     return False
 
 
-def remove_unfinished_tasks_by_name_and_group(name: str, user_id: str, group_scope: int) -> bool:
-    session = database.SESSION()
-    try:
-        stmt = delete(database.TaskDetails).where(
-            and_(
-                database.TaskDetails.progress != 100.0,
-                database.TaskDetails.name == name,
-                database.TaskDetails.user_id == user_id,
-                (database.TaskDetails.group_scope == group_scope if group_scope else True),
-                or_(
-                    database.TaskDetails.parent_task_id == None,  # noqa # pylint: disable=singleton-comparison
-                    database.TaskDetails.parent_task_id == 0,
-                ),
+async def remove_unfinished_tasks_by_name_and_group(name: str, user_id: str, group_scope: int) -> bool:
+    async with database.SESSION_ASYNC() as session:
+        try:
+            stmt = delete(database.TaskDetails).where(
+                and_(
+                    database.TaskDetails.progress != 100.0,
+                    database.TaskDetails.name == name,
+                    database.TaskDetails.user_id == user_id,
+                    (database.TaskDetails.group_scope == group_scope if group_scope else True),
+                    or_(
+                        database.TaskDetails.parent_task_id == None,  # noqa # pylint: disable=singleton-comparison
+                        database.TaskDetails.parent_task_id == 0,
+                    ),
+                )
             )
-        )
-        result = session.execute(stmt)
-        if result.rowcount > 0:
-            session.commit()
-            return True
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to remove incomplete TaskDetails for `%s`", name)
-        raise
-    finally:
-        session.close()
-    return False
+            result = await session.execute(stmt)
+            if result.rowcount > 0:
+                await session.commit()
+                return True
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to remove incomplete TaskDetails for `%s`", name)
+            raise
+        return False
 
 
 def get_task_files(task_id: int, directory: typing.Literal["input", "output"]) -> list[tuple[str, str]]:
@@ -638,28 +494,6 @@ def update_task_progress_database(
             comfyui_wrapper.interrupt_processing()
             session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
-    return False
-
-
-def task_restart_database(task_id: int) -> bool:
-    with database.SESSION() as session:
-        try:
-            update_values = {
-                "progress": 0.0,
-                "error": "",
-                "execution_time": 0.0,
-                "updated_at": datetime.now(timezone.utc),
-                "worker_id": None,
-            }
-            result = session.execute(
-                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
-            )
-            session.commit()
-            return result.rowcount == 1
-        except Exception as e:
-            comfyui_wrapper.interrupt_processing()
-            session.rollback()
-            LOGGER.exception("Task %s: failed to restart: %s", task_id, e)
     return False
 
 
@@ -879,7 +713,7 @@ def background_prompt_executor(prompt_executor_args: tuple | list, exit_event: t
 
         if not ACTIVE_TASK and not q.queue:
             # ComfyUI queue is empty, can ask for a task from Visionatrix DB/Server
-            ACTIVE_TASK = get_incomplete_task_without_error(list(get_installed_flows()), last_task_name)
+            ACTIVE_TASK = asyncio.run(get_incomplete_task_without_error(last_task_name))
             if not ACTIVE_TASK:
                 reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
                 continue
@@ -943,19 +777,3 @@ def update_task_progress_thread(active_task: dict) -> None:
                 time.sleep(0.1)
     finally:
         remove_task_lock(last_info["task_id"])
-
-
-def update_task_info_database(task_id: int, update_fields: dict) -> bool:
-    with database.SESSION() as session:
-        try:
-            result = session.execute(
-                update(database.TaskDetails)
-                .where(database.TaskDetails.task_id == task_id, database.TaskDetails.progress == 0.0)
-                .values(**update_fields)
-            )
-            session.commit()
-            return result.rowcount == 1
-        except Exception as e:
-            session.rollback()
-            LOGGER.exception("Task %s: failed to update task info: %s", task_id, e)
-            return False

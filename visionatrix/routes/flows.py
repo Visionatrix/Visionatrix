@@ -17,15 +17,10 @@ from fastapi import (
 )
 from packaging.version import parse
 
-from .. import options
 from ..db_queries import (
     delete_flow_progress_install,
     flows_installation_in_progress,
     get_flows_progress_install,
-)
-from ..db_queries_async import (
-    delete_flow_progress_install_async,
-    get_flows_progress_install_async,
 )
 from ..flows import (
     Flow,
@@ -52,7 +47,7 @@ async def get_installed() -> list[Flow]:
     includes details such as the name, display name, description, author, homepage URL, and other relevant
     information about each flow.
     """
-    return list((await calculate_dynamic_fields_for_flows(get_installed_flows())).values())
+    return list((await calculate_dynamic_fields_for_flows(await get_installed_flows())).values())
 
 
 @ROUTER.get("/not-installed")
@@ -61,7 +56,7 @@ async def get_not_installed() -> list[Flow]:
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
     similar to the installed flows, which includes metadata and configuration parameters.
     """
-    return list((await calculate_dynamic_fields_for_flows(get_not_installed_flows())).values())
+    return list((await calculate_dynamic_fields_for_flows(await get_not_installed_flows())).values())
 
 
 @ROUTER.get("/subflows")
@@ -74,7 +69,7 @@ async def get_subflows(input_type: typing.Literal["image", "image-inpaint", "vid
     from the sub-flows into the main flow's parameters based on matching names.
     """
     r = []
-    for i in get_installed_flows().values():
+    for i in (await get_installed_flows()).values():
         for sub_flow in i.sub_flows:
             if sub_flow.type == input_type:
                 transformed_flow = copy.deepcopy(i)
@@ -106,7 +101,7 @@ async def get_subflows(input_type: typing.Literal["image", "image-inpaint", "vid
         },
     },
 )
-def install(
+async def install(
     request: Request,
     b_tasks: BackgroundTasks,
     name: str = Query(..., description="Name of the flow you wish to install"),
@@ -120,10 +115,10 @@ def install(
     require_admin(request)
     flow_name = name.lower()
     flows_comfy = {}
-    flow = get_available_flows(flows_comfy).get(flow_name)
+    flow = (await get_available_flows(flows_comfy)).get(flow_name)
     if not flow:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{flow_name}` flow.")
-    if flows_installation_in_progress(flow.name):
+    if await flows_installation_in_progress(flow.name):
         raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
     b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name])
 
@@ -142,7 +137,7 @@ def install(
         },
     },
 )
-def install_from_file(
+async def install_from_file(
     request: Request,
     b_tasks: BackgroundTasks,
     flow_file: UploadFile = File(..., description="The ComfyUI workflow file to be uploaded and installed"),
@@ -156,7 +151,7 @@ def install_from_file(
     require_admin(request)
     flow_comfy = json.loads(flow_file.file.read())
     flow = get_vix_flow(flow_comfy)
-    if flows_installation_in_progress(flow.name):
+    if await flows_installation_in_progress(flow.name):
         raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
     b_tasks.add_task(install_custom_flow, flow, flow_comfy)
 
@@ -183,7 +178,7 @@ def install_from_file(
         },
     },
 )
-def flow_update(
+async def flow_update(
     request: Request,
     b_tasks: BackgroundTasks,
     name: str = Query(..., description="Name of the flow you wish to update"),
@@ -196,16 +191,16 @@ def flow_update(
     """
     require_admin(request)
     flow_name = name.lower()
-    _installed_flow_info = get_installed_flows().get(flow_name)
+    _installed_flow_info = (await get_installed_flows()).get(flow_name)
     if not _installed_flow_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{flow_name}` in installed flows.")
     flows_comfy = {}
-    flow = get_available_flows(flows_comfy).get(flow_name)
+    flow = (await get_available_flows(flows_comfy)).get(flow_name)
     if not flow:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{flow_name}` in available flows.")
     if parse(_installed_flow_info.version) >= parse(flow.version):
         raise HTTPException(status.HTTP_412_PRECONDITION_FAILED, f"Flow `{flow_name}` does not have a newer version.")
-    if flows_installation_in_progress(flow.name):
+    if await flows_installation_in_progress(flow.name):
         raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
     b_tasks.add_task(install_custom_flow, flow, flows_comfy[flow_name])
 
@@ -218,10 +213,7 @@ async def get_install_progress(request: Request) -> list[FlowProgressInstall]:
     Requires administrative privileges.
     """
     require_admin(request)
-    if options.VIX_MODE == "SERVER":
-        r = await get_flows_progress_install_async()
-    else:
-        r = get_flows_progress_install()
+    r = await get_flows_progress_install()
     for i in r:
         i.flow = get_vix_flow(i.flow_comfy)
     return r
@@ -248,11 +240,7 @@ async def delete_install_progress(
     Requires administrative privileges.
     """
     require_admin(request)
-    if options.VIX_MODE == "SERVER":
-        r = await delete_flow_progress_install_async(name)
-    else:
-        r = delete_flow_progress_install(name)
-    if not r:
+    if not await delete_flow_progress_install(name):
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Can't find `{name}`.")
 
 
@@ -268,7 +256,7 @@ async def delete(request: Request, name: str = Query(..., description="Name of t
     This endpoint will succeed even if the flow does not exist.
     """
     require_admin(request)
-    uninstall_flow(name)
+    await uninstall_flow(name)
 
 
 @ROUTER.post(
@@ -295,9 +283,9 @@ async def clone_flow(request: Request, b_tasks: BackgroundTasks, data: FlowClone
 
     require_admin(request)
     flows_comfy = {}
-    flow = get_installed_flows(flows_comfy).get(data.original_flow_name)
+    flow = (await get_installed_flows(flows_comfy)).get(data.original_flow_name)
     if not flow:
-        flow = get_available_flows(flows_comfy).get(data.original_flow_name)
+        flow = (await get_available_flows(flows_comfy)).get(data.original_flow_name)
     if not flow:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
@@ -309,6 +297,6 @@ async def clone_flow(request: Request, b_tasks: BackgroundTasks, data: FlowClone
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Error cloning flow: {e}") from e
 
     flow = get_vix_flow(new_flow_comfy)
-    if flows_installation_in_progress(flow.name):
+    if await flows_installation_in_progress(flow.name):
         raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
     b_tasks.add_task(install_custom_flow, flow, new_flow_comfy)

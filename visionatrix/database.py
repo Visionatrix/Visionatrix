@@ -194,13 +194,11 @@ def init_database_engine() -> None:
 
     SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
     run_db_migrations(database_uri)
-    if options.VIX_MODE == "SERVER":
-        async_engine = create_async_engine(
-            os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args
-        )
-        SESSION_ASYNC = async_sessionmaker(
-            bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
-        )
+    database_uri = database_uri.replace("sqlite:", "sqlite+aiosqlite:")
+    async_engine = create_async_engine(os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args)
+    SESSION_ASYNC = async_sessionmaker(
+        bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
+    )
 
 
 def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:

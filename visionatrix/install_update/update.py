@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import sys
@@ -39,11 +40,11 @@ def update() -> None:
         create_nodes_stuff()
         logging.info("Updating custom nodes..")
         update_base_custom_nodes()
-    comfyui_wrapper.load(None)
+    asyncio.run(comfyui_wrapper.load(None))
     logging.info("Updating flows..")
     avail_flows_comfy = {}
-    avail_flows = get_available_flows(avail_flows_comfy)
-    for i in get_installed_flows():
+    avail_flows = asyncio.run(get_available_flows(avail_flows_comfy))
+    for i in asyncio.run(get_installed_flows()):
         if i in avail_flows:
             install_custom_flow(avail_flows[i], avail_flows_comfy[i])
         else:

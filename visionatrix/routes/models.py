@@ -40,7 +40,7 @@ ROUTER = APIRouter(prefix="/models", tags=["models"])
         },
     },
 )
-def get_orphan_models(request: Request) -> list[OrphanModel]:
+async def get_orphan_models(request: Request) -> list[OrphanModel]:
     """
     Retrieves a list of orphaned AI model files not associated with any installed flow.
 
@@ -52,11 +52,11 @@ def get_orphan_models(request: Request) -> list[OrphanModel]:
     """
     require_admin(request)
 
-    if db_queries.flows_installation_in_progress() or db_queries.models_installation_in_progress():
+    if await db_queries.flows_installation_in_progress() or await db_queries.models_installation_in_progress():
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "Cannot run orphan models detection during ongoing installations."
         )
-    return orphan_models.get_orphan_models()
+    return await orphan_models.get_orphan_models()
 
 
 @ROUTER.delete(
@@ -91,7 +91,7 @@ def get_orphan_models(request: Request) -> list[OrphanModel]:
         },
     },
 )
-def delete_orphan_model(request: Request, full_orphan_path: str, file_creation_time: float):
+async def delete_orphan_model(request: Request, full_orphan_path: str, file_creation_time: float):
     """
     Deletes a specified orphaned model file.
 
@@ -103,10 +103,10 @@ def delete_orphan_model(request: Request, full_orphan_path: str, file_creation_t
     """
     require_admin(request)
 
-    if db_queries.flows_installation_in_progress() or db_queries.models_installation_in_progress():
+    if await db_queries.flows_installation_in_progress() or await db_queries.models_installation_in_progress():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot delete orphan models during ongoing installations.")
 
-    orphaned_models = {(orphan.full_path, orphan.creation_time) for orphan in orphan_models.get_orphan_models()}
+    orphaned_models = {(orphan.full_path, orphan.creation_time) for orphan in await orphan_models.get_orphan_models()}
     if (full_orphan_path, file_creation_time) not in orphaned_models:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,

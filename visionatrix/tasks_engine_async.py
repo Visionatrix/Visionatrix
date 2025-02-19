@@ -4,7 +4,6 @@ import threading
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
 
 from . import database
 from .comfyui_wrapper import interrupt_processing
@@ -18,13 +17,11 @@ from .pydantic_models import (
 from .tasks_engine import (
     __get_task_query,
     __get_tasks_query,
-    __lock_task_and_return_details,
     background_prompt_executor,
     remove_task_files,
 )
 from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS_SHORT,
-    get_get_incomplete_task_without_error_query,
     init_new_task_details,
     prepare_worker_info_update,
     task_details_from_dict,
@@ -167,62 +164,6 @@ async def update_task_outputs_async(task_id: int, outputs: list[dict]) -> bool:
             await session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails outputs: %s", task_id, e)
     return False
-
-
-async def get_incomplete_task_without_error_database_async(
-    worker_user_id: str,
-    worker_details: WorkerDetailsRequest,
-    tasks_to_ask: list[str],
-    last_task_name: str,
-    user_id: str | None = None,
-) -> dict:
-    if not tasks_to_ask:
-        return {}
-    async with database.SESSION_ASYNC() as session:
-        try:
-            worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(
-                worker_user_id, worker_details
-            )
-            result = await session.execute(
-                update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
-            )
-            tasks_to_give = []
-            if result.rowcount == 0:
-                session.add(
-                    database.Worker(
-                        user_id=worker_user_id,
-                        worker_id=worker_id,
-                        device_name=worker_device_name,
-                        **worker_info_values,
-                    )
-                )
-            else:
-                query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
-                tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
-            query = get_get_incomplete_task_without_error_query(
-                tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
-            )
-            task = (await session.execute(query)).scalar()
-            if not task:
-                await session.commit()
-                return {}
-            return await lock_task_and_return_details_async(session, task)
-        except Exception as e:
-            await session.rollback()
-            LOGGER.exception("Failed to retrieve task for processing: %s", e)
-            return {}
-        finally:
-            await session.close()
-
-
-async def lock_task_and_return_details_async(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
-    try:
-        session.add(database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow()))
-        await session.commit()
-        return __lock_task_and_return_details(task)
-    except IntegrityError:
-        await session.rollback()
-        return {}
 
 
 async def update_task_progress_database_async(
