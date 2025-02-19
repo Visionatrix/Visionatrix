@@ -27,21 +27,22 @@ def get_orphan_models() -> list[OrphanModel]:
     available_flows = get_available_flows()
     all_known_flows = available_flows | installed_flows
 
+    installed_models = db_queries.get_installed_models()
     required_models = {}
     for flow in installed_flows.values():
         for model in flow.models:
-            for i in get_possible_final_paths_for_model(model):
+            for i in get_possible_final_paths_for_model(installed_models, model):
                 required_models[str(i.joinpath())] = model
 
     all_known_models = {}
     for model in get_formatted_models_catalog():
-        for i in get_possible_final_paths_for_model(model):
+        for i in get_possible_final_paths_for_model(installed_models, model):
             all_known_models[str(i)] = model
 
     models_to_flows_map = {}
     for flow in all_known_flows.values():
         for model in flow.models:
-            model_save_paths = {str(i) for i in get_possible_final_paths_for_model(model)}
+            model_save_paths = {str(i) for i in get_possible_final_paths_for_model(installed_models, model)}
             for model_save_path in model_save_paths:
                 if model_save_path in models_to_flows_map:
                     models_to_flows_map[model_save_path].append(flow)
@@ -55,7 +56,7 @@ def get_orphan_models() -> list[OrphanModel]:
         if not node_details.get("models"):
             continue
         for model_from_node in node_details["models"]:
-            for i in get_possible_final_paths_for_model(model_from_node):
+            for i in get_possible_final_paths_for_model(installed_models, model_from_node):
                 models_filenames_from_nodes.add(str(i.name))
             for i in model_from_node.hashes:
                 models_filenames_from_nodes.add(i)
