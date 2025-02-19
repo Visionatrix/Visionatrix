@@ -42,7 +42,9 @@ TORCH_VERSION: str | None = None
 COMFYUI_MODELS_FOLDER: str = ""
 
 
-def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any, typing.Any]:
+async def load(
+    task_progress_callback,
+) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any, typing.Any]:
 
     # for diffusers/transformers library
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
@@ -161,7 +163,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     import cuda_malloc  # noqa
 
     # TO-DO: maybe we should do this before "import main" by setting as the args?
-    process_extra_paths_configs()
+    await process_extra_paths_configs()
     folder_paths.set_output_directory(str(Path(options.TASKS_FILES_DIR).joinpath("output")))
     folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
     # =================================================================
@@ -198,7 +200,7 @@ def load(task_progress_callback) -> [typing.Callable[[dict], tuple[bool, dict, l
     return execution.validate_prompt, [q, prompt_server], start_all
 
 
-def process_extra_paths_configs() -> None:
+async def process_extra_paths_configs() -> None:
     import utils.extra_config  # noqa
 
     global COMFYUI_MODELS_FOLDER
@@ -208,7 +210,7 @@ def process_extra_paths_configs() -> None:
         LOGGER.info("Loading Visionatrix default extra model path config: %s", default_outside_config)
         utils.extra_config.load_extra_path_config(default_outside_config)
 
-    if COMFYUI_MODELS_FOLDER := get_global_setting("comfyui_models_folder", True):
+    if COMFYUI_MODELS_FOLDER := await get_global_setting("comfyui_models_folder", True):
         for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
             add_model_folder_path(i.folder_key, i.path, True)
 

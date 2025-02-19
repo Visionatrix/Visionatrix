@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import builtins
 import importlib.resources
 import json
@@ -21,7 +22,8 @@ from .etc import get_higher_log_level, get_log_level
 from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .orphan_models import process_orphan_models
 
-if __name__ == "__main__":
+
+async def async_main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--verbose",
@@ -141,7 +143,7 @@ if __name__ == "__main__":
         if args.server:
             options.VIX_SERVER = args.server
 
-    database.init_database_engine()
+    await database.init_database_engine()
 
     if args.command == "create-user":
         database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
@@ -173,18 +175,18 @@ if __name__ == "__main__":
                     sys.exit(0)
         install()
     elif args.command == "update":
-        update()
+        await update()
     elif args.command == "run":
-        run_vix()
+        await run_vix()
     elif args.command == "install-flow":
-        comfyui_wrapper.load(None)
+        await comfyui_wrapper.load(None)
         r = True
         if args.file:
             path = Path(args.file)
             if path.is_file():
                 with path.open("rb") as fp:
                     install_flow_comfy = json.loads(fp.read())
-                r = install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy)
+                r = await install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy)
             elif path.is_dir():
                 json_files = list(path.glob("*.json"))
                 if not json_files:
@@ -197,7 +199,7 @@ if __name__ == "__main__":
                     logging.getLogger("visionatrix").info("Installing flow from file: '%s'", json_file)
                     with json_file.open("rb") as fp:
                         install_flow_comfy = json.loads(fp.read())
-                    if not install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy):
+                    if not await install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy):
                         r = False
             else:
                 logging.getLogger("visionatrix").error("Path is neither a file nor a directory: '%s'", path)
@@ -228,15 +230,15 @@ if __name__ == "__main__":
                     logging.getLogger("visionatrix").info("Aborting installation.")
                     sys.exit(0)
             for flow_name, flow in flows_to_install.items():
-                if not install_custom_flow(flow=flow, flow_comfy=flows_comfy[flow_name]):
+                if not await install_custom_flow(flow=flow, flow_comfy=flows_comfy[flow_name]):
                     r = False
         if not r:
             sys.exit(1)
     elif args.command == "orphan-models":
-        comfyui_wrapper.load(None)
-        process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
+        await comfyui_wrapper.load(None)
+        await process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
     elif args.command == "openapi":
-        comfyui_wrapper.load(None)
+        await comfyui_wrapper.load(None)
         flows_arg = args.flows.strip()
         skip_not_installed = args.skip_not_installed
         openapi_schema = generate_openapi(flows_arg, skip_not_installed, args.exclude_base)
@@ -249,3 +251,7 @@ if __name__ == "__main__":
         logging.getLogger("visionatrix").error("Unknown command: '%s'", args.command)
         sys.exit(2)
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    asyncio.run(async_main())

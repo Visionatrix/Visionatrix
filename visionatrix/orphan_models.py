@@ -12,7 +12,7 @@ from .pydantic_models import OrphanModel
 LOGGER = logging.getLogger("visionatrix")
 
 
-def get_orphan_models() -> list[OrphanModel]:
+async def get_orphan_models() -> list[OrphanModel]:
     """
     Returns a list of OrphanModel objects representing files in the filesystem that do not belong to installed flows.
 
@@ -23,8 +23,8 @@ def get_orphan_models() -> list[OrphanModel]:
     Returns:
         A list of OrphanModel instances with information about orphaned files.
     """
-    installed_flows = get_installed_flows()
-    available_flows = get_available_flows()
+    installed_flows = await get_installed_flows()
+    available_flows = await get_available_flows()
     all_known_flows = available_flows | installed_flows
 
     required_models = {}
@@ -100,12 +100,12 @@ def remove_orphan_model(orphan_path: str) -> bool:
     return bool(r)
 
 
-def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool) -> None:
+async def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool) -> None:
     if db_queries.models_installation_in_progress():
         print("Some models have the status of being installed. Repeat the request in 3 minutes.")
         return
 
-    orphan_models = get_orphan_models()
+    orphan_models = await get_orphan_models()
     if not include_useful_models:
         orphan_models = [model for model in orphan_models if not model.possible_flows]
 

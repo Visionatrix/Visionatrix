@@ -49,7 +49,7 @@ async def get_user(username: str, password: str) -> database.UserInfo | None:
             return cache_entry["data"]
         del AUTH_CACHE[username]
 
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         results = await session.execute(select(database.UserInfo).filter_by(user_id=username))
         user_info = results.scalar_one_or_none()
         if user_info and PWD_CONTEXT.verify(password, user_info.hashed_password):

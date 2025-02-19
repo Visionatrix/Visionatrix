@@ -1,5 +1,5 @@
+import asyncio
 import builtins
-import concurrent.futures
 import contextlib
 import io
 import json
@@ -35,7 +35,12 @@ from .flows_loras import (
 from .models import fill_flows_model_installed_field, install_model
 from .models_map import process_flow_models
 from .nodes_helpers import get_node_value, set_node_value
-from .pydantic_models import Flow, FlowCloneRequest, LoraConnectionPoint
+from .pydantic_models import (
+    AIResourceModel,
+    Flow,
+    FlowCloneRequest,
+    LoraConnectionPoint,
+)
 
 SECONDS_TO_CACHE_INSTALLED_FLOWS = 10
 SECONDS_TO_CACHE_AVAILABLE_FLOWS = 3 * 60
@@ -62,7 +67,7 @@ SUPPORTED_TEXT_TYPES_INPUTS = ["text", "number", "list", "bool", "range", "range
 SUPPORTED_FILE_TYPES_INPUTS = ["image", "image-mask", "video"]
 
 
-def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+async def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
     if flows_comfy is None:
         flows_comfy = {}
     else:
@@ -167,10 +172,10 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
     return r_flows, r_flows_comfy, flows_content_etag
 
 
-def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
-    installed_flows_ids = list(get_installed_flows())
+async def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+    installed_flows_ids = list(await get_installed_flows())
     avail_flows_comfy = {}
-    avail_flows = get_available_flows(avail_flows_comfy)
+    avail_flows = await get_available_flows(avail_flows_comfy)
     flows = {}
     for i, v in avail_flows.items():
         if i not in installed_flows_ids:
@@ -180,7 +185,7 @@ def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[
     return flows
 
 
-def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+async def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
     if flows_comfy is None:
         flows_comfy = {}
     else:
@@ -209,7 +214,7 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
 
     # Release the lock before performing long-running operations
     # Perform the operations without holding the lock
-    updated_data = _update_installed_flows()
+    updated_data = await _update_installed_flows()
 
     # Acquire the lock again to update the cache
     with CACHE_INSTALLED_FLOWS_LOCK:
@@ -225,13 +230,13 @@ def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
     return CACHE_INSTALLED_FLOWS["flows"]
 
 
-def _update_installed_flows():
-    available_flows = get_available_flows({})
+async def _update_installed_flows():
+    available_flows = await get_available_flows({})
     public_flows_names = list(available_flows)
     installed_flows = db_queries.get_installed_flows()
     r = {}
     r_comfy = {}
-    for installed_flow in installed_flows:
+    for installed_flow in await installed_flows:
         installed_flow.flow = get_vix_flow(installed_flow.flow_comfy)
         if installed_flow.name not in public_flows_names:
             installed_flow.flow.private = True
@@ -243,20 +248,20 @@ def _update_installed_flows():
     return {"flows": r, "flows_comfy": r_comfy}
 
 
-def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | None:
+async def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | None:
     flows_comfy = {}
-    flow = get_installed_flows(flows_comfy).get(flow_name)
+    flow = (await get_installed_flows(flows_comfy)).get(flow_name)
     if flow:
         flow_comfy.clear()
         flow_comfy.update(flows_comfy[flow_name])
     return flow
 
 
-def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
-    db_queries.delete_flow_progress_install(flow.name)
-    db_queries.add_flow_progress_install(flow.name, flow_comfy)
+async def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
+    await db_queries.delete_flow_progress_install(flow.name)
+    await db_queries.add_flow_progress_install(flow.name, flow_comfy)
     progress_for_model = 97 / max(len(flow.models), 1)
-    if not __flow_install_callback(flow.name, 1.0, "", False):
+    if not await __flow_install_callback(flow.name, 1.0, "", False):
         return False
     auth_tokens = {"huggingface_auth_token": "", "civitai_auth_token": ""}
     for token_env, token_key in [("HF_AUTH_TOKEN", "huggingface_auth_token"), ("CA_AUTH_TOKEN", "civitai_auth_token")]:
@@ -275,71 +280,75 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
             except Exception as e:
                 LOGGER.error("Error fetching `%s`: %s", token_key, str(e))
         else:
-            auth_tokens[token_key] = db_queries.get_global_setting(token_key, True)
+            auth_tokens[token_key] = await db_queries.get_global_setting(token_key, True)
 
+    tasks = []
     try:
-        install_models_results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            futures = [
-                executor.submit(
-                    install_model,
+        semaphore = asyncio.Semaphore(2)  # Limit concurrency to 2 tasks
+
+        async def install_model_bound(model: AIResourceModel) -> bool:
+            async with semaphore:
+                return await install_model(
                     model,
                     flow.name,
                     progress_for_model,
                     __flow_install_callback,
                     (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
                 )
-                for model in flow.models
-            ]
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    install_models_result = future.result()
-                    install_models_results.append(install_models_result)
-                except Exception as e:
-                    LOGGER.exception("Error during models installation: %s", e)
-                    return False
+
+        tasks = [asyncio.create_task(install_model_bound(model)) for model in flow.models]
+        install_models_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results and handle exceptions.
+        for result in install_models_results:
+            if isinstance(result, Exception):
+                LOGGER.exception("Error during models installation: %s", result)
+                return False
+            if not result:
+                LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
+                return False
     except KeyboardInterrupt:
         # this will only work for the "install-flow" command when run from terminal
         events.EXIT_EVENT.set()
-        for future in futures:
+        for task in tasks:
             with contextlib.suppress(Exception):
-                future.result()
+                task.cancel()
         return False
 
     if not all(install_models_results):
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
         return False
 
-    if not __flow_install_callback(flow.name, 100.0, "", False):
+    if not await __flow_install_callback(flow.name, 100.0, "", False):
         return False
     CACHE_INSTALLED_FLOWS["update_time"] = 0
     return True
 
 
-def __flow_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
+async def __flow_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
     """Returns `True` if no errors occurred."""
 
     if error:
         LOGGER.error("`%s` installation failed: %s", name, error)
-        db_queries.set_flow_progress_install_error(name, error)
+        await db_queries.set_flow_progress_install_error(name, error)
         return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
     if progress == 100.0:
         LOGGER.info("Installation of %s flow completed", name)
-        return db_queries.update_flow_progress_install(name, progress, False)
+        return await db_queries.update_flow_progress_install(name, progress, False)
 
     if events.EXIT_EVENT.is_set():
-        db_queries.set_flow_progress_install_error(name, "Installation interrupted by user.")
+        await db_queries.set_flow_progress_install_error(name, "Installation interrupted by user.")
         return False
 
     if LOGGER.getEffectiveLevel() <= logging.INFO:
-        current_progress_info = db_queries.get_flow_progress_install(name)
+        current_progress_info = await db_queries.get_flow_progress_install(name)
         if not current_progress_info:
             LOGGER.warning("Can not get installation progress info for %s", name)
         else:
             LOGGER.info(
                 "`%s` installation: %s", name, math.floor((current_progress_info.progress + progress) * 10) / 10
             )
-    return db_queries.update_flow_progress_install(name, progress, relative_progress)
+    return await db_queries.update_flow_progress_install(name, progress, relative_progress)
 
 
 def uninstall_flow(flow_name: str) -> None:
@@ -717,7 +726,7 @@ def get_nodes_for_translate(
 
 
 async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
-    available_workers = db_queries.get_workers_details(None, 5 * 60, "")
+    available_workers = await db_queries.get_workers_details(None, 5 * 60, "")
     for flow in flows.values():
         if flow.is_macos_supported is False:
             flow.is_supported_by_workers = any(worker.device_type != "mps" for worker in available_workers)

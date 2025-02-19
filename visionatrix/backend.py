@@ -15,14 +15,16 @@ from pillow_heif import register_heif_opener
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import comfyui_wrapper, custom_openapi, database, events, options, routes
-from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
-from .tasks_engine import (
-    background_prompt_executor,
-    remove_active_task_lock,
-    task_progress_callback,
+from . import (
+    comfyui_wrapper,
+    custom_openapi,
+    database,
+    events,
+    options,
+    routes,
+    tasks_engine,
 )
-from .tasks_engine_async import start_tasks_engine
+from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
 from .user_backends import perform_auth_http, perform_auth_ws
 
 LOGGER = logging.getLogger("visionatrix")
@@ -114,19 +116,31 @@ def parse_cookies_and_headers(scope: Scope) -> tuple[dict[str, str], dict[str, s
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    database.init_database_engine()
+    await database.init_database_engine()
 
-    routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = comfyui_wrapper.load(
-        task_progress_callback
+    routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = await comfyui_wrapper.load(
+        tasks_engine.task_progress_callback
     )
+    asyncio_tasks = set()
     if options.VIX_MODE != "SERVER":
-        await start_tasks_engine(prompt_server_args, events.EXIT_EVENT)
+        asyncio_tasks.add(
+            asyncio.create_task(tasks_engine.background_prompt_executor(prompt_server_args, events.EXIT_EVENT)),
+        )
+        asyncio_tasks.add(
+            asyncio.create_task(
+                asyncio.to_thread(
+                    comfyui_wrapper.background_prompt_executor_comfy, prompt_server_args, events.EXIT_EVENT
+                )
+            ),
+        )
 
     if options.UI_DIR:
         app.mount("/comfy", StaticFiles(directory=Path(options.COMFYUI_DIR).joinpath("web"), html=False), name="comfy")
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
 
-    _ = asyncio.create_task(start_all_func())  # noqa
+    asyncio_tasks.add(
+        asyncio.create_task(start_all_func()),
+    )
     yield
     events.EXIT_EVENT.set()
     comfyui_wrapper.interrupt_processing()
@@ -174,7 +188,8 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     )
 
 
-def run_vix(*args, **kwargs) -> None:
+async def run_vix(*args, **kwargs) -> None:
+    tasks_engine.MAIN_EVENT_LOOP = asyncio.get_running_loop()
     if options.VIX_MODE == "WORKER" and options.UI_DIR:
         LOGGER.error("`WORKER` mode is incompatible with UI")
         return
@@ -189,7 +204,7 @@ def run_vix(*args, **kwargs) -> None:
                 _app = "visionatrix:APP"
             else:
                 _app = APP
-            uvicorn.run(
+            config = uvicorn.Config(
                 _app,
                 *args,
                 host=options.get_host_to_map(),
@@ -197,16 +212,29 @@ def run_vix(*args, **kwargs) -> None:
                 workers=int(options.VIX_SERVER_WORKERS),
                 **kwargs,
             )
+            server = uvicorn.Server(config)
+            await server.serve()
         except KeyboardInterrupt:
             print("Visionatrix is shutting down.")
     else:
         register_heif_opener()
-        _, prompt_server_args, _ = comfyui_wrapper.load(task_progress_callback)
+        _, prompt_server_args, _ = await comfyui_wrapper.load(tasks_engine.task_progress_callback)
 
         try:
-            background_prompt_executor(prompt_server_args, events.EXIT_EVENT)
+            asyncio_tasks = set()
+            asyncio_tasks.add(
+                asyncio.create_task(tasks_engine.background_prompt_executor(prompt_server_args, events.EXIT_EVENT)),
+            )
+            asyncio_tasks.add(
+                asyncio.create_task(
+                    comfyui_wrapper.background_prompt_executor_comfy(prompt_server_args, events.EXIT_EVENT)
+                ),
+            )
+            _done, pending = await asyncio.wait(asyncio_tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in pending:
+                task.cancel()
         except KeyboardInterrupt:
-            remove_active_task_lock()
+            tasks_engine.remove_active_task_lock()
             print("Visionatrix is shutting down.")
 
 

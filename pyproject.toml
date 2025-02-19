@@ -45,6 +45,7 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "aiosqlite>=0.21",
   "alembic",
   "bcrypt==4.0.1",
   "fastapi>=0.113",
@@ -130,6 +131,9 @@ lint.per-file-ignores."scripts/*.*" = [
 lint.per-file-ignores."visionatrix/__init__.py" = [
   "F401",
 ]
+lint.per-file-ignores."visionatrix/__main__.py" = [
+  "C901",
+]
 lint.per-file-ignores."visionatrix/backend.py" = [
   "C901",
 ]
@@ -165,10 +169,8 @@ master.extension-pkg-allow-list = [
 ]
 design.max-attributes = 10
 design.max-locals = 32
-design.max-branches = 25
 design.max-returns = 10
 design.max-args = 14
-design.max-statements = 90
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
 similarities.min-similarity-lines = 12
@@ -186,6 +188,8 @@ messages_control.disable = [
   "too-many-positional-arguments",
   "deprecated-argument",
   "import-outside-toplevel",
+  "too-many-branches",
+  "too-many-statements",
 ]
 
 [tool.pytest.ini_options]

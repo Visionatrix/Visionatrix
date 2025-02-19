@@ -4,9 +4,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-from . import options
 from .db_queries import get_global_setting
-from .db_queries_async import get_global_setting_async
 from .models_map import (
     get_embedded_models_catalog,
     get_models_catalog,
@@ -71,10 +69,7 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
     else:
         model_version_id = parse_qs(parsed_url.query).get("modelVersionId", [None])[0]
 
-    if options.VIX_MODE == "SERVER":
-        civitai_token = await get_global_setting_async("civitai_auth_token", True)
-    else:
-        civitai_token = get_global_setting("civitai_auth_token", True)
+    civitai_token = await get_global_setting("civitai_auth_token", True)
     headers = {}
     if civitai_token:
         headers["Authorization"] = f"Bearer {civitai_token}"

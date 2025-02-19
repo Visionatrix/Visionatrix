@@ -12,7 +12,7 @@ from .custom_nodes import update_base_custom_nodes
 from .install import create_nodes_stuff
 
 
-def update() -> None:
+async def update() -> None:
     if options.COMFYUI_DIR:
         if options.PYTHON_EMBEDED:
             logging.warning("Updating the ComfyUI for the EMBEDDED version is currently not possible, skipped.")
@@ -39,12 +39,12 @@ def update() -> None:
         create_nodes_stuff()
         logging.info("Updating custom nodes..")
         update_base_custom_nodes()
-    comfyui_wrapper.load(None)
+    await comfyui_wrapper.load(None)
     logging.info("Updating flows..")
     avail_flows_comfy = {}
-    avail_flows = get_available_flows(avail_flows_comfy)
-    for i in get_installed_flows():
+    avail_flows = await get_available_flows(avail_flows_comfy)
+    for i in await get_installed_flows():
         if i in avail_flows:
-            install_custom_flow(avail_flows[i], avail_flows_comfy[i])
+            await install_custom_flow(avail_flows[i], avail_flows_comfy[i])
         else:
             logging.warning("`%s` flow not found in repository, skipping update of it.", i)
