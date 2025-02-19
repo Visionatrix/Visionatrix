@@ -1,9 +1,9 @@
+import asyncio
 import builtins
 import hashlib
 import logging
 import os
 import re
-import time
 import typing
 import zipfile
 from pathlib import Path
@@ -74,7 +74,7 @@ async def install_model(
                 if total_added_progress > 0 and not await progress_callback(flow_name, -total_added_progress, "", True):
                     return False  # Model installation failed; Progress roll back failed
                 retries += 1
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
                 break
             model_progress_status = installing_models[model.name]
             new_model_progress = model_progress_status.progress
@@ -90,7 +90,7 @@ async def install_model(
                     return False
                 total_added_progress += flow_progress_increment
                 previous_model_progress = new_model_progress
-            time.sleep(1)
+            await asyncio.sleep(1)
         continue
 
     if retries >= max_retries:
@@ -153,106 +153,112 @@ async def download_model(
     should_retry = True
     while should_retry:
         should_retry = False
-        with httpx.stream("GET", model.url, headers=headers, follow_redirects=True, timeout=15.0) as response:
-            if response.status_code == status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE or (
-                existing_file_size > 0 and response.status_code == status.HTTP_404_NOT_FOUND
-            ):
-                # Cannot resume, restart from beginning
-                LOGGER.warning("Cannot resume download; restarting from the beginning.")
-                existing_file_size = 0
-                headers.pop("Range", None)
-                save_path.unlink(missing_ok=True)  # Delete the incomplete file
-                should_retry = True
-                continue
-            if response.status_code == status.HTTP_404_NOT_FOUND:
-                if urlparse(model.url).netloc == "huggingface.co":
-                    LOGGER.warning("Hugging Face URL not found, attempting to locate model on Civitai.")
-                    civitai_search_url = f"https://civitai.com/api/v1/model-versions/by-hash/{model.hash}"
-                    try:
-                        civitai_response = httpx.get(civitai_search_url, timeout=15.0)
-                        if civitai_response.status_code == status.HTTP_200_OK:
-                            civitai_data = civitai_response.json()
-                            if civitai_data.get("files"):
-                                civitai_download_url = civitai_data["files"][0].get("downloadUrl", "")
-                                if civitai_download_url:
-                                    LOGGER.info("Found model on Civitai. Switching to Civitai download URL.")
-                                    model.url = civitai_download_url
-                                    headers, existing_file_size = prepare_download_headers(
-                                        model, save_path, auth_tokens
-                                    )
-                                    should_retry = True
-                                    continue
-                    except httpx.HTTPError as e:
-                        LOGGER.error("Failed to fetch model metadata from Civitai: %s", str(e))
-                        raise FileNotFoundError("Resource not found on Hugging Face, and Civitai lookup failed.") from e
-                raise FileNotFoundError(f"Resource not found at {model.url}")
-            if response.status_code == status.HTTP_401_UNAUTHORIZED:
-                authorization = headers.get("Authorization", "")
-                raise PermissionError(f"Denied access for model at {model.url} with token=`{authorization}`")
-            if response.status_code == status.HTTP_200_OK and "Range" in headers:
-                # Server does not support resuming
-                LOGGER.warning("Server does not support resuming; starting download from scratch.")
-                existing_file_size = 0
-                headers.pop("Range", None)
-                save_path.unlink(missing_ok=True)  # Delete the incomplete file
-                should_retry = True
-                continue
-            if httpx.codes.is_error(response.status_code):
-                raise RuntimeError(f"Download request failed with status: {response.status_code}")
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            async with client.stream("GET", model.url, headers=headers, follow_redirects=True) as response:
+                if response.status_code == status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE or (
+                    existing_file_size > 0 and response.status_code == status.HTTP_404_NOT_FOUND
+                ):
+                    # Cannot resume, restart from beginning
+                    LOGGER.warning("Cannot resume download; restarting from the beginning.")
+                    existing_file_size = 0
+                    headers.pop("Range", None)
+                    save_path.unlink(missing_ok=True)  # Delete the incomplete file
+                    should_retry = True
+                    continue
+                if response.status_code == status.HTTP_404_NOT_FOUND:
+                    if urlparse(model.url).netloc == "huggingface.co":
+                        LOGGER.warning("Hugging Face URL not found, attempting to locate model on Civitai.")
+                        civitai_search_url = f"https://civitai.com/api/v1/model-versions/by-hash/{model.hash}"
+                        try:
+                            async with httpx.AsyncClient(timeout=15.0) as client_ca:
+                                civitai_response = await client_ca.get(civitai_search_url, timeout=15.0)
+                            if civitai_response.status_code == status.HTTP_200_OK:
+                                civitai_data = civitai_response.json()
+                                if civitai_data.get("files"):
+                                    civitai_download_url = civitai_data["files"][0].get("downloadUrl", "")
+                                    if civitai_download_url:
+                                        LOGGER.info("Found model on Civitai. Switching to Civitai download URL.")
+                                        model.url = civitai_download_url
+                                        headers, existing_file_size = prepare_download_headers(
+                                            model, save_path, auth_tokens
+                                        )
+                                        should_retry = True
+                                        continue
+                        except httpx.HTTPError as e:
+                            LOGGER.error("Failed to fetch model metadata from Civitai: %s", str(e))
+                            raise FileNotFoundError(
+                                "Resource not found on Hugging Face, and Civitai lookup failed."
+                            ) from e
+                    raise FileNotFoundError(f"Resource not found at {model.url}")
+                if response.status_code == status.HTTP_401_UNAUTHORIZED:
+                    authorization = headers.get("Authorization", "")
+                    raise PermissionError(f"Denied access for model at {model.url} with token=`{authorization}`")
+                if response.status_code == status.HTTP_200_OK and "Range" in headers:
+                    # Server does not support resuming
+                    LOGGER.warning("Server does not support resuming; starting download from scratch.")
+                    existing_file_size = 0
+                    headers.pop("Range", None)
+                    save_path.unlink(missing_ok=True)  # Delete the incomplete file
+                    should_retry = True
+                    continue
+                if httpx.codes.is_error(response.status_code):
+                    raise RuntimeError(f"Download request failed with status: {response.status_code}")
 
-            total_size = get_model_total_size(response)
-            check_etag(response, model)
+                total_size = get_model_total_size(response)
+                check_etag(response, model)
 
-            # Actual downloading logic starts here
-            total_added_progress = 0.0  # Total progress added to flow progress
-            progress_value = 0.0  # Accumulated progress in flow progress units
-            if existing_file_size > 0:
-                # Report initial progress based on existing file size
-                model_progress_percentage = existing_file_size / total_size * 100.0
-                if not await db_queries.update_model_progress_install(model.name, flow_name, model_progress_percentage):
-                    return False
-                # For flow progress, we calculate the proportion of progress_for_model
-                total_added_progress = progress_for_model * existing_file_size / total_size
-                if not await progress_callback(flow_name, total_added_progress, "", True):
-                    return False
+                # Actual downloading logic starts here
+                total_added_progress = 0.0  # Total progress added to flow progress
+                progress_value = 0.0  # Accumulated progress in flow progress units
+                if existing_file_size > 0:
+                    # Report initial progress based on existing file size
+                    model_progress_percentage = existing_file_size / total_size * 100.0
+                    if not await db_queries.update_model_progress_install(
+                        model.name, flow_name, model_progress_percentage
+                    ):
+                        return False
+                    # For flow progress, we calculate the proportion of progress_for_model
+                    total_added_progress = progress_for_model * existing_file_size / total_size
+                    if not await progress_callback(flow_name, total_added_progress, "", True):
+                        return False
 
-            current_file_size = existing_file_size
-            try:
-                mode = "ab" if existing_file_size > 0 else "wb"
-                with builtins.open(save_path, mode) as file:
-                    for chunk in response.iter_bytes(10 * 1024 * 1024):
-                        if chunk:
-                            bytes_written = file.write(chunk)
-                            current_file_size += bytes_written
-                            model_progress_percentage = min((current_file_size / total_size) * 100.0, 99.9)
+                current_file_size = existing_file_size
+                try:
+                    mode = "ab" if existing_file_size > 0 else "wb"
+                    with builtins.open(save_path, mode) as file:
+                        async for chunk in response.aiter_bytes(10 * 1024 * 1024):
+                            if chunk:
+                                bytes_written = file.write(chunk)
+                                current_file_size += bytes_written
+                                model_progress_percentage = min((current_file_size / total_size) * 100.0, 99.9)
 
-                            if not await db_queries.update_model_progress_install(
-                                model.name, flow_name, model_progress_percentage
-                            ):
-                                return False
-
-                            increment = progress_for_model * bytes_written / total_size
-                            progress_value += increment
-                            if progress_value >= 0.1:
-                                if not await progress_callback(flow_name, progress_value, "", True):
+                                if not await db_queries.update_model_progress_install(
+                                    model.name, flow_name, model_progress_percentage
+                                ):
                                     return False
-                                total_added_progress += progress_value
-                                progress_value = 0.0
-                if not check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
-                    save_path.unlink(missing_ok=True)
-                    raise RuntimeError("Downloaded file hash does not match the expected hash.")
-                if model.url.endswith(".zip"):
-                    extract_zip_with_subfolder(save_path, save_path.parent)
-                    save_path.unlink(missing_ok=True)
-                else:
-                    await db_queries.update_model_mtime(
-                        model.name, save_path.stat().st_mtime, flow_name, new_filename=save_name
-                    )
-                await db_queries.update_model_progress_install(model.name, flow_name, 100.0)
-                return True
-            except (httpx.HTTPError, RuntimeError):
-                await progress_callback(flow_name, -total_added_progress, "", True)
-                raise
+
+                                increment = progress_for_model * bytes_written / total_size
+                                progress_value += increment
+                                if progress_value >= 0.1:
+                                    if not await progress_callback(flow_name, progress_value, "", True):
+                                        return False
+                                    total_added_progress += progress_value
+                                    progress_value = 0.0
+                    if not check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
+                        save_path.unlink(missing_ok=True)
+                        raise RuntimeError("Downloaded file hash does not match the expected hash.")
+                    if model.url.endswith(".zip"):
+                        extract_zip_with_subfolder(save_path, save_path.parent)
+                        save_path.unlink(missing_ok=True)
+                    else:
+                        await db_queries.update_model_mtime(
+                            model.name, save_path.stat().st_mtime, flow_name, new_filename=save_name
+                        )
+                    await db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+                    return True
+                except (httpx.HTTPError, RuntimeError):
+                    await progress_callback(flow_name, -total_added_progress, "", True)
+                    raise
     save_path.unlink(missing_ok=True)
     raise RuntimeError("Failed to download model after retries")
 
@@ -329,7 +335,7 @@ async def does_model_exist_in_fs(
                     model.name,
                     model_progress_install.filename,
                 )
-                if model_progress_install.filename and check_model_file(
+                if model_progress_install.filename and await check_model_file(
                     model_directory_path, model_progress_install.filename, model, model_progress_install, flow_name
                 ):
                     return True
@@ -339,7 +345,9 @@ async def does_model_exist_in_fs(
                     model.name,
                     save_path,
                 )
-                if check_model_file(model_directory_path, model_filename, model, model_progress_install, flow_name):
+                if await check_model_file(
+                    model_directory_path, model_filename, model, model_progress_install, flow_name
+                ):
                     return True
                 if delete_invalid:
                     LOGGER.warning("Model `%s` exists but has invalid hash. Deleting '%s'", model.name, save_path)
@@ -370,7 +378,7 @@ async def does_model_exist_in_fs(
     return await lookup_for_model_file(model, model_possible_directories, flow_name, model_progress_install)
 
 
-def check_model_file(
+async def check_model_file(
     model_directory: Path,
     model_filename: str,
     model: AIResourceModel,
@@ -396,10 +404,12 @@ def check_model_file(
                 return True
             if not model_progress_install:
                 LOGGER.debug("Adding model `%s` to the database.", model.name)
-                if not db_queries.add_model_progress_install(model.name, flow_name, model_filename):
-                    db_queries.reset_model_progress_install_error(model.name, flow_name)
-            db_queries.update_model_mtime(model.name, model_existing_path.stat().st_mtime, new_filename=model_filename)
-            db_queries.update_model_progress_install(model.name, flow_name, 100.0, not_critical=True)
+                if not await db_queries.add_model_progress_install(model.name, flow_name, model_filename):
+                    await db_queries.reset_model_progress_install_error(model.name, flow_name)
+            await db_queries.update_model_mtime(
+                model.name, model_existing_path.stat().st_mtime, new_filename=model_filename
+            )
+            await db_queries.update_model_progress_install(model.name, flow_name, 100.0, not_critical=True)
             return True
     return False
 

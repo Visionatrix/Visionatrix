@@ -8,7 +8,6 @@ import math
 import os
 import random
 import shutil
-import threading
 import time
 import typing
 import zipfile
@@ -52,8 +51,8 @@ CACHE_INSTALLED_FLOWS = {
     "flows": {},
     "flows_comfy": {},
 }
-CACHE_INSTALLED_FLOWS_LOCK = threading.Lock()
-CACHE_INSTALLED_FLOWS_EVENT = threading.Condition(CACHE_INSTALLED_FLOWS_LOCK)
+CACHE_INSTALLED_FLOWS_LOCK = asyncio.Lock()
+CACHE_INSTALLED_FLOWS_EVENT = asyncio.Condition(CACHE_INSTALLED_FLOWS_LOCK)
 
 SUPPORTED_OUTPUTS = {
     "SaveImage": "image",
@@ -88,7 +87,7 @@ async def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dic
 
         if cache_expired or not cache_entry:
             etag = cache_entry.get("etag", "")
-            flows, flows_comfy_single, new_etag = fetch_flows_from_url_or_path(flows_storage_url, etag)
+            flows, flows_comfy_single, new_etag = await fetch_flows_from_url_or_path(flows_storage_url, etag)
             if flows is not None:
                 # Update cache_entry with new data
                 cache_entry = {
@@ -124,7 +123,7 @@ async def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dic
     return combined_flows
 
 
-def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
+async def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
     r_flows = {}
     r_flows_comfy = {}
     if flows_storage_url.endswith("/"):
@@ -136,7 +135,8 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
     parsed_url = urlparse(flows_storage_url)
     if parsed_url.scheme in ("http", "https", "ftp", "ftps"):
         try:
-            r = httpx.get(flows_storage_url, headers={"If-None-Match": etag}, timeout=5.0)
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.get(flows_storage_url, headers={"If-None-Match": etag})
         except httpx.TransportError as e:
             LOGGER.error("Request to get flows failed with: %s", str(e))
             return None, None, etag
@@ -193,7 +193,7 @@ async def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dic
     current_time = time.time()
 
     # Acquire the lock
-    with CACHE_INSTALLED_FLOWS_LOCK:
+    async with CACHE_INSTALLED_FLOWS_LOCK:
         # Check cache validity after acquiring lock
         cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
         if current_time < cache_expiry_time:
@@ -203,7 +203,7 @@ async def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dic
         # If another thread is updating the cache, wait
         if CACHE_INSTALLED_FLOWS.get("updating", False):
             while CACHE_INSTALLED_FLOWS.get("updating", False):
-                CACHE_INSTALLED_FLOWS_EVENT.wait()
+                await CACHE_INSTALLED_FLOWS_EVENT.wait()
             # Re-check cache validity after being notified
             cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
             if current_time < cache_expiry_time:
@@ -217,12 +217,11 @@ async def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dic
     updated_data = await _update_installed_flows()
 
     # Acquire the lock again to update the cache
-    with CACHE_INSTALLED_FLOWS_LOCK:
+    async with CACHE_INSTALLED_FLOWS_LOCK:
         # Update the cache with new data
         CACHE_INSTALLED_FLOWS.update(updated_data)
         CACHE_INSTALLED_FLOWS["update_time"] = time.time()
         CACHE_INSTALLED_FLOWS["updating"] = False  # Clear the updating flag
-        # Notify all waiting threads that the cache has been updated
         CACHE_INSTALLED_FLOWS_EVENT.notify_all()
 
     # Update flows_comfy with the new cache data

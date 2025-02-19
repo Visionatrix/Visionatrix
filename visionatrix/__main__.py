@@ -128,6 +128,7 @@ async def async_main():
         datefmt="%H:%M:%S",
     )
     logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
+    logging.getLogger("aiosqlite").setLevel(get_higher_log_level(defined_loglvl))
 
     if args.command == "run":
         if args.host:

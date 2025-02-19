@@ -900,7 +900,7 @@ async def update_task_progress_thread(active_task: dict) -> None:
     last_info = active_task.copy()
     try:
         while True:
-            if last_info != active_task:
+            if last_info["progress"] == 100.0 or last_info != active_task:
                 last_info = active_task.copy()
                 if last_info["progress"] == 100.0:
                     if upload_results_to_server(last_info):
