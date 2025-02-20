@@ -142,10 +142,12 @@ if __name__ == "__main__":
         if args.server:
             options.VIX_SERVER = args.server
 
-    database.init_database_engine()
+    asyncio.run(database.init_database_engine())
 
     if args.command == "create-user":
-        database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
+        asyncio.run(
+            database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
+        )
         sys.exit(0)
 
     options.init_dirs_values(

@@ -36,7 +36,7 @@ async def get_setting(user_id: str, key: str, admin: bool) -> str:
 
 
 async def get_global_setting(key: str, admin: bool, crc32: int | None = None) -> str:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = select(database.GlobalSettings.value, database.GlobalSettings.sensitive).where(
                 database.GlobalSettings.name == key
@@ -56,7 +56,7 @@ async def get_global_setting(key: str, admin: bool, crc32: int | None = None) ->
 
 
 async def get_user_setting(user_id: str, key: str) -> str:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = select(database.UserSettings.value).where(
                 database.UserSettings.user_id == user_id, database.UserSettings.name == key
@@ -69,7 +69,7 @@ async def get_user_setting(user_id: str, key: str) -> str:
 
 
 async def set_global_setting(key: str, value: str, sensitive: bool) -> None:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             if value:
                 stmt = (
@@ -94,7 +94,7 @@ async def set_global_setting(key: str, value: str, sensitive: bool) -> None:
 
 
 async def set_user_setting(user_id: str, key: str, value: str) -> None:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             if value:
                 stmt = (
@@ -131,7 +131,7 @@ async def get_all_settings(user_id: str, admin: bool) -> dict[str, str]:
 
 async def get_all_global_settings(admin: bool) -> dict[str, str]:
     """Retrieve all global settings as a dictionary."""
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = select(
                 database.GlobalSettings.name, database.GlobalSettings.value, database.GlobalSettings.sensitive
@@ -145,7 +145,7 @@ async def get_all_global_settings(admin: bool) -> dict[str, str]:
 
 async def get_user_settings(user_id: str) -> dict[str, str]:
     """Retrieve all settings for a specific user as a dictionary."""
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = select(database.UserSettings.name, database.UserSettings.value).where(
                 database.UserSettings.user_id == user_id
@@ -157,21 +157,19 @@ async def get_user_settings(user_id: str) -> dict[str, str]:
             raise
 
 
-def get_flow_progress_install(name: str) -> FlowProgressInstall | None:
-    session = database.SESSION()
-    try:
-        query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
-        result = session.execute(query).scalar_one_or_none()
-        return None if result is None else FlowProgressInstall.model_validate(result)
-    except Exception:
-        LOGGER.exception("Failed to retrieve flow progress install for name `%s`.", name)
-        raise
-    finally:
-        session.close()
+async def get_flow_progress_install(name: str) -> FlowProgressInstall | None:
+    async with database.SESSION() as session:
+        try:
+            query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
+            result = (await session.execute(query)).scalar_one_or_none()
+            return None if result is None else FlowProgressInstall.model_validate(result)
+        except Exception:
+            LOGGER.exception("Failed to retrieve flow progress install for name `%s`.", name)
+            raise
 
 
 async def get_flows_progress_install() -> list[FlowProgressInstall]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = select(database.FlowsInstallStatus)
             results = (await session.execute(query)).scalars().all()
@@ -182,7 +180,7 @@ async def get_flows_progress_install() -> list[FlowProgressInstall]:
 
 
 async def delete_flow_progress_install(name: str) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             stmt = delete(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
             result = await session.execute(stmt)
@@ -195,7 +193,7 @@ async def delete_flow_progress_install(name: str) -> bool:
 
 
 async def delete_flows_progress_install() -> None:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             stmt = delete(database.FlowsInstallStatus)
             await session.execute(stmt)
@@ -207,7 +205,7 @@ async def delete_flows_progress_install() -> None:
 
 
 async def add_flow_progress_install(name: str, flow_comfy: dict) -> None:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             new_flow = database.FlowsInstallStatus(name=name, flow_comfy=flow_comfy)
             session.add(new_flow)
@@ -218,10 +216,53 @@ async def add_flow_progress_install(name: str, flow_comfy: dict) -> None:
             raise
 
 
-def update_flow_progress_install(name: str, progress: float, relative_progress: bool) -> bool:
-    session = database.SESSION()
-    try:
-        if relative_progress:
+async def update_flow_progress_install(name: str, progress: float, relative_progress: bool) -> bool:
+    async with database.SESSION() as session:
+        try:
+            if relative_progress:
+                stmt = (
+                    update(database.FlowsInstallStatus)
+                    .where(
+                        database.FlowsInstallStatus.name == name,
+                        database.FlowsInstallStatus.error == "",
+                    )
+                    .values(
+                        progress=database.FlowsInstallStatus.progress + progress,  # Increment progress
+                        updated_at=datetime.now(timezone.utc),
+                    )
+                )
+            else:
+                stmt = (
+                    update(database.FlowsInstallStatus)
+                    .where(
+                        database.FlowsInstallStatus.name == name,
+                        database.FlowsInstallStatus.error == "",
+                    )
+                    .values(
+                        progress=progress,
+                        updated_at=datetime.now(timezone.utc),
+                    )
+                )
+            result = await session.execute(stmt)
+            await session.commit()
+            if result.rowcount == 0:
+                LOGGER.warning(
+                    "Flow installation for `%s` already encountered an error, skipping progress update: %s%s",
+                    name,
+                    "+" if relative_progress else "",
+                    progress,
+                )
+                return False
+            return True
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to update flow installation progress for `%s`", name)
+            raise
+
+
+async def set_flow_progress_install_error(name: str, error: str) -> bool:
+    async with database.SESSION() as session:
+        try:
             stmt = (
                 update(database.FlowsInstallStatus)
                 .where(
@@ -229,77 +270,28 @@ def update_flow_progress_install(name: str, progress: float, relative_progress: 
                     database.FlowsInstallStatus.error == "",
                 )
                 .values(
-                    progress=database.FlowsInstallStatus.progress + progress,  # Increment progress
+                    error=error,
                     updated_at=datetime.now(timezone.utc),
                 )
             )
-        else:
-            stmt = (
-                update(database.FlowsInstallStatus)
-                .where(
-                    database.FlowsInstallStatus.name == name,
-                    database.FlowsInstallStatus.error == "",
+            result = await session.execute(stmt)
+            await session.commit()
+            if result.rowcount == 0:
+                LOGGER.warning(
+                    "Flow installation for `%s` already encountered an error, skipping setting error: %s",
+                    name,
+                    error,
                 )
-                .values(
-                    progress=progress,
-                    updated_at=datetime.now(timezone.utc),
-                )
-            )
-        result = session.execute(stmt)
-        session.commit()
-
-        if result.rowcount == 0:
-            LOGGER.warning(
-                "Flow installation for `%s` already encountered an error, skipping progress update: %s%s",
-                name,
-                "+" if relative_progress else "",
-                progress,
-            )
-            return False
-        return True
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to update flow installation progress for `%s`", name)
-        raise
-    finally:
-        session.close()
-
-
-def set_flow_progress_install_error(name: str, error: str) -> bool:
-    session = database.SESSION()
-    try:
-        stmt = (
-            update(database.FlowsInstallStatus)
-            .where(
-                database.FlowsInstallStatus.name == name,
-                database.FlowsInstallStatus.error == "",
-            )
-            .values(
-                error=error,
-                updated_at=datetime.now(timezone.utc),
-            )
-        )
-        result = session.execute(stmt)
-        session.commit()
-
-        if result.rowcount == 0:
-            LOGGER.warning(
-                "Flow installation for `%s` already encountered an error, skipping setting error: %s",
-                name,
-                error,
-            )
-            return False
-        return True
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to update flow installation progress for `%s`", name)
-        raise
-    finally:
-        session.close()
+                return False
+            return True
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to update flow installation progress for `%s`", name)
+            raise
 
 
 async def flows_installation_in_progress(name: str | None = None) -> dict[str, FlowProgressInstall]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             time_threshold = datetime.now(timezone.utc) - timedelta(minutes=5)
             query = select(database.FlowsInstallStatus).where(
@@ -317,7 +309,7 @@ async def flows_installation_in_progress(name: str | None = None) -> dict[str, F
 
 
 async def get_installed_flows() -> list[FlowProgressInstall]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.progress >= 100.0)
             results = (await session.execute(query)).scalars().all()
@@ -327,110 +319,101 @@ async def get_installed_flows() -> list[FlowProgressInstall]:
             raise e
 
 
-def delete_old_model_progress_install(name: str) -> bool:
-    session = database.SESSION()
-    try:
-        time_threshold = datetime.now(timezone.utc) - timedelta(minutes=3)
-        stmt = (
-            delete(database.ModelsInstallStatus)
-            .where(database.ModelsInstallStatus.name == name)
-            .where(
-                or_(
-                    database.ModelsInstallStatus.error != "",
-                    database.ModelsInstallStatus.updated_at < time_threshold,
+async def delete_old_model_progress_install(name: str) -> bool:
+    async with database.SESSION() as session:
+        try:
+            time_threshold = datetime.now(timezone.utc) - timedelta(minutes=3)
+            stmt = (
+                delete(database.ModelsInstallStatus)
+                .where(database.ModelsInstallStatus.name == name)
+                .where(
+                    or_(
+                        database.ModelsInstallStatus.error != "",
+                        database.ModelsInstallStatus.updated_at < time_threshold,
+                    )
                 )
             )
-        )
-        result = session.execute(stmt)
-        session.commit()
-        return result.rowcount != 0
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to delete installation progress for model `%s`.", name)
-        raise
-    finally:
-        session.close()
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount != 0
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to delete installation progress for model `%s`.", name)
+            raise
 
 
-def delete_model_by_time_and_filename(mtime: float, file_name: str) -> bool:
-    session = database.SESSION()
-    try:
-        stmt = (
-            delete(database.ModelsInstallStatus)
-            .where(database.ModelsInstallStatus.file_mtime == mtime)
-            .where(database.ModelsInstallStatus.filename.like(f"%{file_name}"))
-        )
-        result = session.execute(stmt)
-        session.commit()
-        return result.rowcount > 0
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to delete model by mtime `%s` and filename `%s`", mtime, file_name)
-        raise
-    finally:
-        session.close()
-
-
-def add_model_progress_install(name: str, flow_name: str, filename: str | None = None) -> datetime | None:
-    session = database.SESSION()
-    try:
-        new_updated_at = datetime.now(timezone.utc)
-        new_model = database.ModelsInstallStatus(
-            name=name,
-            flow_name=flow_name,
-            progress=0.0,
-            started_at=datetime.now(timezone.utc),
-            updated_at=new_updated_at,
-            filename=filename,
-        )
-        session.add(new_model)
-        session.commit()
-        return new_updated_at
-    except IntegrityError:
-        session.rollback()
-        LOGGER.info("Model installation progress for `%s` already exists.", name)
-        return None
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to add model installation progress for `%s` under flow `%s`.", name, flow_name)
-        raise
-    finally:
-        session.close()
-
-
-def update_model_progress_install(name: str, flow_name: str, progress: float, not_critical=False) -> bool:
-    session = database.SESSION()
-    try:
-        stmt = (
-            update(database.ModelsInstallStatus)
-            .where(
-                database.ModelsInstallStatus.name == name,
-                database.ModelsInstallStatus.error == "",
-                database.ModelsInstallStatus.flow_name == flow_name,
+async def delete_model_by_time_and_filename(mtime: float, file_name: str) -> bool:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                delete(database.ModelsInstallStatus)
+                .where(database.ModelsInstallStatus.file_mtime == mtime)
+                .where(database.ModelsInstallStatus.filename.like(f"%{file_name}"))
             )
-            .values(progress=progress, updated_at=datetime.now(timezone.utc))
-        )
-        result = session.execute(stmt)
-        session.commit()
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount > 0
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to delete model by mtime `%s` and filename `%s`", mtime, file_name)
+            raise
 
-        if result.rowcount == 0:
-            LOGGER.log(
-                logging.INFO if not_critical else logging.ERROR,
-                "Model installation progress not updated for `%s`. Either it doesn't exist or already has an error.",
-                name,
+
+async def add_model_progress_install(name: str, flow_name: str, filename: str | None = None) -> datetime | None:
+    async with database.SESSION() as session:
+        try:
+            new_updated_at = datetime.now(timezone.utc)
+            new_model = database.ModelsInstallStatus(
+                name=name,
+                flow_name=flow_name,
+                progress=0.0,
+                started_at=datetime.now(timezone.utc),
+                updated_at=new_updated_at,
+                filename=filename,
             )
-            return False
-        return True
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to update installation progress for model `%s`.", name)
-        raise
-    finally:
-        session.close()
+            session.add(new_model)
+            await session.commit()
+            return new_updated_at
+        except IntegrityError:
+            await session.rollback()
+            LOGGER.info("Model installation progress for `%s` already exists.", name)
+            return None
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to add model installation progress for `%s` under flow `%s`.", name, flow_name)
+            raise
+
+
+async def update_model_progress_install(name: str, flow_name: str, progress: float, not_critical=False) -> bool:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                update(database.ModelsInstallStatus)
+                .where(
+                    database.ModelsInstallStatus.name == name,
+                    database.ModelsInstallStatus.error == "",
+                    database.ModelsInstallStatus.flow_name == flow_name,
+                )
+                .values(progress=progress, updated_at=datetime.now(timezone.utc))
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+            if result.rowcount == 0:
+                LOGGER.log(
+                    logging.INFO if not_critical else logging.ERROR,
+                    "Model installation progress not updated for `%s`. It doesn't exist or already has an error.",
+                    name,
+                )
+                return False
+            return True
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to update installation progress for model `%s`.", name)
+            raise
 
 
 async def complete_model_progress_install(name: str, flow_name: str) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             stmt = (
                 update(database.ModelsInstallStatus)
@@ -466,39 +449,36 @@ async def complete_model_progress_install(name: str, flow_name: str) -> bool:
             raise
 
 
-def set_model_progress_install_error(name: str, flow_name: str, error: str) -> bool:
-    session = database.SESSION()
-    try:
-        stmt = (
-            update(database.ModelsInstallStatus)
-            .where(
-                database.ModelsInstallStatus.name == name,
-                database.ModelsInstallStatus.error == "",
-                database.ModelsInstallStatus.flow_name == flow_name,
+async def set_model_progress_install_error(name: str, flow_name: str, error: str) -> bool:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                update(database.ModelsInstallStatus)
+                .where(
+                    database.ModelsInstallStatus.name == name,
+                    database.ModelsInstallStatus.error == "",
+                    database.ModelsInstallStatus.flow_name == flow_name,
+                )
+                .values(error=error)
             )
-            .values(error=error)
-        )
-        result = session.execute(stmt)
-        session.commit()
-
-        if result.rowcount == 0:
-            LOGGER.warning(
-                "Models installation for `%s` already encountered an error, skipping setting error: %s",
-                name,
-                error,
-            )
-            return False
-        return True
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to update model installation progress for `%s`", name)
-        raise
-    finally:
-        session.close()
+            result = await session.execute(stmt)
+            await session.commit()
+            if result.rowcount == 0:
+                LOGGER.warning(
+                    "Models installation for `%s` already encountered an error, skipping setting error: %s",
+                    name,
+                    error,
+                )
+                return False
+            return True
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to update model installation progress for `%s`", name)
+            raise
 
 
 async def reset_model_progress_install_error(name: str, flow_name: str) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             stmt = (
                 update(database.ModelsInstallStatus)
@@ -521,35 +501,33 @@ async def reset_model_progress_install_error(name: str, flow_name: str) -> bool:
             raise
 
 
-def update_model_mtime(
+async def update_model_mtime(
     name: str, new_mtime: float, flow_name: str | None = None, new_filename: str | None = None
 ) -> bool:
-    session = database.SESSION()
-    try:
-        stmt = update(database.ModelsInstallStatus).where(database.ModelsInstallStatus.name == name)
-        if flow_name:
-            stmt = stmt.where(database.ModelsInstallStatus.flow_name == flow_name)
-        stmt = (
-            stmt.values(file_mtime=new_mtime, filename=new_filename)
-            if new_filename
-            else stmt.values(file_mtime=new_mtime)
-        )
-        result = session.execute(stmt)
-        session.commit()
-        if result.rowcount == 0:
-            LOGGER.warning("Model `%s` not found or no updates were made for mtime.", name)
-            return False
-        return True
-    except Exception:
-        session.rollback()
-        LOGGER.exception("Failed to update file mtime for model `%s`", name)
-        raise
-    finally:
-        session.close()
+    async with database.SESSION() as session:
+        try:
+            stmt = update(database.ModelsInstallStatus).where(database.ModelsInstallStatus.name == name)
+            if flow_name:
+                stmt = stmt.where(database.ModelsInstallStatus.flow_name == flow_name)
+            stmt = (
+                stmt.values(file_mtime=new_mtime, filename=new_filename)
+                if new_filename
+                else stmt.values(file_mtime=new_mtime)
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+            if result.rowcount == 0:
+                LOGGER.warning("Model `%s` not found or no updates were made for mtime.", name)
+                return False
+            return True
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to update file mtime for model `%s`", name)
+            raise
 
 
 async def models_installation_in_progress(name: str | None = None) -> dict[str, ModelProgressInstall]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             time_threshold = datetime.now(timezone.utc) - timedelta(minutes=3)
             query = select(database.ModelsInstallStatus).where(
@@ -567,7 +545,7 @@ async def models_installation_in_progress(name: str | None = None) -> dict[str, 
 
 
 async def get_installed_models() -> dict[str, ModelProgressInstall]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = select(database.ModelsInstallStatus).where(database.ModelsInstallStatus.progress >= 100.0)
             results = (await session.execute(query)).scalars().all()
@@ -578,7 +556,7 @@ async def get_installed_models() -> dict[str, ModelProgressInstall]:
 
 
 async def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = __get_workers_query(user_id, last_seen_interval, worker_id)
             results = (await session.execute(query)).scalars().all()
@@ -589,7 +567,7 @@ async def get_workers_details(user_id: str | None, last_seen_interval: int, work
 
 
 async def get_worker_details(user_id: str | None, worker_id: str) -> WorkerDetails | None:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = __get_worker_query(user_id, worker_id)
             result = (await session.execute(query)).scalar()
@@ -600,7 +578,7 @@ async def get_worker_details(user_id: str | None, worker_id: str) -> WorkerDetai
 
 
 async def set_worker_tasks_to_give(user_id: str | None, worker_id: str, tasks_to_give: list[str]) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = update(database.Worker).where(database.Worker.worker_id == worker_id)
             if user_id is not None:

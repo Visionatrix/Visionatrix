@@ -114,7 +114,7 @@ def parse_cookies_and_headers(scope: Scope) -> tuple[dict[str, str], dict[str, s
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    database.init_database_engine()
+    await database.init_database_engine()
 
     routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = await comfyui_wrapper.load(
         task_progress_callback
@@ -206,7 +206,7 @@ def run_vix(*args, **kwargs) -> None:
         try:
             background_prompt_executor(prompt_server_args, events.EXIT_EVENT)
         except KeyboardInterrupt:
-            remove_active_task_lock()
+            asyncio.run(remove_active_task_lock())
             print("Visionatrix is shutting down.")
 
 

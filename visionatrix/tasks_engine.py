@@ -174,7 +174,7 @@ async def get_incomplete_task_without_error_database(
     last_task_name: str,
     user_id: str | None = None,
 ) -> dict:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(
                 worker_user_id, worker_details
@@ -283,7 +283,7 @@ def __get_tasks_query(
 
 
 async def remove_task_by_id_database(task_ids: list[int]) -> bool:
-    session = database.SESSION_ASYNC()
+    session = database.SESSION()
     try:
         lock_result = await session.execute(delete(database.TaskLock).where(database.TaskLock.task_id.in_(task_ids)))
         details_result = await session.execute(
@@ -304,7 +304,7 @@ async def remove_task_by_id_database(task_ids: list[int]) -> bool:
 
 
 async def remove_unfinished_task_by_id(task_id: int) -> bool:
-    session = database.SESSION_ASYNC()
+    session = database.SESSION()
     try:
         await session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
         details_result = await session.execute(
@@ -326,7 +326,7 @@ async def remove_unfinished_task_by_id(task_id: int) -> bool:
 
 
 async def remove_unfinished_tasks_by_name_and_group(name: str, user_id: str, group_scope: int) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             stmt = delete(database.TaskDetails).where(
                 and_(
@@ -371,61 +371,59 @@ def remove_task_files(task_id: int, directories: list[str]) -> None:
                     os.remove(os.path.join(target_directory, filename))
 
 
-def remove_task_lock(task_id: int) -> None:
+async def remove_task_lock(task_id: int) -> None:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        return remove_task_lock_server(task_id)
-    return remove_task_lock_database(task_id)
+        return await remove_task_lock_server(task_id)
+    return await remove_task_lock_database(task_id)
 
 
-def remove_task_lock_database(task_id: int) -> None:
-    session = database.SESSION()
+async def remove_task_lock_database(task_id: int) -> None:
+    async with database.SESSION() as session:
+        try:
+            result = await session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
+            if result.rowcount > 0:
+                await session.commit()
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Task %s: failed to remove task lock: %s", task_id, e)
+
+
+async def remove_task_lock_server(task_id: int) -> None:
     try:
-        result = session.execute(delete(database.TaskLock).where(database.TaskLock.task_id == task_id))
-        if result.rowcount > 0:
-            session.commit()
-    except Exception as e:
-        session.rollback()
-        LOGGER.exception("Task %s: failed to remove task lock: %s", task_id, e)
-    finally:
-        session.close()
-
-
-def remove_task_lock_server(task_id: int) -> None:
-    try:
-        r = httpx.delete(
-            options.VIX_SERVER.rstrip("/") + "/api/tasks/lock",
-            params={"task_id": task_id},
-            auth=options.worker_auth(),
-            timeout=float(options.WORKER_NET_TIMEOUT),
-        )
+        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+            r = await client.delete(
+                options.VIX_SERVER.rstrip("/") + "/api/tasks/lock",
+                params={"task_id": task_id},
+                auth=options.worker_auth(),
+            )
         if httpx.codes.is_error(r.status_code):
             LOGGER.warning("Task %s: server return status: %s", task_id, r.status_code)
     except Exception as e:
         LOGGER.exception("Exception occurred: %s", e)
 
 
-def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
-    with database.SESSION() as session:
+async def update_task_outputs(task_id: int, outputs: list[dict]) -> bool:
+    async with database.SESSION() as session:
         try:
-            result = session.execute(
+            result = await session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(outputs=outputs)
             )
             if result.rowcount == 1:
-                session.commit()
+                await session.commit()
                 return True
         except Exception as e:
             comfyui_wrapper.interrupt_processing()
-            session.rollback()
+            await session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails outputs: %s", task_id, e)
     return False
 
 
-def update_task_progress(task_details: dict) -> bool:
+async def update_task_progress(task_details: dict) -> bool:
     __update_temporary_execution_time(task_details)
     execution_details = task_details.get("execution_details") if task_details["progress"] == 100.0 else None
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        return update_task_progress_server(task_details, execution_details)
-    r = update_task_progress_database(
+        return await update_task_progress_server(task_details, execution_details)
+    r = await update_task_progress_database(
         task_details["task_id"],
         task_details["progress"],
         task_details["error"],
@@ -436,8 +434,8 @@ def update_task_progress(task_details: dict) -> bool:
     )
     if r and task_details["webhook_url"]:
         try:
-            with httpx.Client(base_url=task_details["webhook_url"], timeout=3.0) as client:
-                client.post(
+            async with httpx.AsyncClient(base_url=task_details["webhook_url"], timeout=3.0) as client:
+                await client.post(
                     url="task-progress",
                     json={
                         "task_id": task_details["task_id"],
@@ -457,7 +455,7 @@ def update_task_progress(task_details: dict) -> bool:
     return r
 
 
-def update_task_progress_database(
+async def update_task_progress_database(
     task_id: int,
     progress: float,
     error: str,
@@ -466,7 +464,7 @@ def update_task_progress_database(
     worker_details: WorkerDetailsRequest,
     execution_details: ExecutionDetails | None = None,
 ) -> bool:
-    with database.SESSION() as session:
+    async with database.SESSION() as session:
         try:
             worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
             update_values = {
@@ -480,24 +478,24 @@ def update_task_progress_database(
                 update_values["finished_at"] = datetime.now(timezone.utc)
                 if execution_details is not None:
                     update_values["execution_details"] = execution_details.model_dump(mode="json", exclude_none=True)
-            result = session.execute(
+            result = await session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
-            session.commit()
+            await session.commit()
             if (task_updated := result.rowcount == 1) is True:
-                session.execute(
+                await session.execute(
                     update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
                 )
-                session.commit()
+                await session.commit()
             return task_updated
         except Exception as e:
             comfyui_wrapper.interrupt_processing()
-            session.rollback()
+            await session.rollback()
             LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
     return False
 
 
-def update_task_progress_server(task_details: dict, execution_details: dict | None = None) -> bool:
+async def update_task_progress_server(task_details: dict, execution_details: dict | None = None) -> bool:
     task_id = task_details["task_id"]
     request_data = {
         "worker_details": comfyui_wrapper.get_worker_details(),
@@ -510,19 +508,19 @@ def update_task_progress_server(task_details: dict, execution_details: dict | No
         request_data["execution_details"] = execution_details
     for i in range(3):
         try:
-            r = httpx.put(
-                options.VIX_SERVER.rstrip("/") + "/api/tasks/progress",
-                json=request_data,
-                auth=options.worker_auth(),
-                timeout=float(options.WORKER_NET_TIMEOUT),
-            )
-            if not httpx.codes.is_error(r.status_code):
-                return True
-            if r.status_code == 404:
-                LOGGER.info("Task %s: missing on server.", task_id)
-            else:
-                LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
-            return False
+            async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+                r = await client.put(
+                    options.VIX_SERVER.rstrip("/") + "/api/tasks/progress",
+                    json=request_data,
+                    auth=options.worker_auth(),
+                )
+                if not httpx.codes.is_error(r.status_code):
+                    return True
+                if r.status_code == 404:
+                    LOGGER.info("Task %s: missing on server.", task_id)
+                else:
+                    LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
+                return False
         except (httpx.TimeoutException, httpx.RemoteProtocolError):
             if i != 2:
                 LOGGER.warning("Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i)
@@ -538,12 +536,12 @@ def __update_temporary_execution_time(task_details: dict) -> None:
         task_details["execution_time"] = time.perf_counter() - task_details["execution_start_time"]
 
 
-def remove_active_task_lock():
+async def remove_active_task_lock():
     if ACTIVE_TASK:
-        remove_task_lock(ACTIVE_TASK["task_id"])
+        await remove_task_lock(ACTIVE_TASK["task_id"])
 
 
-def init_active_task_inputs_from_server() -> bool:
+async def init_active_task_inputs_from_server() -> bool:
     if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
         return True
     task_id = ACTIVE_TASK["task_id"]
@@ -553,21 +551,21 @@ def init_active_task_inputs_from_server() -> bool:
         for i, _ in enumerate(ACTIVE_TASK["input_files"]):
             for k in range(3):
                 try:
-                    r = httpx.get(
-                        options.VIX_SERVER.rstrip("/") + "/api/tasks/inputs",
-                        params={"task_id": task_id, "input_index": i},
-                        auth=options.worker_auth(),
-                        timeout=float(options.WORKER_NET_TIMEOUT),
-                    )
-                    if r.status_code == httpx.codes.NOT_FOUND:
-                        raise RuntimeError(f"Task {task_id}: not found on server")
-                    if httpx.codes.is_error(r.status_code):
-                        raise RuntimeError(f"Task {task_id}: can not get input file, status={r.status_code}")
-                    with builtins.open(
-                        os.path.join(input_directory, ACTIVE_TASK["input_files"][i]["file_name"]), mode="wb"
-                    ) as input_file:
-                        input_file.write(r.content)
-                    break
+                    async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+                        r = await client.get(
+                            options.VIX_SERVER.rstrip("/") + "/api/tasks/inputs",
+                            params={"task_id": task_id, "input_index": i},
+                            auth=options.worker_auth(),
+                        )
+                        if r.status_code == httpx.codes.NOT_FOUND:
+                            raise RuntimeError(f"Task {task_id}: not found on server")
+                        if httpx.codes.is_error(r.status_code):
+                            raise RuntimeError(f"Task {task_id}: can not get input file, status={r.status_code}")
+                        with builtins.open(
+                            os.path.join(input_directory, ACTIVE_TASK["input_files"][i]["file_name"]), mode="wb"
+                        ) as input_file:
+                            input_file.write(r.content)
+                        break
                 except (httpx.TimeoutException, httpx.RemoteProtocolError):
                     if k != 2:
                         LOGGER.warning("Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i)
@@ -577,13 +575,13 @@ def init_active_task_inputs_from_server() -> bool:
     except Exception as e:
         LOGGER.exception("Can not work on task")
         ACTIVE_TASK["error"] = str(e)
-        update_task_progress(ACTIVE_TASK)
+        await update_task_progress(ACTIVE_TASK)
         remove_task_files(task_id, ["output", "input"])
-        remove_task_lock(task_id)
+        await remove_task_lock(task_id)
         return False
 
 
-def upload_results_to_server(task_details: dict) -> bool:
+async def upload_results_to_server(task_details: dict) -> bool:
     task_id = task_details["task_id"]
     output_files = get_task_files(task_id, "output")
     if not (options.VIX_MODE == "WORKER" and options.VIX_SERVER):
@@ -597,7 +595,7 @@ def upload_results_to_server(task_details: dict) -> bool:
                 batch_size += 1
             task_output["file_size"] = file_size
             task_output["batch_size"] = batch_size
-        update_task_outputs(task_id, task_details["outputs"])
+        await update_task_outputs(task_id, task_details["outputs"])
         return True
     files = []
     try:
@@ -609,15 +607,15 @@ def upload_results_to_server(task_details: dict) -> bool:
         try:
             for i in range(3):
                 try:
-                    r = httpx.put(
-                        options.VIX_SERVER.rstrip("/") + "/api/tasks/results",
-                        params={
-                            "task_id": task_id,
-                        },
-                        files=files,
-                        auth=options.worker_auth(),
-                        timeout=float(options.WORKER_NET_TIMEOUT),
-                    )
+                    async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+                        r = await client.put(
+                            options.VIX_SERVER.rstrip("/") + "/api/tasks/results",
+                            params={
+                                "task_id": task_id,
+                            },
+                            files=files,
+                            auth=options.worker_auth(),
+                        )
                     if r.status_code == httpx.codes.NOT_FOUND:
                         return False
                     if not httpx.codes.is_error(r.status_code):
@@ -718,7 +716,7 @@ def background_prompt_executor(prompt_executor_args: tuple | list, exit_event: t
                 reply_count_no_tasks = min(reply_count_no_tasks + 1, 10)
                 continue
 
-            if init_active_task_inputs_from_server() is False:
+            if asyncio.run(init_active_task_inputs_from_server()) is False:
                 ACTIVE_TASK = {}
                 continue
 
@@ -758,15 +756,19 @@ def background_prompt_executor(prompt_executor_args: tuple | list, exit_event: t
 
 def update_task_progress_thread(active_task: dict) -> None:
     last_info = active_task.copy()
+    asyncio.run(__update_task_progress_action(active_task, last_info))
+
+
+async def __update_task_progress_action(active_task: dict, last_info: dict) -> None:
     try:
         while True:
             if last_info != active_task:
                 last_info = active_task.copy()
                 if last_info["progress"] == 100.0:
-                    if upload_results_to_server(last_info):
-                        update_task_progress(last_info)
+                    if await upload_results_to_server(last_info):
+                        await update_task_progress(last_info)
                     break
-                if not update_task_progress(last_info):
+                if not await update_task_progress(last_info):
                     active_task["interrupted"] = True
                     comfyui_wrapper.interrupt_processing()
                     break
@@ -774,6 +776,6 @@ def update_task_progress_thread(active_task: dict) -> None:
                     break
                 active_task["execution_time"] = last_info["execution_time"]
             else:
-                time.sleep(0.1)
+                await asyncio.sleep(0.1)
     finally:
-        remove_task_lock(last_info["task_id"])
+        await remove_task_lock(last_info["task_id"])

@@ -114,7 +114,7 @@ async def delete_orphan_model(request: Request, full_orphan_path: str, file_crea
         )
 
     try:
-        orphan_models.remove_orphan_model(full_orphan_path)
+        await orphan_models.remove_orphan_model(full_orphan_path)
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"File not found at path: {full_orphan_path}") from None
     except Exception as e:

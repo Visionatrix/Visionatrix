@@ -121,6 +121,7 @@ lint.extend-ignore = [
   "RUF100",
   "S311",
   "S603",
+  "SIM117",
 ]
 
 lint.per-file-ignores."scripts/*.*" = [

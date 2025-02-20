@@ -39,8 +39,13 @@ VIX_SERVER_FULL_MODELS = environ.get("VIX_SERVER_FULL_MODELS", "0")
 
 In the case of installation on one server machine or when you have mapped MODELS folder between different machines."""
 
-DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///./visionatrix.db")
-"""for SQLite: if path is relative than it is always relative to the current directory"""
+DATABASE_URI = environ.get("DATABASE_URI", "sqlite+aiosqlite:///./visionatrix.db")
+"""Database connection URI used by Visionatrix.
+
+This URI must use an asynchronous database driver compatible with SQLAlchemy's async engine,
+such as `sqlite+aiosqlite`. For SQLite, if the provided path is relative, it will be resolved
+relative to the current working directory.
+"""
 
 ORG_URL = "https://github.com/Visionatrix/"  # organization from which ComfyUI nodes will be installed
 

@@ -92,12 +92,12 @@ async def get_orphan_models() -> list[OrphanModel]:
     return list(orphan_models)
 
 
-def remove_orphan_model(orphan_path: str) -> bool:
+async def remove_orphan_model(orphan_path: str) -> bool:
     orphan_file = Path(orphan_path)
     orphan_filename = orphan_file.name
     file_st_ctime = orphan_file.stat().st_ctime
     orphan_file.unlink()
-    r = db_queries.delete_model_by_time_and_filename(file_st_ctime, orphan_filename)
+    r = await db_queries.delete_model_by_time_and_filename(file_st_ctime, orphan_filename)
     LOGGER.debug("Database removal result for orphan model '%s': %s", orphan_filename, r)
     return bool(r)
 
@@ -135,7 +135,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
             continue
         if no_confirm:
             try:
-                remove_orphan_model(orphan.path)
+                asyncio.run(remove_orphan_model(orphan.path))
                 print(f"Deleted: {orphan.path}")
             except Exception as e:
                 print(f"Error deleting {orphan.path}: {e}")
@@ -143,7 +143,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
             user_input = input(f"Delete {orphan.path}? (y/Y to confirm, any other key to skip): ").lower()
             if user_input == "y":
                 try:
-                    remove_orphan_model(orphan.path)
+                    asyncio.run(remove_orphan_model(orphan.path))
                     print(f"Deleted: {orphan.path}")
                 except Exception as e:
                     print(f"Error deleting {orphan.path}: {e}")

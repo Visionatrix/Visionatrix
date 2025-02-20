@@ -36,6 +36,7 @@ from ..tasks_engine import (
     remove_task_lock_database,
     remove_unfinished_task_by_id,
     remove_unfinished_tasks_by_name_and_group,
+    update_task_progress_database,
 )
 from ..tasks_engine_async import (
     get_task_async,
@@ -44,7 +45,6 @@ from ..tasks_engine_async import (
     task_restart_database_async,
     update_task_info_database_async,
     update_task_outputs_async,
-    update_task_progress_database_async,
 )
 from .tasks_internal import get_translated_input_params, task_run, webhook_task_progress
 
@@ -625,7 +625,7 @@ async def update_task_progress(
     user_info = request.scope["user_info"]
     if r["user_id"] != user_info.user_id and not user_info.is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    if not await update_task_progress_database_async(
+    if not await update_task_progress_database(
         task_id, progress, error, execution_time, user_info.user_id, worker_details, execution_details
     ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task progress.")
