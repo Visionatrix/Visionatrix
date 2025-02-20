@@ -17,11 +17,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
-from .tasks_engine import (
-    background_prompt_executor,
-    remove_active_task_lock,
-    task_progress_callback,
-)
+from .tasks_engine import remove_active_task_lock, task_progress_callback
 from .tasks_engine_async import start_tasks_engine
 from .user_backends import perform_auth_http, perform_auth_ws
 
