@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import concurrent.futures
 import contextlib
@@ -8,7 +9,6 @@ import math
 import os
 import random
 import shutil
-import threading
 import time
 import typing
 import zipfile
@@ -20,7 +20,13 @@ import httpx
 from packaging.version import Version, parse
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from . import _version, comfyui_class_info, db_queries, events, options
+from . import (
+    _version,
+    comfyui_class_info,
+    db_queries,
+    events,
+    options,
+)
 from .comfyui_wrapper import get_node_class_mappings
 from .etc import is_english
 from .flows_loras import (
@@ -42,13 +48,14 @@ SECONDS_TO_CACHE_AVAILABLE_FLOWS = 3 * 60
 
 LOGGER = logging.getLogger("visionatrix")
 CACHE_AVAILABLE_FLOWS = {}
+CACHE_AVAILABLE_FLOWS_LOCK = asyncio.Lock()
+
 CACHE_INSTALLED_FLOWS = {
     "update_time": time.time() - (SECONDS_TO_CACHE_INSTALLED_FLOWS + 1),
     "flows": {},
     "flows_comfy": {},
 }
-CACHE_INSTALLED_FLOWS_LOCK = threading.Lock()
-CACHE_INSTALLED_FLOWS_EVENT = threading.Condition(CACHE_INSTALLED_FLOWS_LOCK)
+CACHE_INSTALLED_FLOWS_LOCK = asyncio.Lock()
 
 SUPPORTED_OUTPUTS = {
     "SaveImage": "image",
@@ -62,11 +69,12 @@ SUPPORTED_TEXT_TYPES_INPUTS = ["text", "number", "list", "bool", "range", "range
 SUPPORTED_FILE_TYPES_INPUTS = ["image", "image-mask", "video"]
 
 
-def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+async def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
     if flows_comfy is None:
         flows_comfy = {}
     else:
         flows_comfy.clear()
+    current_time = time.time()
 
     flows_storage_urls = [url.strip() for url in options.FLOWS_URL.split(";") if url.strip()]
     if not flows_storage_urls:
@@ -76,50 +84,50 @@ def get_available_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str,
     combined_flows = {}
     combined_flows_comfy = {}
 
-    for flows_storage_url in flows_storage_urls:
-        cache_entry = CACHE_AVAILABLE_FLOWS.get(flows_storage_url, {})
-        current_time = time.time()
-        cache_expired = current_time > cache_entry.get("update_time", 0) + SECONDS_TO_CACHE_AVAILABLE_FLOWS
+    async with CACHE_AVAILABLE_FLOWS_LOCK:
+        for flows_storage_url in flows_storage_urls:
+            cache_entry = CACHE_AVAILABLE_FLOWS.get(flows_storage_url, {})
+            cache_expired = current_time > cache_entry.get("update_time", 0) + SECONDS_TO_CACHE_AVAILABLE_FLOWS
 
-        if cache_expired or not cache_entry:
-            etag = cache_entry.get("etag", "")
-            flows, flows_comfy_single, new_etag = fetch_flows_from_url_or_path(flows_storage_url, etag)
-            if flows is not None:
-                # Update cache_entry with new data
-                cache_entry = {
-                    "update_time": current_time,
-                    "etag": new_etag,
-                    "flows": flows,
-                    "flows_comfy": flows_comfy_single,
-                }
-                CACHE_AVAILABLE_FLOWS[flows_storage_url] = cache_entry
+            if cache_expired or not cache_entry:
+                etag = cache_entry.get("etag", "")
+                flows, flows_comfy_single, new_etag = await fetch_flows_from_url_or_path(flows_storage_url, etag)
+                if flows is not None:
+                    # Update cache_entry with new data
+                    cache_entry = {
+                        "update_time": current_time,
+                        "etag": new_etag,
+                        "flows": flows,
+                        "flows_comfy": flows_comfy_single,
+                    }
+                    CACHE_AVAILABLE_FLOWS[flows_storage_url] = cache_entry
+                else:
+                    # Use existing cache_entry (even if expired)
+                    flows = cache_entry.get("flows", {})
+                    flows_comfy_single = cache_entry.get("flows_comfy", {})
             else:
-                # Use existing cache_entry (even if expired)
+                # Cache is valid, use cached data
                 flows = cache_entry.get("flows", {})
                 flows_comfy_single = cache_entry.get("flows_comfy", {})
-        else:
-            # Cache is valid, use cached data
-            flows = cache_entry.get("flows", {})
-            flows_comfy_single = cache_entry.get("flows_comfy", {})
 
-        # Merge the flows into combined_flows
-        for flow_name, flow_data in flows.items():
-            if flow_name not in combined_flows:
-                combined_flows[flow_name] = flow_data
-                combined_flows_comfy[flow_name] = flows_comfy_single[flow_name]
-            else:
-                # Handle duplicate flow names, prefer the latest version
-                existing_version = parse(combined_flows[flow_name].version)
-                new_version = parse(flow_data.version)
-                if new_version > existing_version:
+            # Merge the flows into combined_flows
+            for flow_name, flow_data in flows.items():
+                if flow_name not in combined_flows:
                     combined_flows[flow_name] = flow_data
                     combined_flows_comfy[flow_name] = flows_comfy_single[flow_name]
+                else:
+                    # Handle duplicate flow names, prefer the latest version
+                    existing_version = parse(combined_flows[flow_name].version)
+                    new_version = parse(flow_data.version)
+                    if new_version > existing_version:
+                        combined_flows[flow_name] = flow_data
+                        combined_flows_comfy[flow_name] = flows_comfy_single[flow_name]
 
     flows_comfy.update(combined_flows_comfy)
     return combined_flows
 
 
-def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
+async def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
     r_flows = {}
     r_flows_comfy = {}
     if flows_storage_url.endswith("/"):
@@ -131,7 +139,8 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
     parsed_url = urlparse(flows_storage_url)
     if parsed_url.scheme in ("http", "https", "ftp", "ftps"):
         try:
-            r = httpx.get(flows_storage_url, headers={"If-None-Match": etag}, timeout=5.0)
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.get(flows_storage_url, headers={"If-None-Match": etag})
         except httpx.TransportError as e:
             LOGGER.error("Request to get flows failed with: %s", str(e))
             return None, None, etag
@@ -167,10 +176,10 @@ def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
     return r_flows, r_flows_comfy, flows_content_etag
 
 
-def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
-    installed_flows_ids = list(get_installed_flows())
+async def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+    installed_flows_ids = list(await get_installed_flows())
     avail_flows_comfy = {}
-    avail_flows = get_available_flows(avail_flows_comfy)
+    avail_flows = await get_available_flows(avail_flows_comfy)
     flows = {}
     for i, v in avail_flows.items():
         if i not in installed_flows_ids:
@@ -180,72 +189,48 @@ def get_not_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[
     return flows
 
 
-def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
+async def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dict[str, Flow]:
     if flows_comfy is None:
         flows_comfy = {}
     else:
         flows_comfy.clear()
     current_time = time.time()
 
-    # Acquire the lock
-    with CACHE_INSTALLED_FLOWS_LOCK:
-        # Check cache validity after acquiring lock
+    async with CACHE_INSTALLED_FLOWS_LOCK:
         cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
         if current_time < cache_expiry_time:
             flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
             return CACHE_INSTALLED_FLOWS["flows"]
 
-        # If another thread is updating the cache, wait
-        if CACHE_INSTALLED_FLOWS.get("updating", False):
-            while CACHE_INSTALLED_FLOWS.get("updating", False):
-                CACHE_INSTALLED_FLOWS_EVENT.wait()
-            # Re-check cache validity after being notified
-            cache_expiry_time = CACHE_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
-            if current_time < cache_expiry_time:
-                flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
-                return CACHE_INSTALLED_FLOWS["flows"]
-        # Set the updating flag to indicate cache is being updated
-        CACHE_INSTALLED_FLOWS["updating"] = True
+        available_flows = await get_available_flows({})
+        public_flows_names = list(available_flows)
+        installed_flows = await db_queries.get_installed_flows()
+        r = {}
+        r_comfy = {}
+        for installed_flow in installed_flows:
+            installed_flow.flow = get_vix_flow(installed_flow.flow_comfy)
+            if installed_flow.name not in public_flows_names:
+                installed_flow.flow.private = True
+            _fresh_flow_info = available_flows.get(installed_flow.name)
+            if _fresh_flow_info and parse(installed_flow.flow.version) < parse(_fresh_flow_info.version):
+                installed_flow.flow.new_version_available = _fresh_flow_info.version
+            r[installed_flow.name] = installed_flow.flow
+            r_comfy[installed_flow.name] = installed_flow.flow_comfy
+        CACHE_INSTALLED_FLOWS.update(
+            {
+                "flows": r,
+                "flows_comfy": r_comfy,
+                "update_time": time.time(),
+            }
+        )
 
-    # Release the lock before performing long-running operations
-    # Perform the operations without holding the lock
-    updated_data = _update_installed_flows()
-
-    # Acquire the lock again to update the cache
-    with CACHE_INSTALLED_FLOWS_LOCK:
-        # Update the cache with new data
-        CACHE_INSTALLED_FLOWS.update(updated_data)
-        CACHE_INSTALLED_FLOWS["update_time"] = time.time()
-        CACHE_INSTALLED_FLOWS["updating"] = False  # Clear the updating flag
-        # Notify all waiting threads that the cache has been updated
-        CACHE_INSTALLED_FLOWS_EVENT.notify_all()
-
-    # Update flows_comfy with the new cache data
     flows_comfy.update(CACHE_INSTALLED_FLOWS["flows_comfy"])
     return CACHE_INSTALLED_FLOWS["flows"]
 
 
-def _update_installed_flows():
-    available_flows = get_available_flows({})
-    public_flows_names = list(available_flows)
-    installed_flows = db_queries.get_installed_flows()
-    r = {}
-    r_comfy = {}
-    for installed_flow in installed_flows:
-        installed_flow.flow = get_vix_flow(installed_flow.flow_comfy)
-        if installed_flow.name not in public_flows_names:
-            installed_flow.flow.private = True
-        _fresh_flow_info = available_flows.get(installed_flow.name)
-        if _fresh_flow_info and parse(installed_flow.flow.version) < parse(_fresh_flow_info.version):
-            installed_flow.flow.new_version_available = _fresh_flow_info.version
-        r[installed_flow.name] = installed_flow.flow
-        r_comfy[installed_flow.name] = installed_flow.flow_comfy
-    return {"flows": r, "flows_comfy": r_comfy}
-
-
-def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | None:
+async def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | None:
     flows_comfy = {}
-    flow = get_installed_flows(flows_comfy).get(flow_name)
+    flow = (await get_installed_flows(flows_comfy)).get(flow_name)
     if flow:
         flow_comfy.clear()
         flow_comfy.update(flows_comfy[flow_name])
@@ -253,11 +238,13 @@ def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flow | No
 
 
 def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
-    db_queries.delete_flow_progress_install(flow.name)
-    db_queries.add_flow_progress_install(flow.name, flow_comfy)
+    asyncio.run(db_queries.delete_flow_progress_install(flow.name))
+    asyncio.run(db_queries.add_flow_progress_install(flow.name, flow_comfy))
     progress_for_model = 97 / max(len(flow.models), 1)
-    if not __flow_install_callback(flow.name, 1.0, "", False):
+
+    if not asyncio.run(db_queries.update_flow_progress_install(flow.name, 0.0, False)):
         return False
+
     auth_tokens = {"huggingface_auth_token": "", "civitai_auth_token": ""}
     for token_env, token_key in [("HF_AUTH_TOKEN", "huggingface_auth_token"), ("CA_AUTH_TOKEN", "civitai_auth_token")]:
         if token_env in os.environ:
@@ -275,7 +262,7 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
             except Exception as e:
                 LOGGER.error("Error fetching `%s`: %s", token_key, str(e))
         else:
-            auth_tokens[token_key] = db_queries.get_global_setting(token_key, True)
+            auth_tokens[token_key] = asyncio.run(db_queries.get_global_setting(token_key, True))
 
     try:
         install_models_results = []
@@ -310,40 +297,39 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
         return False
 
-    if not __flow_install_callback(flow.name, 100.0, "", False):
+    LOGGER.info("Installation of `%s` flow completed", flow.name)
+    if not asyncio.run(db_queries.update_flow_progress_install(flow.name, 100.0, False)):
         return False
+
     CACHE_INSTALLED_FLOWS["update_time"] = 0
     return True
 
 
-def __flow_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
+async def __flow_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
     """Returns `True` if no errors occurred."""
 
     if error:
         LOGGER.error("`%s` installation failed: %s", name, error)
-        db_queries.set_flow_progress_install_error(name, error)
+        await db_queries.set_flow_progress_install_error(name, error)
         return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
-    if progress == 100.0:
-        LOGGER.info("Installation of %s flow completed", name)
-        return db_queries.update_flow_progress_install(name, progress, False)
 
     if events.EXIT_EVENT.is_set():
-        db_queries.set_flow_progress_install_error(name, "Installation interrupted by user.")
+        await db_queries.set_flow_progress_install_error(name, "Installation interrupted by user.")
         return False
 
     if LOGGER.getEffectiveLevel() <= logging.INFO:
-        current_progress_info = db_queries.get_flow_progress_install(name)
+        current_progress_info = await db_queries.get_flow_progress_install(name)
         if not current_progress_info:
             LOGGER.warning("Can not get installation progress info for %s", name)
         else:
             LOGGER.info(
                 "`%s` installation: %s", name, math.floor((current_progress_info.progress + progress) * 10) / 10
             )
-    return db_queries.update_flow_progress_install(name, progress, relative_progress)
+    return await db_queries.update_flow_progress_install(name, progress, relative_progress)
 
 
-def uninstall_flow(flow_name: str) -> None:
-    db_queries.delete_flow_progress_install(flow_name)
+async def uninstall_flow(flow_name: str) -> None:
+    await db_queries.delete_flow_progress_install(flow_name)
     CACHE_INSTALLED_FLOWS["update_time"] = 0
 
 
@@ -717,7 +703,7 @@ def get_nodes_for_translate(
 
 
 async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
-    available_workers = db_queries.get_workers_details(None, 5 * 60, "")
+    available_workers = await db_queries.get_workers_details(None, 5 * 60, "")
     for flow in flows.values():
         if flow.is_macos_supported is False:
             flow.is_supported_by_workers = any(worker.device_type != "mps" for worker in available_workers)

@@ -45,6 +45,7 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "aiosqlite>=0.21",
   "alembic",
   "bcrypt==4.0.1",
   "fastapi>=0.113",
@@ -120,6 +121,7 @@ lint.extend-ignore = [
   "RUF100",
   "S311",
   "S603",
+  "SIM117",
 ]
 
 lint.per-file-ignores."scripts/*.*" = [

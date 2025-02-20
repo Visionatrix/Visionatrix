@@ -3,7 +3,6 @@ import logging
 import ollama
 from fastapi import APIRouter, Body, HTTPException, Query, Request, responses, status
 
-from .. import options
 from ..db_queries import (
     get_all_global_settings,
     get_all_settings,
@@ -13,16 +12,6 @@ from ..db_queries import (
     get_user_settings,
     set_global_setting,
     set_user_setting,
-)
-from ..db_queries_async import (
-    get_all_global_settings_async,
-    get_all_settings_async,
-    get_global_setting_async,
-    get_setting_async,
-    get_user_setting_async,
-    get_user_settings_async,
-    set_global_setting_async,
-    set_user_setting_async,
 )
 from ..pydantic_models import OllamaModelItem
 from .helpers import require_admin
@@ -49,9 +38,7 @@ async def get(request: Request, key: str = Query(..., description="The key of th
     Default endpoint for retrieving settings.
     User settings have higher priority than global settings.
     """
-    if options.VIX_MODE == "SERVER":
-        return await get_setting_async(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
-    return get_setting(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
+    return await get_setting(request.scope["user_info"].user_id, key, request.scope["user_info"].is_admin)
 
 
 @ROUTER.get(
@@ -69,9 +56,7 @@ async def get_global(
     request: Request, key: str = Query(..., description="The key of the global setting to retrieve")
 ) -> str:
     """Retrieve the global setting value or an empty string if the global setting is not found."""
-    if options.VIX_MODE == "SERVER":
-        return await get_global_setting_async(key, request.scope["user_info"].is_admin)
-    return get_global_setting(key, request.scope["user_info"].is_admin)
+    return await get_global_setting(key, request.scope["user_info"].is_admin)
 
 
 @ROUTER.get(
@@ -89,9 +74,7 @@ async def get_user(
     request: Request, key: str = Query(..., description="The key of the user setting to retrieve")
 ) -> str:
     """Retrieve the user setting value or an empty string if the user setting is not found."""
-    if options.VIX_MODE == "SERVER":
-        return await get_user_setting_async(request.scope["user_info"].user_id, key)
-    return get_user_setting(request.scope["user_info"].user_id, key)
+    return await get_user_setting(request.scope["user_info"].user_id, key)
 
 
 @ROUTER.post(
@@ -119,10 +102,7 @@ async def set_global(
     Access is restricted to administrators only.
     """
     require_admin(request)
-    if options.VIX_MODE == "SERVER":
-        await set_global_setting_async(key, value, sensitive)
-    else:
-        set_global_setting(key, value, sensitive)
+    await set_global_setting(key, value, sensitive)
 
 
 @ROUTER.post(
@@ -143,10 +123,7 @@ async def set_user(
 
     To delete a setting, specify an empty string as the value.
     """
-    if options.VIX_MODE == "SERVER":
-        await set_user_setting_async(request.scope["user_info"].user_id, key, value)
-    else:
-        set_user_setting(request.scope["user_info"].user_id, key, value)
+    await set_user_setting(request.scope["user_info"].user_id, key, value)
 
 
 @ROUTER.get(
@@ -165,12 +142,7 @@ async def get_all(request: Request) -> dict[str, str]:
     Returns all settings for the user.
     User settings have higher priority than global settings.
     """
-    user_id = request.scope["user_info"].user_id
-    is_admin = request.scope["user_info"].is_admin
-
-    if options.VIX_MODE == "SERVER":
-        return await get_all_settings_async(user_id, is_admin)
-    return get_all_settings(user_id, is_admin)
+    return await get_all_settings(request.scope["user_info"].user_id, request.scope["user_info"].is_admin)
 
 
 @ROUTER.get(
@@ -186,11 +158,7 @@ async def get_all(request: Request) -> dict[str, str]:
 )
 async def get_global_all(request: Request) -> dict[str, str]:
     """Retrieve all global settings or an empty dictionary if none are found."""
-    is_admin = request.scope["user_info"].is_admin
-
-    if options.VIX_MODE == "SERVER":
-        return await get_all_global_settings_async(is_admin)
-    return get_all_global_settings(is_admin)
+    return await get_all_global_settings(request.scope["user_info"].is_admin)
 
 
 @ROUTER.get(
@@ -206,11 +174,7 @@ async def get_global_all(request: Request) -> dict[str, str]:
 )
 async def get_user_all(request: Request) -> dict[str, str]:
     """Retrieve all user settings or an empty dictionary if none are found."""
-    user_id = request.scope["user_info"].user_id
-
-    if options.VIX_MODE == "SERVER":
-        return await get_user_settings_async(user_id)
-    return get_user_settings(user_id)
+    return await get_user_settings(request.scope["user_info"].user_id)
 
 
 @ROUTER.get(
@@ -239,10 +203,7 @@ async def get_ollama_models(request: Request) -> list[OllamaModelItem]:
     """
     require_admin(request)
 
-    if options.VIX_MODE == "SERVER":
-        ollama_url = await get_global_setting_async("ollama_url", True)
-    else:
-        ollama_url = get_global_setting("ollama_url", True)
+    ollama_url = await get_global_setting("ollama_url", True)
     if not ollama_url:
         LOGGER.debug("No custom Ollama URL defined, trying default one.")
         ollama_url = None

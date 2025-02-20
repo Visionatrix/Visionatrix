@@ -18,18 +18,16 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
-    create_engine,
     text,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship
 
 from . import options, pydantic_models
 
 LOGGER = logging.getLogger("visionatrix")
-SESSION: sessionmaker | None = None
-SESSION_ASYNC: async_sessionmaker | None = None  # only for the "SERVER" mode
+SESSION: async_sessionmaker | None = None
 Base = declarative_base()
 
 
@@ -167,45 +165,43 @@ class ModelsInstallStatus(Base):
     filename = Column(String, default="")
 
 
-def init_database_engine() -> None:
-    global SESSION, SESSION_ASYNC
+async def init_database_engine() -> None:
+    global SESSION
     if SESSION is not None:
         return
     connect_args = {}
     database_uri = options.DATABASE_URI
-    if database_uri.startswith("sqlite:"):
+    if database_uri.startswith("sqlite"):
         connect_args = {
             "check_same_thread": False,
-            "timeout": 10,
+            "timeout": 12,
         }
-        if database_uri.startswith("sqlite:///."):
-            database_uri = f"sqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[10:]))}"
+        local_dir = "sqlite+aiosqlite:///."
+        if database_uri.startswith(local_dir):
+            database_uri = (
+                f"sqlite+aiosqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[len(local_dir) - 1:]))}"
+            )
 
-    engine = create_engine(database_uri, connect_args=connect_args)
+    engine = create_async_engine(database_uri, connect_args=connect_args)
 
-    if database_uri.startswith("sqlite:"):
-        with engine.connect() as connection:
-            current_mode = connection.execute(text("PRAGMA journal_mode;")).scalar()
+    if database_uri.startswith("sqlite"):
+        async with engine.connect() as connection:
+            current_mode = (await connection.execute(text("PRAGMA journal_mode;"))).scalar()
             if current_mode.lower() != "wal":
-                new_mode = connection.execute(text("PRAGMA journal_mode=WAL;")).scalar()
+                new_mode = (await connection.execute(text("PRAGMA journal_mode=WAL;"))).scalar()
                 if new_mode.lower() != "wal":
                     raise RuntimeError("Failed to set SQLite journal mode to WAL.")
                 LOGGER.info("SQLite journal mode set to WAL.")
 
-    SESSION = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
-    run_db_migrations(database_uri)
-    if options.VIX_MODE == "SERVER":
-        async_engine = create_async_engine(
-            os.environ.get("DATABASE_URI_ASYNC", database_uri), connect_args=connect_args
-        )
-        SESSION_ASYNC = async_sessionmaker(
-            bind=async_engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
-        )
+    SESSION = async_sessionmaker(
+        autocommit=False, autoflush=False, bind=engine, expire_on_commit=False, class_=AsyncSession
+    )
+    async with engine.connect() as connection:
+        await connection.run_sync(run_db_migrations, database_uri)
 
 
-def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:
-    session = SESSION()
-    try:
+async def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:
+    async with SESSION() as session:
         session.add(
             UserInfo(
                 user_id=username,
@@ -216,14 +212,13 @@ def create_user(username: str, full_name: str, email: str, password: str, is_adm
                 disabled=disabled,
             )
         )
-        session.commit()
+        await session.commit()
         return True
-    finally:
-        session.close()
 
 
-def run_db_migrations(database_url: str):
+def run_db_migrations(connection, database_url: str):
     alembic_cfg = Config()
     alembic_cfg.set_main_option("script_location", str(importlib.resources.files("visionatrix").joinpath("alembic")))
     alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+    alembic_cfg.attributes["connection"] = connection
     command.upgrade(alembic_cfg, "head")

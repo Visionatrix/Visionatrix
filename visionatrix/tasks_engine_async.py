@@ -4,29 +4,23 @@ import threading
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
 
 from . import database
 from .comfyui_wrapper import interrupt_processing
 from .pydantic_models import (
-    ExecutionDetails,
     TaskDetails,
     TaskDetailsShort,
     UserInfo,
-    WorkerDetailsRequest,
 )
 from .tasks_engine import (
     __get_task_query,
     __get_tasks_query,
-    __lock_task_and_return_details,
     background_prompt_executor,
     remove_task_files,
 )
 from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS_SHORT,
-    get_get_incomplete_task_without_error_query,
     init_new_task_details,
-    prepare_worker_info_update,
     task_details_from_dict,
     task_details_short_to_dict,
     task_details_to_dict,
@@ -36,7 +30,7 @@ LOGGER = logging.getLogger("visionatrix")
 
 
 async def create_new_task_async(name: str, input_params: dict, user_info: UserInfo) -> dict:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             new_task_queue = database.TaskQueue()
             session.add(new_task_queue)
@@ -51,7 +45,7 @@ async def create_new_task_async(name: str, input_params: dict, user_info: UserIn
 
 async def put_task_in_queue_async(task_details: dict) -> None:
     LOGGER.debug("Put flow in queue: %s", task_details)
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             session.add(task_details_from_dict(task_details))
             await session.commit()
@@ -87,7 +81,7 @@ async def fetch_child_tasks_async(session, parent_task_ids: list[int]) -> dict[i
 
 
 async def get_task_async(task_id: int, user_id: str | None = None, fetch_child: bool = False) -> dict | None:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = __get_task_query(task_id, user_id)
             task = (await session.execute(query)).one_or_none()
@@ -111,7 +105,7 @@ async def get_tasks_async(
     fetch_child: bool = False,
     only_parent: bool = False,
 ) -> dict[int, TaskDetails]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = __get_tasks_query(name, group_scope, finished, user_id, only_parent=only_parent)
             results = (await session.execute(query)).all()
@@ -136,7 +130,7 @@ async def get_tasks_short_async(
     fetch_child: bool = False,
     only_parent: bool = False,
 ) -> dict[int, TaskDetailsShort]:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             query = __get_tasks_query(name, group_scope, finished, user_id, full_info=False, only_parent=only_parent)
             results = (await session.execute(query)).all()
@@ -154,7 +148,7 @@ async def get_tasks_short_async(
 
 
 async def update_task_outputs_async(task_id: int, outputs: list[dict]) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             result = await session.execute(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(outputs=outputs)
@@ -169,104 +163,8 @@ async def update_task_outputs_async(task_id: int, outputs: list[dict]) -> bool:
     return False
 
 
-async def get_incomplete_task_without_error_database_async(
-    worker_user_id: str,
-    worker_details: WorkerDetailsRequest,
-    tasks_to_ask: list[str],
-    last_task_name: str,
-    user_id: str | None = None,
-) -> dict:
-    if not tasks_to_ask:
-        return {}
-    async with database.SESSION_ASYNC() as session:
-        try:
-            worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(
-                worker_user_id, worker_details
-            )
-            result = await session.execute(
-                update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
-            )
-            tasks_to_give = []
-            if result.rowcount == 0:
-                session.add(
-                    database.Worker(
-                        user_id=worker_user_id,
-                        worker_id=worker_id,
-                        device_name=worker_device_name,
-                        **worker_info_values,
-                    )
-                )
-            else:
-                query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
-                tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
-            query = get_get_incomplete_task_without_error_query(
-                tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
-            )
-            task = (await session.execute(query)).scalar()
-            if not task:
-                await session.commit()
-                return {}
-            return await lock_task_and_return_details_async(session, task)
-        except Exception as e:
-            await session.rollback()
-            LOGGER.exception("Failed to retrieve task for processing: %s", e)
-            return {}
-        finally:
-            await session.close()
-
-
-async def lock_task_and_return_details_async(session, task: type[database.TaskDetails] | database.TaskDetails) -> dict:
-    try:
-        session.add(database.TaskLock(task_id=task.task_id, locked_at=datetime.utcnow()))
-        await session.commit()
-        return __lock_task_and_return_details(task)
-    except IntegrityError:
-        await session.rollback()
-        return {}
-
-
-async def update_task_progress_database_async(
-    task_id: int,
-    progress: float,
-    error: str,
-    execution_time: float,
-    worker_user_id: str,
-    worker_details: WorkerDetailsRequest,
-    execution_details: ExecutionDetails | None = None,
-) -> bool:
-    async with database.SESSION_ASYNC() as session:
-        try:
-            worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
-            update_values = {
-                "progress": progress,
-                "error": error,
-                "execution_time": execution_time,
-                "updated_at": datetime.now(timezone.utc),
-                "worker_id": worker_id,
-            }
-            if progress == 100.0:
-                update_values["finished_at"] = datetime.now(timezone.utc)
-                if execution_details is not None:
-                    update_values["execution_details"] = execution_details.model_dump(mode="json", exclude_none=True)
-            result = await session.execute(
-                update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
-            )
-            await session.commit()
-            if (task_updated := result.rowcount == 1) is True:
-                await session.execute(
-                    update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
-                )
-                await session.commit()
-            return task_updated
-        except Exception as e:
-            interrupt_processing()
-            await session.rollback()
-            LOGGER.exception("Task %s: failed to update TaskDetails: %s", task_id, e)
-    return False
-
-
 async def task_restart_database_async(task_id: int) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             update_values = {
                 "progress": 0.0,
@@ -295,7 +193,7 @@ async def start_tasks_engine(prompt_executor_args: tuple | list, exit_event: thr
 
 
 async def update_task_info_database_async(task_id: int, update_fields: dict) -> bool:
-    async with database.SESSION_ASYNC() as session:
+    async with database.SESSION() as session:
         try:
             result = await session.execute(
                 update(database.TaskDetails)
