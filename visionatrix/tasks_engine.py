@@ -128,7 +128,7 @@ async def get_worker_value(key_name: str, user_id: str = "") -> str:
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
         async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
             r = await client.get(
-                options.VIX_SERVER.rstrip("/") + "/api/settings/get",
+                options.VIX_SERVER.rstrip("/") + "/vapi/settings/get",
                 params={"key": key_name.lower()},
                 auth=options.worker_auth(),
             )
@@ -147,7 +147,7 @@ async def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last
     try:
         async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
             r = await client.post(
-                options.VIX_SERVER.rstrip("/") + "/api/tasks/next",
+                options.VIX_SERVER.rstrip("/") + "/vapi/tasks/next",
                 json={
                     "worker_details": comfyui_wrapper.get_worker_details(),
                     "tasks_names": tasks_to_ask,
@@ -392,7 +392,7 @@ async def remove_task_lock_server(task_id: int) -> None:
     try:
         async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
             r = await client.delete(
-                options.VIX_SERVER.rstrip("/") + "/api/tasks/lock",
+                options.VIX_SERVER.rstrip("/") + "/vapi/tasks/lock",
                 params={"task_id": task_id},
                 auth=options.worker_auth(),
             )
@@ -510,7 +510,7 @@ async def update_task_progress_server(task_details: dict, execution_details: dic
         try:
             async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
                 r = await client.put(
-                    options.VIX_SERVER.rstrip("/") + "/api/tasks/progress",
+                    options.VIX_SERVER.rstrip("/") + "/vapi/tasks/progress",
                     json=request_data,
                     auth=options.worker_auth(),
                 )
@@ -553,7 +553,7 @@ async def init_active_task_inputs_from_server() -> bool:
                 try:
                     async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
                         r = await client.get(
-                            options.VIX_SERVER.rstrip("/") + "/api/tasks/inputs",
+                            options.VIX_SERVER.rstrip("/") + "/vapi/tasks/inputs",
                             params={"task_id": task_id, "input_index": i},
                             auth=options.worker_auth(),
                         )
@@ -609,7 +609,7 @@ async def upload_results_to_server(task_details: dict) -> bool:
                 try:
                     async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
                         r = await client.put(
-                            options.VIX_SERVER.rstrip("/") + "/api/tasks/results",
+                            options.VIX_SERVER.rstrip("/") + "/vapi/tasks/results",
                             params={
                                 "task_id": task_id,
                             },

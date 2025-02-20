@@ -183,31 +183,35 @@ def run_vix(*args, **kwargs) -> None:
         os.makedirs(os.path.join(options.TASKS_FILES_DIR, i), exist_ok=True)
 
     if options.VIX_MODE != "WORKER":
-        try:
-            if options.VIX_MODE == "SERVER":
-                os.environ.update(**options.get_server_mode_options_as_env())
-                _app = "visionatrix:APP"
-            else:
-                _app = APP
-            uvicorn.run(
-                _app,
-                *args,
-                host=options.get_host_to_map(),
-                port=options.get_port_to_map(),
-                workers=int(options.VIX_SERVER_WORKERS),
-                **kwargs,
-            )
-        except KeyboardInterrupt:
-            print("Visionatrix is shutting down.")
+        if options.VIX_MODE == "SERVER":
+            os.environ.update(**options.get_server_mode_options_as_env())
+            _app = "visionatrix:APP"
+        else:
+            _app = APP
+        uvicorn.run(
+            _app,
+            *args,
+            host=options.get_host_to_map(),
+            port=options.get_port_to_map(),
+            workers=int(options.VIX_SERVER_WORKERS),
+            **kwargs,
+        )
     else:
         register_heif_opener()
-        _, prompt_server_args, _ = asyncio.run(comfyui_wrapper.load(task_progress_callback))
+        asyncio.run(run_in_worker_mode())
 
-        try:
-            background_prompt_executor(prompt_server_args, events.EXIT_EVENT)
-        except KeyboardInterrupt:
-            asyncio.run(remove_active_task_lock())
-            print("Visionatrix is shutting down.")
+
+async def run_in_worker_mode() -> None:
+    _, prompt_server_args, _ = await comfyui_wrapper.load(task_progress_callback)
+    await start_tasks_engine(prompt_server_args, events.EXIT_EVENT)
+    try:
+        await asyncio.Future()
+    except asyncio.exceptions.CancelledError:
+        print("Got signal to stop execution.")
+    finally:
+        events.EXIT_EVENT.set()
+        await remove_active_task_lock()
+        print("Visionatrix is shutting down.")
 
 
 def generate_openapi(flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
