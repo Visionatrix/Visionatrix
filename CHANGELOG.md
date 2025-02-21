@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.11.1 - 2025-02-23]
+## [1.11.1 - 2025-02-21]
 
 ### Changed
 
@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - `Server mode`: Now works correctly on fresh installations with no flows installed.
-- `Server mode`: Prompt translations using **Gemini** now work correctly.
+- `Server mode`: Prompt translations using **Gemini** now works correctly.
 - `Worker to Server` mode now works correctly.
 
 ## [1.11.0 - 2025-02-16]
