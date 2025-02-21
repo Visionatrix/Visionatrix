@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import stat
@@ -22,7 +23,7 @@ def remove_readonly(func, path, _):
 
 def install() -> None:
     """Deletes all Flows and performs a clean installation of ComfyUI."""
-    db_queries.delete_flows_progress_install()
+    asyncio.run(db_queries.delete_flows_progress_install())
     comfyui_dir = Path(options.COMFYUI_DIR)
     if comfyui_dir.exists():
         LOGGER.info("Removing existing ComfyUI directory: %s", comfyui_dir)

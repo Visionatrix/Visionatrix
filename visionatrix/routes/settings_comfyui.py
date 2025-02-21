@@ -26,7 +26,7 @@ def comfyui_get_folders_paths(request: Request) -> ComfyUIFolderPaths:
     "/folders/autoconfig",
     status_code=status.HTTP_200_OK,
 )
-def autoconfigure_model_folders(
+async def autoconfigure_model_folders(
     request: Request,
     models_dir: str = Body(..., embed=True, description="The default folder for models."),
 ) -> ComfyUIFolderPaths:
@@ -42,6 +42,6 @@ def autoconfigure_model_folders(
             settings_comfyui.deconfigure_model_folders(comfyui_wrapper.COMFYUI_MODELS_FOLDER)
         comfyui_wrapper.COMFYUI_MODELS_FOLDER = models_dir
         settings_comfyui.autoconfigure_model_folders(models_dir)
-        set_global_setting("comfyui_models_folder", models_dir, True)
+        await set_global_setting("comfyui_models_folder", models_dir, True)
 
     return settings_comfyui.compute_folder_paths()

@@ -104,7 +104,7 @@ async def whoami(request: Request) -> UserInfo:
         },
     },
 )
-def translate_prompt(request: Request, data: TranslatePromptRequest) -> TranslatePromptResponse:
+async def translate_prompt(request: Request, data: TranslatePromptRequest) -> TranslatePromptResponse:
     """
     Translates an image generation prompt from another language into English.
 
@@ -119,16 +119,16 @@ def translate_prompt(request: Request, data: TranslatePromptRequest) -> Translat
     user_id = request.scope["user_info"].user_id
     is_admin = request.scope["user_info"].is_admin
     try:
-        translations_provider = get_setting(user_id, "translations_provider", is_admin)
+        translations_provider = await get_setting(user_id, "translations_provider", is_admin)
         if not translations_provider:
             raise HTTPException(
                 status_code=status.HTTP_412_PRECONDITION_FAILED,
                 detail="Translations provider not defined",
             )
         if translations_provider == "gemini":
-            return translate_prompt_with_gemini(user_id, is_admin, data)
+            return await translate_prompt_with_gemini(user_id, is_admin, data)
         if translations_provider == "ollama":
-            return translate_prompt_with_ollama(user_id, is_admin, data)
+            return await translate_prompt_with_ollama(user_id, is_admin, data)
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"Unknown translation provider: {translations_provider}",

@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import httpx
 from packaging.version import Version
 
-from . import _version, db_queries, options
+from . import _version, options
 from .basic_node_list import BASIC_NODE_LIST
 from .comfyui_wrapper import get_folder_names_and_paths, get_node_class_mappings
 from .nodes_helpers import get_node_value, set_node_value
@@ -383,8 +383,9 @@ def get_possible_paths_for_model(model: AIResourceModel) -> list[(Path, str)]:
     return [(i, model_filename) for i in save_paths]
 
 
-def get_possible_final_paths_for_model(model: AIResourceModel) -> list[Path]:
-    installed_models = db_queries.get_installed_models()
+def get_possible_final_paths_for_model(
+    installed_models: dict[str, ModelProgressInstall], model: AIResourceModel
+) -> list[Path]:
     model_filename = model.filename if model.filename else urlparse(model.url).path.split("/")[-1]
     alternative_model_filename = ""
     if model.name in installed_models:

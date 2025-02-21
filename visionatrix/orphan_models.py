@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -12,7 +13,7 @@ from .pydantic_models import OrphanModel
 LOGGER = logging.getLogger("visionatrix")
 
 
-def get_orphan_models() -> list[OrphanModel]:
+async def get_orphan_models() -> list[OrphanModel]:
     """
     Returns a list of OrphanModel objects representing files in the filesystem that do not belong to installed flows.
 
@@ -23,25 +24,26 @@ def get_orphan_models() -> list[OrphanModel]:
     Returns:
         A list of OrphanModel instances with information about orphaned files.
     """
-    installed_flows = get_installed_flows()
-    available_flows = get_available_flows()
+    installed_flows = await get_installed_flows()
+    available_flows = await get_available_flows()
     all_known_flows = available_flows | installed_flows
 
+    installed_models = await db_queries.get_installed_models()
     required_models = {}
     for flow in installed_flows.values():
         for model in flow.models:
-            for i in get_possible_final_paths_for_model(model):
+            for i in get_possible_final_paths_for_model(installed_models, model):
                 required_models[str(i.joinpath())] = model
 
     all_known_models = {}
     for model in get_formatted_models_catalog():
-        for i in get_possible_final_paths_for_model(model):
+        for i in get_possible_final_paths_for_model(installed_models, model):
             all_known_models[str(i)] = model
 
     models_to_flows_map = {}
     for flow in all_known_flows.values():
         for model in flow.models:
-            model_save_paths = {str(i) for i in get_possible_final_paths_for_model(model)}
+            model_save_paths = {str(i) for i in get_possible_final_paths_for_model(installed_models, model)}
             for model_save_path in model_save_paths:
                 if model_save_path in models_to_flows_map:
                     models_to_flows_map[model_save_path].append(flow)
@@ -55,7 +57,7 @@ def get_orphan_models() -> list[OrphanModel]:
         if not node_details.get("models"):
             continue
         for model_from_node in node_details["models"]:
-            for i in get_possible_final_paths_for_model(model_from_node):
+            for i in get_possible_final_paths_for_model(installed_models, model_from_node):
                 models_filenames_from_nodes.add(str(i.name))
             for i in model_from_node.hashes:
                 models_filenames_from_nodes.add(i)
@@ -90,22 +92,22 @@ def get_orphan_models() -> list[OrphanModel]:
     return list(orphan_models)
 
 
-def remove_orphan_model(orphan_path: str) -> bool:
+async def remove_orphan_model(orphan_path: str) -> bool:
     orphan_file = Path(orphan_path)
     orphan_filename = orphan_file.name
     file_st_ctime = orphan_file.stat().st_ctime
     orphan_file.unlink()
-    r = db_queries.delete_model_by_time_and_filename(file_st_ctime, orphan_filename)
+    r = await db_queries.delete_model_by_time_and_filename(file_st_ctime, orphan_filename)
     LOGGER.debug("Database removal result for orphan model '%s': %s", orphan_filename, r)
     return bool(r)
 
 
 def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool) -> None:
-    if db_queries.models_installation_in_progress():
+    if asyncio.run(db_queries.models_installation_in_progress()):
         print("Some models have the status of being installed. Repeat the request in 3 minutes.")
         return
 
-    orphan_models = get_orphan_models()
+    orphan_models = asyncio.run(get_orphan_models())
     if not include_useful_models:
         orphan_models = [model for model in orphan_models if not model.possible_flows]
 
@@ -133,7 +135,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
             continue
         if no_confirm:
             try:
-                remove_orphan_model(orphan.path)
+                asyncio.run(remove_orphan_model(orphan.path))
                 print(f"Deleted: {orphan.path}")
             except Exception as e:
                 print(f"Error deleting {orphan.path}: {e}")
@@ -141,7 +143,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
             user_input = input(f"Delete {orphan.path}? (y/Y to confirm, any other key to skip): ").lower()
             if user_input == "y":
                 try:
-                    remove_orphan_model(orphan.path)
+                    asyncio.run(remove_orphan_model(orphan.path))
                     print(f"Deleted: {orphan.path}")
                 except Exception as e:
                     print(f"Error deleting {orphan.path}: {e}")

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.1 - 2025-02-23]
+
+### Changed
+
+- **Major** internal refactoring of the backend was carried out, and the logic in **Default** and **Server** modes was unified. #309
+
+### Fixed
+
+- `Server mode`: Now works correctly on fresh installations with no flows installed.
+- `Server mode`: Prompt translations using **Gemini** now work correctly.
+- `Worker to Server` mode now works correctly.
+
 ## [1.11.0 - 2025-02-16]
 
 Nodes `style_aligned_comfy` and `comfyui-art-venture` were removed. Feel free to remove them manually in old installations.

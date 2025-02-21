@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import re
 from typing import Annotated
@@ -144,18 +145,18 @@ def generate_openapi(app: FastAPI, flows: str = "", skip_not_installed: bool = T
         flows_definitions = {}
     elif flows == "*":
         # Include all installed flows
-        flows_definitions.update(get_installed_flows())
+        flows_definitions.update(asyncio.run(get_installed_flows()))
         if not skip_not_installed:
-            flows_definitions.update(get_available_flows())
+            flows_definitions.update(asyncio.run(get_available_flows()))
     else:
         # flows is a comma-separated list of flow names
         flow_names = [name.strip() for name in flows.split(",") if name.strip()]
         # Get installed flows matching these names
-        installed_flows = get_installed_flows()
+        installed_flows = asyncio.run(get_installed_flows())
         selected_flows = {name: flow for name, flow in installed_flows.items() if name in flow_names}
         if not skip_not_installed:
             # Include not installed flows if any of the specified flows are not installed
-            available_flows = get_available_flows()
+            available_flows = asyncio.run(get_available_flows())
             for name in flow_names:
                 if name not in selected_flows and name in available_flows:
                     selected_flows[name] = available_flows[name]

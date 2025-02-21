@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import builtins
 import importlib.resources
 import json
@@ -141,10 +142,12 @@ if __name__ == "__main__":
         if args.server:
             options.VIX_SERVER = args.server
 
-    database.init_database_engine()
+    asyncio.run(database.init_database_engine())
 
     if args.command == "create-user":
-        database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
+        asyncio.run(
+            database.create_user(args.name, args.full_name, args.email, args.password, args.admin, args.disabled)
+        )
         sys.exit(0)
 
     options.init_dirs_values(
@@ -177,7 +180,7 @@ if __name__ == "__main__":
     elif args.command == "run":
         run_vix()
     elif args.command == "install-flow":
-        comfyui_wrapper.load(None)
+        asyncio.run(comfyui_wrapper.load(None))
         r = True
         if args.file:
             path = Path(args.file)
@@ -204,7 +207,7 @@ if __name__ == "__main__":
                 sys.exit(2)
         else:
             flows_comfy = {}
-            not_installed_flows = get_not_installed_flows(flows_comfy)
+            not_installed_flows = asyncio.run(get_not_installed_flows(flows_comfy))
             if args.tag:
                 flow_install_pattern = str(args.tag)
                 flows_to_install = {}
@@ -233,10 +236,10 @@ if __name__ == "__main__":
         if not r:
             sys.exit(1)
     elif args.command == "orphan-models":
-        comfyui_wrapper.load(None)
+        asyncio.run(comfyui_wrapper.load(None))
         process_orphan_models(args.dry_run, args.no_confirm, args.include_useful_models)
     elif args.command == "openapi":
-        comfyui_wrapper.load(None)
+        asyncio.run(comfyui_wrapper.load(None))
         flows_arg = args.flows.strip()
         skip_not_installed = args.skip_not_installed
         openapi_schema = generate_openapi(flows_arg, skip_not_installed, args.exclude_base)

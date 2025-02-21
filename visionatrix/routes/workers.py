@@ -2,9 +2,7 @@ import logging
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request, responses, status
 
-from .. import options
 from ..db_queries import get_workers_details, set_worker_tasks_to_give
-from ..db_queries_async import get_workers_details_async, set_worker_tasks_to_give_async
 from ..pydantic_models import WorkerDetails
 
 LOGGER = logging.getLogger("visionatrix")
@@ -28,11 +26,7 @@ async def get_info(
     Useful for monitoring and managing worker resources in distributed computing environments.
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
-    if options.VIX_MODE == "SERVER":
-        r = await get_workers_details_async(user_id, last_seen_interval, worker_id)
-    else:
-        r = get_workers_details(user_id, last_seen_interval, worker_id)
-    return r
+    return await get_workers_details(user_id, last_seen_interval, worker_id)
 
 
 @ROUTER.post(
@@ -57,9 +51,5 @@ async def set_tasks_to_process(
     The administrator can set `tasks_to_give` for all workers, users only for their own.
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
-    if options.VIX_MODE == "SERVER":
-        r = await set_worker_tasks_to_give_async(user_id, worker_id, tasks_to_give)
-    else:
-        r = set_worker_tasks_to_give(user_id, worker_id, tasks_to_give)
-    if not r:
+    if not await set_worker_tasks_to_give(user_id, worker_id, tasks_to_give):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{worker_id}` worker.")

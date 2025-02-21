@@ -17,11 +17,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
-from .tasks_engine import (
-    background_prompt_executor,
-    remove_active_task_lock,
-    task_progress_callback,
-)
+from .tasks_engine import remove_active_task_lock, task_progress_callback
 from .tasks_engine_async import start_tasks_engine
 from .user_backends import perform_auth_http, perform_auth_ws
 
@@ -114,9 +110,9 @@ def parse_cookies_and_headers(scope: Scope) -> tuple[dict[str, str], dict[str, s
 async def lifespan(app: FastAPI):
     register_heif_opener()
     logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
-    database.init_database_engine()
+    await database.init_database_engine()
 
-    routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = comfyui_wrapper.load(
+    routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = await comfyui_wrapper.load(
         task_progress_callback
     )
     if options.VIX_MODE != "SERVER":
@@ -183,31 +179,35 @@ def run_vix(*args, **kwargs) -> None:
         os.makedirs(os.path.join(options.TASKS_FILES_DIR, i), exist_ok=True)
 
     if options.VIX_MODE != "WORKER":
-        try:
-            if options.VIX_MODE == "SERVER":
-                os.environ.update(**options.get_server_mode_options_as_env())
-                _app = "visionatrix:APP"
-            else:
-                _app = APP
-            uvicorn.run(
-                _app,
-                *args,
-                host=options.get_host_to_map(),
-                port=options.get_port_to_map(),
-                workers=int(options.VIX_SERVER_WORKERS),
-                **kwargs,
-            )
-        except KeyboardInterrupt:
-            print("Visionatrix is shutting down.")
+        if options.VIX_MODE == "SERVER":
+            os.environ.update(**options.get_server_mode_options_as_env())
+            _app = "visionatrix:APP"
+        else:
+            _app = APP
+        uvicorn.run(
+            _app,
+            *args,
+            host=options.get_host_to_map(),
+            port=options.get_port_to_map(),
+            workers=int(options.VIX_SERVER_WORKERS),
+            **kwargs,
+        )
     else:
         register_heif_opener()
-        _, prompt_server_args, _ = comfyui_wrapper.load(task_progress_callback)
+        asyncio.run(run_in_worker_mode())
 
-        try:
-            background_prompt_executor(prompt_server_args, events.EXIT_EVENT)
-        except KeyboardInterrupt:
-            remove_active_task_lock()
-            print("Visionatrix is shutting down.")
+
+async def run_in_worker_mode() -> None:
+    _, prompt_server_args, _ = await comfyui_wrapper.load(task_progress_callback)
+    await start_tasks_engine(prompt_server_args, events.EXIT_EVENT)
+    try:
+        await asyncio.Future()
+    except asyncio.exceptions.CancelledError:
+        print("Got signal to stop execution.")
+    finally:
+        events.EXIT_EVENT.set()
+        await remove_active_task_lock()
+        print("Visionatrix is shutting down.")
 
 
 def generate_openapi(flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
