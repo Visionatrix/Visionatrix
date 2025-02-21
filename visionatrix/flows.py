@@ -418,9 +418,13 @@ def prepare_flow_comfy_files_params(
                         f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found."
                     )
                 shutil.copy(input_file, result_path)
+            elif "file_content" in v:
+                with builtins.open(result_path, mode="wb") as fp:
+                    fp.write(v["file_content"])
             else:
                 raise RuntimeError(
-                    f"Bad flow, `input_index` or `node_id` should be present for '{param_name}' parameter."
+                    f"Bad flow, `input_index`, `node_id` or `file_content` "
+                    f"should be present for '{param_name}' parameter."
                 )
         else:
             with builtins.open(result_path, mode="wb") as fp:

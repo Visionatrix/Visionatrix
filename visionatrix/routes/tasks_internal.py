@@ -2,7 +2,7 @@ import logging
 import typing
 
 import httpx
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import models_map
@@ -100,7 +100,7 @@ async def get_translated_input_params(
         if translations_provider:
             if translations_provider not in ("ollama", "gemini"):
                 raise HTTPException(
-                    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                    status.HTTP_501_NOT_IMPLEMENTED,
                     detail=f"Unknown translation provider: {translations_provider}",
                 )
             for node_to_translate in nodes_for_translate:
@@ -117,7 +117,7 @@ async def get_translated_input_params(
                         "Exception during prompt translation using `%s` for user `%s`", translations_provider, user_id
                     )
                     raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail=f"Can't translate the prompt: provider={translations_provider}, "
                         f"user_id={user_id}, prompt=`{tr_req.prompt}`: {e}",
                     ) from None
@@ -142,3 +142,15 @@ async def webhook_task_progress(
             )
     except httpx.RequestError as e:
         LOGGER.exception("Exception during calling webhook %s, progress=%s: %s", url, progress, e)
+
+
+async def process_remote_input_url(request: Request, input_file_info: dict[str, str | bytes]) -> None:
+    remote_url_type = input_file_info.get("type")
+    if remote_url_type != "nextcloud":
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Unknown type({remote_url_type} for `remote_url` parameter",
+        ) from None
+    async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
+        input_file = await client.get(input_file_info["remote_url"], cookies=request.cookies)
+        input_file_info["file_content"] = input_file.content

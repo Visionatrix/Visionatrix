@@ -46,7 +46,12 @@ from ..tasks_engine_async import (
     update_task_info_database_async,
     update_task_outputs_async,
 )
-from .tasks_internal import get_translated_input_params, task_run, webhook_task_progress
+from .tasks_internal import (
+    get_translated_input_params,
+    process_remote_input_url,
+    task_run,
+    webhook_task_progress,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 ROUTER = APIRouter(prefix="/tasks", tags=["tasks"])  # if you change the prefix, also change it in custom_openapi.py
@@ -143,18 +148,23 @@ async def create_task(
         if flow_input_params[key]["type"] not in SUPPORTED_FILE_TYPES_INPUTS:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported input type '{flow_input_params[key]['type']}' for {key} parameter",
+                detail=f"Unsupported input type '{flow_input_params[key]['type']}' for {key} parameter.",
             ) from None
         if isinstance(value, str):
             try:
                 input_file_info = json.loads(value)
             except json.JSONDecodeError:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Invalid file input:{value}") from None
-            if "task_id" not in input_file_info:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` parameter") from None
-            if not await get_task_async(int(input_file_info["task_id"]), user_id):
+            if "remote_url" in input_file_info:
+                await process_remote_input_url(request, input_file_info)
+            elif "task_id" in input_file_info:
+                if not await get_task_async(int(input_file_info["task_id"]), user_id):
+                    raise HTTPException(
+                        status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
+                    ) from None
+            else:
                 raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
+                    status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` or `remote_url` parameter."
                 ) from None
             in_files_params[key] = input_file_info
         elif isinstance(value, StarletteUploadFile):
