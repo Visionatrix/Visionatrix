@@ -54,7 +54,7 @@ Access the Visionatrix UI at [http://localhost:8288](http://localhost:8288) (def
 
 ### Requirements
 
-- **Python** `3.12` *(recommended)* or higher
+- **Python** `3.10` or higher. *(`3.12` recommended)*
 - **GPU** with at least `8 GB` of memory *(12GB recommended)*
 
 ### Quick Start (Linux/macOS/WSL)
@@ -134,6 +134,13 @@ Updating the portable version involves:
 1. Unpacking the new portable version.
 2. Moving `vix_models`, `vix_tasks_files`, and `visionatrix.db` from the old version to the new one.
 3. In most cases, this should be sufficient unless there are breaking changes.
+
+<details>
+  <summary>Hint</summary>
+
+  You can have a folder with `models`, `tasks_files` and `visionatrix.db` outside the Visionatrix folder.
+
+</details>
 
 ## 📚 Documentation and Support
 
