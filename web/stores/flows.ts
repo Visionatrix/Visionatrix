@@ -488,6 +488,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			translate: boolean = false,
 			child_task: boolean = false,
 			parent_task_id: number|null = null,
+			surprise: boolean = false,
 			headers: any = {},
 		) {
 			const formData = new FormData()
@@ -535,6 +536,10 @@ export const useFlowsStore = defineStore('flowsStore', {
 				formData.append('child_task', '1')
 			}
 			formData.append('translate', translate ? '1' : '0')
+
+			if (surprise) {
+				formData.append('surprise_me', '1')
+			}
 
 			console.debug('form_data:', formData)
 
@@ -1144,6 +1149,7 @@ export interface Flow {
 	is_seed_supported: boolean
 	is_count_supported: boolean
 	is_translations_supported: boolean
+	is_surprise_me_supported: boolean
 	is_supported_by_workers: boolean
 	is_macos_supported: boolean
 	required_memory_gb?: number

@@ -84,6 +84,13 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			llm_provider: {
+				key: 'llm_provider',
+				value: '',
+				options: ['ollama', 'gemini'],
+				sensitive: false,
+				admin: true,
+			},
 			comfyui_models_folder: {
 				key: 'comfyui_models_folder',
 				value: '',
