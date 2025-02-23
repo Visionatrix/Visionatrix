@@ -1,5 +1,7 @@
 import logging
+import os
 import string
+from contextlib import contextmanager
 
 IMAGE_EXTENSIONS = [
     ".png",
@@ -100,3 +102,19 @@ def is_english(input_string: str) -> bool:
             english_word_count += 1
 
     return english_word_count / len(words) > 0.90  # Check if more than 90% of the words are in English
+
+
+@contextmanager
+def temporary_env_var(key: str, new_value):
+    old_value = os.environ.get(key)
+    if new_value is not None:
+        os.environ[key] = new_value
+    elif key in os.environ:
+        del os.environ[key]
+    try:
+        yield
+    finally:
+        if old_value is not None:
+            os.environ[key] = old_value
+        elif key in os.environ:
+            del os.environ[key]

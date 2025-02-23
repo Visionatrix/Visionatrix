@@ -28,6 +28,7 @@ from ..pydantic_models import (
     TaskUpdateRequest,
     WorkerDetailsRequest,
 )
+from ..surprise_me import surprise_me
 from ..tasks_engine import (
     collect_child_task_ids,
     get_incomplete_task_without_error_database,
@@ -47,8 +48,9 @@ from ..tasks_engine_async import (
     update_task_outputs_async,
 )
 from .tasks_internal import (
+    get_task_creation_extra_flags,
     get_translated_input_params,
-    process_remote_input_url,
+    process_string_value,
     task_run,
     webhook_task_progress,
 )
@@ -106,17 +108,7 @@ async def create_task(
 
     user_id = request.scope["user_info"].user_id
     is_user_admin = request.scope["user_info"].is_admin
-
-    extra_flags = {}
-    custom_worker = None
-    if is_user_admin:
-        if request.headers.get("X-WORKER-UNLOAD-MODELS") == "1":
-            extra_flags["unload_models"] = True
-        if request.headers.get("X-WORKER-EXECUTION-PROFILER") == "1":
-            extra_flags["profiler_execution"] = True
-        custom_worker = request.headers.get("X-WORKER-ID")
-    if not extra_flags:
-        extra_flags = None
+    extra_flags, custom_worker = get_task_creation_extra_flags(request, is_user_admin)
 
     flow_comfy = {}
     flow = await get_installed_flow(name, flow_comfy)
@@ -131,10 +123,14 @@ async def create_task(
     for input_param in flow.input_params:
         flow_input_params[input_param["name"]] = input_param
 
-    standard_params = TaskCreationWithFullParams.model_fields.keys()
+    standard_params = list(TaskCreationWithFullParams.model_fields.keys())
+    surprise_me_active = False
     for key in form_data:
         if flow.is_seed_supported and key == "seed":
             in_text_params["seed"] = int(form_data.get(key))
+            continue
+        if key == "surprise_me" and flow.is_surprise_me_supported and form_data["surprise_me"] == "1":
+            surprise_me_active = True
             continue
         if key in standard_params:
             continue
@@ -151,22 +147,7 @@ async def create_task(
                 detail=f"Unsupported input type '{flow_input_params[key]['type']}' for {key} parameter.",
             ) from None
         if isinstance(value, str):
-            try:
-                input_file_info = json.loads(value)
-            except json.JSONDecodeError:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Invalid file input:{value}") from None
-            if "remote_url" in input_file_info:
-                await process_remote_input_url(request, input_file_info)
-            elif "task_id" in input_file_info:
-                if not await get_task_async(int(input_file_info["task_id"]), user_id):
-                    raise HTTPException(
-                        status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
-                    ) from None
-            else:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` or `remote_url` parameter."
-                ) from None
-            in_files_params[key] = input_file_info
+            await process_string_value(request, user_id, key, value, in_files_params)
         elif isinstance(value, StarletteUploadFile):
             in_files_params[key] = value
         else:
@@ -177,14 +158,32 @@ async def create_task(
     translated_in_text_params = await get_translated_input_params(
         bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
     )
+
+    in_text_params_list = [in_text_params.copy() for _ in range(data.count)]
+    translated_in_text_params_list = [translated_in_text_params.copy() for _ in range(data.count)]
+
+    if surprise_me_active:
+        if "prompt" in translated_in_text_params:
+            ai_generated_prompts: list = await surprise_me(
+                user_id, is_user_admin, translated_in_text_params["prompt"], count=data.count
+            )
+            for i in range(data.count):
+                translated_in_text_params_list[i]["prompt"] = ai_generated_prompts[i]
+        else:
+            ai_generated_prompts: list = await surprise_me(
+                user_id, is_user_admin, in_text_params.get("prompt", ""), count=data.count
+            )
+            for i in range(data.count):
+                in_text_params_list[i]["prompt"] = ai_generated_prompts[i]
+
     tasks_ids = []
     outputs = None
     webhook_headers_dict = json.loads(data.webhook_headers) if data.webhook_headers else None
-    for _ in range(data.count):
+    for i in range(data.count):
         task_details = await task_run(
             name,
-            in_text_params,
-            translated_in_text_params,
+            in_text_params_list[i],
+            translated_in_text_params_list[i],
             in_files_params,
             flow,
             flow_comfy,

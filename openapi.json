@@ -2917,6 +2917,12 @@
             "title": "Lora Connect Points",
             "description": "Connection points in the flow where LoRAs can be dynamically integrated, enabling the addition of custom LoRAs at specific locations. Key is a unique ID that used to reference specific connection during Flow editing.",
             "default": {}
+          },
+          "is_surprise_me_supported": {
+            "type": "boolean",
+            "title": "Is Surprise Me Supported",
+            "description": "Flag indicating if Flow supports random prompt generation feature.",
+            "default": false
           }
         },
         "type": "object",
@@ -4240,7 +4246,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-22T13:52:06.549277Z"
+            "default": "2025-02-23T06:20:03.987218Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

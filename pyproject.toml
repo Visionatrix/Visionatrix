@@ -155,6 +155,9 @@ lint.extend-per-file-ignores."tests/**/*.py" = [
   "S",
   "UP",
 ]
+lint.extend-per-file-ignores."visionatrix/surprise_me.py" = [
+  "RUF001",
+]
 lint.mccabe.max-complexity = 25
 
 [tool.isort]

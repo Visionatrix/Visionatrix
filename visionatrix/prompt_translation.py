@@ -1,31 +1,14 @@
 import logging
-import os
-from contextlib import contextmanager
 
 import google.generativeai as genai
 import ollama
 
 from .db_queries import get_setting
+from .etc import temporary_env_var
 from .llm_utils import LLM_TRANSLATE_SYSTEM_PROMPT
 from .pydantic_models import TranslatePromptRequest, TranslatePromptResponse
 
 LOGGER = logging.getLogger("visionatrix")
-
-
-@contextmanager
-def temporary_env_var(key: str, new_value):
-    old_value = os.environ.get(key)
-    if new_value is not None:
-        os.environ[key] = new_value
-    elif key in os.environ:
-        del os.environ[key]
-    try:
-        yield
-    finally:
-        if old_value is not None:
-            os.environ[key] = old_value
-        elif key in os.environ:
-            del os.environ[key]
 
 
 async def translate_prompt_with_ollama(
@@ -34,7 +17,9 @@ async def translate_prompt_with_ollama(
     ollama_url = await get_setting(user_id, "ollama_url", is_admin)
     ollama_llm_model = await get_setting(user_id, "ollama_llm_model", is_admin)
     ollama_keepalive = await get_setting(user_id, "ollama_keepalive", is_admin)
-    if not ollama_keepalive:
+    if ollama_keepalive:
+        ollama_keepalive += "m"
+    else:
         ollama_keepalive = 0
 
     if not ollama_url:
