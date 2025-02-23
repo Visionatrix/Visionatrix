@@ -383,7 +383,7 @@ function runPrompt(surprise = false) {
 						variant="outline"
 						:loading="running"
 						:disabled="!requiredInputParamsValid"
-						@click="runPrompt">
+						@click="() => runPrompt(false)">
 						Run prompt
 					</UButton>
 				</div>
