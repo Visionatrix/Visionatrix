@@ -374,7 +374,6 @@ function runPrompt(surprise = false) {
 							variant="soft"
 							color="blue"
 							:loading="running"
-							:disabled="!requiredInputParamsValid"
 							@click="() => runPrompt(true)">
 							Surprise me
 						</UButton>

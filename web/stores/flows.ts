@@ -560,12 +560,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}).then((res: any) => {
 				// Adding started flow to running list
 				res.tasks_ids.forEach((task_id: number, index: number) => {
+					const clonedInputParamsMapped = JSON.parse(JSON.stringify(input_params_mapped_updated))
 					this.running.push({
 						task_id: task_id.toString(),
 						flow_name: flow.name,
 						progress: 0,
 						input_params_mapped: {
-							...input_params_mapped_updated,
+							...clonedInputParamsMapped,
 							seed: {
 								value: Number(input_params_mapped['seed']) + index,
 								display_name: 'Seed',
@@ -886,8 +887,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 				// Polling already running for this flow
 				return
 			}
-			this.runningInterval[flow_name] = setInterval(async () => {
-				await this.getFlowsProgress(flow_name).then((progress: TasksHistory[]|any) => {
+			this.runningInterval[flow_name] = setInterval(() => {
+				this.getFlowsProgress(flow_name).then((progress: TasksHistory[]|any) => {
 					Object.keys(progress).forEach((task_id: string) => {
 						const runningFlow = this.running.find(flow => Number(flow.task_id) === Number(task_id))
 						if (!runningFlow) {
@@ -903,6 +904,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 						}
 						// update input_params_mapped with new values
 						Object.keys(progress[task_id].input_params).forEach((key) => {
+							if (!runningFlow.input_params_mapped[key]) {
+								runningFlow.input_params_mapped[key] = {
+									value: progress[task_id].input_params[key],
+									display_name: this.flows_installed.find(flow => flow.name === progress[task_id].name)?.input_params.find(param => param.name === key)?.display_name,
+								}
+							}
 							runningFlow.input_params_mapped[key].value = progress[task_id].input_params[key]
 						})
 						// update input_files
