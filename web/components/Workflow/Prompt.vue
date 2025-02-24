@@ -138,6 +138,9 @@ if (flowStore.currentFlow.is_seed_supported) {
 const settingsStore = useSettingsStore()
 const shouldTranslate = ref(flowStore.currentFlow.is_translations_supported
 	&& settingsStore.settingsMap.translations_provider.value.trim() !== '')
+const surpriseMeSupported = ref(flowStore.currentFlow.is_surprise_me_supported
+		&& settingsStore.settingsMap.llm_provider.value.trim() !== ''
+)
 const translatePrompt: Ref<boolean> = ref(shouldTranslate.value)
 onBeforeMount(() => {
 	const translatePromptLocal = localStorage.getItem('translatePrompt')
@@ -272,6 +275,40 @@ watch(() => profilingOptions.value, () => {
 	}
 	localStorage.setItem(`profilingOptions_${flowStore.currentFlow?.name}`, JSON.stringify(profilingOptions.value))
 }, { deep: true })
+
+function runPrompt(surprise = false) {
+	running.value = true
+	let headers = {}
+	if (userStore.isAdmin && profilingEnabled) {
+		headers = Object.fromEntries(
+			Object.entries(profilingOptions)
+				.filter(([_, value]) => {
+					return value !== null
+				})
+				.map(([key, value]) => {
+					if (key === 'X-WORKER-ID') {
+						// @ts-ignore
+						return [key, value?.value]
+					}
+					return [key, value]
+				})
+		)
+	}
+	flowStore.runFlow(
+		flowStore.currentFlow,
+		[...inputParamsMap.value, ...additionalInputParamsMap.value],
+		batchSize.value,
+		shouldTranslate.value && translatePrompt.value,
+		false, null, surprise,
+		headers
+	).finally(() => {
+		running.value = false
+		const seed = additionalInputParamsMap.value.find((inputParam: any) => {
+			return Object.keys(inputParam)[0] === 'seed'
+		})
+		seed.seed.value = Number(seed.seed.value) + batchSize.value + 1
+	})
+}
 </script>
 
 <template>
@@ -318,7 +355,7 @@ watch(() => profilingOptions.value, () => {
 					v-model="translatePrompt"
 					label="Translate prompt" />
 			</UFormGroup>
-			<div class="flex" :class="{ 'justify-between': showResetParams, 'justify-end': !showResetParams }">
+			<div class="flex flex-col md:flex-row" :class="{ 'justify-between': showResetParams, 'justify-end': !showResetParams }">
 				<UTooltip v-if="showResetParams" text="Reset input params values to defaults">
 					<UButton
 						icon="i-heroicons-arrow-path-rounded-square"
@@ -328,45 +365,25 @@ watch(() => profilingOptions.value, () => {
 						Reset params
 					</UButton>
 				</UTooltip>
-				<div class="action flex items-center">
+				<div class="action flex items-center justify-end">
+					<UTooltip v-if="surpriseMeSupported"
+						text="Randomize prompt based on your input">
+						<UButton
+							class="mr-2"
+							icon="i-heroicons-gift"
+							variant="soft"
+							color="blue"
+							:loading="running"
+							@click="() => runPrompt(true)">
+							Surprise me
+						</UButton>
+					</UTooltip>
 					<UButton
 						icon="i-heroicons-sparkles-16-solid"
 						variant="outline"
 						:loading="running"
 						:disabled="!requiredInputParamsValid"
-						@click="() => {
-							running = true
-							let headers = {}
-							if (userStore.isAdmin && profilingEnabled) {
-								headers = Object.fromEntries(
-									Object.entries(profilingOptions)
-										.filter(([_, value]) => {
-											return value !== null
-										})
-										.map(([key, value]) => {
-											if (key === 'X-WORKER-ID') {
-												// @ts-ignore
-												return [key, value?.value]
-											}
-											return [key, value]
-										})
-								)
-							}
-							flowStore.runFlow(
-								flowStore.currentFlow,
-								[...inputParamsMap, ...additionalInputParamsMap],
-								batchSize,
-								shouldTranslate && translatePrompt,
-								false, null,
-								headers
-							).finally(() => {
-								running = false
-								const seed = additionalInputParamsMap.find((inputParam: any) => {
-									return Object.keys(inputParam)[0] === 'seed'
-								})
-								seed.seed.value = Number(seed.seed.value) + batchSize + 1
-							})
-						}">
+						@click="() => runPrompt(false)">
 						Run prompt
 					</UButton>
 				</div>

@@ -1,3 +1,4 @@
+import json
 import logging
 import typing
 
@@ -19,7 +20,11 @@ from ..prompt_translation import (
 )
 from ..pydantic_models import TranslatePromptRequest, UserInfo
 from ..tasks_engine import remove_task_files
-from ..tasks_engine_async import create_new_task_async, put_task_in_queue_async
+from ..tasks_engine_async import (
+    create_new_task_async,
+    get_task_async,
+    put_task_in_queue_async,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]] | None = None
@@ -154,3 +159,36 @@ async def process_remote_input_url(request: Request, input_file_info: dict[str, 
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
         input_file = await client.get(input_file_info["remote_url"], cookies=request.cookies)
         input_file_info["file_content"] = input_file.content
+
+
+def get_task_creation_extra_flags(request: Request, is_user_admin: bool) -> [dict | None, str | None]:
+    extra_flags = {}
+    custom_worker = None
+    if is_user_admin:
+        if request.headers.get("X-WORKER-UNLOAD-MODELS") == "1":
+            extra_flags["unload_models"] = True
+        if request.headers.get("X-WORKER-EXECUTION-PROFILER") == "1":
+            extra_flags["profiler_execution"] = True
+        custom_worker = request.headers.get("X-WORKER-ID")
+    if not extra_flags:
+        extra_flags = None
+    return extra_flags, custom_worker
+
+
+async def process_string_value(request: Request, user_id: str, key: str, value: str, in_files_params: dict) -> None:
+    try:
+        input_file_info = json.loads(value)
+    except json.JSONDecodeError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Invalid file input:{value}") from None
+    if "remote_url" in input_file_info:
+        await process_remote_input_url(request, input_file_info)
+    elif "task_id" in input_file_info:
+        if not await get_task_async(int(input_file_info["task_id"]), user_id):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
+            ) from None
+    else:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` or `remote_url` parameter."
+        ) from None
+    in_files_params[key] = input_file_info

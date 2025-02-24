@@ -151,6 +151,9 @@ class Flow(BaseModel):
         "enabling the addition of custom LoRAs at specific locations. "
         "Key is a unique ID that used to reference specific connection during Flow editing.",
     )
+    is_surprise_me_supported: bool = Field(
+        False, description="Flag indicating if Flow supports random prompt generation feature."
+    )
 
     @field_validator("name", mode="after")
     @classmethod
@@ -162,6 +165,13 @@ class Flow(BaseModel):
 
     def __eq__(self, other):
         return isinstance(other, AIResourceModel) and self.name == other.name
+
+    @model_validator(mode="after")
+    def fill_surprise_me(self) -> Self:
+        self.is_surprise_me_supported = bool(
+            self.is_count_supported and any(param.get("name") == "prompt" for param in self.input_params)
+        )
+        return self
 
 
 class FlowProgressInstall(BaseModel):

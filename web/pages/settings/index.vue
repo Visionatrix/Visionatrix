@@ -359,7 +359,7 @@ const passwordInputs = ref({
 						/>
 					</UFormGroup>
 
-					<UDivider class="mt-3" label="Prompt translations" />
+					<UDivider class="mt-3" label="AI providers" />
 					<UFormGroup
 						size="md"
 						class="py-3"
@@ -379,6 +379,27 @@ const passwordInputs = ref({
 								color="white"
 								class="ml-2"
 								@click="() => settingsStore.settingsMap.translations_provider.value = ''" />
+						</div>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="LLM provider"
+						description="LLM  provider. Empty if not enabled.">
+						<div class="flex items-center">
+							<USelect
+								v-model="settingsStore.settingsMap.llm_provider.value"
+								color="white"
+								variant="outline"
+								placeholder="Select LLM provider"
+								:options="settingsStore.settingsMap.llm_provider.options" />
+							<UButton
+								v-if="settingsStore.settingsMap.llm_provider.value"
+								icon="i-heroicons-x-mark"
+								variant="outline"
+								color="white"
+								class="ml-2"
+								@click="() => settingsStore.settingsMap.llm_provider.value = ''" />
 						</div>
 					</UFormGroup>
 				</div>

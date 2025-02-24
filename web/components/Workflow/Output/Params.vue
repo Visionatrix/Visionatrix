@@ -112,7 +112,9 @@ function downloadRawDetails() {
 		color="gray"
 		@click="() => {
 			const clipboard = useCopyToClipboard()
-			clipboard.copy(inputParamStr.split(':')[1].trim())
+			const index = inputParamStr.indexOf(':')
+			const value = inputParamStr.substring(index + 1).trim()
+			clipboard.copy(value)
 			const toast = useToast()
 			toast.add({
 				title: 'Clipboard',
