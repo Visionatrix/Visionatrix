@@ -51,11 +51,13 @@ async def get_installed() -> list[Flow]:
 
 
 @ROUTER.get("/not-installed")
-async def get_not_installed() -> list[Flow]:
+async def get_not_installed(request: Request) -> list[Flow]:
     """
     Return the list of flows that can be installed. This endpoint provides detailed information about each flow,
     similar to the installed flows, which includes metadata and configuration parameters.
     """
+    if not request.scope["user_info"].is_admin:
+        return []
     return list((await calculate_dynamic_fields_for_flows(await get_not_installed_flows())).values())
 
 
