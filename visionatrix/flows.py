@@ -324,9 +324,9 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
         return False
 
-    LOGGER.info("Installation of `%s` flow completed", flow.name)
     if not asyncio.run(db_queries.update_flow_progress_install(flow.name, 100.0, False)):
         return False
+    LOGGER.info("Installation of `%s` flow completed", flow.name)
 
     LAST_GOOD_INSTALLED_FLOWS["update_time"] = 0.0
     return True
