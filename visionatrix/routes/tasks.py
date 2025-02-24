@@ -159,7 +159,10 @@ async def create_task(
         bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
     )
 
-    in_text_params_list = [in_text_params.copy() for _ in range(data.count)]
+    if "seed" in in_text_params:
+        in_text_params_list = [dict(in_text_params, seed=in_text_params["seed"] + i) for i in range(data.count)]
+    else:
+        in_text_params_list = [in_text_params.copy() for _ in range(data.count)]
     translated_in_text_params_list = [translated_in_text_params.copy() for _ in range(data.count)]
 
     if surprise_me_active:
@@ -199,8 +202,6 @@ async def create_task(
         tasks_ids.append(task_details["task_id"])
         if outputs is None:
             outputs = task_details["outputs"]
-        if "seed" in in_text_params:
-            in_text_params["seed"] = in_text_params["seed"] + 1
     try:
         return TaskRunResults.model_validate({"tasks_ids": tasks_ids, "outputs": outputs})
     except Exception as e:
@@ -312,7 +313,7 @@ async def restart_task(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` has no error set.")
 
     await task_restart_database_async(task_id)
-    remove_task_lock_database(task_id)
+    await remove_task_lock_database(task_id)
 
 
 @ROUTER.delete(
@@ -725,7 +726,7 @@ async def remove_task_lock(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    remove_task_lock_database(task_id)
+    await remove_task_lock_database(task_id)
 
 
 @ROUTER.put(
