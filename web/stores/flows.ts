@@ -29,6 +29,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flows_search_filter: '',
 		flows_hidden_filter: false,
 		show_unsupported_flows: false,
+		show_only_installed_flows: false,
 		sub_flows: <Flow[]>[],
 		flows_favorite: <string[]>[],
 		current_flow: <Flow>{},
@@ -37,7 +38,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 	}),
 	getters: {
 		flows(state): Flow[] {
-			let flows: Flow[] = [
+			let flows = state.show_only_installed_flows ? state.flows_installed : [
 				...state.flows_installed,
 				...state.flows_available,
 			]
@@ -59,14 +60,14 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return flows
 		},
 		flowsTags(state): string[] {
-			const flows = [
+			const flows = state.show_only_installed_flows ? state.flows_installed : [
 				...state.flows_installed,
 				...state.flows_available,
 			]
 			return Array.from(new Set(flows.flatMap(flow => flow.tags)))
 		},
 		paginatedFlows(state) {
-			let flows: Flow[] = [
+			let flows = state.show_only_installed_flows ? state.flows_installed : [
 				...state.flows_installed,
 				...state.flows_available,
 			]
@@ -1063,6 +1064,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				this.outputMaxSize = Number(options.outputMaxSize) || 512
 				this.show_unsupported_flows = options.showUnsupportedFlows || false
 				this.flows_hidden_filter = options.showHiddenFlows || false
+				this.show_only_installed_flows = options.showOnlyInstalledFlows || false
 			}
 		},
 
@@ -1072,6 +1074,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				outputMaxSize: this.outputMaxSize,
 				showUnsupportedFlows: this.show_unsupported_flows,
 				showHiddenFlows: this.flows_hidden_filter,
+				showOnlyInstalledFlows: this.show_only_installed_flows,
 			}))
 		},
 

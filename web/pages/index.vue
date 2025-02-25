@@ -10,6 +10,7 @@ useHead({
 })
 
 const flowsStore = useFlowsStore()
+const userStore = useUserStore()
 const toast = useToast()
 
 watch(() => flowsStore.paginatedFlows, () => {
@@ -21,7 +22,7 @@ watch(() => flowsStore.paginatedFlows, () => {
 })
 
 function getFlowsOptions() {
-	return [
+	const options = [
 		[{
 			label: 'Show unsupported flows',
 			icon: flowsStore.$state.show_unsupported_flows ? 'i-mdi-filter-check' : 'i-mdi-filter-minus',
@@ -50,9 +51,27 @@ function getFlowsOptions() {
 				flowsStore.$state.flows_tags_filter = []
 				flowsStore.$state.flows_hidden_filter = false
 				flowsStore.$state.show_unsupported_flows = false
+				flowsStore.$state.show_only_installed_flows = false
+				flowsStore.saveUserOptions()
 			},
 		}],
 	]
+
+	const showOnlyInstalledOption = [{
+		label: 'Show only installed	flows',
+		icon: flowsStore.$state.show_only_installed_flows ? 'i-mdi-filter-check' : 'i-mdi-filter-minus',
+		slot: 'show_only_installed_flows',
+		click: () => {
+			flowsStore.$state.show_only_installed_flows = !flowsStore.$state.show_only_installed_flows
+			flowsStore.saveUserOptions()
+		},
+	}]
+
+	if (userStore.isAdmin) {
+		options.splice(2, 0, showOnlyInstalledOption)
+	}
+
+	return options
 }
 
 const filterEnabled = computed(() => {
@@ -60,12 +79,14 @@ const filterEnabled = computed(() => {
 		|| flowsStore.$state.flows_tags_filter.length > 0
 		|| flowsStore.$state.show_unsupported_flows
 		|| flowsStore.$state.flows_hidden_filter
+		|| flowsStore.$state.show_only_installed_flows
 })
 const filtersCount = computed(() => {
 	return (flowsStore.$state.flows_search_filter ? 1 : 0)
 		+ (flowsStore.$state.flows_tags_filter.length > 0 ? 1 : 0)
 		+ (flowsStore.$state.show_unsupported_flows ? 1 : 0)
 		+ (flowsStore.$state.flows_hidden_filter ? 1 : 0)
+		+ (flowsStore.$state.show_only_installed_flows ? 1 : 0)
 })
 
 function retryLoadData() {
@@ -124,6 +145,10 @@ function retryLoadData() {
 						<template #show_hidden_flows>
 							<UCheckbox v-model="flowsStore.$state.flows_hidden_filter" />
 							<span class="text-xs">Show hidden flows</span>
+						</template>
+						<template #show_only_installed_flows>
+							<UCheckbox v-model="flowsStore.$state.show_only_installed_flows" />
+							<span class="text-xs">Show only installed flows</span>
 						</template>
 					</UDropdown>
 				</div>
