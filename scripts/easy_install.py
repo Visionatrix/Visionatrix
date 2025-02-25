@@ -1,3 +1,4 @@
+import contextlib
 import subprocess
 import os
 import sys
@@ -60,6 +61,8 @@ def main_entry():
         os.chdir(PARENT_DIR.parent.parent if PYTHON_EMBEDED else PARENT_DIR.parent)
         reinstall()
     else:
+        if sys.platform.lower().startswith("linux"):
+            ensure_compiler_installed()
         q = "Y" if GH_BUILD_RELEASE else input("No existing installation found, start first installation? (Y/N) ")
         if q.lower() == "y":
             sys.exit(first_run())
@@ -371,6 +374,60 @@ vix_models:
   rmbg: rmbg
 """
 # TO-DO: remove "rmbg" entry from this list in March/April when "1.9" version will be absolute.
+
+
+def check_compiler_installed() -> bool:
+    with contextlib.suppress(Exception):
+        subprocess.run(["gcc", "--version"],
+                       capture_output=True,
+                       check=True)
+        return True
+    return False
+
+
+def get_linux_distro() -> str:
+    """Return the Linux distribution ID by reading /etc/os-release."""
+    distro = ""
+    with contextlib.suppress(Exception):
+        with open("/etc/os-release") as f:
+            for line in f:
+                if line.startswith("ID="):
+                    distro = line.strip().split("=")[1].strip('"').lower()
+                    break
+    return distro
+
+
+def ensure_compiler_installed():
+    if not check_compiler_installed():
+        distro = get_linux_distro()
+        if distro == "ubuntu":
+            install_instructions = "sudo apt update && sudo apt install build-essential"
+        elif distro == "fedora":
+            install_instructions = "sudo dnf groupinstall 'Development Tools'"
+        else:
+            install_instructions = "please install the necessary development tools for your distribution"
+        print("\nNo C/C++ compiler detected.")
+        print("The installation requires a working compiler and related tools.")
+        print(f"For your system, you may install them by running:\n   {install_instructions}\n")
+        ans = input("Would you like to attempt to install the necessary packages now? (Y/N): ")
+        if ans.strip().lower() == "y":
+            try:
+                if distro == "ubuntu":
+                    subprocess.check_call(["sudo", "apt", "update"])
+                    subprocess.check_call(["sudo", "apt", "install", "-y", "build-essential"])
+                elif distro == "fedora":
+                    subprocess.check_call(["sudo", "dnf", "groupinstall", "-y", "Development Tools"])
+                else:
+                    print("Automatic installation is not supported for your distribution. Please install manually.")
+                    sys.exit(1)
+                print("Development tools installed successfully. Rerunning the script...\n")
+                os.execv(sys.executable, [sys.executable, *sys.argv])  # noqa
+            except subprocess.CalledProcessError as e:
+                print("An error occurred during installation:", e)
+                sys.exit(1)
+        else:
+            print("Development tools are required for installation. Exiting.")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
