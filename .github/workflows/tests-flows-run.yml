@@ -54,6 +54,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Linux dependencies
+        run: sudo apt update && sudo apt install ffmpeg libsm6 libxext6
+
       - name: Install Visionatrix dependencies
         run: python3 -m pip install .
 

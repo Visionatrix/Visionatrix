@@ -67,6 +67,12 @@ Access the Visionatrix UI at [http://localhost:8288](http://localhost:8288) (def
   ```bash
   sudo apt install wget curl python3-venv python3-pip build-essential git
   ```
+
+  It is also recommended to install FFMpeg dependencies with:
+
+  ```bash
+  sudo apt install ffmpeg libsm6 libxext6
+  ```
 </details>
 
 Download and run the `easy_install.py` script:
