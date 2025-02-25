@@ -90,6 +90,8 @@ async def load(
 
     sys.path.append(options.COMFYUI_DIR)
 
+    original_argv = sys.argv[:]
+
     no_device_detection = "--disable-device-detection" in sys.argv
     filter_list = [
         "--host",
@@ -197,6 +199,7 @@ async def load(
             call_on_start=None,
         )
 
+    sys.argv = original_argv
     return execution.validate_prompt, [q, prompt_server], start_all
 
 
