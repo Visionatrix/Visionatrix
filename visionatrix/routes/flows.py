@@ -95,19 +95,13 @@ async def get_flow_details(
     """
     require_admin(request)
     flow_name = name.lower()
-
-    # First try to get the flow from installed flows.
-    flow_comfy = {}
-    flow = (await get_installed_flows(flow_comfy)).get(flow_name)
-
-    # If not installed, fall back to available flows.
+    flows_comfy = {}
+    flow = (await get_installed_flows(flows_comfy)).get(flow_name)
     if not flow:
-        flows_comfy = {}
         flow = (await get_available_flows(flows_comfy)).get(flow_name)
         if not flow:
             raise HTTPException(status.HTTP_404_NOT_FOUND, f"Flow '{name}' not found.")
-        flow_comfy = flows_comfy[flow_name]
-    return {"flow": flow, "flow_comfy": flow_comfy}
+    return {"flow": flow, "flow_comfy": flows_comfy[flow_name]}
 
 
 @ROUTER.post(
