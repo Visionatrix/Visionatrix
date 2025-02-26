@@ -2,6 +2,7 @@
 const route = useRoute()
 
 const flowStore = useFlowsStore()
+const toast = useToast()
 
 flowStore.setCurrentFlow(route.params.name as string)
 
@@ -26,6 +27,28 @@ const showLoraSelectorModal = ref(false)
 
 const flowActions = computed(() => {
 	const actions = [
+		[{
+			label: 'Export flow',
+			icon: 'i-heroicons-arrow-down-on-square-stack',
+			click: () => {
+				flowStore.fetchFlowDetails(flowStore.currentFlow).then((res: any) => {
+					console.debug('[DEBUG] Flow details for export: ', res)
+					const blob = new Blob([JSON.stringify(res?.flow_comfy)], { type: 'application/json' })
+					const url = window.URL.createObjectURL(blob)
+					const a = document.createElement('a')
+					a.href = url
+					a.download = `${flowStore.currentFlow.name}.json`
+					a.click()
+					window.URL.revokeObjectURL(url)
+				}).catch((err) => {
+					console.debug('Failed to fetch flow details for export: ', err)
+					toast.add({
+						title: 'Failed to export flow',
+						description: err?.details || 'Failed to fetch flow details for export',
+					})
+				})
+			},
+		}],
 		[{
 			label: 'Delete flow',
 			icon: 'i-heroicons-trash',
