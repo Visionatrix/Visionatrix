@@ -65,7 +65,16 @@ Additional Emphasis:
 """
 
 
-LLM_SURPRISE_ME_INITIAL_PROMPT = """
+LLM_SURPRISE_ME_INITIAL_PROMPT_ONE = """
+Generate one unique, comma-separated diffusion prompt, with a length between %s and %s words.
+Prompt must:
+1. Include at least one subject or scene.
+2. Include at least one artistic or quality descriptor.
+3. Be a brief list of descriptive words/phrases without extra explanation.
+4. Avoid overly complex terms.
+"""
+
+LLM_SURPRISE_ME_INITIAL_PROMPT_MANY = """
 Generate %s unique, comma-separated diffusion prompts, each with a length between %s and %s words.
 Each prompt must:
 1. Include at least one subject or scene.
@@ -74,8 +83,14 @@ Each prompt must:
 4. Avoid overly complex terms.
 """
 
-LLM_SURPRISE_ME_END_PROMPT = """
-Output the result as valid JSON in the following format:
-'{"prompts": ["prompt1", "prompt2", ...]}'
+LLM_SURPRISE_ME_END_PROMPT_ONE = """
 Do not include any additional commentary.
+Output the result as valid JSON in the following format:
+'["prompt"]'
+"""
+
+LLM_SURPRISE_ME_END_PROMPT_MANY = """
+Do not include any additional commentary.
+Output the result as valid JSON in the following format:
+'["prompt1", "prompt2", ...]'
 """
