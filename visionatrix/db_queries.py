@@ -216,6 +216,23 @@ async def add_flow_progress_install(name: str, flow_comfy: dict) -> None:
             raise
 
 
+async def edit_flow_progress_install(name: str, flow_comfy: dict) -> bool:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                update(database.FlowsInstallStatus)
+                .where(database.FlowsInstallStatus.name == name)
+                .values(flow_comfy=flow_comfy, updated_at=datetime.now(timezone.utc))
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+            return bool(result.rowcount == 0)
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to edit flow progress install for `%s`.", name)
+            raise
+
+
 async def update_flow_progress_install(name: str, progress: float, relative_progress: bool) -> bool:
     async with database.SESSION() as session:
         try:
