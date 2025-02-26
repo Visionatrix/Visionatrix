@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+import re
 
 import google.generativeai as genai
 import ollama
@@ -413,7 +414,7 @@ async def surprise_me(
         response_data = await client.generate(
             model=ollama_llm_model, prompt=composite_prompt, system="", keep_alive=ollama_keepalive
         )
-        response_text = response_data["response"].rstrip()
+        response_text = re.sub(r"<think>.*?</think>", "", response_data["response"], flags=re.DOTALL).strip()
     else:
         google_api_key = await get_setting(user_id, "google_api_key", is_admin)
         if not google_api_key:

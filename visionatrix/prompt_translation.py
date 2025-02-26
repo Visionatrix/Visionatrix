@@ -1,4 +1,5 @@
 import logging
+import re
 
 import google.generativeai as genai
 import ollama
@@ -35,10 +36,9 @@ async def translate_prompt_with_ollama(
     ollama_response = await ollama_client.generate(
         ollama_llm_model, data.prompt, system=system_prompt, keep_alive=ollama_keepalive
     )
-
     return TranslatePromptResponse(
         prompt=data.prompt,
-        result=ollama_response["response"],
+        result=re.sub(r"<think>.*?</think>", "", ollama_response["response"], flags=re.DOTALL).strip(),
         done_reason=ollama_response["done_reason"],
     )
 
