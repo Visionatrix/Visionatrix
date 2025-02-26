@@ -126,6 +126,49 @@
         }
       }
     },
+    "/vapi/flows/flow-details": {
+      "get": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Get Flow Details",
+        "description": "Retrieves the Flow model and its associated flow_comfy dictionary.\nThis endpoint is restricted to admin users.",
+        "operationId": "get_flow_details",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the flow to retrieve details for.",
+              "title": "Name"
+            },
+            "description": "Name of the flow to retrieve details for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/flows/flow": {
       "post": {
         "tags": [
@@ -4246,7 +4289,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-23T06:20:03.987218Z"
+            "default": "2025-02-26T08:33:14.187651Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
