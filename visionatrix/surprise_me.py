@@ -8,7 +8,12 @@ import ollama
 
 from .db_queries import get_setting
 from .etc import temporary_env_var
-from .llm_utils import LLM_SURPRISE_ME_END_PROMPT, LLM_SURPRISE_ME_INITIAL_PROMPT
+from .llm_utils import (
+    LLM_SURPRISE_ME_END_PROMPT_MANY,
+    LLM_SURPRISE_ME_END_PROMPT_ONE,
+    LLM_SURPRISE_ME_INITIAL_PROMPT_MANY,
+    LLM_SURPRISE_ME_INITIAL_PROMPT_ONE,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 GENRES = [
@@ -367,19 +372,32 @@ def build_llm_json_prompt(chosen_keywords_list, theme: str, min_words=15, max_wo
     The prompt instructs the LLM to generate a number of unique, comma-separated diffusion prompts
     (one for each provided keyword set), each between min_words and max_words words.
     The output must be valid JSON in the format:
-      {"prompts": ["prompt1", "prompt2", ...]}
+      ["prompt1", "prompt2", ...]
     """
-    instructions = LLM_SURPRISE_ME_INITIAL_PROMPT % (len(chosen_keywords_list), min_words, max_words)
+    count = len(chosen_keywords_list)
+    if count == 1:
+        instructions = LLM_SURPRISE_ME_INITIAL_PROMPT_ONE % (min_words, max_words)
+    else:
+        instructions = LLM_SURPRISE_ME_INITIAL_PROMPT_MANY % (count, min_words, max_words)
     if theme.strip():
-        instructions += f"5. Ensure that every prompt clearly and explicitly references the given theme: {theme}.\n"
-    instructions += "\nFor each of the following keyword sets, generate a prompt accordingly:\n\n"
+        if count == 1:
+            instructions += f"5. Ensure that prompt clearly and explicitly references the given theme: {theme}.\n"
+        else:
+            instructions += f"5. Ensure that every prompt clearly and explicitly references the given theme: {theme}.\n"
+    if count == 1:
+        instructions += "\nGenerate a diffusion prompt based on each of the following keyword sets:\n\n"
+    else:
+        instructions += "\nGenerate a diffusion prompt for each of the following keyword sets, one for each set:\n\n"
 
     for i, chosen_keywords in enumerate(chosen_keywords_list, start=1):
         instructions += f"Keyword Set {i}:\n"
         for cat, keyword in chosen_keywords.items():
             instructions += f"{cat.capitalize()}: {keyword}\n"
         instructions += "\n"
-    instructions += LLM_SURPRISE_ME_END_PROMPT
+    if count == 1:
+        instructions += LLM_SURPRISE_ME_END_PROMPT_ONE
+    else:
+        instructions += LLM_SURPRISE_ME_END_PROMPT_MANY
     return instructions
 
 
@@ -442,7 +460,8 @@ async def surprise_me(
         response_text = response_data.text.strip()
 
     try:
-        prompts = json.loads(response_text).get("prompts")
+        response_text = response_text.removeprefix("```json").removesuffix("```").strip()
+        prompts = json.loads(response_text)
         if not isinstance(prompts, list) or len(prompts) != count:
             raise ValueError(f"The JSON output did not contain the expected number of prompts: \n{response_text}")
     except Exception as e:
