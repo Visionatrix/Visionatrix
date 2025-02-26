@@ -291,6 +291,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 			return flows
 		},
 
+		fetchFlowDetails(flow: Flow) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch(`/flows/flow-details?name=${flow.name}`, {
+				method: 'GET',
+			})
+		},
+
 		async fetchFlowResults(): Promise<TasksHistory> {
 			const { $apiFetch } = useNuxtApp()
 			this.loading.tasks_history = true

@@ -85,6 +85,25 @@ async def get_subflows(input_type: typing.Literal["image", "image-inpaint", "vid
     return r
 
 
+@ROUTER.get("/flow-details")
+async def get_flow_details(
+    request: Request, name: str = Query(..., description="Name of the flow to retrieve details for.")
+):
+    """
+    Retrieves the Flow model and its associated flow_comfy dictionary.
+    This endpoint is restricted to admin users.
+    """
+    require_admin(request)
+    flow_name = name.lower()
+    flows_comfy = {}
+    flow = (await get_installed_flows(flows_comfy)).get(flow_name)
+    if not flow:
+        flow = (await get_available_flows(flows_comfy)).get(flow_name)
+        if not flow:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Flow '{name}' not found.")
+    return {"flow": flow, "flow_comfy": flows_comfy[flow_name]}
+
+
 @ROUTER.post(
     "/flow",
     response_class=responses.Response,
