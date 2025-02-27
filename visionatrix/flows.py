@@ -776,18 +776,16 @@ async def create_new_flow(flow: Flow, flow_comfy: dict[str, dict], data: FlowClo
             break
 
     metadata_dict, mode = extract_metadata_dict(flow_comfy_new[meta_node_id])
-    if data.new_name:
-        metadata_dict["name"] = data.new_name
-    if data.new_display_name:
-        metadata_dict["display_name"] = data.new_display_name
-    if data.description is not None:
-        metadata_dict["description"] = data.description
-    if data.license is not None:
-        metadata_dict["license"] = data.license
-    if data.required_memory_gb is not None:
-        metadata_dict["required_memory_gb"] = data.required_memory_gb
-    if data.version is not None:
-        metadata_dict["version"] = data.version
+    metadata_dict["name"] = data.new_name
+    metadata_dict["display_name"] = data.metadata.display_name
+    if data.metadata.description is not None:
+        metadata_dict["description"] = data.metadata.description
+    if data.metadata.license is not None:
+        metadata_dict["license"] = data.metadata.license
+    if data.metadata.required_memory_gb is not None:
+        metadata_dict["required_memory_gb"] = data.metadata.required_memory_gb
+    if data.metadata.version is not None:
+        metadata_dict["version"] = data.metadata.version
     store_metadata_dict(flow_comfy_new[meta_node_id], metadata_dict, mode)
 
     for root_node_id, old_cp in flow.lora_connect_points.items():

@@ -497,6 +497,74 @@
         }
       }
     },
+    "/vapi/flows/flow-metadata": {
+      "put": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Edit Flow Metadata",
+        "operationId": "edit_flow_metadata",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the flow to update metadata for.",
+              "title": "Name"
+            },
+            "description": "Name of the flow to update metadata for."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowMetadataUpdate",
+                "description": "New metadata values for the flow."
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Flow metadata updated successfully."
+          },
+          "400": {
+            "description": "Invalid metadata provided",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Flow metadata node not found."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during editing the flow",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Editing flow failed."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/models/orphan": {
       "get": {
         "tags": [
@@ -2990,58 +3058,9 @@
             "title": "New Name",
             "description": "New internal name for the cloned flow (must be unique)."
           },
-          "new_display_name": {
-            "type": "string",
-            "title": "New Display Name",
-            "description": "New display name for UI presentation."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Optional updated description of the new flow."
-          },
-          "license": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "License",
-            "description": "Optional updated license for the new flow."
-          },
-          "required_memory_gb": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Required Memory Gb",
-            "description": "Optional updated memory requirement in GB."
-          },
-          "version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Version",
-            "description": "Optional updated version number."
+          "metadata": {
+            "$ref": "#/components/schemas/FlowMetadataUpdate",
+            "description": "New metadata to apply to the cloned flow."
           },
           "lora_connection_points": {
             "anyOf": [
@@ -3066,10 +3085,72 @@
         "required": [
           "original_flow_name",
           "new_name",
-          "new_display_name"
+          "metadata"
         ],
         "title": "FlowCloneRequest",
         "description": "Represents the data required to clone and modify an existing flow.\n\nThis model is used to create a new flow by copying from an existing one\nand optionally updating its metadata, LoRA connection points, or other attributes.\nIt allows for targeted customization while preserving the base functionality of the original flow."
+      },
+      "FlowMetadataUpdate": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "New display name for the flow."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Updated description of the flow."
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License",
+            "description": "Updated license for the flow."
+          },
+          "required_memory_gb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Memory Gb",
+            "description": "Updated required memory (in GB) for the flow."
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "Updated version of the flow."
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
+        "title": "FlowMetadataUpdate"
       },
       "FlowProgressInstall": {
         "properties": {
@@ -4289,7 +4370,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-26T08:33:14.187651Z"
+            "default": "2025-02-26T17:42:47.026324Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

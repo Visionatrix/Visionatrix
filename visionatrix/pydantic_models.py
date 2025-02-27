@@ -588,6 +588,14 @@ class CustomLoraDefinitionRequest(BaseModel):
     model_url: str = Field(..., description="The CivitAI URL for this model, allowing to embed this model in Flow.")
 
 
+class FlowMetadataUpdate(BaseModel):
+    display_name: str = Field(..., description="New display name for the flow.")
+    description: str | None = Field(None, description="Updated description of the flow.")
+    license: str | None = Field(None, description="Updated license for the flow.")
+    required_memory_gb: float | None = Field(None, description="Updated required memory (in GB) for the flow.")
+    version: str | None = Field(None, description="Updated version of the flow.")
+
+
 class FlowCloneRequest(BaseModel):
     """
     Represents the data required to clone and modify an existing flow.
@@ -600,11 +608,7 @@ class FlowCloneRequest(BaseModel):
     original_flow_name: str = Field(..., description="Name of the installed flow to clone from.")
 
     new_name: str = Field(..., description="New internal name for the cloned flow (must be unique).")
-    new_display_name: str = Field(..., description="New display name for UI presentation.")
-    description: str | None = Field(None, description="Optional updated description of the new flow.")
-    license: str | None = Field(None, description="Optional updated license for the new flow.")
-    required_memory_gb: float | None = Field(None, description="Optional updated memory requirement in GB.")
-    version: str | None = Field(None, description="Optional updated version number.")
+    metadata: FlowMetadataUpdate = Field(..., description="New metadata to apply to the cloned flow.")
 
     lora_connection_points: dict[str, list[CustomLoraDefinitionRequest]] | None = Field(
         default=None,

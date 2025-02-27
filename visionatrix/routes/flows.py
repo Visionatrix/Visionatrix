@@ -19,21 +19,25 @@ from packaging.version import parse
 
 from ..db_queries import (
     delete_flow_progress_install,
+    edit_flow_progress_install,
     flows_installation_in_progress,
     get_flows_progress_install,
 )
 from ..flows import (
+    LAST_GOOD_INSTALLED_FLOWS,
     Flow,
     calculate_dynamic_fields_for_flows,
     create_new_flow,
+    extract_metadata_dict,
     get_available_flows,
     get_installed_flows,
     get_not_installed_flows,
     get_vix_flow,
     install_custom_flow,
+    store_metadata_dict,
     uninstall_flow,
 )
-from ..pydantic_models import FlowCloneRequest, FlowProgressInstall
+from ..pydantic_models import FlowCloneRequest, FlowMetadataUpdate, FlowProgressInstall
 from .helpers import require_admin
 
 LOGGER = logging.getLogger("visionatrix")
@@ -321,3 +325,55 @@ async def clone_flow(request: Request, b_tasks: BackgroundTasks, data: FlowClone
     if await flows_installation_in_progress(flow.name):
         raise HTTPException(status.HTTP_409_CONFLICT, "Installation of this flow is already in progress.")
     b_tasks.add_task(install_custom_flow, flow, new_flow_comfy)
+
+
+@ROUTER.put(
+    "/flow-metadata",
+    response_class=responses.Response,
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Flow metadata updated successfully."},
+        400: {
+            "description": "Invalid metadata provided",
+            "content": {"application/json": {"example": {"detail": "Flow metadata node not found."}}},
+        },
+        500: {
+            "description": "Error during editing the flow",
+            "content": {"application/json": {"example": {"detail": "Editing flow failed."}}},
+        },
+    },
+)
+async def edit_flow_metadata(
+    request: Request,
+    name: str = Query(..., description="Name of the flow to update metadata for."),
+    metadata: FlowMetadataUpdate = Body(..., description="New metadata values for the flow."),
+):
+    require_admin(request)
+    flow_name = name.lower()
+    flows_comfy: dict[str, dict] = {}
+    flow = (await get_installed_flows(flows_comfy)).get(flow_name)
+    if not flow:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Flow '{flow_name}' not found.")
+    flow_comfy = flows_comfy[flow_name]
+
+    metadata_node_id = None
+    for node_id, node_details in flow_comfy.items():
+        if node_details.get("class_type") == "VixUiWorkflowMetadata":
+            metadata_node_id = node_id
+            break
+        if node_details.get("_meta", {}).get("title", "") == "WF_META":
+            metadata_node_id = node_id
+            break
+    if not metadata_node_id:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Flow metadata node not found.")
+
+    current_meta, mode = extract_metadata_dict(flow_comfy[metadata_node_id])
+    current_meta["display_name"] = metadata.display_name
+    current_meta["description"] = metadata.description
+    current_meta["license"] = metadata.license
+    current_meta["required_memory_gb"] = metadata.required_memory_gb
+    current_meta["version"] = metadata.version
+    store_metadata_dict(flow_comfy[metadata_node_id], current_meta, mode)
+    if not await edit_flow_progress_install(flow_name, flow_comfy):
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Editing flow failed.")
+    LAST_GOOD_INSTALLED_FLOWS["update_time"] = 0.0
