@@ -226,7 +226,7 @@ async def edit_flow_progress_install(name: str, flow_comfy: dict) -> bool:
             )
             result = await session.execute(stmt)
             await session.commit()
-            return bool(result.rowcount == 0)
+            return bool(result.rowcount == 1)
         except Exception:
             await session.rollback()
             LOGGER.exception("Failed to edit flow progress install for `%s`.", name)
