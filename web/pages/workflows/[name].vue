@@ -24,6 +24,7 @@ const setupButtonText = computed(() => {
 const deleting = ref(false)
 const showConfirmDelete = ref(false)
 const showLoraSelectorModal = ref(false)
+const showEditMetadataModal = ref(false)
 
 const flowActions = computed(() => {
 	const actions = [
@@ -55,6 +56,16 @@ const flowActions = computed(() => {
 			click: deleteFlow,
 		}]
 	]
+
+	if (userStore.isAdmin) {
+		actions[0].unshift({
+			label: 'Edit metadata',
+			icon: 'i-heroicons-pencil-square',
+			click: () => {
+				showEditMetadataModal.value = true
+			},
+		})
+	}
 
 	if (flowStore?.currentFlow?.new_version_available !== '') {
 		actions[0].unshift({
@@ -427,6 +438,9 @@ const modelsSize = computed(() => {
 		</UModal>
 		<WorkflowLoraSelectorModal v-if="userStore.isAdmin && flowStore?.currentFlow"
 			v-model:show="showLoraSelectorModal"
+			:flow="flowStore.currentFlow" />
+		<WorkflowEditMetadataModal v-if="userStore.isAdmin && flowStore?.currentFlow"
+			v-model:show="showEditMetadataModal"
 			:flow="flowStore.currentFlow" />
 	</AppContainer>
 </template>

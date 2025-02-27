@@ -188,12 +188,12 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 	},
 	actions: {
-		async fetchFlows(toggleLoading: boolean = true) {
+		fetchFlows(toggleLoading: boolean = true) {
 			if (toggleLoading) {
 				this.loading.flows_available = true
 				this.loading.flows_installed = true
 			}
-			await Promise.all([
+			return Promise.all([
 				this.fetchFlowsAvailable(),
 				this.fetchFlowsInstalled(),
 			])
@@ -295,6 +295,24 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const { $apiFetch } = useNuxtApp()
 			return $apiFetch(`/flows/flow-details?name=${flow.name}`, {
 				method: 'GET',
+			})
+		},
+
+		updateFlowMetadata(flow: Flow, metadata: FlowMetadata) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch(`/flows/flow-metadata?name=${flow.name}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: metadata,
+			}).then((res) => {
+				flow.display_name = metadata.display_name
+				flow.description = metadata.description
+				flow.license = metadata.license
+				flow.required_memory_gb = metadata.required_memory_gb
+				flow.version = metadata.version
+				return res
 			})
 		},
 
@@ -1172,6 +1190,14 @@ export interface Flow {
 	required_memory_gb?: number
 	lora_connect_points: LoraPoints
 	hidden: boolean
+}
+
+export interface FlowMetadata {
+	display_name: string
+	description: string
+	license: string
+	required_memory_gb: number
+	version: string
 }
 
 export interface FlowInputParam {
