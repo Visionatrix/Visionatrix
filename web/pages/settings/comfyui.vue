@@ -17,7 +17,7 @@ const showComfyUiFoldersModal = ref(false)
 const loadingFoldersListing = ref(false)
 const foldersListing = ref([] as ComfyUiFolderListing|ComfyUiFolder[]|any)
 const modelsDir = ref('../vix_models') // by default relative to Visionatrix/ComfyUI folder
-onMounted(() => {
+watch(() => settingsStore.settingsMap.comfyui_models_folder.value, () => {
 	if (settingsStore.settingsMap.comfyui_models_folder.value !== '') {
 		modelsDir.value = settingsStore.settingsMap.comfyui_models_folder.value
 	}
@@ -145,7 +145,7 @@ watch(() => settingsStore.localSettings.showComfyUiNavbarButton, () => {
 							class="py-3"
 							label="ComfyUI models folder"
 							description="Relative (to ComfyUI folder) or absolute path to the models folders"
-							:error="modelsDir === '' ? 'Please provide a valid path to the models folder.' : ''">
+							:error="modelsDir.trim() === '' ? 'Please provide a valid path to the models folder.' : ''">
 
 							<UAlert v-if="settingsStore.settingsMap.comfyui_models_folder.changed"
 								class="mt-3"
