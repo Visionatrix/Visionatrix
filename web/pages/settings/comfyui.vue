@@ -17,6 +17,11 @@ const showComfyUiFoldersModal = ref(false)
 const loadingFoldersListing = ref(false)
 const foldersListing = ref([] as ComfyUiFolderListing|ComfyUiFolder[]|any)
 const modelsDir = ref('../vix_models') // by default relative to Visionatrix/ComfyUI folder
+onMounted(() => {
+	if (settingsStore.settingsMap.comfyui_models_folder.value !== '') {
+		modelsDir.value = settingsStore.settingsMap.comfyui_models_folder.value
+	}
+})
 const path = ref('')
 const currentFoldersListing = computed(() => {
 	if (foldersListing.value.length === 0) {
@@ -89,7 +94,11 @@ function navigateToFolder(folder: ComfyUiFolder) {
 const autoconfigLoading = ref(false)
 function performComfyUiAutoconfig(modelsDir: string) {
 	if (modelsDir === '') {
-		resettingComfyUiFolders.value = true
+		toast.add({
+			title: 'ComfyUI models folder is empty',
+			description: 'Please provide a valid path to the models folder.',
+		})
+		return
 	} else {
 		autoconfigLoading.value = true
 	}
@@ -100,17 +109,10 @@ function performComfyUiAutoconfig(modelsDir: string) {
 			if (modelsDir !== '') {
 				foldersListing.value = res.folders
 				toast.add({
-					title: 'Autoconfig performed',
-					description: 'Autoconfig performed successfully',
-				})
-			} else {
-				foldersListing.value = []
-				settingsStore.settingsMap.comfyui_models_folder.value = ''
-				toast.add({
-					title: 'ComfyUI folders reset',
-					description: 'ComfyUI folders reset successfully',
+					title: 'ComfyUI models folder modified',
 				})
 			}
+			settingsStore.settingsMap.comfyui_models_folder.changed = true
 		}
 	}).catch((error) => {
 		toast.add({
@@ -119,11 +121,9 @@ function performComfyUiAutoconfig(modelsDir: string) {
 		})
 	}).finally(() => {
 		autoconfigLoading.value = false
-		resettingComfyUiFolders.value = false
 	})
 }
 
-const resettingComfyUiFolders = ref(false)
 const hideEmptyFolders = ref(true)
 
 watch(() => settingsStore.localSettings.showComfyUiNavbarButton, () => {
@@ -144,49 +144,58 @@ watch(() => settingsStore.localSettings.showComfyUiNavbarButton, () => {
 							size="md"
 							class="py-3"
 							label="ComfyUI models folder"
-							description="Relative (to ComfyUI folder) or absolute path to the models folders">
-							<div v-if="settingsStore.settingsMap.comfyui_models_folder.value === ''">
-								<p class="text-gray-500">No ComfyUI folders initialized.</p>
+							description="Relative (to ComfyUI folder) or absolute path to the models folders"
+							:error="modelsDir === '' ? 'Please provide a valid path to the models folder.' : ''">
+
+							<UAlert v-if="settingsStore.settingsMap.comfyui_models_folder.changed"
+								class="mt-3"
+								color="orange"
+								variant="solid"
+								title="ComfyUI models folder modified"
+								description="Restart Visionatrix server to apply changes."
+								icon="i-heroicons-exclamation-triangle" />
+
+							<div class="flex items-center mt-3">
 								<UInput v-model="modelsDir"
 									placeholder="ComfyUI folder path"
-									class="w-fit mt-3"
+									class="w-fit mr-3"
 									type="text"
 									size="sm"
 									icon="i-heroicons-folder-16-solid"
 									:disabled="autoconfigLoading"
 									autocomplete="off" />
+								<UTooltip v-if="modelsDir !== settingsStore.settingsMap.comfyui_models_folder.value"
+									text="Reset to configured value">
+									<UButton
+										icon="i-heroicons-arrow-uturn-left"
+										color="gray"
+										@click="() => modelsDir = settingsStore.settingsMap.comfyui_models_folder.value" />
+								</UTooltip>
+							</div>
+							<div class="flex items-center mt-3">
 								<UButton
-									class="mt-3"
-									icon="i-heroicons-cog-6-tooth-20-solid"
-									color="orange"
+									v-if="modelsDir !== settingsStore.settingsMap.comfyui_models_folder.value"
+									class="mr-3"
+									icon="i-heroicons-check-16-solid"
+									color="primary"
 									:loading="autoconfigLoading"
 									@click="() => performComfyUiAutoconfig(modelsDir)">
-									Perform autoconfig
+									Apply
+								</UButton>
+								<UButton
+									v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"
+									icon="i-heroicons-folder-16-solid"
+									color="cyan"
+									@click="() => {
+										settingsStore.getComfyUiFolderListing().then((res: any) => {
+											console.debug('[DEBUG] ComfyUI folders: ', res)
+											foldersListing = res.folders
+										})
+										showComfyUiFoldersModal = true
+									}">
+									Show ComfyUI folders
 								</UButton>
 							</div>
-							<UButton
-								v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"
-								class="mt-3"
-								icon="i-heroicons-folder-16-solid"
-								color="cyan"
-								@click="() => {
-									settingsStore.getComfyUiFolderListing().then((res: any) => {
-										console.debug('[DEBUG] ComfyUI folders: ', res)
-										foldersListing = res.folders
-									})
-									showComfyUiFoldersModal = true
-								}">
-								Show ComfyUI folders
-							</UButton>
-
-							<UButton v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"
-								class="mt-3 ml-2"
-								color="red"
-								variant="outline"
-								icon="i-heroicons-trash-16-solid"
-								@click="() => performComfyUiAutoconfig('')">
-								Reset ComfyUI folders
-							</UButton>
 						</UFormGroup>
 
 						<UModal v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"

@@ -74,7 +74,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 			ollama_keepalive: {
 				key: 'ollama_keepalive',
 				value: '',
-				sensitive: true,
+				sensitive: false,
 				admin: true,
 			},
 			translations_provider: {
@@ -96,6 +96,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 				value: '',
 				sensitive: false,
 				admin: true,
+				changed: false,
 			},
 			civitai_auth_token: {
 				key: 'civitai_auth_token',
@@ -231,12 +232,8 @@ export const useSettingsStore = defineStore('settingsStore', {
 		},
 
 		performComfyUiAutoconfig(models_dir: string) {
-			const { $apiFetch } = useNuxtApp()
-			return $apiFetch('/settings/comfyui/folders/autoconfig', {
-				method: 'POST',
-				body: {
-					models_dir,
-				},
+			return this.saveGlobalSetting(this.settingsMap.comfyui_models_folder.key, models_dir, this.settingsMap.comfyui_models_folder.sensitive).then(() => {
+				return this.getComfyUiFolderListing()
 			})
 		},
 
