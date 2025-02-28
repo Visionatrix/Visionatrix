@@ -67,6 +67,7 @@ jobs:
           cd ..
         env:
           COMPUTE_DEVICE: "CPU"
+          DEV_VERSION: ${{ env.DEV_VERSION }}
 
       - name: Listing archive content
         if: ${{ always() }}

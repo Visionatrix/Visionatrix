@@ -15,7 +15,7 @@ PYTHON_EMBEDED = os.path.split(os.path.split(sys.executable)[0])[1] == "python_e
 COMPUTE_DEVICE = os.environ.get("COMPUTE_DEVICE", "")
 GH_BUILD_RELEASE = os.environ.get("BUILD_RELEASE", "0") == "1"
 DEV_VERSION = os.environ.get("DEV_VERSION", "0")
-FORCE_DEV_VERSION = DEV_VERSION == "1" or (DEV_VERSION != "0" and DEV_VERSION.startswith("http"))
+FORCE_DEV_VERSION = DEV_VERSION == "1" or DEV_VERSION.startswith("http")
 
 
 def main_entry():
