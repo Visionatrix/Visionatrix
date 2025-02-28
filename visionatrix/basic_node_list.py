@@ -6,7 +6,7 @@ BASIC_NODE_LIST = {
         "models": [
             AIResourceModel(
                 name="mmdet_anime-face_yolov3",
-                filename="models/mmdet/bbox/mmdet_anime-face_yolov3.pth",
+                filename="mmdet/bbox/mmdet_anime-face_yolov3.pth",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/mmdet/bbox/mmdet_anime-face_yolov3.pth",
                 homepage="https://huggingface.co/Bingsu/adetailer",
                 hash="38208bb6b8a4633193feba532e96ed9a7942129af8fe948b27bfcf8e9a30a12e",
@@ -14,7 +14,7 @@ BASIC_NODE_LIST = {
             ),
             AIResourceModel(
                 name="mmdet_anime-face_yolov3-config",
-                filename="models/ultralytics/bbox/mmdet_anime-face_yolov3.py",
+                filename="ultralytics/bbox/mmdet_anime-face_yolov3.py",
                 url="https://huggingface.co/andrey18106/visionatrix_models/raw/main/mmdet/bbox/mmdet_anime-face_yolov3.py",
                 homepage="https://huggingface.co/Bingsu/adetailer",
                 hash="4deda4dde43497fd123d28b08bd1eaff12ab6dd5b1650de5cea41c95e812cd8c",
@@ -68,7 +68,7 @@ BASIC_NODE_LIST = {
         "models": [
             AIResourceModel(
                 name="antelopev2",
-                filename="models/insightface/models/antelopev2.zip",
+                filename="insightface/models/antelopev2.zip",
                 url="https://huggingface.co/MonsterMMORPG/tools/resolve/main/antelopev2.zip",
                 homepage="https://github.com/deepinsight/insightface",
                 hash="8e182f14fc6e80b3bfa375b33eb6cff7ee05d8ef7633e738d1c89021dcf0c5c5",
@@ -117,7 +117,7 @@ BASIC_NODE_LIST = {
         "models": [
             AIResourceModel(
                 name="buffalo_l",
-                filename="models/insightface/models/buffalo_l.zip",
+                filename="insightface/models/buffalo_l.zip",
                 url="https://huggingface.co/andrey18106/visionatrix_models/resolve/main/insightface/buffalo_l.zip",
                 homepage="https://github.com/deepinsight/insightface",
                 hash="80ffe37d8a5940d59a7384c201a2a38d4741f2f3c51eef46ebb28218a7b0ca2f",

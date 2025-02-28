@@ -13,7 +13,6 @@ import importlib.util
 import inspect
 import logging
 import os
-import re
 import subprocess
 import sys
 import threading
@@ -27,7 +26,6 @@ from socket import gethostname
 from psutil import virtual_memory
 
 from . import _version, options
-from .db_queries import get_global_setting
 from .pydantic_models import ComfyUIFolderPathDefinition
 
 LOGGER = logging.getLogger("visionatrix")
@@ -90,54 +88,26 @@ async def load(
 
     sys.path.append(options.COMFYUI_DIR)
 
-    original_argv = sys.argv[:]
-
-    no_device_detection = "--disable-device-detection" in sys.argv
-    filter_list = [
-        "--host",
-        "--port",
-        "--comfyui_dir",
-        "--tasks_files_dir",
-        "--ui",
-        "^run$",
-        "^update$",
-        "^install-flow$",
-        "^orphan-models$",
-        "--dry-run",
-        "--no-confirm",
-        "--include-useful-models",
-        "--file=",
-        "--name=",
-        "--tag=",
-        "--mode",
-        "--server",
-        "--disable-device-detection",
-        "^openapi$",
-        "--skip-not-installed",
-        "--flows",
-        "--exclude-base",
-        "--indentation=",
-        "visionatrix:APP",
-    ]
-    args_to_remove = []
-    for i, c in enumerate(sys.argv):
-        for k in filter_list:
-            if re.search(k, c) is not None:
-                args_to_remove.append(i)
-
-    args_to_remove.sort(reverse=True)
-    for i in args_to_remove:
-        sys.argv.pop(i)
-
     if task_progress_callback is None and "--cpu" not in sys.argv:
         sys.argv.append("--cpu")
-    elif not no_device_detection and "--cpu" not in sys.argv and "--directml" not in sys.argv:
+    elif "--disable-device-detection" not in sys.argv and "--cpu" not in sys.argv and "--directml" not in sys.argv:
         if need_directml_flag():
             sys.argv.append("--directml")
         elif need_cpu_flag():
             sys.argv.append("--cpu")
 
     LOGGER.debug("command line arguments: %s", sys.argv)
+    fill_comfyui_args()
+
+    import folder_paths  # noqa # isort: skip
+
+    absolute_models_path = COMFYUI_MODELS_FOLDER
+    if not Path(absolute_models_path).is_absolute():
+        absolute_models_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_models_path).resolve())
+    folder_paths.models_dir = absolute_models_path
+
+    for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
+        add_model_folder_path(i.folder_key, i.path, True)
 
     original_add_handler = logging.Logger.addHandler
 
@@ -154,7 +124,6 @@ async def load(
     logging.Logger.addHandler = original_add_handler
 
     import execution  # noqa # isort: skip
-    import folder_paths  # noqa # isort: skip
     import nodes  # noqa # isort: skip
     import server  # noqa # isort: skip
 
@@ -165,7 +134,6 @@ async def load(
     import cuda_malloc  # noqa
 
     # TO-DO: maybe we should do this before "import main" by setting as the args?
-    await process_extra_paths_configs()
     folder_paths.set_output_directory(str(Path(options.TASKS_FILES_DIR).joinpath("output")))
     folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
     # =================================================================
@@ -199,23 +167,15 @@ async def load(
             call_on_start=None,
         )
 
-    sys.argv = original_argv
     return execution.validate_prompt, [q, prompt_server], start_all
 
 
-async def process_extra_paths_configs() -> None:
-    import utils.extra_config  # noqa
+def fill_comfyui_args():
+    import comfy.cli_args  # noqa # isort: skip
 
-    global COMFYUI_MODELS_FOLDER
-
-    default_outside_config = Path("./extra_model_paths.yaml").resolve()
-    if default_outside_config.is_file():
-        LOGGER.info("Loading Visionatrix default extra model path config: %s", default_outside_config)
-        utils.extra_config.load_extra_path_config(default_outside_config)
-
-    if COMFYUI_MODELS_FOLDER := await get_global_setting("comfyui_models_folder", True):
-        for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
-            add_model_folder_path(i.folder_key, i.path, True)
+    comfy.cli_args.args, _ = comfy.cli_args.parser.parse_known_args()
+    if comfy.cli_args.args.force_fp16:
+        comfy.cli_args.args.fp16_unet = True
 
 
 def get_autoconfigured_model_folders_from(models_dir: str) -> list[ComfyUIFolderPathDefinition]:
@@ -346,6 +306,12 @@ def get_engine_details() -> dict:
         "disable_smart_memory": bool(comfy.model_management.DISABLE_SMART_MEMORY),
         "vram_state": str(comfy.model_management.vram_state.name),
     }
+
+
+def get_root_models_dir() -> str:
+    import folder_paths  # noqa
+
+    return folder_paths.models_dir
 
 
 def torch_device_info() -> dict:

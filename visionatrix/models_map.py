@@ -10,7 +10,11 @@ from packaging.version import Version
 
 from . import _version, options
 from .basic_node_list import BASIC_NODE_LIST
-from .comfyui_wrapper import get_folder_names_and_paths, get_node_class_mappings
+from .comfyui_wrapper import (
+    get_folder_names_and_paths,
+    get_node_class_mappings,
+    get_root_models_dir,
+)
 from .nodes_helpers import get_node_value, set_node_value
 from .pydantic_models import AIResourceModel, ModelProgressInstall
 
@@ -354,7 +358,7 @@ def get_formatted_models_catalog() -> list[AIResourceModel]:
 def get_possible_paths_for_model(model: AIResourceModel) -> list[(Path, str)]:
     if not model.types:
         # this is a custom node model that does not support ComfyUI path configuration.
-        return [(Path(options.COMFYUI_DIR), model.filename)]
+        return [(Path(get_root_models_dir()), model.filename)]
 
     comfyui_models_paths = get_folder_names_and_paths()
     comfyui_folders_info = None

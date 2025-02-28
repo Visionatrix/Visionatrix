@@ -18,6 +18,7 @@ from . import (
     run_vix,
     update,
 )
+from .db_queries import get_all_global_settings, get_global_setting, set_global_setting
 from .etc import get_higher_log_level, get_log_level
 from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .orphan_models import process_orphan_models
@@ -41,6 +42,9 @@ if __name__ == "__main__":
         ("create-user", "Create new user"),
         ("orphan-models", "Remove orphan models"),
         ("openapi", "Generate OpenAPI specs"),
+        ("list-global-settings", "List Global Settings"),
+        ("get-global-setting", "Retrieve a global setting"),
+        ("set-global-setting", "Create or update a global setting"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
         if i[0] == "create-user":
@@ -107,6 +111,18 @@ if __name__ == "__main__":
             install_flow_group.add_argument("--name", type=str, help="Flow name mask of the flow(s)")
             install_flow_group.add_argument("--tag", type=str, help="Flow tags mask of the flow(s)")
 
+        if i[0] == "get-global-setting":
+            subparser.add_argument("--key", required=True, help="Name of the global setting")
+        elif i[0] == "set-global-setting":
+            subparser.add_argument("--key", required=True, help="Name of the global setting")
+            subparser.add_argument("--value", required=True, help="Value of the global setting")
+            subparser.add_argument(
+                "--sensitive",
+                action="store_true",
+                default=True,
+                help="Whether this setting is sensitive (hidden for non-admins)",
+            )
+
         subparser.add_argument("--comfyui_dir", type=str, help="ComfyUI directory")
         if i[0] == "run":
             subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
@@ -127,6 +143,7 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
     logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
+    logging.getLogger("alembic").setLevel(get_higher_log_level(defined_loglvl))
 
     if args.command == "run":
         if args.host:
@@ -154,6 +171,17 @@ if __name__ == "__main__":
         comfyui=getattr(args, "comfyui_dir", ""),
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
+
+    if args.command not in ("list-global-settings", "get-global-setting", "set-global-setting"):
+        comfyui_wrapper.COMFYUI_MODELS_FOLDER = asyncio.run(get_global_setting("comfyui_models_folder", True))
+        if not comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+            folder_path = input("The 'comfyui_models_folder' setting is not set. Please specify the path: ").strip()
+            if not folder_path:
+                print("No path provided. 'comfyui_models_folder' remains unset. Exit.")
+                sys.exit(2)
+            asyncio.run(set_global_setting("comfyui_models_folder", folder_path, False))
+            comfyui_wrapper.COMFYUI_MODELS_FOLDER = folder_path
+            print(f"'comfyui_models_folder' set to: {folder_path}")
 
     if args.command == "install":
         comfyui_dir = Path(options.COMFYUI_DIR)
@@ -248,6 +276,16 @@ if __name__ == "__main__":
             if not openapi_schema_str.endswith("\n"):
                 openapi_schema_str += "\n"
             f.write(openapi_schema_str)
+    elif args.command == "list-global-settings":
+        all_settings = asyncio.run(get_all_global_settings(True))
+        print("Global Settings:")
+        for k, v in all_settings.items():
+            print(f' - {k} = "{v}"')
+    elif args.command == "get-global-setting":
+        print(asyncio.run(get_global_setting(args.key, True, None)))
+    elif args.command == "set-global-setting":
+        asyncio.run(set_global_setting(args.key, str(args.value), bool(args.sensitive)))
+        print(f"Global setting '{args.key}' set to '{args.value}' (sensitive={bool(args.sensitive)}).")
     else:
         logging.getLogger("visionatrix").error("Unknown command: '%s'", args.command)
         sys.exit(2)
