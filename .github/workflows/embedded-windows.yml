@@ -40,6 +40,14 @@ jobs:
           ./python.exe -m pip install hatchling Cython
           cd ../..
 
+      - name: Set DEV_VERSION for PRs
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "DEV_VERSION=${{ github.event.pull_request.html_url }}" >> $GITHUB_ENV
+
+      - name: Set DEV_VERSION for non-PR events
+        if: ${{ github.event_name != 'pull_request' }}
+        run: echo "DEV_VERSION=1" >> $GITHUB_ENV
+
       - name: Install Vix
         shell: bash
         run: |
@@ -48,11 +56,12 @@ jobs:
           cp scripts/python_embeded/run_nvidia_gpu.bat vix_portable/
           cd vix_portable
           if grep -q "\.dev" ../visionatrix/_version.py; then
-            echo "Detected development version. Running with the DEV_VERSION flag set."
-            DEV_VERSION=1 ./python_embeded/python.exe easy_install.py
+            echo "Detected development version."
           else
-            ./python_embeded/python.exe easy_install.py
+            echo "Detected release version."
+            unset DEV_VERSION
           fi
+          ./python_embeded/python.exe easy_install.py
           rm -rf Visionatrix visionatrix.db
           ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
