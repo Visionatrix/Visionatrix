@@ -119,7 +119,7 @@ if __name__ == "__main__":
             subparser.add_argument(
                 "--sensitive",
                 action="store_true",
-                default=True,
+                default=False,
                 help="Whether this setting is sensitive (hidden for non-admins)",
             )
 
@@ -172,10 +172,12 @@ if __name__ == "__main__":
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
 
-    if args.command not in ("list-global-settings", "get-global-setting", "set-global-setting"):
+    if args.command not in ("install", "openapi", "list-global-settings", "get-global-setting", "set-global-setting"):
         comfyui_wrapper.COMFYUI_MODELS_FOLDER = asyncio.run(get_global_setting("comfyui_models_folder", True))
         if not comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-            folder_path = input("The 'comfyui_models_folder' setting is not set. Please specify the path: ").strip()
+            folder_path = input(
+                "The 'comfyui_models_folder' setting is not set. Please specify the path(relative or absolute): "
+            ).strip()
             if not folder_path:
                 print("No path provided. 'comfyui_models_folder' remains unset. Exit.")
                 sys.exit(2)
@@ -193,7 +195,7 @@ if __name__ == "__main__":
             comfyui_models = comfyui_dir.joinpath("models")
             comfyui_models_size = sum(file.stat().st_size for file in comfyui_models.rglob("*") if file.is_file())
             comfyui_models_size_gb = round(comfyui_models_size / (1024**3), 1)
-            logging.getLogger("visionatrix").debug("Size of ComfyUI models dir: %s GB", comfyui_models_size_gb)
+            logging.getLogger("visionatrix").debug("Size of ComfyUI/models dir: %s GB", comfyui_models_size_gb)
             if comfyui_models_size_gb > 3.9:  # Threshold in GB
                 c = input(
                     f"The ComfyUI folder is approximately {comfyui_models_size_gb} GB. "

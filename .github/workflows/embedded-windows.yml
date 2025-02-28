@@ -53,7 +53,6 @@ jobs:
           else
             ./python_embeded/python.exe easy_install.py
           fi
-          AUTO_INIT_CONFIG_MODELS_DIR="VixModels" ./python_embeded/python.exe ../scripts/easy_install.py
           rm -rf Visionatrix visionatrix.db
           ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
@@ -77,6 +76,7 @@ jobs:
         shell: bash
         run: |
           cd vix_portable
+          ./python_embeded/python.exe -m visionatrix set-global-setting --key="comfyui_models_folder" --value="VixModels"
           ./python_embeded/python.exe ../tests/rm_background.py
 
       - name: Upload to Artifacts

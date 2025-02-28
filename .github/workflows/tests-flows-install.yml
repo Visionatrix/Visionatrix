@@ -53,7 +53,7 @@ jobs:
         run: python3 -m visionatrix install
 
       - name: Autoconfig Models Paths
-        run: AUTO_INIT_CONFIG_MODELS_DIR=./vix_models python3 scripts/easy_install.py
+        run: python3 -m visionatrix set-global-setting --key="comfyui_models_folder" --value="./vix_models"
 
       - name: Install flows from CMD
         run: |
