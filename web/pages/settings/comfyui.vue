@@ -22,6 +22,11 @@ watch(() => settingsStore.settingsMap.comfyui_models_folder.value, () => {
 		modelsDir.value = settingsStore.settingsMap.comfyui_models_folder.value
 	}
 })
+onMounted(() => {
+	if (settingsStore.settingsMap.comfyui_models_folder.value !== '') {
+		modelsDir.value = settingsStore.settingsMap.comfyui_models_folder.value
+	}
+})
 const path = ref('')
 const currentFoldersListing = computed(() => {
 	if (foldersListing.value.length === 0) {
