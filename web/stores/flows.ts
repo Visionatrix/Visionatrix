@@ -1123,11 +1123,13 @@ export const useFlowsStore = defineStore('flowsStore', {
 				body: {
 					original_flow_name: flow.name,
 					new_name: params.new_name,
-					new_display_name: params.new_display_name || flow.display_name,
-					description: params.new_description || flow.description,
-					license: params.new_license || flow.license,
-					required_memory_gb: params.new_required_memory_gb || flow.required_memory_gb || null,
-					version: params.new_version || flow.version,
+					metadata: {
+						display_name: params.new_display_name || flow.display_name,
+						description: params.new_description || flow.description,
+						license: params.new_license || flow.license,
+						required_memory_gb: params.new_required_memory_gb || flow.required_memory_gb || null,
+						version: params.new_version || flow.version,
+					},
 					lora_connection_points: params.new_lora_connection_points || {},
 				},
 			})

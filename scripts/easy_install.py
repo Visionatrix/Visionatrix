@@ -14,7 +14,8 @@ VENV_NAME = ".venv" if PARENT_DIR.parent.joinpath(".venv").exists() else "venv"
 PYTHON_EMBEDED = os.path.split(os.path.split(sys.executable)[0])[1] == "python_embeded"
 COMPUTE_DEVICE = os.environ.get("COMPUTE_DEVICE", "")
 GH_BUILD_RELEASE = os.environ.get("BUILD_RELEASE", "0") == "1"
-FORCE_DEV_VERSION = os.environ.get("DEV_VERSION", "0") == "1"
+DEV_VERSION = os.environ.get("DEV_VERSION", "0")
+FORCE_DEV_VERSION = DEV_VERSION == "1" or DEV_VERSION.startswith("http")
 
 
 def main_entry():
@@ -198,7 +199,16 @@ def clone_vix_repository() -> None:
         print(clone_command)
         subprocess.check_call(clone_command)
         print("Repository cloned successfully.")
-        if release_channel:
+
+        if DEV_VERSION.startswith("http"):
+            # Extract PR number from the URL (assumes URL ends with the PR number)
+            pr_number = DEV_VERSION.rstrip("/").split("/")[-1]
+            print(f"Fetching and checking out PR #{pr_number}...")
+            subprocess.check_call(
+                ["git", "fetch", "origin", f"pull/{pr_number}/head:pr-{pr_number}"], cwd="Visionatrix"
+            )
+            subprocess.check_call(["git", "checkout", f"pr-{pr_number}"], cwd="Visionatrix")
+        elif release_channel:
             print("Switching to the latest release version.")
             last_release_version = get_latest_version(None, cwd="Visionatrix")
             clone_env = os.environ.copy()

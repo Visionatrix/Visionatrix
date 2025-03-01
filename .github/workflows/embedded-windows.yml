@@ -48,12 +48,22 @@ jobs:
           cp scripts/python_embeded/run_nvidia_gpu.bat vix_portable/
           cd vix_portable
           if grep -q "\.dev" ../visionatrix/_version.py; then
-            echo "Detected development version. Running with the DEV_VERSION flag set."
-            DEV_VERSION=1 ./python_embeded/python.exe easy_install.py
+            echo "GITHUB_EVENT_NAME is: $GITHUB_EVENT_NAME"
+            if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+              # Use jq to extract the pull request URL from the event payload JSON.
+              # Note: Ensure that 'jq' is available on your runner.
+              DEV_VERSION_VALUE=$(jq -r '.pull_request.html_url' "$GITHUB_EVENT_PATH")
+              echo "Detected pull request. Setting DEV_VERSION to $DEV_VERSION_VALUE"
+            else
+              DEV_VERSION=1
+              echo "Not a pull request. Setting DEV_VERSION to $DEV_VERSION_VALUE"
+            fi
+            echo "Detected development version."
+            DEV_VERSION=$DEV_VERSION_VALUE ./python_embeded/python.exe easy_install.py
           else
+            echo "Detected release version."
             ./python_embeded/python.exe easy_install.py
           fi
-          AUTO_INIT_CONFIG_MODELS_DIR="VixModels" ./python_embeded/python.exe ../scripts/easy_install.py
           rm -rf Visionatrix visionatrix.db
           ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
@@ -77,6 +87,7 @@ jobs:
         shell: bash
         run: |
           cd vix_portable
+          ./python_embeded/python.exe -m visionatrix set-global-setting --key="comfyui_models_folder" --value="VixModels"
           ./python_embeded/python.exe ../tests/rm_background.py
 
       - name: Upload to Artifacts

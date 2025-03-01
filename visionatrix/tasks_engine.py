@@ -13,7 +13,7 @@ import httpx
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
-from . import comfyui_wrapper, database, models_map, options, settings_comfyui
+from . import comfyui_wrapper, database, models_map, options
 from .db_queries import get_global_setting, get_installed_models, get_setting
 from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
 from .pydantic_models import (
@@ -208,15 +208,7 @@ async def get_incomplete_task_without_error_database(
             task = (await session.execute(query)).scalar()
             if not task:
                 return {}
-            task_details = await lock_task_and_return_details(session, task)
-            if task_details and options.VIX_MODE == "WORKER" and not options.VIX_SERVER:
-                comfyui_folders_setting = await get_global_setting("comfyui_models_folder", True)
-                if comfyui_folders_setting != comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-                    if comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-                        settings_comfyui.deconfigure_model_folders(comfyui_wrapper.COMFYUI_MODELS_FOLDER)
-                    comfyui_wrapper.COMFYUI_FOLDERS_SETTING = comfyui_folders_setting
-                    settings_comfyui.autoconfigure_model_folders(comfyui_folders_setting)
-            return task_details
+            return await lock_task_and_return_details(session, task)
         except Exception as e:
             await session.rollback()
             LOGGER.exception("Failed to retrieve task for processing: %s", e)
