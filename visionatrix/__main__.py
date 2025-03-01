@@ -175,9 +175,11 @@ if __name__ == "__main__":
     if args.command not in ("install", "openapi", "list-global-settings", "get-global-setting", "set-global-setting"):
         comfyui_wrapper.COMFYUI_MODELS_FOLDER = asyncio.run(get_global_setting("comfyui_models_folder", True))
         if not comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-            folder_path = input(
-                "The 'comfyui_models_folder' setting is not set. Please specify the path(relative or absolute): "
-            ).strip()
+            folder_path = os.environ.get("COMFYUI_MODEL_PATH", "")
+            if not folder_path:
+                folder_path = input(
+                    "The 'comfyui_models_folder' setting is not set. Please specify the path(relative or absolute): "
+                ).strip()
             if not folder_path:
                 print("No path provided. 'comfyui_models_folder' remains unset. Exit.")
                 sys.exit(2)
