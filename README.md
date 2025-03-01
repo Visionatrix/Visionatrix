@@ -115,13 +115,23 @@ For manual installation steps, please refer to our [detailed documentation](http
 
 ## ⚙️ Post-setup Configuration
 
-1. Starting from version **1.10**, we highly recommend using the `UI` to perform autoconfiguration for the external `models` directory:
+### Path To the Models Folder
 
-    Go to `Settings` in the UI, click on the `ComfyUI` menu on the left, and enter the full or relative path to the directory where models are located.
+Starting from version **1.12**, Visionatrix requires the **comfyui_models_folder** value in the database to be set. It will prompt you for this value during startup if it is not already set.
 
-2. We highly recommend filling in both the
+It can be either a relative path (relative to the `ComfyUI` folder) or an absolute one.
+
+You can always change it later by going to `Settings` in the UI, clicking on the **ComfyUI** menu on the left, and entering the new value.
+
+> **Note:** If you are using the default installation, it’s a good idea to set it to `../../VixModels` so that it is on the same level as the **Visionatrix** root folder.
+
+### HuggingFace and CivitAI Tokens
+
+We highly recommend filling in both the
 [CivitAI](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/#civitai-api-key) token and the
 [HuggingFace](https://visionatrix.github.io/VixFlowsDocs/FlowsDeveloping/gated_models/#huggingface-token) token in the settings.
+
+Many models cannot be downloaded by public users without a token.
 
 ## 🔄 Updating Visionatrix
 

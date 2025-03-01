@@ -55,7 +55,7 @@ jobs:
               DEV_VERSION_VALUE=$(jq -r '.pull_request.html_url' "$GITHUB_EVENT_PATH")
               echo "Detected pull request. Setting DEV_VERSION to $DEV_VERSION_VALUE"
             else
-              DEV_VERSION=1
+              DEV_VERSION_VALUE=1
               echo "Not a pull request. Setting DEV_VERSION to $DEV_VERSION_VALUE"
             fi
             echo "Detected development version."
