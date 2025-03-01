@@ -109,6 +109,10 @@ async def load(
     for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
         add_model_folder_path(i.folder_key, i.path, True)
 
+    # for ComfyUI-Impact-Pack and maybe others
+    os.environ["COMFYUI_PATH"] = options.COMFYUI_DIR
+    os.environ["COMFYUI_MODEL_PATH"] = absolute_models_path
+
     original_add_handler = logging.Logger.addHandler
 
     def out_add_handler(self, hdlr):
