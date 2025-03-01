@@ -172,17 +172,24 @@ if __name__ == "__main__":
         tasks_files=getattr(args, "tasks_files_dir", ""),
     )
 
-    if args.command not in ("install", "openapi", "list-global-settings", "get-global-setting", "set-global-setting"):
-        comfyui_wrapper.COMFYUI_MODELS_FOLDER = asyncio.run(get_global_setting("comfyui_models_folder", True))
-        if not comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-            folder_path = os.environ.get("COMFYUI_MODEL_PATH", "")
-            if not folder_path:
-                folder_path = input(
-                    "The 'comfyui_models_folder' setting is not set. Please specify the path(relative or absolute): "
-                ).strip()
-            if not folder_path:
-                print("No path provided. 'comfyui_models_folder' remains unset. Exit.")
-                sys.exit(2)
+    model_path_optional = args.command in (
+        "install",
+        "openapi",
+        "list-global-settings",
+        "get-global-setting",
+        "set-global-setting",
+    )
+    comfyui_wrapper.COMFYUI_MODELS_FOLDER = asyncio.run(get_global_setting("comfyui_models_folder", True))
+    if not comfyui_wrapper.COMFYUI_MODELS_FOLDER:
+        folder_path = os.environ.get("COMFYUI_MODEL_PATH", "")
+        if not folder_path and not model_path_optional:
+            folder_path = input(
+                "The 'comfyui_models_folder' setting is not set. Please specify the path(relative or absolute): "
+            ).strip()
+        if not folder_path and not model_path_optional:
+            print("No path provided. 'comfyui_models_folder' remains unset. Exit.")
+            sys.exit(2)
+        if folder_path:
             asyncio.run(set_global_setting("comfyui_models_folder", folder_path, False))
             comfyui_wrapper.COMFYUI_MODELS_FOLDER = folder_path
             print(f"'comfyui_models_folder' set to: {folder_path}")
@@ -200,7 +207,7 @@ if __name__ == "__main__":
             logging.getLogger("visionatrix").debug("Size of ComfyUI/models dir: %s GB", comfyui_models_size_gb)
             if comfyui_models_size_gb > 3.9:  # Threshold in GB
                 c = input(
-                    f"The ComfyUI folder is approximately {comfyui_models_size_gb} GB. "
+                    f"The ComfyUI models folder is approximately {comfyui_models_size_gb} GB. "
                     "Are you sure you want to proceed and clear this folder? (Y/N): "
                 ).lower()
                 if c != "y":

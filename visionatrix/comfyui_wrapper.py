@@ -101,17 +101,18 @@ async def load(
 
     import folder_paths  # noqa # isort: skip
 
-    absolute_models_path = COMFYUI_MODELS_FOLDER
-    if not Path(absolute_models_path).is_absolute():
-        absolute_models_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_models_path).resolve())
-    folder_paths.models_dir = absolute_models_path
+    if COMFYUI_MODELS_FOLDER:
+        absolute_models_path = COMFYUI_MODELS_FOLDER
+        if not Path(absolute_models_path).is_absolute():
+            absolute_models_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_models_path).resolve())
+        folder_paths.models_dir = absolute_models_path
 
-    for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
-        add_model_folder_path(i.folder_key, i.path, True)
+        for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
+            add_model_folder_path(i.folder_key, i.path, True)
 
-    # for ComfyUI-Impact-Pack and maybe others
-    os.environ["COMFYUI_PATH"] = options.COMFYUI_DIR
-    os.environ["COMFYUI_MODEL_PATH"] = absolute_models_path
+        os.environ["COMFYUI_MODEL_PATH"] = absolute_models_path  # for ComfyUI-Impact-Pack and maybe others
+
+    os.environ["COMFYUI_PATH"] = options.COMFYUI_DIR  # for ComfyUI-Impact-Pack and maybe others
 
     original_add_handler = logging.Logger.addHandler
 
