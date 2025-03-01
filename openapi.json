@@ -812,6 +812,28 @@
         }
       }
     },
+    "/vapi/other/update-status": {
+      "get": {
+        "tags": [
+          "other",
+          "other"
+        ],
+        "summary": "Update Status",
+        "operationId": "update_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisionatrixUpdateStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/settings/get": {
       "get": {
         "tags": [
@@ -4038,6 +4060,27 @@
         ],
         "title": "ValidationError"
       },
+      "VisionatrixUpdateStatus": {
+        "properties": {
+          "current_version": {
+            "type": "string",
+            "title": "Current Version",
+            "description": "The current version of Visionatrix."
+          },
+          "next_version": {
+            "type": "string",
+            "title": "Next Version",
+            "description": "The version for update if available.",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_version"
+        ],
+        "title": "VisionatrixUpdateStatus",
+        "description": "Represents the update status of Visionatrix.\n\n- current_version: The version currently running.\n- target_version: The version available for update (if any)."
+      },
       "WorkerDetails": {
         "properties": {
           "id": {
@@ -4314,7 +4357,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-02-28T15:23:08.111314Z"
+            "default": "2025-03-01T09:51:34.515889Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

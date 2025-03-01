@@ -204,14 +204,14 @@ def get_autoconfigured_model_folders_from(models_dir: str) -> list[ComfyUIFolder
         "vae": "vae",
         "vae_approx": "vae_approx",
         "pulid": "pulid",
-        "birefnet": "birefnet",
+        "birefnet": ["BiRefNet", "birefnet"],
     }
 
     comfyui_folders = []
     for folder_key, subpaths in paths_to_preconfigure.items():
         if isinstance(subpaths, str):
             subpaths = [subpaths]
-        for subpath in subpaths:
+        for subpath in reversed(subpaths):
             absolute_new_path = str(Path(models_dir).joinpath(subpath))
             if not Path(absolute_new_path).is_absolute():
                 absolute_new_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_new_path).resolve())

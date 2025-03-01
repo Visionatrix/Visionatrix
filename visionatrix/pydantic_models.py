@@ -620,3 +620,15 @@ class FlowCloneRequest(BaseModel):
     @classmethod
     def lowercase_name(cls, value: str) -> str:
         return value.lower()
+
+
+class VisionatrixUpdateStatus(BaseModel):
+    """
+    Represents the update status of Visionatrix.
+
+    - current_version: The version currently running.
+    - target_version: The version available for update (if any).
+    """
+
+    current_version: str = Field(..., description="The current version of Visionatrix.")
+    next_version: str = Field("", description="The version for update if available.")
