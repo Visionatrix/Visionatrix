@@ -819,6 +819,7 @@
           "other"
         ],
         "summary": "Update Status",
+        "description": "Access is restricted to administrators only.",
         "operationId": "update_status",
         "responses": {
           "200": {
@@ -4357,7 +4358,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-03-01T09:51:34.515889Z"
+            "default": "2025-03-01T11:28:03.432717Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
