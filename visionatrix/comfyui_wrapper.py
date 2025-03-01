@@ -101,17 +101,18 @@ async def load(
 
     import folder_paths  # noqa # isort: skip
 
-    absolute_models_path = COMFYUI_MODELS_FOLDER
-    if not Path(absolute_models_path).is_absolute():
-        absolute_models_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_models_path).resolve())
-    folder_paths.models_dir = absolute_models_path
+    if COMFYUI_MODELS_FOLDER:
+        absolute_models_path = COMFYUI_MODELS_FOLDER
+        if not Path(absolute_models_path).is_absolute():
+            absolute_models_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_models_path).resolve())
+        folder_paths.models_dir = absolute_models_path
 
-    for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
-        add_model_folder_path(i.folder_key, i.path, True)
+        for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
+            add_model_folder_path(i.folder_key, i.path, True)
 
-    # for ComfyUI-Impact-Pack and maybe others
-    os.environ["COMFYUI_PATH"] = options.COMFYUI_DIR
-    os.environ["COMFYUI_MODEL_PATH"] = absolute_models_path
+        os.environ["COMFYUI_MODEL_PATH"] = absolute_models_path  # for ComfyUI-Impact-Pack and maybe others
+
+    os.environ["COMFYUI_PATH"] = options.COMFYUI_DIR  # for ComfyUI-Impact-Pack and maybe others
 
     original_add_handler = logging.Logger.addHandler
 
@@ -204,14 +205,14 @@ def get_autoconfigured_model_folders_from(models_dir: str) -> list[ComfyUIFolder
         "vae": "vae",
         "vae_approx": "vae_approx",
         "pulid": "pulid",
-        "birefnet": "birefnet",
+        "birefnet": ["BiRefNet", "birefnet"],
     }
 
     comfyui_folders = []
     for folder_key, subpaths in paths_to_preconfigure.items():
         if isinstance(subpaths, str):
             subpaths = [subpaths]
-        for subpath in subpaths:
+        for subpath in reversed(subpaths):
             absolute_new_path = str(Path(models_dir).joinpath(subpath))
             if not Path(absolute_new_path).is_absolute():
                 absolute_new_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_new_path).resolve())
@@ -493,10 +494,10 @@ def add_arguments(parser):
     fp_group.add_argument("--force-fp16", action="store_true", help="Force fp16.")
 
     fpunet_group = parser.add_mutually_exclusive_group()
-    fpunet_group.add_argument(
-        "--bf16-unet", action="store_true", help="Run the UNET in bf16. This should only be used for testing stuff."
-    )
-    fpunet_group.add_argument("--fp16-unet", action="store_true", help="Store unet weights in fp16.")
+    fpunet_group.add_argument("--fp32-unet", action="store_true", help="Run the diffusion model in fp32.")
+    fpunet_group.add_argument("--fp64-unet", action="store_true", help="Run the diffusion model in fp64.")
+    fpunet_group.add_argument("--bf16-unet", action="store_true", help="Run the diffusion model in bf16.")
+    fpunet_group.add_argument("--fp16-unet", action="store_true", help="Run the diffusion model in fp16")
     fpunet_group.add_argument("--fp8_e4m3fn-unet", action="store_true", help="Store unet weights in fp8_e4m3fn.")
     fpunet_group.add_argument("--fp8_e5m2-unet", action="store_true", help="Store unet weights in fp8_e5m2.")
 
@@ -531,9 +532,16 @@ def add_arguments(parser):
     )
 
     parser.add_argument(
+        "--oneapi-device-selector",
+        type=str,
+        default=None,
+        metavar="SELECTOR_STRING",
+        help="Sets the oneAPI device(s) this instance will use.",
+    )
+    parser.add_argument(
         "--disable-ipex-optimize",
         action="store_true",
-        help="Disables ipex.optimize when loading models with Intel GPUs.",
+        help="Disables ipex.optimize default when loading models with Intel's Extension for Pytorch.",
     )
 
     attn_group = parser.add_mutually_exclusive_group()
@@ -550,6 +558,7 @@ def add_arguments(parser):
     attn_group.add_argument(
         "--use-pytorch-cross-attention", action="store_true", help="Use the new pytorch 2.0 cross attention function."
     )
+    attn_group.add_argument("--use-sage-attention", action="store_true", help="Use sage attention.")
 
     parser.add_argument("--disable-xformers", action="store_true", help="Disable xformers.")
 
@@ -587,7 +596,8 @@ def add_arguments(parser):
         "--reserve-vram",
         type=float,
         default=None,
-        help="Set the amount of VRAM in GB you want to reserve for use by your OS/other software.",
+        help="Set the amount of vram in GB you want to reserve for use by your OS/other software. "
+        "By default some amount is reserved depending on your OS.",
     )
 
     parser.add_argument(
@@ -596,5 +606,14 @@ def add_arguments(parser):
         help="Force ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.",
     )
     parser.add_argument(
-        "--fast", action="store_true", help="Enable some untested and potentially quality deteriorating optimizations."
+        "--fast",
+        metavar="number",
+        type=int,
+        const=99,
+        default=0,
+        nargs="?",
+        help="Enable some untested and potentially quality deteriorating optimizations. "
+        "You can pass a number from 0 to 10 for a bigger speed vs quality tradeoff. "
+        "Using --fast with no number means maximum speed. "
+        "2 or larger enables fp16 accumulation, 5 or larger enables fp8 matrix multiplication.",
     )

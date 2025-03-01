@@ -110,6 +110,10 @@ export const useSettingsStore = defineStore('settingsStore', {
 		},
 		isNextcloudIntegration: false,
 		ollamaFetchError: '',
+		other: {
+			current_version: '',
+			next_version: '',
+		},
 	}),
 
 	actions: {
@@ -163,6 +167,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 				this.fetchAllUserSettings(),
 				this.fetchAllGlobalSettings(),
 				this.getOllamaModelsList(),
+				this.fetchUpdateStatus(),
 			])
 		},
 
@@ -295,6 +300,17 @@ export const useSettingsStore = defineStore('settingsStore', {
 		saveLocalSettings() {
 			localStorage.setItem('localSettings', JSON.stringify(this.localSettings))
 		},
+
+		fetchUpdateStatus() {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/other/update-status', {
+				method: 'GET',
+			}).then((res: OtherUpdateStatus|any) => {
+				console.debug('[DEBUG] Update status:', res)
+				this.other = res
+				return res
+			})
+		},
 	},
 })
 
@@ -359,4 +375,9 @@ export interface OllamaModelItem {
 	model: string
 	size: string
 	modified_at: string
+}
+
+export interface OtherUpdateStatus {
+	current_version: string
+	next_version: string
 }

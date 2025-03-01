@@ -100,6 +100,12 @@ const passwordInputs = ref({
 			<div class="px-5 pb-5 md:w-4/5">
 				<div v-if="userStore.isAdmin" class="admin-settings mb-3">
 					<h3 class="mb-3 text-xl font-bold">Admin preferences (global settings)</h3>
+
+					<div v-if="settingsStore.other.current_version !== ''" class="text-gray-400 text-sm">
+						<span>Current version: {{ settingsStore.other.current_version }}</span>&nbsp;
+						<span v-if="settingsStore.other.next_version !== ''">Next version: {{ settingsStore.other.next_version }}</span>
+					</div>
+
 					<UFormGroup
 						size="md"
 						class="py-3"

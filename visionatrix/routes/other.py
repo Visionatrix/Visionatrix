@@ -15,12 +15,17 @@ from fastapi import (
     status,
 )
 
-from .. import comfyui_wrapper, options
+from .. import _version, comfyui_wrapper, options
 from ..prompt_translation import (
     translate_prompt_with_gemini,
     translate_prompt_with_ollama,
 )
-from ..pydantic_models import TranslatePromptRequest, TranslatePromptResponse, UserInfo
+from ..pydantic_models import (
+    TranslatePromptRequest,
+    TranslatePromptResponse,
+    UserInfo,
+    VisionatrixUpdateStatus,
+)
 from .helpers import require_admin
 from .settings import get_setting
 
@@ -205,3 +210,15 @@ async def universal_proxy(
         status_code=remote_response.status_code,
         media_type=content_type,
     )
+
+
+@ROUTER.get(
+    "/update-status",
+    response_model=VisionatrixUpdateStatus,
+    status_code=status.HTTP_200_OK,
+    tags=["other"],
+)
+async def update_status(request: Request) -> VisionatrixUpdateStatus:
+    """Access is restricted to administrators only."""
+    require_admin(request)
+    return VisionatrixUpdateStatus(current_version=_version.__version__, next_version="")
