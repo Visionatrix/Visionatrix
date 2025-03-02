@@ -281,7 +281,7 @@ async def delete(request: Request, name: str = Query(..., description="Name of t
     This endpoint will succeed even if the flow does not exist.
     """
     require_admin(request)
-    await uninstall_flow(name)
+    await uninstall_flow(name.lower())
 
 
 @ROUTER.post(
