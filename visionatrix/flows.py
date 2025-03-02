@@ -356,8 +356,10 @@ async def __flow_install_callback(name: str, progress: float, error: str, relati
 
 
 async def uninstall_flow(flow_name: str) -> None:
-    await db_queries.delete_flow_progress_install(flow_name)
-    LAST_GOOD_INSTALLED_FLOWS["update_time"] = 0.0
+    with LOCK_INSTALLED_FLOWS:
+        if await db_queries.delete_flow_progress_install(flow_name):
+            LAST_GOOD_INSTALLED_FLOWS["flows"].pop(flow_name, None)
+            LAST_GOOD_INSTALLED_FLOWS["flows_comfy"].pop(flow_name, None)
 
 
 def prepare_flow_comfy(
