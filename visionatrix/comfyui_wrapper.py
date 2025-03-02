@@ -8,6 +8,7 @@ https://github.com/comfyanonymous/ComfyUI
 
 import asyncio
 import contextlib
+import enum
 import gc
 import importlib.util
 import inspect
@@ -27,6 +28,12 @@ from psutil import virtual_memory
 
 from . import _version, options
 from .pydantic_models import ComfyUIFolderPathDefinition
+
+
+class PerformanceFeature(enum.Enum):
+    Fp16Accumulation = "fp16_accumulation"
+    Fp8MatrixMultiplication = "fp8_matrix_mult"
+
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -173,14 +180,6 @@ async def load(
         )
 
     return execution.validate_prompt, [q, prompt_server], start_all
-
-
-def fill_comfyui_args():
-    import comfy.cli_args  # noqa # isort: skip
-
-    comfy.cli_args.args, _ = comfy.cli_args.parser.parse_known_args()
-    if comfy.cli_args.args.force_fp16:
-        comfy.cli_args.args.fp16_unet = True
 
 
 def get_autoconfigured_model_folders_from(models_dir: str) -> list[ComfyUIFolderPathDefinition]:
@@ -605,15 +604,33 @@ def add_arguments(parser):
         action="store_true",
         help="Force ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.",
     )
+
     parser.add_argument(
         "--fast",
-        metavar="number",
-        type=int,
-        const=99,
-        default=0,
-        nargs="?",
+        nargs="*",
+        type=PerformanceFeature,
         help="Enable some untested and potentially quality deteriorating optimizations. "
-        "You can pass a number from 0 to 10 for a bigger speed vs quality tradeoff. "
-        "Using --fast with no number means maximum speed. "
-        "2 or larger enables fp16 accumulation, 5 or larger enables fp8 matrix multiplication.",
+        "--fast with no arguments enables everything. "
+        "You can pass a list specific optimizations if you only want to enable specific ones. "
+        "Current valid optimizations: fp16_accumulation fp8_matrix_mult",
     )
+
+
+def fill_comfyui_args():
+    import comfy.cli_args  # noqa # isort: skip
+
+    comfy.cli_args.args, _ = comfy.cli_args.parser.parse_known_args()
+
+    # Original ComfyUI code:
+    if comfy.cli_args.args.force_fp16:
+        comfy.cli_args.args.fp16_unet = True
+
+    # '--fast' is not provided, use an empty set
+    if comfy.cli_args.args.fast is None:
+        comfy.cli_args.args.fast = set()
+    # '--fast' is provided with an empty list, enable all optimizations
+    elif comfy.cli_args.args.fast == []:
+        comfy.cli_args.args.fast = set(PerformanceFeature)
+    # '--fast' is provided with a list of performance features, use that list
+    else:
+        comfy.cli_args.args.fast = set(comfy.cli_args.args.fast)
