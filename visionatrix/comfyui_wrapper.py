@@ -29,12 +29,6 @@ from psutil import virtual_memory
 from . import _version, options
 from .pydantic_models import ComfyUIFolderPathDefinition
 
-
-class PerformanceFeature(enum.Enum):
-    Fp16Accumulation = "fp16_accumulation"
-    Fp8MatrixMultiplication = "fp8_matrix_mult"
-
-
 LOGGER = logging.getLogger("visionatrix")
 
 SYSTEM_DETAILS = {
@@ -605,6 +599,10 @@ def add_arguments(parser):
         help="Force ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.",
     )
 
+    class PerformanceFeature(enum.Enum):  # we need it only for definition, later we use Comfy "set()"
+        Fp16Accumulation = "fp16_accumulation"
+        Fp8MatrixMultiplication = "fp8_matrix_mult"
+
     parser.add_argument(
         "--fast",
         nargs="*",
@@ -630,7 +628,7 @@ def fill_comfyui_args():
         comfy.cli_args.args.fast = set()
     # '--fast' is provided with an empty list, enable all optimizations
     elif comfy.cli_args.args.fast == []:
-        comfy.cli_args.args.fast = set(PerformanceFeature)
+        comfy.cli_args.args.fast = set(comfy.cli_args.PerformanceFeature)
     # '--fast' is provided with a list of performance features, use that list
     else:
         comfy.cli_args.args.fast = set(comfy.cli_args.args.fast)
