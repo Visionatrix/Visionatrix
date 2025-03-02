@@ -328,7 +328,9 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
         return False
     LOGGER.info("Installation of `%s` flow completed", flow.name)
 
-    LAST_GOOD_INSTALLED_FLOWS["update_time"] = 0.0
+    with LOCK_INSTALLED_FLOWS:
+        LAST_GOOD_INSTALLED_FLOWS["flows"][flow.name] = flow
+        LAST_GOOD_INSTALLED_FLOWS["flows_comfy"][flow.name] = flow_comfy
     return True
 
 
