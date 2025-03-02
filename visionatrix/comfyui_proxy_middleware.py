@@ -1,5 +1,7 @@
 import asyncio
 import contextlib
+import re
+import urllib.parse
 
 import httpx
 import websockets
@@ -8,6 +10,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 # "/scripts", "/kjweb_async", "/ollama" are here temporarily until someone fixes the situation upstream.
 PATHS_TO_PROXY = ["/comfy", "/scripts", "/kjweb_async", "/ollama"]
+USERDATA_MOVE_PATTERN = re.compile(r"^/api/userdata/(.+?)/move/(.+)$")
 
 
 class ComfyUIProxyMiddleware:
@@ -47,6 +50,24 @@ class ComfyUIProxyMiddleware:
         method = scope["method"]
         headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in scope["headers"]}
         full_path = str(scope["path"]).removeprefix("/comfy")
+
+        # Temporary solution until it is fixed on the ComfyUI side: https://github.com/comfyanonymous/ComfyUI/pull/6963
+        api_userdata = "/api/userdata/"
+        if full_path.startswith(api_userdata) and method in ("GET", "DELETE"):
+            full_path = api_userdata + urllib.parse.quote(full_path[len(api_userdata) :], safe="")
+        elif full_path.startswith(api_userdata) and method == "POST":
+            match = USERDATA_MOVE_PATTERN.match(full_path)
+            if match:
+                full_path = (
+                    api_userdata
+                    + urllib.parse.quote(match.group(1), safe="")
+                    + "/move/"
+                    + urllib.parse.quote(match.group(2), safe="")
+                )
+            else:
+                full_path = api_userdata + urllib.parse.quote(full_path[len(api_userdata) :], safe="")
+        # =======================
+
         query_string = scope["query_string"].decode("latin-1")
         if query_string:
             url = f"{self.comfy_url_http}{full_path}?{query_string}"
