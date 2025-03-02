@@ -19,11 +19,6 @@ FORCE_DEV_VERSION = DEV_VERSION == "1" or DEV_VERSION.startswith("http")
 
 
 def main_entry():
-    if auto_create_config_path := os.environ.get("AUTO_INIT_CONFIG_MODELS_DIR", ""):
-        print(f"Request to create extra model config file for `{auto_create_config_path}` detected.")
-        create_extra_models_config_file(auto_create_config_path)
-        sys.exit(0)
-
     if not INITIAL_RERUN:
         print()
         print("Greetings from Visionatrix easy install script")
@@ -38,7 +33,6 @@ def main_entry():
             print("\tUpdate (2)")
             print("\tRun (3)")
             print("\tInstall ALL flows(can be done from UI)(4)")
-            print("\tCreate extra model config file(5)")
             c = input("What should we do?: ")
             if c == "1":
                 reinstall()
@@ -48,8 +42,6 @@ def main_entry():
                 run_visionatrix()
             elif c == "4":
                 venv_run("python -m visionatrix install-flow --name='*'")
-            elif c == "5":
-                create_extra_models_config_file()
             else:
                 print("exiting")
         else:
@@ -105,8 +97,6 @@ def reinstall():
     venv_run("python -m visionatrix install")
     if GH_BUILD_RELEASE:
         return
-
-    create_extra_models_config_file()
 
     c = input("Installation finished. Run Visionatrix? (Y/N): ").lower()
     if c == "y":
@@ -317,73 +307,6 @@ def is_dev_version(version_str: str) -> bool:
     Returns True if it is a development version, otherwise False.
     """
     return bool(re.match(r"\d+\.\d+\.\d+\.dev\d+", version_str))
-
-
-def create_extra_models_config_file(models_dir=""):
-    comfyui_extra_models_paths = Path("ComfyUI/extra_model_paths.yaml")
-    if not models_dir:
-        # Check if "extra_model_paths.yaml" file exists and ask if the user wants to create "extra_model_paths.yaml"
-        if Path("extra_model_paths.yaml").exists() or comfyui_extra_models_paths.exists():
-            print("Skipping creation of 'extra_model_paths.yaml' as it is already exists.")
-            return
-
-        while True:
-            create_extra = input('Do you want to create an "extra_model_paths.yaml" for models map? (Y/N): ')
-            if create_extra.lower() != "y":
-                print("Skipping creation of 'extra_model_paths.yaml'.")
-                return
-
-            # Ask for the models directory path
-            models_dir = input("Enter the relative or absolute path to the models directory: ").strip()
-            if os.path.exists(models_dir):
-                break
-            create_dir = input(f"The directory '{models_dir}' does not exist. Do you want to create it? (Y/N): ")
-            if create_dir.lower() == "y":
-                os.makedirs(models_dir, exist_ok=True)
-                print(f"Directory '{models_dir}' created.")
-                break
-    else:
-        os.makedirs(models_dir, exist_ok=True)
-        print(f"Directory '{models_dir}' created.")
-
-    # Replace "base_path" with the path to the models directory
-    extra_model_paths_content = EXTRA_MODEL_PATHS_YAML.format(
-        base_path=models_dir.replace("\\", "/")
-    )
-    with open(comfyui_extra_models_paths, "w") as f:
-        f.write(extra_model_paths_content)
-    print("'extra_model_paths.yaml' has been created in the ComfyUI directory.")
-
-
-EXTRA_MODEL_PATHS_YAML = """
-vix_models:
-  is_default: true
-  base_path: {base_path}
-  checkpoints: checkpoints
-  text_encoders: text_encoders
-  clip_vision: clip_vision
-  controlnet: controlnet
-  diffusion_models: diffusion_models
-  diffusers: diffusers
-  ipadapter: ipadapter
-  instantid: instantid
-  loras: |
-    photomaker
-    loras
-  photomaker: photomaker
-  sams: sams
-  style_models: style_models
-  ultralytics: ultralytics
-  ultralytics_bbox: ultralytics/bbox
-  ultralytics_segm: ultralytics/segm
-  upscale_models: upscale_models
-  vae: vae
-  vae_approx: vae_approx
-  pulid: pulid
-  birefnet: birefnet
-  rmbg: rmbg
-"""
-# TO-DO: remove "rmbg" entry from this list in March/April when "1.9" version will be absolute.
 
 
 def check_compiler_installed() -> bool:

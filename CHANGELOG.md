@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0 - 2025-03-07]
+
+### Added
+
+- `Animagine XL v4` and `RealVis v5` basic SDXL flows.
+- `Surprise Me` - new feature to use LLM to create a random prompt. #314
+- UI: filter to show **only installed flows**. #316
+- UI: **Export flow** button. #321
+- UI: now supports **editing** Flow metadata. #323
+- UI: display current version of Visionatrix. #325
+
+### Changed
+
+- **Main achievement**: Folder with models now always should be defined and works correctly for the most custom nodes. **Reinstalling of some Flows required if it breaks them.**
+
+### Fixed
+
+- **Easy installation script** now performs early check for the compilers to be present(*Linux only*). #319
+- Support for `ComfyUI Manager`. #318
+- Prompt translations feature now works correctly with **Ollama** thinking models. #320
+- Endpoint to **uninstall** flow now correctly immediately updates the installed flow cache. #327
+- Fixed broken flows **Mad Scientist** and **PhotoStickers 2**.
+
 ## [1.11.1 - 2025-02-22]
 
 ### Changed
