@@ -46,7 +46,7 @@ def install() -> None:
     create_nodes_stuff()
     comfyui_manager_path = Path(comfyui_dir).joinpath("custom_nodes").joinpath("ComfyUI-Manager")
     logging.info("Installing ComfyUI-Manager..")
-    check_call(["git", "clone", "https://github.com/ltdrdata/ComfyUI-Manager.git", comfyui_manager_path])
+    check_call(["git", "clone", "https://github.com/Visionatrix/ComfyUI-Manager.git", comfyui_manager_path])
     if not dev_release:
         clone_env = os.environ.copy()
         clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
