@@ -1,8 +1,10 @@
 from .pydantic_models import AIResourceModel
 
+COMFYUI_RELEASE_TAG = "v0.3.21"
+COMFYUI_MANAGER_RELEASE_TAG = "3.29"
+
 BASIC_NODE_LIST = {
-    "ComfyUI-Impact-Pack": {
-        "main_branch": "Main",
+    "comfyui-impact-pack@8.8.1": {
         "models": [
             AIResourceModel(
                 name="mmdet_anime-face_yolov3",
@@ -30,10 +32,7 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "ComfyUI-Impact-Subpack": {
-        "before_install": {
-            "python": "-m pip install ultralytics",
-        },
+    "comfyui-impact-subpack@1.2.9": {
         "models": [
             AIResourceModel(
                 name="face_yolov8m",
@@ -61,10 +60,8 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "ComfyUI_UltimateSDUpscale": {
-        "git_flags": "--recursive",
-    },
-    "ComfyUI_InstantID": {
+    "comfyui_ultimatesdupscale@1.0.2": {},
+    "comfyui_instantid@1.0.0": {
         "models": [
             AIResourceModel(
                 name="antelopev2",
@@ -83,37 +80,25 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "efficiency-nodes-comfyui": {
-        "requirements": {
-            "simpleeval": {},
-        }
-    },
-    "ComfyUI-WD14-Tagger": {},
-    "ComfyUI-SUPIR": {},
-    "ComfyUI_essentials": {},
-    "rgthree-comfy": {},
-    "ComfyUI-Custom-Scripts": {},
-    "ComfyUI_IPAdapter_plus": {},
-    "comfyui_controlnet_aux": {},
-    "Skimmed_CFG": {},
-    "was-node-suite-comfyui": {},
-    "ComfyUI-Visionatrix": {},
-    "comfyui-ollama": {},
-    "ComfyUI-AutoCropFaces": {},
-    "PuLID_ComfyUI": {
-        "before_install": {
-            "python": "-m pip install --use-pep517 facexlib",
-        },
-    },
-    "ComfyUI_PuLID_Flux_ll": {
-        "before_install": {
-            "python": "-m pip install --use-pep517 facexlib",
-        },
-    },
-    "ComfyUI_FizzNodes": {},
-    "ComfyUI-Gemini": {},
-    "ComfyUI-Inpaint-CropAndStitch": {},
-    "ComfyUI-PhotoMaker-Plus": {
+    "efficiency-nodes-comfyui@1.0.5": {},
+    "comfyui-wd14-tagger@1.0.0": {},
+    "comfyui-supir@1.0.1": {},
+    "comfyui_essentials@1.1.0": {},
+    "rgthree-comfy@1.0.0": {},
+    "comfyui-custom-scripts@1.1.1": {},
+    "comfyui_ipadapter_plus@2.0.0": {},
+    "comfyui_controlnet_aux@1.0.6": {},
+    "skimmed_cfg@1.0.0": {},
+    "was-node-suite-comfyui@1.0.2": {},
+    "comfyui-visionatrix@1.0.7": {},
+    "comfyui-ollama@2.0.1": {},
+    "https://github.com/liusida/ComfyUI-AutoCropFaces": {},
+    "pulid_comfyui@1.0.1": {},
+    "comfyui_pulid_flux_ll@1.1.4": {},
+    "comfyui_fizznodes@1.0.2": {},
+    "comfyui-gemini@1.0.3": {},
+    "comfyui-inpaint-cropandstitch@1.0.0": {},
+    "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
         "models": [
             AIResourceModel(
                 name="buffalo_l",
@@ -132,22 +117,10 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "ComfyUI-VideoHelperSuite": {},
-    "ComfyUI-Frame-Interpolation": {
-        "requirements": {
-            "torch": {},
-            "numpy": {},
-            "einops": {},
-            "opencv-contrib-python": {},
-            "kornia": {},
-            "scipy": {},
-            "Pillow": {},
-            "torchvision": {},
-            "tqdm": {},
-        },
-    },
-    "ComfyUI-KJNodes": {},
-    "ComfyUI_LayerStyle": {},
-    "ComfyUI-Easy-Use": {},
-    "ComfyUI_BiRefNet_ll": {},
+    "comfyui-videohelpersuite@1.5.8": {},
+    "comfyui-frame-interpolation@1.0.6": {},
+    "comfyui-kjnodes@1.0.6": {},
+    "comfyui_layerstyle@1.0.90": {},
+    "comfyui-easy-use@1.2.7": {},
+    "comfyui_birefnet_ll@1.1.1": {},
 }

@@ -47,8 +47,6 @@ such as `sqlite+aiosqlite`. For SQLite, if the provided path is relative, it wil
 relative to the current working directory.
 """
 
-ORG_URL = "https://github.com/Visionatrix/"  # organization from which ComfyUI nodes will be installed
-
 FLOWS_URL = environ.get("FLOWS_CATALOG_URL", "https://visionatrix.github.io/VixFlowsDocs/")
 """URLs or file paths (separated by ';') that point to locations of archive files containing Visionatrix workflows.
 
@@ -92,9 +90,6 @@ Example:
 
 This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
-
-MAX_GIT_CLONE_ATTEMPTS = int(environ.get("MAX_GIT_CLONE_ATTEMPTS", "3"))
-"""Maximum number of attempts to perform 'git clone' operations during installation."""
 
 
 def init_dirs_values(comfyui: str | None, tasks_files: str | None) -> None:
