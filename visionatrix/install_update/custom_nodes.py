@@ -28,7 +28,7 @@ def update_base_custom_nodes() -> None:
         if i.startswith("https://"):
             basic_nodes_list.append(i.rstrip("/").split("/")[-1])
         else:
-            basic_nodes_list.append(i)
+            basic_nodes_list.append(i.split("@", maxsplit=1)[0])
     clone_env = os.environ.copy()
     clone_env["COMFYUI_PATH"] = str(Path(options.COMFYUI_DIR).resolve())
     run(
