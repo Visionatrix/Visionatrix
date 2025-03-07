@@ -38,7 +38,6 @@ SYSTEM_DETAILS = {
     "embedded_python": options.PYTHON_EMBEDED,
 }
 TORCH_VERSION: str | None = None
-COMFYUI_MODELS_FOLDER: str = ""
 
 
 async def load(
@@ -104,18 +103,17 @@ async def load(
 
     import folder_paths  # noqa # isort: skip
 
-    if COMFYUI_MODELS_FOLDER:
-        absolute_models_path = COMFYUI_MODELS_FOLDER
-        if not Path(absolute_models_path).is_absolute():
-            absolute_models_path = str(Path(options.COMFYUI_DIR).joinpath(absolute_models_path).resolve())
-        folder_paths.models_dir = absolute_models_path
+    folder_paths.models_dir = options.MODELS_DIR
+    for i in get_autoconfigured_model_folders_from(options.MODELS_DIR):
+        add_model_folder_path(i.folder_key, i.path, True)
 
-        for i in get_autoconfigured_model_folders_from(COMFYUI_MODELS_FOLDER):
-            add_model_folder_path(i.folder_key, i.path, True)
-
-        os.environ["COMFYUI_MODEL_PATH"] = absolute_models_path  # for ComfyUI-Impact-Pack and maybe others
+    os.environ["COMFYUI_MODEL_PATH"] = options.MODELS_DIR  # for ComfyUI-Impact-Pack and maybe others
 
     os.environ["COMFYUI_PATH"] = options.COMFYUI_DIR  # for ComfyUI-Impact-Pack and maybe others
+
+    folder_paths.set_output_directory(str(Path(options.OUTPUT_DIR)))
+    folder_paths.set_input_directory(str(Path(options.INPUT_DIR)))
+    folder_paths.set_user_directory(str(Path(options.USER_DIR)))
 
     original_add_handler = logging.Logger.addHandler
 
@@ -140,11 +138,6 @@ async def load(
         LOGGER.info("Set cuda device to: %s", main.args.cuda_device)
 
     import cuda_malloc  # noqa
-
-    # TO-DO: maybe we should do this before "import main" by setting as the args?
-    folder_paths.set_output_directory(str(Path(options.TASKS_FILES_DIR).joinpath("output")))
-    folder_paths.set_input_directory(str(Path(options.TASKS_FILES_DIR).joinpath("input")))
-    # =================================================================
 
     # StartComfyUI: copy of code from ComfyUIs 'main.py'
     if main.args.temp_directory:

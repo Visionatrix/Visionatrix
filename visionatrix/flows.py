@@ -428,10 +428,10 @@ def prepare_flow_comfy_files_params(
             if not node:
                 raise RuntimeError(f"Bad workflow, node with id=`{k}` can not be found.")
             set_node_value(node, input_path, file_name)
-        result_path = os.path.join(options.TASKS_FILES_DIR, "input", file_name)
+        result_path = os.path.join(options.INPUT_DIR, file_name)
         if isinstance(v, dict):
             if "input_index" in v:
-                input_file = os.path.join(options.TASKS_FILES_DIR, "input", f"{v['task_id']}_{v['input_index']}")
+                input_file = os.path.join(options.INPUT_DIR, f"{v['task_id']}_{v['input_index']}")
                 if not os.path.exists(input_file):
                     raise RuntimeError(
                         f"Bad flow, file from task_id=`{v['task_id']}`, index=`{v['input_index']}` not found."
@@ -440,10 +440,9 @@ def prepare_flow_comfy_files_params(
             elif "node_id" in v:
                 input_file = ""
                 result_prefix = f"{v['task_id']}_{v['node_id']}_"
-                output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
-                for filename in os.listdir(output_directory):
+                for filename in os.listdir(options.OUTPUT_DIR):
                     if filename.startswith(result_prefix):
-                        input_file = os.path.join(output_directory, filename)
+                        input_file = os.path.join(options.OUTPUT_DIR, filename)
                 if not input_file or not os.path.exists(input_file):
                     raise RuntimeError(
                         f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found."

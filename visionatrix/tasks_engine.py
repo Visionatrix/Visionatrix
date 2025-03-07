@@ -345,7 +345,7 @@ async def remove_unfinished_tasks_by_name_and_group(name: str, user_id: str, gro
 
 def get_task_files(task_id: int, directory: typing.Literal["input", "output"]) -> list[tuple[str, str]]:
     result_prefix = str(task_id) + "_"
-    target_directory = os.path.join(options.TASKS_FILES_DIR, directory)
+    target_directory = options.INPUT_DIR if directory == "input" else options.OUTPUT_DIR
     r = []
     for filename in sorted(os.listdir(target_directory)):
         if filename.startswith(result_prefix):
@@ -356,7 +356,12 @@ def get_task_files(task_id: int, directory: typing.Literal["input", "output"]) -
 def remove_task_files(task_id: int, directories: list[str]) -> None:
     for directory in directories:
         result_prefix = f"{task_id}_"
-        target_directory = os.path.join(options.TASKS_FILES_DIR, directory)
+        if directory == "input":
+            target_directory = options.INPUT_DIR
+        elif directory == "output":
+            target_directory = options.OUTPUT_DIR
+        else:
+            raise ValueError(f"Invalid input value: {directory}")
         for filename in os.listdir(target_directory):
             if filename.startswith(result_prefix):
                 with contextlib.suppress(FileNotFoundError):
@@ -538,7 +543,6 @@ async def init_active_task_inputs_from_server() -> bool:
         return True
     task_id = ACTIVE_TASK["task_id"]
     remove_task_files(task_id, ["output", "input"])
-    input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
     try:
         for i, _ in enumerate(ACTIVE_TASK["input_files"]):
             for k in range(3):
@@ -554,7 +558,7 @@ async def init_active_task_inputs_from_server() -> bool:
                         if httpx.codes.is_error(r.status_code):
                             raise RuntimeError(f"Task {task_id}: can not get input file, status={r.status_code}")
                         with builtins.open(
-                            os.path.join(input_directory, ACTIVE_TASK["input_files"][i]["file_name"]), mode="wb"
+                            os.path.join(options.INPUT_DIR, ACTIVE_TASK["input_files"][i]["file_name"]), mode="wb"
                         ) as input_file:
                             input_file.write(r.content)
                         break
