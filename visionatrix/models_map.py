@@ -211,7 +211,11 @@ MODELS_CATALOG: dict[str, dict] = {}
 def process_flow_models(
     flow_comfy: dict[str, dict], remap_data: dict[str, ModelProgressInstall]
 ) -> list[AIResourceModel]:
-    nodes_with_models = {key: value["models"] for key, value in BASIC_NODE_LIST.items() if value.get("models")}
+    nodes_with_models = {}
+    for key, value in BASIC_NODE_LIST.items():
+        if value.get("models"):
+            key = key.rstrip("/").split("/")[-1] if key.startswith("https://") else key.split("@", maxsplit=1)[0]
+            nodes_with_models[key] = value["models"]
     nodes_class_mappings = get_node_class_mappings()
 
     models_catalog = get_united_model_catalog(flow_comfy)

@@ -62,7 +62,7 @@ async def load(
         # we remove pytorch from the Windows standalone release, so that the archive with the release is smaller.
         LOGGER.info("PyTorch is not installed. Installing torch, torchvision, torchaudio.")
 
-        for attempt in range(options.MAX_GIT_CLONE_ATTEMPTS):
+        for attempt in range(3):
             try:
                 subprocess.check_call(
                     [
@@ -82,13 +82,14 @@ async def load(
                 break
             except subprocess.CalledProcessError as e:
                 LOGGER.error("Attempt %d: Failed to install PyTorch packages: %s", attempt, e)
-                if attempt == options.MAX_GIT_CLONE_ATTEMPTS - 1:
+                if attempt == 2:  # 3 - 1
                     LOGGER.error("All installation attempts failed.")
                     raise e
                 LOGGER.info("Retrying installation...")
 
     sys.path.append(options.COMFYUI_DIR)
 
+    original_argv = sys.argv[:]
     if task_progress_callback is None and "--cpu" not in sys.argv:
         sys.argv.append("--cpu")
     elif "--disable-device-detection" not in sys.argv and "--cpu" not in sys.argv and "--directml" not in sys.argv:
@@ -97,8 +98,9 @@ async def load(
         elif need_cpu_flag():
             sys.argv.append("--cpu")
 
-    LOGGER.debug("command line arguments: %s", sys.argv)
+    LOGGER.debug("ComfyUI command line arguments: %s", sys.argv)
     fill_comfyui_args()
+    sys.argv = original_argv
 
     import folder_paths  # noqa # isort: skip
 

@@ -1,2 +1,1 @@
-from .install import install
-from .update import update
+from .install_update import install, update
