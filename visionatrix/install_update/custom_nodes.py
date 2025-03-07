@@ -12,11 +12,10 @@ LOGGER = logging.getLogger("visionatrix")
 
 def install_base_custom_nodes() -> None:
     cm_cli_path = Path(options.COMFYUI_DIR).joinpath("custom_nodes").joinpath("ComfyUI-Manager").joinpath("cm-cli.py")
-    basic_nodes_list = list(BASIC_NODE_LIST.keys())
     clone_env = os.environ.copy()
     clone_env["COMFYUI_PATH"] = str(Path(options.COMFYUI_DIR).resolve())
     run(
-        [sys.executable, cm_cli_path, "install", "--mode=cache", *basic_nodes_list],
+        [sys.executable, cm_cli_path, "install", "--mode=cache", *list(BASIC_NODE_LIST.keys())],
         env=clone_env,
         check=True,
     )
@@ -33,7 +32,12 @@ def update_base_custom_nodes() -> None:
     clone_env = os.environ.copy()
     clone_env["COMFYUI_PATH"] = str(Path(options.COMFYUI_DIR).resolve())
     run(
-        [sys.executable, cm_cli_path, "update", *basic_nodes_list],
+        [sys.executable, cm_cli_path, "uninstall", "--mode=cache", *basic_nodes_list],
+        env=clone_env,
+        check=True,
+    )
+    run(
+        [sys.executable, cm_cli_path, "install", "--mode=cache", *list(BASIC_NODE_LIST.keys())],
         env=clone_env,
         check=True,
     )

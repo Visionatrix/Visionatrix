@@ -36,7 +36,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="command")
     for i in [
         ("install", "Performs cleanup & initialization"),
-        ("update", "Performs update to the next version"),
+        ("update", "Performs update to the next Visionatrix version"),
         ("run", "Starts the Visionatrix"),
         ("install-flow", "Install flow by name or from file"),
         ("create-user", "Create new user"),

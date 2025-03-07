@@ -215,6 +215,8 @@ def _get_visionatrix_requirements():
             # Skip any requirement that specifies extras in its package name.
             if req.extras:
                 continue
+            if req.name.lower() == "python-dotenv":
+                continue
             visionatrix_reqs[req.name.lower()] = req
         except Exception as exc:
             LOGGER.warning("Failed to parse requirement line '%s': %s", line, exc)

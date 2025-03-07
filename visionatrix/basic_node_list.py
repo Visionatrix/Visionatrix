@@ -1,6 +1,6 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.22"
+COMFYUI_RELEASE_TAG = "v0.3.24"
 COMFYUI_MANAGER_RELEASE_TAG = "3.30.2"
 
 BASIC_NODE_LIST = {
