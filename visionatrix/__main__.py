@@ -17,6 +17,7 @@ from . import (
     options,
     run_vix,
     update,
+    update_pip_auto_fix_requirements,
 )
 from .db_queries import get_all_global_settings, get_global_setting, set_global_setting
 from .etc import get_higher_log_level, get_log_level
@@ -178,6 +179,7 @@ if __name__ == "__main__":
         models_dir=asyncio.run(get_global_setting("comfyui_models_folder", True)),
     )
 
+    update_pip_auto_fix_requirements()
     if args.command == "install":
         comfyui_dir = Path(options.COMFYUI_DIR)
         if comfyui_dir.exists():

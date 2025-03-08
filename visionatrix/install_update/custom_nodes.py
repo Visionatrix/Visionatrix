@@ -29,7 +29,14 @@ def install_base_custom_nodes() -> None:
     clone_env = os.environ.copy()
     clone_env["COMFYUI_PATH"] = str(Path(options.COMFYUI_DIR).resolve())
     run(
-        [sys.executable, cm_cli_path, "install", "--mode=cache", *list(BASIC_NODE_LIST.keys())],
+        [
+            sys.executable,
+            cm_cli_path,
+            "install",
+            f"--user-directory={options.USER_DIR}",
+            "--mode=cache",
+            *list(BASIC_NODE_LIST.keys()),
+        ],
         env=clone_env,
         check=True,
     )
@@ -51,7 +58,14 @@ def update_base_custom_nodes() -> None:
         check=True,
     )
     run(
-        [sys.executable, cm_cli_path, "install", "--mode=cache", *list(BASIC_NODE_LIST.keys())],
+        [
+            sys.executable,
+            cm_cli_path,
+            "install",
+            f"--user-directory={options.USER_DIR}",
+            "--mode=cache",
+            *list(BASIC_NODE_LIST.keys()),
+        ],
         env=clone_env,
         check=True,
     )
