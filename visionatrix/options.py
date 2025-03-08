@@ -106,7 +106,9 @@ This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
 
-def init_dirs_values(comfyui_dir: str, base_data_dir: str, input_dir: str, output_dir: str, user_dir: str, models_dir: str) -> None:
+def init_dirs_values(
+    comfyui_dir: str, base_data_dir: str, input_dir: str, output_dir: str, user_dir: str, models_dir: str
+) -> None:
     global COMFYUI_DIR, BASE_DATA_DIR, INPUT_DIR, OUTPUT_DIR, USER_DIR, MODELS_DIR
     if comfyui_dir:
         COMFYUI_DIR = str(Path(comfyui_dir).resolve())
