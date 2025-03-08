@@ -57,7 +57,6 @@ def install() -> None:
         [sys.executable, "-m", "pip", "install", "-r", comfyui_manager_path.joinpath("requirements.txt")],
         check=True,
     )
-    _update_pip_auto_fix_requirements()
     install_base_custom_nodes()
     # Temporary workarounds
     run(
@@ -118,7 +117,6 @@ def update() -> None:
         )
     logging.info("Updating custom nodes..")
     update_base_custom_nodes()
-    _update_pip_auto_fix_requirements()
     # Temporary workarounds
     run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "bitsandbytes"],
@@ -143,25 +141,19 @@ def create_nodes_stuff() -> None:
         pass
 
 
-def _update_pip_auto_fix_requirements() -> None:
+def update_pip_auto_fix_requirements() -> None:
     """
     Merges existing requirements in `pip_auto_fix.list` with the
     requirements of 'visionatrix' so that 'visionatrix' requirements
-    take priority.
+    take priority. Only writes back if changes were made.
     """
     pip_auto_fix_path = (
-        Path(options.COMFYUI_DIR)
-        .joinpath("user")
-        .joinpath("default")
-        .joinpath("ComfyUI-Manager")
-        .joinpath("pip_auto_fix.list")
+        Path(options.USER_DIR).joinpath("default").joinpath("ComfyUI-Manager").joinpath("pip_auto_fix.list")
     )
     pip_auto_fix_path.parent.mkdir(parents=True, exist_ok=True)
     if not pip_auto_fix_path.exists():
-        # If the file doesn't exist, just create it and drop our requirements in.
         pip_auto_fix_path.touch()
 
-    # 1) Read existing lines and parse them as packaging Requirements
     existing_reqs = {}
     with pip_auto_fix_path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -175,15 +167,15 @@ def _update_pip_auto_fix_requirements() -> None:
                 LOGGER.warning("Failed to parse requirement line from pip_auto_fix: %s", line)
                 continue
 
-    # 2) Merge with 'visionatrix' requirements (override if there is a conflict)
     visionatrix_reqs = _get_visionatrix_requirements()
-    for visionatrix_req in visionatrix_reqs.values():
-        existing_reqs[visionatrix_req.name.lower()] = visionatrix_req  # override or insert
 
-    # 3) Write merged results back to pip_auto_fix.list
-    with pip_auto_fix_path.open("w", encoding="utf-8") as f:
-        for req_obj in existing_reqs.values():
-            f.write(str(req_obj) + "\n")
+    merged_reqs = existing_reqs.copy()
+    merged_reqs.update({req.name.lower(): req for req in visionatrix_reqs.values()})
+
+    if merged_reqs != existing_reqs:
+        with pip_auto_fix_path.open("w", encoding="utf-8") as f:
+            for req_obj in merged_reqs.values():
+                f.write(str(req_obj) + "\n")
 
 
 def _get_visionatrix_requirements():

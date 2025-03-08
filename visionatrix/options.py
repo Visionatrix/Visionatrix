@@ -10,21 +10,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PYTHON_EMBEDED = path.split(path.split(sys.executable)[0])[1] == "python_embeded"
-COMFYUI_DIR = environ.get("COMFYUI_DIR", str(Path("ComfyUI") if PYTHON_EMBEDED else Path("./ComfyUI").resolve()))
-BASE_DATA_DIR = environ.get(
-    "BASE_DATA_DIR", str(Path("ComfyUI-Data") if PYTHON_EMBEDED else Path("./ComfyUI-Data").resolve())
+COMFYUI_DIR = str(Path(environ.get("COMFYUI_DIR", "ComfyUI" if PYTHON_EMBEDED else "./ComfyUI")).resolve())
+BASE_DATA_DIR = str(
+    Path(environ.get("BASE_DATA_DIR", "ComfyUI-Data" if PYTHON_EMBEDED else "./ComfyUI-Data")).resolve()
 )
 """
 Base data directory for INPUT_DIR, OUTPUT_DIR, USER_DIR, MODELS_DIR.
 For customization you usually want to change only this.
 """
-INPUT_DIR = environ.get("INPUT_DIR", str(Path(BASE_DATA_DIR).joinpath("input").resolve()))
+INPUT_DIR = str(Path(environ.get("INPUT_DIR", Path(BASE_DATA_DIR).joinpath("input"))).resolve())
 """Directory to store tasks inputs."""
-OUTPUT_DIR = environ.get("OUTPUT_DIR", str(Path(BASE_DATA_DIR).joinpath("output").resolve()))
+OUTPUT_DIR = str(Path(environ.get("OUTPUT_DIR", Path(BASE_DATA_DIR).joinpath("output"))).resolve())
 """Directory to store tasks outputs."""
-USER_DIR = environ.get("USER_DIR", str(Path(BASE_DATA_DIR).joinpath("user").resolve()))
+USER_DIR = str(Path(environ.get("USER_DIR", Path(BASE_DATA_DIR).joinpath("user"))).resolve())
 """Directory to store config of the ComfyUI nodes."""
-MODELS_DIR = environ.get("MODELS_DIR", str(Path(BASE_DATA_DIR).joinpath("models").resolve()))
+MODELS_DIR = str(Path(environ.get("MODELS_DIR", Path(BASE_DATA_DIR).joinpath("models"))).resolve())
 """Directory to store ComfyUI models."""
 
 VIX_HOST = environ.get("VIX_HOST", "")
