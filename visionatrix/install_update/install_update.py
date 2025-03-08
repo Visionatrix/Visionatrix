@@ -148,11 +148,7 @@ def update_pip_auto_fix_requirements() -> None:
     take priority. Only writes back if changes were made.
     """
     pip_auto_fix_path = (
-        Path(options.USER_DIR)
-        .joinpath("user")
-        .joinpath("default")
-        .joinpath("ComfyUI-Manager")
-        .joinpath("pip_auto_fix.list")
+        Path(options.USER_DIR).joinpath("default").joinpath("ComfyUI-Manager").joinpath("pip_auto_fix.list")
     )
     pip_auto_fix_path.parent.mkdir(parents=True, exist_ok=True)
     if not pip_auto_fix_path.exists():
