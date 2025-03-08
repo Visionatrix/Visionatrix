@@ -410,10 +410,9 @@ async def get_task_inputs(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if r["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    input_directory = os.path.join(options.TASKS_FILES_DIR, "input")
-    for filename in os.listdir(input_directory):
+    for filename in os.listdir(options.INPUT_DIR):
         if filename == r["input_files"][input_index]["file_name"]:
-            return responses.FileResponse(os.path.join(input_directory, filename))
+            return responses.FileResponse(os.path.join(options.INPUT_DIR, filename))
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Task({r['task_id']}): input file `{r['input_files'][input_index]['file_name']}` was not found.",
@@ -676,7 +675,6 @@ async def set_task_results(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
     if task_details["user_id"] != request.scope["user_info"].user_id and not request.scope["user_info"].is_admin:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task `{task_id}` was not found.")
-    output_directory = os.path.join(options.TASKS_FILES_DIR, "output")
     for task_output in task_details["outputs"]:
         task_file_prefix = f"{task_id}_{task_output['comfy_node_id']}_"
         relevant_files = [file_info for file_info in files if file_info.filename.startswith(task_file_prefix)]
@@ -691,7 +689,7 @@ async def set_task_results(
             file_size += i.size
             batch_size += 1
             try:
-                file_path = Path(output_directory).joinpath(i.filename)
+                file_path = Path(options.OUTPUT_DIR).joinpath(i.filename)
                 with builtins.open(file_path, mode="wb") as out_file:
                     shutil.copyfileobj(i.file, out_file)
             finally:

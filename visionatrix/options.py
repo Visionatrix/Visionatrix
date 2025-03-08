@@ -11,7 +11,21 @@ load_dotenv()
 
 PYTHON_EMBEDED = path.split(path.split(sys.executable)[0])[1] == "python_embeded"
 COMFYUI_DIR = environ.get("COMFYUI_DIR", str(Path("ComfyUI") if PYTHON_EMBEDED else Path("./ComfyUI").resolve()))
-TASKS_FILES_DIR = environ.get("TASKS_FILES_DIR", str(Path("./vix_tasks_files").resolve()))
+BASE_DATA_DIR = environ.get(
+    "BASE_DATA_DIR", str(Path("ComfyUI-Data") if PYTHON_EMBEDED else Path("./ComfyUI-Data").resolve())
+)
+"""
+Base data directory for INPUT_DIR, OUTPUT_DIR, USER_DIR, MODELS_DIR.
+For customization you usually want to change only this.
+"""
+INPUT_DIR = environ.get("INPUT_DIR", str(Path(BASE_DATA_DIR).joinpath("input").resolve()))
+"""Directory to store tasks inputs."""
+OUTPUT_DIR = environ.get("OUTPUT_DIR", str(Path(BASE_DATA_DIR).joinpath("output").resolve()))
+"""Directory to store tasks outputs."""
+USER_DIR = environ.get("USER_DIR", str(Path(BASE_DATA_DIR).joinpath("user").resolve()))
+"""Directory to store config of the ComfyUI nodes."""
+MODELS_DIR = environ.get("MODELS_DIR", str(Path(BASE_DATA_DIR).joinpath("models").resolve()))
+"""Directory to store ComfyUI models."""
 
 VIX_HOST = environ.get("VIX_HOST", "")
 """Address to bind in the `DEFAULT` or `SERVER` mode."""
@@ -92,24 +106,49 @@ This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
 
-def init_dirs_values(comfyui: str | None, tasks_files: str | None) -> None:
-    global COMFYUI_DIR, TASKS_FILES_DIR
-    if comfyui:
-        COMFYUI_DIR = str(Path(comfyui).resolve())
-    if tasks_files:
-        TASKS_FILES_DIR = str(Path(tasks_files).resolve())
+def init_dirs_values(
+    comfyui_dir: str, base_data_dir: str, input_dir: str, output_dir: str, user_dir: str, models_dir: str
+) -> None:
+    global COMFYUI_DIR, BASE_DATA_DIR, INPUT_DIR, OUTPUT_DIR, USER_DIR, MODELS_DIR
+    if comfyui_dir:
+        COMFYUI_DIR = str(Path(comfyui_dir).resolve())
+    if base_data_dir:
+        BASE_DATA_DIR = str(Path(base_data_dir).resolve())
+
+    if input_dir:
+        INPUT_DIR = str(Path(input_dir).resolve())
+    elif base_data_dir:
+        INPUT_DIR = str(Path(BASE_DATA_DIR).joinpath("input").resolve())
+
+    if output_dir:
+        OUTPUT_DIR = str(Path(output_dir).resolve())
+    elif base_data_dir:
+        OUTPUT_DIR = str(Path(BASE_DATA_DIR).joinpath("output").resolve())
+
+    if user_dir:
+        USER_DIR = str(Path(user_dir).resolve())
+    elif base_data_dir:
+        USER_DIR = str(Path(BASE_DATA_DIR).joinpath("user").resolve())
+
+    if models_dir:
+        MODELS_DIR = str(Path(models_dir).resolve())
+    elif base_data_dir:
+        MODELS_DIR = str(Path(BASE_DATA_DIR).joinpath("models").resolve())
 
 
 def get_server_mode_options_as_env() -> dict[str, str]:
     return {
         "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
         "COMFYUI_DIR": COMFYUI_DIR,
-        "TASKS_FILES_DIR": TASKS_FILES_DIR,
+        "BASE_DATA_DIR": BASE_DATA_DIR,
+        "INPUT_DIR": INPUT_DIR,
+        "OUTPUT_DIR": OUTPUT_DIR,
+        "USER_DIR": USER_DIR,
+        "MODELS_DIR": MODELS_DIR,
         "VIX_HOST": VIX_HOST,
         "VIX_PORT": VIX_PORT,
         "UI_DIR": UI_DIR,
         "VIX_MODE": VIX_MODE,
-        "VIX_SERVER_WORKERS": VIX_SERVER_WORKERS,
     }
 
 

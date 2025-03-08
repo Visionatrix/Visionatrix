@@ -175,8 +175,8 @@ def run_vix(*args, **kwargs) -> None:
         LOGGER.error("`WORKER` mode is incompatible with UI")
         return
 
-    for i in ("input", "output"):
-        os.makedirs(os.path.join(options.TASKS_FILES_DIR, i), exist_ok=True)
+    os.makedirs(options.INPUT_DIR, exist_ok=True)
+    os.makedirs(options.OUTPUT_DIR, exist_ok=True)
 
     if options.VIX_MODE != "WORKER":
         if options.VIX_MODE == "SERVER":

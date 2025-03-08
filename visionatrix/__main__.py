@@ -56,18 +56,21 @@ if __name__ == "__main__":
             subparser.add_argument("--disabled", type=bool, help="Should account be disabled", default=False)
             continue
 
-        if i[0] == "orphan-models":
+        if i[0] == "list-global-settings":
+            continue
+        if i[0] == "get-global-setting":
+            subparser.add_argument("--key", required=True, help="Name of the global setting")
+            continue
+        if i[0] == "set-global-setting":
+            subparser.add_argument("--key", required=True, help="Name of the global setting")
+            subparser.add_argument("--value", required=True, help="Value of the global setting")
             subparser.add_argument(
-                "--no-confirm", action="store_true", help="Do not ask for confirmation for each model"
-            )
-            subparser.add_argument(
-                "--dry-run", action="store_true", help="Perform cleaning without actual removing models"
-            )
-            subparser.add_argument(
-                "--include-useful-models",
+                "--sensitive",
                 action="store_true",
-                help="Include orphaned models that can be used in future flows for removal",
+                default=False,
+                help="Whether this setting is sensitive (hidden for non-admins)",
             )
+            continue
 
         if i[0] == "openapi":
             subparser.add_argument(
@@ -101,6 +104,19 @@ if __name__ == "__main__":
                 default=False,
             )
 
+        if i[0] == "orphan-models":
+            subparser.add_argument(
+                "--no-confirm", action="store_true", help="Do not ask for confirmation for each model"
+            )
+            subparser.add_argument(
+                "--dry-run", action="store_true", help="Perform cleaning without actual removing models"
+            )
+            subparser.add_argument(
+                "--include-useful-models",
+                action="store_true",
+                help="Include orphaned models that can be used in future flows for removal",
+            )
+
         if i[0] == "install-flow":
             install_flow_group = subparser.add_mutually_exclusive_group(required=True)
             install_flow_group.add_argument(
@@ -111,24 +127,10 @@ if __name__ == "__main__":
             install_flow_group.add_argument("--name", type=str, help="Flow name mask of the flow(s)")
             install_flow_group.add_argument("--tag", type=str, help="Flow tags mask of the flow(s)")
 
-        if i[0] == "get-global-setting":
-            subparser.add_argument("--key", required=True, help="Name of the global setting")
-        elif i[0] == "set-global-setting":
-            subparser.add_argument("--key", required=True, help="Name of the global setting")
-            subparser.add_argument("--value", required=True, help="Value of the global setting")
-            subparser.add_argument(
-                "--sensitive",
-                action="store_true",
-                default=False,
-                help="Whether this setting is sensitive (hidden for non-admins)",
-            )
-
-        subparser.add_argument("--comfyui_dir", type=str, help="ComfyUI directory")
         if i[0] == "run":
             subparser.add_argument("--host", type=str, help="Host to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--port", type=str, help="Port to listen (DEFAULT or SERVER mode)")
             subparser.add_argument("--server", type=str, help="Address of Vix Server (WORKER mode)")
-            subparser.add_argument("--tasks_files_dir", type=str, help="Directory for input/output files")
             subparser.add_argument("--mode", choices=["WORKER", "SERVER"], help="VIX special operating mode")
             subparser.add_argument("--ui", nargs="?", default="", help="Enable WebUI (DEFAULT or SERVER mode)")
             subparser.add_argument("--disable-device-detection", action="store_true", default=False)
@@ -168,31 +170,13 @@ if __name__ == "__main__":
         sys.exit(0)
 
     options.init_dirs_values(
-        comfyui=getattr(args, "comfyui_dir", ""),
-        tasks_files=getattr(args, "tasks_files_dir", ""),
+        comfyui_dir=asyncio.run(get_global_setting("comfyui_folder", True)),
+        base_data_dir=asyncio.run(get_global_setting("comfyui_base_data_folder", True)),
+        input_dir=asyncio.run(get_global_setting("comfyui_input_folder", True)),
+        output_dir=asyncio.run(get_global_setting("comfyui_output_folder", True)),
+        user_dir=asyncio.run(get_global_setting("comfyui_user_folder", True)),
+        models_dir=asyncio.run(get_global_setting("comfyui_models_folder", True)),
     )
-
-    model_path_optional = args.command in (
-        "install",
-        "openapi",
-        "list-global-settings",
-        "get-global-setting",
-        "set-global-setting",
-    )
-    comfyui_wrapper.COMFYUI_MODELS_FOLDER = asyncio.run(get_global_setting("comfyui_models_folder", True))
-    if not comfyui_wrapper.COMFYUI_MODELS_FOLDER:
-        folder_path = os.environ.get("COMFYUI_MODEL_PATH", "")
-        if not folder_path and not model_path_optional:
-            folder_path = input(
-                "The 'comfyui_models_folder' setting is not set. Please specify the path(relative or absolute): "
-            ).strip()
-        if not folder_path and not model_path_optional:
-            print("No path provided. 'comfyui_models_folder' remains unset. Exit.")
-            sys.exit(2)
-        if folder_path:
-            asyncio.run(set_global_setting("comfyui_models_folder", folder_path, False))
-            comfyui_wrapper.COMFYUI_MODELS_FOLDER = folder_path
-            print(f"'comfyui_models_folder' set to: {folder_path}")
 
     if args.command == "install":
         comfyui_dir = Path(options.COMFYUI_DIR)
@@ -201,13 +185,12 @@ if __name__ == "__main__":
             if c != "y":
                 print("Skipping ComfyUI re-installation.")
                 sys.exit(0)
-            comfyui_models = comfyui_dir.joinpath("models")
-            comfyui_models_size = sum(file.stat().st_size for file in comfyui_models.rglob("*") if file.is_file())
-            comfyui_models_size_gb = round(comfyui_models_size / (1024**3), 1)
-            logging.getLogger("visionatrix").debug("Size of ComfyUI/models dir: %s GB", comfyui_models_size_gb)
-            if comfyui_models_size_gb > 3.9:  # Threshold in GB
+            comfyui_folder_size = sum(file.stat().st_size for file in comfyui_dir.rglob("*") if file.is_file())
+            comfyui_folder_size_gb = round(comfyui_folder_size / (1024**3), 1)
+            logging.getLogger("visionatrix").debug("Size of ComfyUI dir: %s GB", comfyui_folder_size_gb)
+            if comfyui_folder_size_gb > 3.9:  # Threshold in GB
                 c = input(
-                    f"The ComfyUI models folder is approximately {comfyui_models_size_gb} GB. "
+                    f"The ComfyUI folder is approximately {comfyui_folder_size_gb} GB. "
                     "Are you sure you want to proceed and clear this folder? (Y/N): "
                 ).lower()
                 if c != "y":

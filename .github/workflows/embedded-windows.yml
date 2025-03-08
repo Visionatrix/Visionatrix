@@ -64,7 +64,7 @@ jobs:
             echo "Detected release version."
             ./python_embeded/python.exe easy_install.py
           fi
-          rm -rf Visionatrix visionatrix.db
+          rm -rf Visionatrix visionatrix.db visionatrix.db-shm visionatrix.db-wal
           ./python_embeded/python.exe -m pip uninstall torch torchaudio torchvision -y
           cd ..
         env:
@@ -76,9 +76,10 @@ jobs:
         run: |
           echo "Listing contents of the 'vix_portable' directory:"
           ls -la vix_portable
+          echo "Listing contents of the 'ComfyUI' directory with folder sizes:"
+          du -sh vix_portable/ComfyUI/* | sort -hr
 
       - name: Archive Vix
-        if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           "C:\Program Files\7-Zip\7z.exe" a -t7z -m0=lzma -mx=8 -mfb=64 -md=32m -ms=on -mf=BCJ2 vix_portable_cuda.7z vix_portable
@@ -91,7 +92,7 @@ jobs:
           ./python_embeded/python.exe ../tests/rm_background.py
 
       - name: Upload to Artifacts
-        if: ${{ always() && github.event_name == 'workflow_dispatch' }}
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: vix_portable_cuda.7z
