@@ -106,24 +106,39 @@ This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
 
-def init_dirs_values(comfyui_dir: str, input_dir: str, output_dir: str, user_dir: str, models_dir: str) -> None:
-    global COMFYUI_DIR, INPUT_DIR, OUTPUT_DIR, USER_DIR, MODELS_DIR
+def init_dirs_values(comfyui_dir: str, base_data_dir: str, input_dir: str, output_dir: str, user_dir: str, models_dir: str) -> None:
+    global COMFYUI_DIR, BASE_DATA_DIR, INPUT_DIR, OUTPUT_DIR, USER_DIR, MODELS_DIR
     if comfyui_dir:
         COMFYUI_DIR = str(Path(comfyui_dir).resolve())
+    if base_data_dir:
+        BASE_DATA_DIR = str(Path(base_data_dir).resolve())
+
     if input_dir:
         INPUT_DIR = str(Path(input_dir).resolve())
+    elif base_data_dir:
+        INPUT_DIR = str(Path(BASE_DATA_DIR).joinpath("input").resolve())
+
     if output_dir:
         OUTPUT_DIR = str(Path(output_dir).resolve())
+    elif base_data_dir:
+        OUTPUT_DIR = str(Path(BASE_DATA_DIR).joinpath("output").resolve())
+
     if user_dir:
         USER_DIR = str(Path(user_dir).resolve())
+    elif base_data_dir:
+        USER_DIR = str(Path(BASE_DATA_DIR).joinpath("user").resolve())
+
     if models_dir:
         MODELS_DIR = str(Path(models_dir).resolve())
+    elif base_data_dir:
+        MODELS_DIR = str(Path(BASE_DATA_DIR).joinpath("models").resolve())
 
 
 def get_server_mode_options_as_env() -> dict[str, str]:
     return {
         "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
         "COMFYUI_DIR": COMFYUI_DIR,
+        "BASE_DATA_DIR": BASE_DATA_DIR,
         "INPUT_DIR": INPUT_DIR,
         "OUTPUT_DIR": OUTPUT_DIR,
         "USER_DIR": USER_DIR,

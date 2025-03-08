@@ -171,6 +171,7 @@ if __name__ == "__main__":
 
     options.init_dirs_values(
         comfyui_dir=asyncio.run(get_global_setting("comfyui_folder", True)),
+        base_data_dir=asyncio.run(get_global_setting("comfyui_base_data_folder", True)),
         input_dir=asyncio.run(get_global_setting("comfyui_input_folder", True)),
         output_dir=asyncio.run(get_global_setting("comfyui_output_folder", True)),
         user_dir=asyncio.run(get_global_setting("comfyui_user_folder", True)),
