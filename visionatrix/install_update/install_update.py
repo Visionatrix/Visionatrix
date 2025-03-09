@@ -11,7 +11,7 @@ from subprocess import CalledProcessError, check_call, run
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.version import Version
 
-from .. import _version, basic_node_list, comfyui_wrapper, db_queries, options
+from .. import _version, basic_node_list, comfyui_wrapper, options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
 from .custom_nodes import install_base_custom_nodes, update_base_custom_nodes
 
@@ -27,7 +27,6 @@ def remove_readonly(func, path, _):
 def install() -> None:
     """Deletes all Flows and performs a clean installation of ComfyUI."""
     dev_release = Version(_version.__version__).is_devrelease
-    asyncio.run(db_queries.delete_flows_progress_install())
     comfyui_dir = Path(options.COMFYUI_DIR)
     if comfyui_dir.exists():
         LOGGER.info("Removing existing ComfyUI directory: %s", comfyui_dir)
