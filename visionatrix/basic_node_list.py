@@ -1,6 +1,6 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.24"
+COMFYUI_RELEASE_TAG = "v0.3.26"
 COMFYUI_MANAGER_RELEASE_TAG = "3.30.2"
 
 BASIC_NODE_LIST = {
@@ -95,7 +95,7 @@ BASIC_NODE_LIST = {
     "https://github.com/liusida/ComfyUI-AutoCropFaces": {},
     "pulid_comfyui@1.0.1": {},
     "comfyui_pulid_flux_ll@1.1.4": {},
-    "comfyui_fizznodes@1.0.2": {},
+    "https://github.com/FizzleDorf/ComfyUI_FizzNodes.git": {},
     "comfyui-gemini@1.0.3": {},
     "comfyui-inpaint-cropandstitch@1.0.0": {},
     "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
