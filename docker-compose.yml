@@ -1,0 +1,88 @@
+services:
+  visionatrix_nvidia:
+    image: ghcr.io/visionatrix/visionatrix:release-cuda
+    container_name: visionatrix_nvidia
+    ports:
+      - "${VIX_PORT:-8288}:8288"
+    volumes:
+      - ./visionatrix-data:/data
+    environment:
+      - VIX_HOST=0.0.0.0
+      - VIX_PORT=8288
+      - BASE_DATA_DIR=/data
+      - DATABASE_URI=postgresql+psycopg://vix_user:vix_password@pgsql:5432/vix_db
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - pgsql
+    networks:
+      - visionatrix_net
+
+  visionatrix_amd:
+    image: ghcr.io/visionatrix/visionatrix:release-rocm
+    container_name: visionatrix_amd
+    ports:
+      - "${VIX_PORT:-8288}:8288"
+    volumes:
+      - ./visionatrix-data:/data
+    environment:
+      - VIX_HOST=0.0.0.0
+      - VIX_PORT=8288
+      - BASE_DATA_DIR=/data
+      - DATABASE_URI=postgresql+psycopg://vix_user:vix_password@pgsql:5432/vix_db
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    depends_on:
+      - pgsql
+    networks:
+      - visionatrix_net
+
+  visionatrix_cpu:
+    image: ghcr.io/visionatrix/visionatrix:release-cpu
+    container_name: visionatrix_cpu
+    ports:
+      - "${VIX_PORT:-8288}:8288"
+    volumes:
+      - ./visionatrix-data:/data
+    environment:
+      - VIX_HOST=0.0.0.0
+      - VIX_PORT=8288
+      - BASE_DATA_DIR=/data
+      - DATABASE_URI=postgresql+psycopg://vix_user:vix_password@pgsql:5432/vix_db
+    depends_on:
+      - pgsql
+    networks:
+      - visionatrix_net
+
+  iconify_api:
+    image: iconify/api
+    container_name: iconify_api
+    ports:
+      - "${ICONIFY_API_PORT:-3001}:3000"
+    networks:
+      - visionatrix_net
+
+  pgsql:
+    image: postgres:17
+    container_name: pgsql
+    environment:
+      - POSTGRES_USER=vix_user
+      - POSTGRES_PASSWORD=vix_password
+      - POSTGRES_DB=vix_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - visionatrix_net
+
+networks:
+  visionatrix_net:
+    driver: bridge
+
+volumes:
+  pgdata:

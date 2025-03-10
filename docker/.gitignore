@@ -1,5 +1,0 @@
-data/tasks_files/input
-data/tasks_files/output
-data/tasks_files/*.db
-data/flows/*
-data/models/*
