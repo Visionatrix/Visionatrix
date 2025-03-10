@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, or_, select, update
+from sqlalchemy import delete, false, or_, select, true, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database
@@ -161,8 +161,11 @@ async def get_flow_progress_install(name: str) -> FlowProgressInstall | None:
     async with database.SESSION() as session:
         try:
             query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.name == name)
-            result = (await session.execute(query)).scalar_one_or_none()
-            return None if result is None else FlowProgressInstall.model_validate(result)
+            flow_status = (await session.execute(query)).scalar_one_or_none()
+            if not flow_status:
+                return None
+            computed_progress = await _compute_flow_progress(flow_status, session)
+            return FlowProgressInstall.from_orm_with_progress(flow_status, computed_progress)
         except Exception:
             LOGGER.exception("Failed to retrieve flow progress install for name `%s`.", name)
             raise
@@ -172,8 +175,12 @@ async def get_flows_progress_install() -> list[FlowProgressInstall]:
     async with database.SESSION() as session:
         try:
             query = select(database.FlowsInstallStatus)
-            results = (await session.execute(query)).scalars().all()
-            return [FlowProgressInstall.model_validate(i) for i in results]
+            flows = (await session.execute(query)).scalars().all()
+            result_list = []
+            for flow_status in flows:
+                computed_progress = await _compute_flow_progress(flow_status, session)
+                result_list.append(FlowProgressInstall.from_orm_with_progress(flow_status, computed_progress))
+            return result_list
         except Exception:
             LOGGER.exception("Failed to retrieve flow installation progress.")
             raise
@@ -204,10 +211,10 @@ async def delete_flows_progress_install() -> None:
             raise
 
 
-async def add_flow_progress_install(name: str, flow_comfy: dict) -> None:
+async def add_flow_progress_install(name: str, flow_comfy: dict, models: list[str]) -> None:
     async with database.SESSION() as session:
         try:
-            new_flow = database.FlowsInstallStatus(name=name, flow_comfy=flow_comfy)
+            new_flow = database.FlowsInstallStatus(name=name, flow_comfy=flow_comfy, models=models)
             session.add(new_flow)
             await session.commit()
         except Exception:
@@ -233,47 +240,46 @@ async def edit_flow_progress_install(name: str, flow_comfy: dict) -> bool:
             raise
 
 
-async def update_flow_progress_install(name: str, progress: float, relative_progress: bool) -> bool:
+async def mark_flow_as_installed(name: str) -> bool:
     async with database.SESSION() as session:
         try:
-            if relative_progress:
-                stmt = (
-                    update(database.FlowsInstallStatus)
-                    .where(
-                        database.FlowsInstallStatus.name == name,
-                        database.FlowsInstallStatus.error == "",
-                    )
-                    .values(
-                        progress=database.FlowsInstallStatus.progress + progress,  # Increment progress
-                        updated_at=datetime.now(timezone.utc),
-                    )
-                )
-            else:
-                stmt = (
-                    update(database.FlowsInstallStatus)
-                    .where(
-                        database.FlowsInstallStatus.name == name,
-                        database.FlowsInstallStatus.error == "",
-                    )
-                    .values(
-                        progress=progress,
-                        updated_at=datetime.now(timezone.utc),
-                    )
-                )
+            stmt = (
+                update(database.FlowsInstallStatus)
+                .where(database.FlowsInstallStatus.name == name)
+                .values(installed=True, updated_at=datetime.now(timezone.utc))
+            )
             result = await session.execute(stmt)
             await session.commit()
             if result.rowcount == 0:
-                LOGGER.warning(
-                    "Flow installation for `%s` already encountered an error, skipping progress update: %s%s",
-                    name,
-                    "+" if relative_progress else "",
-                    progress,
-                )
+                LOGGER.warning("Flow installation for `%s` not found or already installed.", name)
                 return False
             return True
         except Exception:
             await session.rollback()
-            LOGGER.exception("Failed to update flow installation progress for `%s`", name)
+            LOGGER.exception("Failed to mark flow `%s` as installed.", name)
+            raise
+
+
+async def update_flow_updated_at(name: str) -> bool:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                update(database.FlowsInstallStatus)
+                .where(
+                    database.FlowsInstallStatus.name == name,
+                    database.FlowsInstallStatus.error == "",
+                )
+                .values(updated_at=datetime.now(timezone.utc))
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+            if result.rowcount == 0:
+                LOGGER.warning("Error updating flow installation 'updated_at' for `%s`.", name)
+                return False
+            return True
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to update 'updated_at' for flow `%s`.", name)
             raise
 
 
@@ -312,14 +318,18 @@ async def flows_installation_in_progress(name: str | None = None) -> dict[str, F
         try:
             time_threshold = datetime.now(timezone.utc) - timedelta(minutes=5)
             query = select(database.FlowsInstallStatus).where(
-                database.FlowsInstallStatus.progress < 100.0,
+                database.FlowsInstallStatus.installed == false(),
                 database.FlowsInstallStatus.updated_at >= time_threshold,
                 database.FlowsInstallStatus.error == "",
             )
             if name:
                 query = query.where(database.FlowsInstallStatus.name == name)
             results = (await session.execute(query)).scalars().all()
-            return {flow.name: FlowProgressInstall.model_validate(flow) for flow in results}
+            flows_dict = {}
+            for flow in results:
+                computed_progress = await _compute_flow_progress(flow, session)
+                flows_dict[flow.name] = FlowProgressInstall.from_orm_with_progress(flow, computed_progress)
+            return flows_dict
         except Exception:
             LOGGER.exception("Failed to check if any flow installation is in progress")
             raise
@@ -328,9 +338,9 @@ async def flows_installation_in_progress(name: str | None = None) -> dict[str, F
 async def get_installed_flows() -> list[FlowProgressInstall]:
     async with database.SESSION() as session:
         try:
-            query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.progress >= 100.0)
+            query = select(database.FlowsInstallStatus).where(database.FlowsInstallStatus.installed == true())
             results = (await session.execute(query)).scalars().all()
-            return [FlowProgressInstall.model_validate(flow) for flow in results]
+            return [FlowProgressInstall.from_orm_with_progress(flow, 100.0) for flow in results]
         except Exception as e:
             LOGGER.exception("Failed to retrieve installed flows.")
             raise e
@@ -607,3 +617,18 @@ async def set_worker_tasks_to_give(user_id: str | None, worker_id: str, tasks_to
             await session.rollback()
             LOGGER.exception("Failed to update tasks for worker(`%s`, `%s`): %s", user_id, worker_id, e)
             return False
+
+
+async def _compute_flow_progress(flow_status, session) -> float:
+    if flow_status.installed:
+        return 100.0
+    models_list = flow_status.models
+    if not models_list:
+        return 0.0
+    query_models = select(database.ModelsInstallStatus.progress).where(
+        database.ModelsInstallStatus.name.in_(models_list)
+    )
+    model_progresses = (await session.execute(query_models)).scalars().all()
+    if not model_progresses:
+        return 0.0
+    return min(99.0, sum(model_progresses) / len(model_progresses))

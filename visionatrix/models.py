@@ -2,10 +2,10 @@ import asyncio
 import builtins
 import hashlib
 import logging
+import math
 import os
 import re
 import time
-import typing
 import zipfile
 from pathlib import Path
 from urllib.parse import urlparse
@@ -24,18 +24,14 @@ LOGGER = logging.getLogger("visionatrix")
 def install_model(
     model: AIResourceModel,
     flow_name: str,
-    progress_for_model: float,
-    progress_callback: typing.Callable[[str, float, str, bool], typing.Awaitable[bool]],
     auth_tokens: tuple[str, str] = ("", ""),  # (huggingface_token, civitai_token)
 ) -> bool:
-    return asyncio.run(__install_model(model, flow_name, progress_for_model, progress_callback, auth_tokens))
+    return asyncio.run(__install_model(model, flow_name, auth_tokens))
 
 
 async def __install_model(
     model: AIResourceModel,
     flow_name: str,
-    progress_for_model: float,
-    progress_callback: typing.Callable[[str, float, str, bool], typing.Awaitable[bool]],
     auth_tokens: tuple[str, str] = ("", ""),  # (huggingface_token, civitai_token)
 ) -> bool:
     model.hash = model.hash.lower()
@@ -46,14 +42,14 @@ async def __install_model(
     if await does_model_exist_in_fs(
         model, flow_name, (await db_queries.get_installed_models()).get(model.name), delete_invalid=False
     ):
-        return await progress_callback(flow_name, progress_for_model, "", True)
+        return True
 
     while retries < max_retries:
         installed_models = await db_queries.get_installed_models()
         if model.name in installed_models and await does_model_exist_in_fs(
             model, flow_name, installed_models[model.name]
         ):
-            return await progress_callback(flow_name, progress_for_model, "", True)
+            return True
 
         installing_models = await db_queries.models_installation_in_progress(model.name)
         if not installing_models:
@@ -65,8 +61,6 @@ async def __install_model(
             continue
 
         # Another thread/process is installing the model
-        total_added_progress = 0.0
-        previous_model_progress = 0.0
         while True:
             installing_models = await db_queries.models_installation_in_progress(model.name)
             if not installing_models:
@@ -75,38 +69,20 @@ async def __install_model(
                 if model.name in installed_models and await does_model_exist_in_fs(
                     model, flow_name, installed_models[model.name]
                 ):
-                    # Model installed successfully
-                    if total_added_progress < progress_for_model:
-                        # Add any remaining progress
-                        remaining_progress = progress_for_model - total_added_progress
-                        await progress_callback(flow_name, remaining_progress, "", True)
                     return True
-
-                if total_added_progress > 0 and not await progress_callback(flow_name, -total_added_progress, "", True):
-                    return False  # Model installation failed; Progress roll back failed
                 retries += 1
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
                 break
-            model_progress_status = installing_models[model.name]
-            new_model_progress = model_progress_status.progress
-            new_progress_difference = new_model_progress - previous_model_progress
-            flow_progress_increment = (new_progress_difference / 100.0) * progress_for_model
-
-            # Adjust flow_progress_increment to not exceed remaining progress
-            remaining_progress = progress_for_model - total_added_progress
-            flow_progress_increment = max(min(flow_progress_increment, remaining_progress), -total_added_progress)
-
-            if flow_progress_increment != 0:
-                if not await progress_callback(flow_name, flow_progress_increment, "", True):
-                    return False
-                total_added_progress += flow_progress_increment
-                previous_model_progress = new_model_progress
-            time.sleep(1)
+            await asyncio.sleep(1.5)
+            if not await db_queries.update_flow_updated_at(flow_name):
+                return False
         continue
 
     if retries >= max_retries:
         LOGGER.error("Failed to acquire lock to install `%s` model for `%s` flow.", model.name, flow_name)
-        await progress_callback(flow_name, 0.0, f"Failed to acquire lock to install `{model.name}` model.", False)
+        await db_queries.set_flow_progress_install_error(
+            flow_name, f"Failed to acquire lock to install `{model.name}` model."
+        )
         return False
 
     # Proceed to install the model
@@ -117,14 +93,16 @@ async def __install_model(
         LOGGER.info("Downloading `%s`..", model.name)
         try:
             if not await db_queries.update_model_progress_install(model.name, flow_name, 0.0):
-                await progress_callback(flow_name, 0.0, f"Failed to update progress for model `{model.name}`", False)
+                await db_queries.set_flow_progress_install_error(
+                    flow_name, f"Failed to update progress for model `{model.name}`"
+                )
                 return False
-            r = await download_model(
-                model, save_path, save_name, flow_name, progress_for_model, progress_callback, auth_tokens
-            )
+            r = await download_model(model, save_path, save_name, flow_name, auth_tokens)
             if not r:
                 await db_queries.set_model_progress_install_error(model.name, flow_name, "installation was canceled")
-                await progress_callback(flow_name, 0.0, f"Model `{model.name}` installation was canceled.", False)
+                await db_queries.set_flow_progress_install_error(
+                    flow_name, f"Model `{model.name}` installation was canceled."
+                )
                 return False
             return True
         except KeyboardInterrupt:
@@ -132,7 +110,7 @@ async def __install_model(
             error_string = "Received SIGINT, download terminated"
             LOGGER.warning(error_string)
             await db_queries.set_model_progress_install_error(model.name, flow_name, error_string)
-            await progress_callback(flow_name, 0.0, error_string, False)
+            await db_queries.set_flow_progress_install_error(flow_name, error_string)
             raise
         except (FileNotFoundError, PermissionError) as e:
             LOGGER.error("Error during downloading `%s`: %s", model.name, str(e))
@@ -141,7 +119,8 @@ async def __install_model(
             LOGGER.warning("Error during downloading `%s`: %s", model.name, str(e))
 
     await db_queries.set_model_progress_install_error(model.name, flow_name, "Cannot download model")
-    await progress_callback(flow_name, 0.0, f"Cannot download model from `{model.url}`", False)
+    await db_queries.set_flow_progress_install_error(flow_name, f"Cannot download model from `{model.url}`")
+    LOGGER.error("Cannot download model from `%s`", model.url)
     return False
 
 
@@ -150,8 +129,6 @@ async def download_model(
     save_path: Path,
     save_name: str,
     flow_name: str,
-    progress_for_model: float,
-    progress_callback: typing.Callable[[str, float, str, bool], typing.Awaitable[bool]],
     auth_tokens: tuple[str, str] = ("", ""),
 ) -> bool:
     if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0" and save_path.suffix != ".zip":
@@ -219,8 +196,6 @@ async def download_model(
                 check_etag(response, model)
 
                 # Actual downloading logic starts here
-                total_added_progress = 0.0  # Total progress added to flow progress
-                progress_value = 0.0  # Accumulated progress in flow progress units
                 if existing_file_size > 0:
                     # Report initial progress based on existing file size
                     model_progress_percentage = existing_file_size / total_size * 100.0
@@ -228,48 +203,45 @@ async def download_model(
                         model.name, flow_name, model_progress_percentage
                     ):
                         return False
-                    # For flow progress, we calculate the proportion of progress_for_model
-                    total_added_progress = progress_for_model * existing_file_size / total_size
-                    if not await progress_callback(flow_name, total_added_progress, "", True):
-                        return False
 
                 current_file_size = existing_file_size
-                try:
-                    mode = "ab" if existing_file_size > 0 else "wb"
-                    with builtins.open(save_path, mode) as file:
-                        async for chunk in response.aiter_bytes(10 * 1024 * 1024):
-                            if chunk:
-                                bytes_written = file.write(chunk)
-                                current_file_size += bytes_written
-                                model_progress_percentage = min((current_file_size / total_size) * 100.0, 99.9)
-
+                mode = "ab" if existing_file_size > 0 else "wb"
+                with builtins.open(save_path, mode) as file:
+                    last_reported_progress = existing_file_size / total_size * 100.0
+                    last_flow_update = time.monotonic()
+                    async for chunk in response.aiter_bytes(10 * 1024 * 1024):
+                        if chunk:
+                            bytes_written = file.write(chunk)
+                            current_file_size += bytes_written
+                            model_progress_percentage = min((current_file_size / total_size) * 100.0, 99.9)
+                            if model_progress_percentage - last_reported_progress >= 0.3:
                                 if not await db_queries.update_model_progress_install(
                                     model.name, flow_name, model_progress_percentage
                                 ):
                                     return False
-
-                                increment = progress_for_model * bytes_written / total_size
-                                progress_value += increment
-                                if progress_value >= 0.1:
-                                    if not await progress_callback(flow_name, progress_value, "", True):
-                                        return False
-                                    total_added_progress += progress_value
-                                    progress_value = 0.0
-                    if not check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
-                        save_path.unlink(missing_ok=True)
-                        raise RuntimeError("Downloaded file hash does not match the expected hash.")
-                    if model.url.endswith(".zip"):
-                        extract_zip_with_subfolder(save_path, save_path.parent)
-                        save_path.unlink(missing_ok=True)
-                    else:
-                        await db_queries.update_model_mtime(
-                            model.name, save_path.stat().st_mtime, flow_name, new_filename=save_name
-                        )
-                    await db_queries.update_model_progress_install(model.name, flow_name, 100.0)
-                    return True
-                except (httpx.HTTPError, RuntimeError):
-                    await progress_callback(flow_name, -total_added_progress, "", True)
-                    raise
+                                LOGGER.info(
+                                    "Model `%s` for flow `%s`: installation: %s",
+                                    model.name,
+                                    flow_name,
+                                    math.floor(model_progress_percentage * 10) / 10,
+                                )
+                                last_reported_progress = model_progress_percentage
+                            if time.monotonic() - last_flow_update >= 1.5:
+                                if not await db_queries.update_flow_updated_at(flow_name):
+                                    return False
+                                last_flow_update = time.monotonic()
+                if not check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
+                    save_path.unlink(missing_ok=True)
+                    raise RuntimeError("Downloaded file hash does not match the expected hash.")
+                if model.url.endswith(".zip"):
+                    extract_zip_with_subfolder(save_path, save_path.parent)
+                    save_path.unlink(missing_ok=True)
+                else:
+                    await db_queries.update_model_mtime(
+                        model.name, save_path.stat().st_mtime, flow_name, new_filename=save_name
+                    )
+                await db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+                return True
     save_path.unlink(missing_ok=True)
     raise RuntimeError("Failed to download model after retries")
 

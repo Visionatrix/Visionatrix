@@ -186,6 +186,12 @@ class FlowProgressInstall(BaseModel):
     started_at: datetime = Field(..., description="Timestamp when the installation process started.")
     updated_at: datetime = Field(..., description="Timestamp of the last update to the installation progress.")
 
+    @classmethod
+    def from_orm_with_progress(cls, orm_obj, progress: float) -> Self:
+        data = orm_obj.__dict__.copy()
+        data["progress"] = progress
+        return cls.model_validate(data)
+
     @field_validator("name", mode="after")
     @classmethod
     def lowercase_name(cls, value: str) -> str:
