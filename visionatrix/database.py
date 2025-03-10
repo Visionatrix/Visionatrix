@@ -145,10 +145,11 @@ class FlowsInstallStatus(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False, unique=True)
     flow_comfy = Column(JSON, default={}, nullable=False)
-    progress = Column(Float, default=0.0, nullable=False)
     error = Column(String, default="")
     started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    installed = Column(Boolean, default=False, nullable=False)
+    models = Column(JSON, nullable=True)
 
 
 class ModelsInstallStatus(Base):

@@ -5,7 +5,6 @@ import contextlib
 import io
 import json
 import logging
-import math
 import os
 import random
 import shutil
@@ -266,11 +265,7 @@ async def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flo
 
 def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
     asyncio.run(db_queries.delete_flow_progress_install(flow.name))
-    asyncio.run(db_queries.add_flow_progress_install(flow.name, flow_comfy))
-    progress_for_model = 97 / max(len(flow.models), 1)
-
-    if not asyncio.run(db_queries.update_flow_progress_install(flow.name, 0.0, False)):
-        return False
+    asyncio.run(db_queries.add_flow_progress_install(flow.name, flow_comfy, [i.name for i in flow.models]))
 
     auth_tokens = {"huggingface_auth_token": "", "civitai_auth_token": ""}
     for token_env, token_key in [("HF_AUTH_TOKEN", "huggingface_auth_token"), ("CA_AUTH_TOKEN", "civitai_auth_token")]:
@@ -299,8 +294,6 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
                     install_model,
                     model,
                     flow.name,
-                    progress_for_model,
-                    __flow_install_callback,
                     (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
                 )
                 for model in flow.models
@@ -324,7 +317,7 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
         return False
 
-    if not asyncio.run(db_queries.update_flow_progress_install(flow.name, 100.0, False)):
+    if not asyncio.run(db_queries.mark_flow_as_installed(flow.name)):
         return False
     LOGGER.info("Installation of `%s` flow completed", flow.name)
 
@@ -332,29 +325,6 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
         LAST_GOOD_INSTALLED_FLOWS["flows"][flow.name] = flow
         LAST_GOOD_INSTALLED_FLOWS["flows_comfy"][flow.name] = flow_comfy
     return True
-
-
-async def __flow_install_callback(name: str, progress: float, error: str, relative_progress: bool) -> bool:
-    """Returns `True` if no errors occurred."""
-
-    if error:
-        LOGGER.error("`%s` installation failed: %s", name, error)
-        await db_queries.set_flow_progress_install_error(name, error)
-        return False  # we return "False" because we are setting an error and "installation" should be stopped anyway
-
-    if events.EXIT_EVENT.is_set():
-        await db_queries.set_flow_progress_install_error(name, "Installation interrupted by user.")
-        return False
-
-    if LOGGER.getEffectiveLevel() <= logging.INFO:
-        current_progress_info = await db_queries.get_flow_progress_install(name)
-        if not current_progress_info:
-            LOGGER.warning("Can not get installation progress info for %s", name)
-        else:
-            LOGGER.info(
-                "`%s` installation: %s", name, math.floor((current_progress_info.progress + progress) * 10) / 10
-            )
-    return await db_queries.update_flow_progress_install(name, progress, relative_progress)
 
 
 async def uninstall_flow(flow_name: str) -> None:
