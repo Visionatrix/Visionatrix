@@ -91,6 +91,30 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			comfyui_base_data_folder: {
+				key: 'comfyui_base_data_folder',
+				value: '',
+				sensitive: false,
+				admin: true,
+			},
+			comfyui_output_folder: {
+				key: 'comfyui_output_folder',
+				value: '',
+				sensitive: false,
+				admin: true,
+			},
+			comfyui_input_folder: {
+				key: 'comfyui_input_folder',
+				value: '',
+				sensitive: false,
+				admin: true,
+			},
+			comfyui_user_folder: {
+				key: 'comfyui_user_folder',
+				value: '',
+				sensitive: false,
+				admin: true,
+			},
 			comfyui_models_folder: {
 				key: 'comfyui_models_folder',
 				value: '',
@@ -236,12 +260,6 @@ export const useSettingsStore = defineStore('settingsStore', {
 			})
 		},
 
-		performComfyUiAutoconfig(models_dir: string) {
-			return this.saveGlobalSetting(this.settingsMap.comfyui_models_folder.key, models_dir, this.settingsMap.comfyui_models_folder.sensitive).then(() => {
-				return this.getComfyUiFolderListing()
-			})
-		},
-
 		getOrphanModelsList() {
 			const { $apiFetch } = useNuxtApp()
 			return $apiFetch('/models/orphan', {
@@ -311,6 +329,34 @@ export const useSettingsStore = defineStore('settingsStore', {
 				return res
 			})
 		},
+
+		saveChanges(keys: string[] = []) {
+			const userStore = useUserStore()
+			const toast = useToast()
+			console.debug('Saving settings', this.settingsMap)
+			return Promise.all(Object.keys(this.settingsMap).filter((key) => {
+				// Save only requested keys
+				if (keys.length > 0) {
+					return keys.includes(key)
+				}
+				return true
+			}).map((key) => {
+				if (this.settingsMap[key].admin && userStore.isAdmin) {
+					return this.saveGlobalSetting(this.settingsMap[key].key, this.settingsMap[key].value, this.settingsMap[key].sensitive)
+				}
+				return this.saveUserSetting(this.settingsMap[key].key, this.settingsMap[key].value)
+			})).then(() => {
+				toast.add({
+					title: 'Settings saved',
+					description: 'Settings saved successfully',
+				})
+			}).catch((error) => {
+				toast.add({
+					title: 'Error saving setting',
+					description: error.message,
+				})
+			})
+		},
 	},
 })
 
@@ -325,6 +371,7 @@ export interface VixSetting {
 	admin: boolean
 	options?: any[]
 	loading?: boolean
+	changed?: boolean
 }
 
 export interface SavedSetting {

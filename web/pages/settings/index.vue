@@ -13,23 +13,25 @@ const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 const toast = useToast()
 
+const settingsKeys = [
+	'huggingface_auth_token',
+	'civitai_auth_token',
+	'google_api_key',
+	'google_api_key_user',
+	'google_proxy',
+	'gemini_model',
+	'ollama_url',
+	'ollama_vision_model',
+	'ollama_llm_model',
+	'ollama_keepalive',
+	'translations_provider',
+	'llm_provider',
+]
+const savingSettings = ref(false)
 function saveChanges() {
-	console.debug('Saving settings', settingsStore.settingsMap)
-	Promise.all(Object.keys(settingsStore.settingsMap).map((key) => {
-		if (settingsStore.settingsMap[key].admin && userStore.isAdmin) {
-			return settingsStore.saveGlobalSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap[key].value, settingsStore.settingsMap[key].sensitive)
-		}
-		return settingsStore.saveUserSetting(settingsStore.settingsMap[key].key, settingsStore.settingsMap[key].value)
-	})).then(() => {
-		toast.add({
-			title: 'Settings saved',
-			description: 'Settings saved successfully',
-		})
-	}).catch((error) => {
-		toast.add({
-			title: 'Error saving setting',
-			description: error.message,
-		})
+	savingSettings.value = true
+	settingsStore.saveChanges(settingsKeys).finally(() => {
+		savingSettings.value = false
 	})
 }
 
@@ -289,10 +291,10 @@ const passwordInputs = ref({
 							<USelectMenu
 								v-model="settingsStore.settingsMap.ollama_vision_model.value"
 								class="w-full"
-								:options="settingsStore.settingsMap.ollama_vision_model.options.map((item: any) => {
+								:options="settingsStore.settingsMap.ollama_vision_model?.options ? settingsStore.settingsMap.ollama_vision_model.options.map((item: any) => {
 									item.label = `${item.model} (${formatBytes(item.size)})`
 									return item
-								})"
+								}) : []"
 								value-attribute="model"
 								:loading="settingsStore.settingsMap.ollama_vision_model.loading"
 								placeholder="Ollama Vision Model" />
@@ -330,10 +332,10 @@ const passwordInputs = ref({
 							<USelectMenu
 								v-model="settingsStore.settingsMap.ollama_llm_model.value"
 								class="w-full"
-								:options="settingsStore.settingsMap.ollama_llm_model.options.map((item: any) => {
+								:options="settingsStore.settingsMap.ollama_llm_model?.options ? settingsStore.settingsMap.ollama_llm_model.options.map((item: any) => {
 									item.label = `${item.model} (${formatBytes(item.size)})`
 									return item
-								})"
+								}): []"
 								value-attribute="model"
 								:loading="settingsStore.settingsMap.ollama_llm_model.loading"
 								placeholder="Ollama LLM Model" />
@@ -491,6 +493,7 @@ const passwordInputs = ref({
 				</div>
 				<UButton
 					icon="i-heroicons-check-16-solid"
+					:loading="savingSettings"
 					@click="saveChanges">
 					Save
 				</UButton>
