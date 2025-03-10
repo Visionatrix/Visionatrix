@@ -631,4 +631,4 @@ async def _compute_flow_progress(flow_status, session) -> float:
     model_progresses = (await session.execute(query_models)).scalars().all()
     if not model_progresses:
         return 0.0
-    return min(99.0, sum(model_progresses) / len(model_progresses))
+    return min(99.0, sum(model_progresses) / len(models_list))
