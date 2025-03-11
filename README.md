@@ -22,6 +22,7 @@
 - **🤖 LLM Integration**: Effortlessly incorporate Ollama/Gemini as your LLM for ComfyUI workflows.
 - **🔌 Seamless Integration**: Run as a service with backend endpoints for smooth project integration.
 - **😎 LoRA Integration**: Easy integrate LoRAs from CivitAI into your flows.
+- **🐳 Docker Compose**: Official Docker images and a pre-configured Docker Compose file.
 
 ## 🖼️ User Interface
 
@@ -157,6 +158,38 @@ Updating the portable version involves:
   You can have a folder with `models`, `tasks_files` and `visionatrix.db` outside the Visionatrix folder.
 
 </details>
+
+## Docker Compose
+
+Starting with Visionatrix version 2, we now provide official Docker images along with a pre-configured `docker-compose.yml` file, making deployment faster and easier. The file is located at the root of the Visionatrix repository.
+
+### Available Services
+
+- **visionatrix_nvidia**: Visionatrix with `NVIDIA GPU` support.
+- **visionatrix_amd**: Visionatrix with `AMD GPU` support.
+- **visionatrix_cpu**: Visionatrix running on `CPU` only.
+- **pgsql**: A PostgreSQL 17 container for the database.
+
+### Usage
+
+- For NVIDIA GPU support:
+  ```bash
+  docker compose up -d visionatrix_nvidia
+  ```
+
+- For AMD GPU support:
+  ```bash
+  docker compose up -d visionatrix_amd
+  ```
+
+- For CPU mode:
+  ```bash
+  docker compose up -d visionatrix_cpu
+  ```
+
+By default, `visionatrix-data` directory will be created in the current directory in the host and used for the `models`, `user`, `input` and `output` files.
+
+You can easily customize the configuration by modifying environment variables or volume mounts in the `docker-compose.yml` file.
 
 ## 📚 Documentation and Support
 
