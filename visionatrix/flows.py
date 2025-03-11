@@ -178,6 +178,7 @@ async def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
             LOGGER.error("Failed to read flows archive at %s: %s", flows_storage_url, e)
             return None, None, etag
 
+    flow_comfy_path = None
     try:
         with zipfile.ZipFile(io.BytesIO(flows_content)) as zip_file:
             for flow_comfy_path in {name for name in zip_file.namelist() if name.endswith(".json")}:
@@ -188,7 +189,7 @@ async def fetch_flows_from_url_or_path(flows_storage_url: str, etag: str):
                     r_flows[_flow_name] = _flow
                     r_flows_comfy[_flow_name] = _flow_comfy
     except Exception as e:
-        LOGGER.exception("Failed to parse flows from %s: %s", flows_storage_url, e)
+        LOGGER.exception("Failed to parse flows from %s(%s): %s", flows_storage_url, flow_comfy_path, e)
         return None, None, etag
 
     return r_flows, r_flows_comfy, flows_content_etag
