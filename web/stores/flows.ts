@@ -693,6 +693,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			const { $apiFetch } = useNuxtApp()
 			return $apiFetch(`/flows/subflows?input_type=${input_type}`).then((res) => {
 				this.sub_flows = <Flow[]>res
+				return res
 			})
 		},
 

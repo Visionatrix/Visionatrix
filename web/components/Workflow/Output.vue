@@ -253,9 +253,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 						:open-image-modal="openImageModal" />
 					<WorkflowOutputVideo
 						v-else-if="flowResult.outputs.some((output) => output.type === 'video')"
-						:flow-result="flowResult"
-						:handle-send-to-flow="handleSendToFlow"
-						:open-image-modal="openImageModal" />
+						:flow-result="flowResult" />
 					<WorkflowOutputAudio
 						v-else-if="flowResult.outputs.some((output) => output.type === 'audio')"
 						:flow-result="flowResult" />

@@ -4,14 +4,6 @@ defineProps({
 		type: Object as PropType<FlowResult>,
 		required: true
 	},
-	handleSendToFlow: {
-		type: Function as PropType<(flowResult: FlowResult, index: number) => void>,
-		required: true
-	},
-	openImageModal: {
-		type: Function as PropType<(src: string) => void>,
-		required: true
-	}
 })
 
 const flowStore = useFlowsStore()
@@ -35,7 +27,6 @@ const flowStore = useFlowsStore()
 		</template>
 		<UCarousel
 			v-else-if="flowResult.outputs.length > 1"
-			v-slot="{ item }"
 			class="mb-3 rounded-lg overflow-hidden"
 			:items="flowResult.outputs.map((result_output_param: FlowOutputParam, index: number) => {
 				return {
@@ -64,17 +55,6 @@ const flowStore = useFlowsStore()
 							node_id: flowResult.outputs[0].comfy_node_id
 						})">
 				</video>
-				<UButton
-					class="mt-2 w-fit mx-auto"
-					icon="i-heroicons-arrow-uturn-up-solid"
-					color="violet"
-					size="xs"
-					variant="outline"
-					@click="() => {
-						handleSendToFlow(flowResult, item.index)
-					}">
-					Send to flow
-				</UButton>
 			</div>
 		</UCarousel>
 	</div>

@@ -66,7 +66,7 @@ const targetImageDimensions = ref({width: 0, height: 0})
 const imageInpaintMask = ref('')
 const imageInpaintMaskData = ref({})
 const sourceImageInput: Ref<any> = ref(null)
-const sourceInputParamName = props.inputParamsMap[props.index][props.inputParam.name].source_input_name
+const sourceInputParamName = props.inputParamsMap[props.index][props.inputParam.name].source_input_name ?? ''
 const sourceInputImageParamIndex = props.inputParamsMap.findIndex((inputParam: any) => {
 	const key = Object.keys(inputParam)[0]
 	if (key === props.inputParamsMap[props.index][props.inputParam.name].source_input_name) {
