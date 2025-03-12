@@ -55,3 +55,42 @@ jobs:
       - name: Install flows from CMD
         run: |
           echo "Y" | VIX_MODE=SERVER VIX_SERVER_FULL_MODELS=0 python3 -m visionatrix install-flow --name=*
+
+      - name: Generate openapi-flows.json
+        run: |
+          VIX_MODE=SERVER VIX_SERVER_FULL_MODELS=0 python3 -m visionatrix openapi --flows="*" --exclude-base --file=openapi-flows.json
+
+      - name: Create test user
+        run: |
+          VIX_MODE=SERVER VIX_SERVER_FULL_MODELS=0 python3 -m visionatrix create-user --name=user --password=user
+
+      - name: Start Visionatrix in Server mode
+        run: |
+          nohup python3 -m visionatrix run --ui --mode=SERVER > visionatrix.log 2>&1 &
+          echo "Server started in background with PID $!"
+
+      - name: Wait for Visionatrix server
+        run: |
+          max_attempts=30
+          for i in $(seq 1 $max_attempts); do
+            echo "Attempt $i/$max_attempts: Checking Visionatrix server..."
+            if curl -s http://localhost:8288/whoami > /dev/null; then
+              echo "Visionatrix server is up!"
+              exit 0
+            fi
+            echo "Server not ready yet. Sleeping 10s..."
+            sleep 10
+          done
+          echo "Server not responding after 5 minutes!"
+          exit 1
+
+      - name: Download test image
+        run: |
+          wget -O tests/source-cube_rm_background.png "https://github.com/Visionatrix/VixFlowsDocs/blob/main/tests_data/source-cube_rm_background.png?raw=true"
+
+      - name: Create task for each Flow
+        run: python3 tests/create_flow_tasks.py
+
+      - name: Display logs
+        if: ${{ always() }}
+        run: cat visionatrix.log
