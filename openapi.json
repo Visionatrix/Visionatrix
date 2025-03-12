@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "1.12.0.dev0"
+    "version": "2.0.0.dev0"
   },
   "paths": {
     "/comfy/": {
@@ -3001,6 +3001,12 @@
             "title": "Is Surprise Me Supported",
             "description": "Flag indicating if Flow supports random prompt generation feature.",
             "default": false
+          },
+          "remote_vae": {
+            "type": "boolean",
+            "title": "Remote Vae",
+            "description": "Flag indicating whether Flow supports remote VAE decoding.",
+            "default": false
           }
         },
         "type": "object",
@@ -4358,7 +4364,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-03-07T15:42:03.020576Z"
+            "default": "2025-03-12T07:50:43.700556Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

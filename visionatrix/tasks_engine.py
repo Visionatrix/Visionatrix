@@ -15,7 +15,12 @@ from sqlalchemy.exc import IntegrityError
 
 from . import comfyui_wrapper, database, models_map, options
 from .db_queries import get_global_setting, get_installed_models, get_setting
-from .flows import get_google_nodes, get_installed_flows, get_ollama_nodes
+from .flows import (
+    get_google_nodes,
+    get_installed_flows,
+    get_ollama_nodes,
+    get_remote_vae_switches,
+)
 from .pydantic_models import (
     ExecutionDetails,
     TaskDetailsShort,
@@ -115,6 +120,15 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
                 task_to_exec["flow_comfy"][node]["inputs"]["proxy"] = google_proxy
                 if gemini_model:
                     task_to_exec["flow_comfy"][node]["inputs"]["model"] = gemini_model
+
+    remote_vae_switches = get_remote_vae_switches(task_to_exec["flow_comfy"])
+    if remote_vae_switches:
+        remote_vae_flows = await get_worker_value("remote_vae_flows", task_to_exec["user_id"])
+        if remote_vae_flows:
+            remote_vae_flows_list = json.loads(remote_vae_flows)
+            if task_to_exec["name"] in remote_vae_flows_list:
+                for node in remote_vae_switches:
+                    task_to_exec["flow_comfy"][node]["inputs"]["state"] = True
 
     models_map.process_flow_models(task_to_exec["flow_comfy"], await get_installed_models())
 

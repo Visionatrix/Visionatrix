@@ -68,6 +68,7 @@ SUPPORTED_OUTPUTS = {
     "SaveImage": "image",
     "SaveAnimatedWEBP": "image-animated",
     "VHS_VideoCombine": "video",
+    "SaveWEBM": "video",
     "SaveAudio": "audio",
     "SaveText|pysssss": "text",
 }
@@ -704,6 +705,14 @@ def get_nodes_for_translate(
                     "llm_prompt": "",
                 }
             )
+    return r
+
+
+def get_remote_vae_switches(flow_comfy: dict[str, dict]) -> list[str]:
+    r = []
+    for node_id, node_details in flow_comfy.items():
+        if str(node_details["_meta"]["title"]) == "remote_vae":
+            r.append(node_id)
     return r
 
 
