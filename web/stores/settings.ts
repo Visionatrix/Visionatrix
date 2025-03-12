@@ -128,6 +128,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: true,
 				admin: true,
 			},
+			remote_vae_flows: {
+				key: 'remote_vae_flows',
+				value: '',
+				sensitive: false,
+				admin: true,
+			},
 		} as VixSettingsMap,
 		localSettings: {
 			showComfyUiNavbarButton: true,
@@ -341,10 +347,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 				}
 				return true
 			}).map((key) => {
-				if (this.settingsMap[key].admin && userStore.isAdmin) {
-					return this.saveGlobalSetting(this.settingsMap[key].key, this.settingsMap[key].value, this.settingsMap[key].sensitive)
+				let value = this.settingsMap[key].value
+				if (key === this.settingsMap.remote_vae_flows.key) {
+					value = JSON.stringify(value)
 				}
-				return this.saveUserSetting(this.settingsMap[key].key, this.settingsMap[key].value)
+				if (this.settingsMap[key].admin && userStore.isAdmin) {
+					return this.saveGlobalSetting(this.settingsMap[key].key, value, this.settingsMap[key].sensitive)
+				}
+				return this.saveUserSetting(this.settingsMap[key].key, value)
 			})).then(() => {
 				toast.add({
 					title: 'Settings saved',
