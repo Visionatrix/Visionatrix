@@ -118,7 +118,7 @@ const vaeRemoteDecodingOptions = computed(() => {
 })
 
 onBeforeMount(() => {
-	if (settingsStore.settingsMap.remote_vae_flows.value) {
+	if (settingsStore.settingsMap.remote_vae_flows.value && typeof settingsStore.settingsMap.remote_vae_flows.value === 'string') {
 		settingsStore.settingsMap.remote_vae_flows.value = JSON.parse(settingsStore.settingsMap.remote_vae_flows.value) ?? []
 	}
 })

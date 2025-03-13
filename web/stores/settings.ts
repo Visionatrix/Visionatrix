@@ -153,10 +153,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 				const allSettings = await this.getAllSettings()
 				console.debug('[DEBUG] All settings:', allSettings)
 				Object.keys(allSettings).forEach((key: string) => {
+					let value = allSettings[key]
+					if (key === this.settingsMap.remote_vae_flows.key) {
+						value = JSON.parse(value)
+					}
 					if (this.settingsMap[key + '_user']) {
-						this.settingsMap[key + '_user'].value = allSettings[key]
+						this.settingsMap[key + '_user'].value = value
 					} else if (this.settingsMap[key]) {
-						this.settingsMap[key].value = allSettings[key]
+						this.settingsMap[key].value = value
 					}
 				})
 			})
