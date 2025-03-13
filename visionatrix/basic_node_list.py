@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
 COMFYUI_RELEASE_TAG = "v0.3.26"
-COMFYUI_MANAGER_RELEASE_TAG = "3.30.5"
+COMFYUI_MANAGER_RELEASE_TAG = "3.30.3"
 
 BASIC_NODE_LIST = {
     "comfyui-impact-pack@8.8.1": {
@@ -94,12 +94,16 @@ BASIC_NODE_LIST = {
     "comfyui-remotevae@1.0.0": {},
     "comfyui-gemini@1.0.3": {},
     "comfyui-ollama@2.0.1": {},
-    "https://github.com/liusida/ComfyUI-AutoCropFaces": {},
     "pulid_comfyui@1.0.1": {},
     "comfyui_pulid_flux_ll@1.1.4": {},
-    "https://github.com/FizzleDorf/ComfyUI_FizzNodes.git": {},
     "comfyui-inpaint-cropandstitch@1.0.0": {},
-    "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
+    "comfyui-videohelpersuite@1.5.8": {},
+    "comfyui-frame-interpolation@1.0.6": {},
+    "comfyui-kjnodes@1.0.6": {},
+    "comfyui_layerstyle@1.0.90": {},
+    "comfyui-easy-use@1.2.7": {},
+    "comfyui_birefnet_ll@1.1.1": {},
+    "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus.git": {
         "models": [
             AIResourceModel(
                 name="buffalo_l",
@@ -118,10 +122,7 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "comfyui-videohelpersuite@1.5.8": {},
-    "comfyui-frame-interpolation@1.0.6": {},
-    "comfyui-kjnodes@1.0.6": {},
-    "comfyui_layerstyle@1.0.90": {},
-    "comfyui-easy-use@1.2.7": {},
-    "comfyui_birefnet_ll@1.1.1": {},
+    "https://github.com/liusida/ComfyUI-AutoCropFaces.git": {},
+    "https://github.com/kaibioinfo/ComfyUI_AdvancedRefluxControl": {},
+    "https://github.com/FizzleDorf/ComfyUI_FizzNodes": {},
 }
