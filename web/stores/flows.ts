@@ -186,6 +186,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 		isFlowInstalled(state) {
 			return (name: string) => state.flows_installed.filter(flow => flow.name === name).length > 0 && state.installing.filter(flow => flow.flow_name === name).length === 0
 		},
+		remoteVaeSupportedFlows(state) {
+			return state.flows_installed.filter(flow => flow.remote_vae)
+		},
 	},
 	actions: {
 		fetchFlows(toggleLoading: boolean = true) {
@@ -1192,6 +1195,7 @@ export interface Flow {
 	is_macos_supported: boolean
 	required_memory_gb?: number
 	lora_connect_points: LoraPoints
+	remote_vae: boolean
 	hidden: boolean
 }
 

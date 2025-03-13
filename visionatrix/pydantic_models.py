@@ -154,6 +154,7 @@ class Flow(BaseModel):
     is_surprise_me_supported: bool = Field(
         False, description="Flag indicating if Flow supports random prompt generation feature."
     )
+    remote_vae: bool = Field(False, description="Flag indicating whether Flow supports remote VAE decoding.")
 
     @field_validator("name", mode="after")
     @classmethod
