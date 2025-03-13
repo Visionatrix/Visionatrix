@@ -11,6 +11,7 @@ useHead({
 
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
+const flowsStore = useFlowsStore()
 
 const showComfyUiFoldersModal = ref(false)
 const loadingFoldersListing = ref(false)
@@ -94,30 +95,32 @@ const settingsKeys = [
 	'comfyui_base_data_folder',
 	'comfyui_output_folder',
 	'comfyui_input_folder',
-	'comfyui_user_folder'
+	'comfyui_user_folder',
+	'remote_vae_flows',
 ]
+
 const savingSettings = ref(false)
 function saveChanges() {
 	savingSettings.value = true
 	settingsStore.saveChanges(settingsKeys)
-		.then(() => {
-			settingsStore.getAllSettings().then(() => {
-				settingsKeys.forEach((key) => {
-					settingsStore.settingsMap[key].changed = true
-				})
-			})
-		})
 		.finally(() => {
 			savingSettings.value = false
 		})
 }
 
-const comfySettingsChanged = computed(() => {
-	return settingsStore.settingsMap.comfyui_models_folder.changed ||
-		settingsStore.settingsMap.comfyui_base_data_folder.changed ||
-		settingsStore.settingsMap.comfyui_output_folder.changed ||
-		settingsStore.settingsMap.comfyui_input_folder.changed ||
-		settingsStore.settingsMap.comfyui_user_folder.changed
+const vaeRemoteDecodingOptions = computed(() => {
+	return flowsStore.remoteVaeSupportedFlows.map((flow) => {
+		return {
+			label: `${flow.display_name} (${flow.name})`,
+			value: flow.name,
+		}
+	})
+})
+
+onBeforeMount(() => {
+	if (settingsStore.settingsMap.remote_vae_flows.value) {
+		settingsStore.settingsMap.remote_vae_flows.value = JSON.parse(settingsStore.settingsMap.remote_vae_flows.value) ?? []
+	}
 })
 </script>
 
@@ -130,17 +133,19 @@ const comfySettingsChanged = computed(() => {
 					<h3 class="mb-3 text-xl font-bold">ComfyUI settings (global)</h3>
 
 					<div class="mt-3 mb-5">
+
+						<UDivider class="my-5" />
+
 						<UFormGroup
 							size="md"
 							class="py-3"
 							label="ComfyUI models folder"
 							description="Absolute path to the models folders or relative to current Visionatrix folder. Overrides ComfyUI base data folder.">
 
-							<UAlert v-if="comfySettingsChanged"
-								class="mt-3"
-								color="orange"
+							<UAlert class="mt-3"
+								color="blue"
 								variant="solid"
-								title="ComfyUI settings modified"
+								title="ComfyUI settings changes requires server restart"
 								description="Restart Visionatrix server to apply changes"
 								icon="i-heroicons-exclamation-triangle" />
 
@@ -225,6 +230,29 @@ const comfySettingsChanged = computed(() => {
 								icon="i-heroicons-folder-16-solid"
 								:loading="savingSettings"
 								autocomplete="off" />
+						</UFormGroup>
+
+						<UDivider class="my-5" />
+
+						<UFormGroup
+							size="md"
+							label="VAE Remote Decoding"
+							description="List of installed Flows for which 'VAE Remote Decoding' is enabled">
+							<UAlert
+								v-if="flowsStore.remoteVaeSupportedFlows.length === 0"
+								variant="soft"
+								color="teal"
+								class="my-3"
+								title="No Flows with VAE Remote Decoding support installed"
+								icon="i-heroicons-information-circle" />
+							<USelectMenu
+								v-model="settingsStore.settingsMap.remote_vae_flows.value"
+								:options="vaeRemoteDecodingOptions"
+								value-attribute="value"
+								class="flex h-10"
+								multiple
+								searchable
+								placeholder="Select flows to allow remote VAE decoding" />
 						</UFormGroup>
 
 						<UButton
