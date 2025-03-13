@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
 COMFYUI_RELEASE_TAG = "v0.3.26"
-COMFYUI_MANAGER_RELEASE_TAG = "3.30.3"
+COMFYUI_MANAGER_RELEASE_TAG = "3.31"
 
 BASIC_NODE_LIST = {
     "comfyui-impact-pack@8.8.1": {
