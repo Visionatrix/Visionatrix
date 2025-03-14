@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0 - 2025-03-15]
+
+If you have any problems with this version, feel free to ask questions [here](https://github.com/Visionatrix/Visionatrix/issues/332).
+
+### Added
+
+- `Animagine XL v4` and `RealVis v5` basic SDXL flows.
+- New `HunyuanVideo` flow; updated `LTXV` video flow.
+- `Surprise Me` - new feature to use LLM to create a random prompt. #314
+- `RemoteVAE` feature for systems with low-vram. #345
+- UI: filter to show **only installed flows**. #316
+- UI: **Export flow** button. #321
+- UI: now supports **editing** Flow metadata. #323
+- UI: display current version of Visionatrix. #325
+- UI: `send to flow` now support custom parameters. #344
+- Docker images, docker compose. #339
+
+### Changed
+
+- **Main achievement**: Folder with models now always should be defined and works correctly for the most custom nodes. **Reinstalling of some Flows required if it breaks them.**
+- `ComfyUI-Manager` is now used to install custom nodes.. #331
+
+### Fixed
+
+- **Easy installation script** now performs early check for the compilers to be present(*Linux only*). #319
+- Support for `ComfyUI Manager`. #318
+- Prompt translations feature now works correctly with **Ollama** thinking models. #320
+- Endpoint to **uninstall** flow now correctly immediately updates the installed flow cache. #327
+- Fixed broken flows **Mad Scientist** and **PhotoStickers 2**.
+
 ## [1.11.1 - 2025-02-22]
 
 ### Changed

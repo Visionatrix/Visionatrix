@@ -116,15 +116,15 @@ For manual installation steps, please refer to our [detailed documentation](http
 
 ## ⚙️ Post-setup Configuration
 
-### Path To the Models Folder
+### Paths Configurations
 
-Starting from version **1.12**, Visionatrix requires the **comfyui_models_folder** value in the database to be set. It will prompt you for this value during startup if it is not already set.
+The easiest way to set up paths is through the user interface, by going to `Settings->ComfyUI`.
 
-It can be either a relative path (relative to the `ComfyUI` folder) or an absolute one.
+In most cases, the easiest way is to set `ComfyUI base data folder` to some absolute path where you want to store models, task results, and settings.
 
-You can always change it later by going to `Settings` in the UI, clicking on the **ComfyUI** menu on the left, and entering the new value.
+This will allow you to freely reinstall everything from scratch without losing data or models.
 
-> **Note:** If you are using the default installation, it’s a good idea to set it to `../../VixModels` so that it is on the same level as the **Visionatrix** root folder.
+> **Note:** For easy Windows portable upgrades, we assume you have `ComfyUI base data folder` parameter set.
 
 ### HuggingFace and CivitAI Tokens
 
@@ -149,19 +149,24 @@ python3 easy_install.py
 Updating the portable version involves:
 
 1. Unpacking the new portable version.
-2. Moving `vix_models`, `vix_tasks_files`, and `visionatrix.db` from the old version to the new one.
-3. In most cases, this should be sufficient unless there are breaking changes.
+2. Moving `visionatrix.db` from the old version to the new one.
 
 <details>
   <summary>Hint</summary>
 
-  You can have a folder with `models`, `tasks_files` and `visionatrix.db` outside the Visionatrix folder.
+  Alternatively, you can specify a custom path for `visionatrix.db` using the `DATABASE_URI` environment variable. This allows you to keep the database file outside the portable archive and **skip step 2**.
+
+  For example, setting DATABASE_URI to:
+
+    `sqlite+aiosqlite:///C:/Users/alex/visionatrix.db`
+
+  will direct Visionatrix to use the `C:\Users\alex\visionatrix.db` file.
 
 </details>
 
 ## Docker Compose
 
-Starting with Visionatrix version 2, we now provide official Docker images along with a pre-configured `docker-compose.yml` file, making deployment faster and easier. The file is located at the root of the Visionatrix repository.
+Starting with Visionatrix version 2, we provide official Docker images along with a pre-configured `docker-compose.yml` file, making deployment faster and easier. The file is located at the root of the Visionatrix repository.
 
 ### Available Services
 
