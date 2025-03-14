@@ -4364,7 +4364,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-03-12T07:50:43.700556Z"
+            "default": "2025-03-14T16:32:31.124563Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
