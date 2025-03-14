@@ -17,6 +17,7 @@ from . import comfyui_wrapper, database, models_map, options
 from .db_queries import get_global_setting, get_installed_models, get_setting
 from .flows import (
     get_google_nodes,
+    get_insightface_nodes,
     get_installed_flows,
     get_ollama_nodes,
     get_remote_vae_switches,
@@ -129,6 +130,13 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
             if task_to_exec["name"] in remote_vae_flows_list:
                 for node in remote_vae_switches:
                     task_to_exec["flow_comfy"][node]["inputs"]["state"] = True
+
+    insightface_nodes = get_insightface_nodes(task_to_exec["flow_comfy"])
+    if insightface_nodes:
+        insightface_provider = await get_worker_value("insightface_provider", task_to_exec["user_id"])
+        if insightface_provider:
+            for node in insightface_nodes:
+                task_to_exec["flow_comfy"][node]["inputs"]["provider"] = insightface_provider
 
     models_map.process_flow_models(task_to_exec["flow_comfy"], await get_installed_models())
 

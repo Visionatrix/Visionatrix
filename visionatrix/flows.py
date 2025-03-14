@@ -716,6 +716,19 @@ def get_remote_vae_switches(flow_comfy: dict[str, dict]) -> list[str]:
     return r
 
 
+def get_insightface_nodes(flow_comfy: dict[str, dict]) -> list[str]:
+    r = []
+    for node_id, node_details in flow_comfy.items():
+        if str(node_details["class_type"]) in (
+            "InstantIDFaceAnalysis",
+            "PulidInsightFaceLoader",
+            "PhotoMakerInsightFaceLoader",
+            "PulidFluxInsightFaceLoader",
+        ):
+            r.append(node_id)
+    return r
+
+
 async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
     available_workers = await db_queries.get_workers_details(None, 5 * 60, "")
     for flow in flows.values():

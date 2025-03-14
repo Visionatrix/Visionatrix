@@ -281,7 +281,10 @@ if __name__ == "__main__":
         print(asyncio.run(get_global_setting(args.key, True, None)))
     elif args.command == "set-global-setting":
         asyncio.run(set_global_setting(args.key, str(args.value), bool(args.sensitive)))
-        print(f"Global setting '{args.key}' set to '{args.value}' (sensitive={bool(args.sensitive)}).")
+        if not args.value:
+            print(f"Global setting '{args.key}' deleted.")
+        else:
+            print(f"Global setting '{args.key}' set to '{args.value}' (sensitive={bool(args.sensitive)}).")
     else:
         logging.getLogger("visionatrix").error("Unknown command: '%s'", args.command)
         sys.exit(2)
