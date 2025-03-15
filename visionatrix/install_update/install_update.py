@@ -50,7 +50,9 @@ def install() -> None:
         clone_env = os.environ.copy()
         clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
         check_call(
-            ["git", "checkout", f"tags/{basic_node_list.COMFYUI_MANAGER_RELEASE_TAG}"], env=clone_env, cwd=comfyui_dir
+            ["git", "checkout", f"tags/{basic_node_list.COMFYUI_MANAGER_RELEASE_TAG}"],
+            env=clone_env,
+            cwd=comfyui_manager_path,
         )
     run(
         [sys.executable, "-m", "pip", "install", "-r", comfyui_manager_path.joinpath("requirements.txt")],
