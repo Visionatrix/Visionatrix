@@ -1,10 +1,12 @@
 import asyncio
+import base64
 import fnmatch
 import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 import uvicorn
 from fastapi import APIRouter, FastAPI, HTTPException, Query, responses, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +19,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
+from .pydantic_models import UserInfo
 from .tasks_engine import remove_active_task_lock, task_progress_callback
 from .tasks_engine_async import start_tasks_engine
 from .user_backends import perform_auth_http, perform_auth_ws
@@ -48,20 +51,24 @@ class VixAuthMiddleware:
         if options.VIX_MODE == "DEFAULT":
             scope["user_info"] = database.DEFAULT_USER
         elif not fnmatch.filter(self._disable_for, url_path):
-            bad_auth_response = responses.Response(
-                "Not authenticated",
-                status.HTTP_401_UNAUTHORIZED,
-                headers={"WWW-Authenticate": "Basic"},
-            )
-            try:
-                if (userinfo := await perform_auth_http(scope, conn)) is None:
-                    await bad_auth_response(scope, receive, send)
-                    return
+            userinfo = self._check_admin_override_auth(conn.headers)
+            if userinfo:
                 scope["user_info"] = userinfo
-            except HTTPException as exc:
-                response = self._on_error(exc.status_code, exc.detail)
-                await response(scope, receive, send)
-                return
+            else:
+                bad_auth_response = responses.Response(
+                    "Not authenticated",
+                    status.HTTP_401_UNAUTHORIZED,
+                    headers={"WWW-Authenticate": "Basic"},
+                )
+                try:
+                    if (userinfo := await perform_auth_http(scope, conn)) is None:
+                        await bad_auth_response(scope, receive, send)
+                        return
+                    scope["user_info"] = userinfo
+                except HTTPException as exc:
+                    response = self._on_error(exc.status_code, exc.detail)
+                    await response(scope, receive, send)
+                    return
 
         await self.app(scope, receive, send)
 
@@ -71,20 +78,43 @@ class VixAuthMiddleware:
             scope["user_info"] = database.DEFAULT_USER
         elif not fnmatch.filter(self._disable_for, url_path):
             headers_dict, cookies_dict = parse_cookies_and_headers(scope)
-            try:
-                if (userinfo := await perform_auth_ws(scope, headers_dict, cookies_dict)) is None:
-                    await send({"type": "websocket.close", "code": 1008})  # Policy Violation
-                    return
+            userinfo = self._check_admin_override_auth(headers_dict)
+            if userinfo:
                 scope["user_info"] = userinfo
-            except HTTPException:
-                await send({"type": "websocket.close", "code": 1011})  # Internal Error
-                return
+            else:
+                try:
+                    if (userinfo := await perform_auth_ws(scope, headers_dict, cookies_dict)) is None:
+                        await send({"type": "websocket.close", "code": 1008})  # Policy Violation
+                        return
+                    scope["user_info"] = userinfo
+                except HTTPException:
+                    await send({"type": "websocket.close", "code": 1011})  # Internal Error
+                    return
 
         await self.app(scope, receive, send)
 
     @staticmethod
     def _on_error(status_code: int = 400, content: str = "") -> responses.PlainTextResponse:
         return responses.PlainTextResponse(content, status_code=status_code)
+
+    @staticmethod
+    def _check_admin_override_auth(headers: dict[str, str] | httpx.Headers) -> UserInfo | None:
+        creds = options.get_admin_override_credentials()
+        if not creds:
+            return None
+        auth_val = headers.get("authorization", "")
+        if not auth_val.startswith("Basic "):
+            return None
+
+        encoded_creds = auth_val.split(" ", 1)[1]
+        decoded = base64.b64decode(encoded_creds).decode("utf-8", errors="ignore")
+        if ":" not in decoded:
+            return None
+
+        user_req, pass_req = decoded.split(":", 1)
+        if user_req == creds[0] and pass_req == creds[1]:
+            return UserInfo(user_id=user_req, full_name=f"Admin Override {user_req}", email="", is_admin=True)
+        return None
 
 
 def parse_cookies_and_headers(scope: Scope) -> tuple[dict[str, str], dict[str, str]]:

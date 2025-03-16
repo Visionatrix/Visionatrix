@@ -105,6 +105,21 @@ Example:
 This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
+ADMIN_OVERRIDE = environ.get("ADMIN_OVERRIDE", "")
+"""If set, should contain something like "admin:pass",
+and it is considered as an admin user (emulated, without actual DB record).
+"""
+
+
+def get_admin_override_credentials() -> tuple[str, str] | None:
+    if ":" not in ADMIN_OVERRIDE:
+        return None
+    user, password = ADMIN_OVERRIDE.split(":", 1)
+    user, password = user.strip(), password.strip()
+    if not user or not password:
+        return None
+    return user, password
+
 
 def init_dirs_values(
     comfyui_dir: str, base_data_dir: str, input_dir: str, output_dir: str, user_dir: str, models_dir: str

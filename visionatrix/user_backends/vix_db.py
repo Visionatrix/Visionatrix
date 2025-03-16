@@ -37,7 +37,7 @@ async def _parse_and_verify(authorization: str) -> UserInfo | None:
         username, _, password = decoded_credentials.partition(":")
         if (userinfo := await get_user(username, password)) is None or userinfo.disabled is True:
             return None
-    except ValueError:
+    except (ValueError, UnicodeDecodeError):
         return None
     return UserInfo.model_validate(userinfo)
 
