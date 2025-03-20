@@ -76,10 +76,10 @@ def update() -> None:
     if dev_release:
         check_call(["git", "checkout", "master"], cwd=comfyui_dir)
         try:
-            check_call("git pull".split(), cwd=comfyui_dir)
+            check_call(["git", "pull"], cwd=comfyui_dir)
         except CalledProcessError:
             logging.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_dir)
-            check_call("git pull --rebase".split(), cwd=comfyui_dir)
+            check_call(["git", "pull", "--rebase"], cwd=comfyui_dir)
     else:
         check_call(["git", "fetch", "--all"], cwd=comfyui_dir)
         clone_env = os.environ.copy()
@@ -99,10 +99,10 @@ def update() -> None:
     if dev_release:
         check_call(["git", "checkout", "main"], cwd=comfyui_manager_path)
         try:
-            check_call("git pull".split(), cwd=comfyui_manager_path)
+            check_call(["git", "pull"], cwd=comfyui_manager_path)
         except CalledProcessError:
             logging.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_manager_path)
-            check_call("git pull --rebase".split(), cwd=comfyui_manager_path)
+            check_call(["git", "pull", "--rebase"], cwd=comfyui_manager_path)
     else:
         check_call(["git", "fetch", "--all"], cwd=comfyui_manager_path)
         clone_env = os.environ.copy()
