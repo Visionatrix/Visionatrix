@@ -367,7 +367,7 @@ async def remove_unfinished_tasks_by_name_and_group(name: str, user_id: str, gro
 
 def get_task_files(task_id: int, directory: typing.Literal["input", "output"]) -> list[tuple[str, str]]:
     result_prefix = str(task_id) + "_"
-    target_directory = options.INPUT_DIR if directory == "input" else options.OUTPUT_DIR
+    target_directory = options.INPUT_DIR if directory == "input" else os.path.join(options.OUTPUT_DIR, "visionatrix")
     r = []
     for filename in sorted(os.listdir(target_directory)):
         if filename.startswith(result_prefix):
@@ -381,7 +381,7 @@ def remove_task_files(task_id: int, directories: list[str]) -> None:
         if directory == "input":
             target_directory = options.INPUT_DIR
         elif directory == "output":
-            target_directory = options.OUTPUT_DIR
+            target_directory = os.path.join(options.OUTPUT_DIR, "visionatrix")
         else:
             raise ValueError(f"Invalid input value: {directory}")
         for filename in os.listdir(target_directory):

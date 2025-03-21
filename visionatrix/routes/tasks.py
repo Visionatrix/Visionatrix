@@ -689,7 +689,7 @@ async def set_task_results(
             file_size += i.size
             batch_size += 1
             try:
-                file_path = Path(options.OUTPUT_DIR).joinpath(i.filename)
+                file_path = Path(options.OUTPUT_DIR).joinpath("visionatrix").joinpath(i.filename)
                 with builtins.open(file_path, mode="wb") as out_file:
                     shutil.copyfileobj(i.file, out_file)
             finally:
