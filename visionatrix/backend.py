@@ -3,6 +3,8 @@ import base64
 import fnmatch
 import logging
 import os
+import re
+import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -206,7 +208,26 @@ def run_vix(*args, **kwargs) -> None:
         return
 
     os.makedirs(options.INPUT_DIR, exist_ok=True)
-    os.makedirs(options.OUTPUT_DIR, exist_ok=True)
+    os.makedirs(os.path.join(options.OUTPUT_DIR, "visionatrix"), exist_ok=True)
+
+    # temporary code, until May 1 =====================
+    # Pattern for non-mp4 files (underscore before extension is required)
+    pattern_default = re.compile(r"^\d+_\d+(?:_\d+)?_\..+$")
+    # Pattern for mp4 files (underscore before extension is optional)
+    pattern_mp4 = re.compile(r"^\d+_\d+(?:_\d+)?\.mp4$", re.IGNORECASE)
+
+    destination = os.path.join(options.OUTPUT_DIR, "visionatrix")
+    copied_files = 0
+
+    for filename in os.listdir(options.OUTPUT_DIR):
+        file_path = os.path.join(options.OUTPUT_DIR, filename)
+        if os.path.isfile(file_path) and (pattern_default.match(filename) or pattern_mp4.match(filename)):
+            shutil.move(file_path, destination)
+            copied_files += 1
+
+    if copied_files:
+        LOGGER.warning("Migration ot output files done, %s files - migrated.", copied_files)
+    # =================================================
 
     if options.VIX_MODE != "WORKER":
         if options.VIX_MODE == "SERVER":

@@ -412,9 +412,10 @@ def prepare_flow_comfy_files_params(
             elif "node_id" in v:
                 input_file = ""
                 result_prefix = f"{v['task_id']}_{v['node_id']}_"
-                for filename in os.listdir(options.OUTPUT_DIR):
+                visionatrix_output_dir = os.path.join(options.OUTPUT_DIR, "visionatrix")
+                for filename in os.listdir(visionatrix_output_dir):
                     if filename.startswith(result_prefix):
-                        input_file = os.path.join(options.OUTPUT_DIR, filename)
+                        input_file = os.path.join(visionatrix_output_dir, filename)
                 if not input_file or not os.path.exists(input_file):
                     raise RuntimeError(
                         f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found."
@@ -490,9 +491,9 @@ def flow_prepare_output_params(
                 f"class_type={r_node['class_type']}: only {supported_outputs} nodes are supported currently as outputs"
             )
         if r_node["class_type"] == "SaveText|pysssss":
-            r_node["inputs"]["file"] = f"{task_id}_{param}_.txt"
+            r_node["inputs"]["file"] = f"visionatrix/{task_id}_{param}_.txt"
         else:
-            r_node["inputs"]["filename_prefix"] = f"{task_id}_{param}"
+            r_node["inputs"]["filename_prefix"] = f"visionatrix/{task_id}_{param}"
         task_details["outputs"].append(
             {
                 "comfy_node_id": int(param),
