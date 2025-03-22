@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.26"
-COMFYUI_MANAGER_RELEASE_TAG = "3.31.2"
+COMFYUI_RELEASE_TAG = "v0.3.27"
+COMFYUI_MANAGER_RELEASE_TAG = "3.31.6"
 
 BASIC_NODE_LIST = {
     "comfyui-impact-pack@8.8.1": {
@@ -87,7 +87,7 @@ BASIC_NODE_LIST = {
     "rgthree-comfy@1.0.0": {},
     "comfyui-custom-scripts@1.1.1": {},
     "comfyui_ipadapter_plus@2.0.0": {},
-    "comfyui_controlnet_aux@1.0.6": {},
+    "comfyui_controlnet_aux@1.0.7": {},
     "skimmed_cfg@1.0.0": {},
     "was-node-suite-comfyui@1.0.2": {},
     "comfyui-visionatrix@1.0.8": {},
@@ -97,11 +97,11 @@ BASIC_NODE_LIST = {
     "pulid_comfyui@1.0.1": {},
     "comfyui_pulid_flux_ll@1.1.4": {},
     "comfyui-inpaint-cropandstitch@1.0.0": {},
-    "comfyui-videohelpersuite@1.5.8": {},
+    "comfyui-videohelpersuite@1.5.12": {},
     "comfyui-frame-interpolation@1.0.6": {},
     "comfyui-kjnodes@1.0.6": {},
     "comfyui_layerstyle@1.0.90": {},
-    "comfyui-easy-use@1.2.7": {},
+    "comfyui-easy-use@1.2.8": {},
     "comfyui_birefnet_ll@1.1.1": {},
     "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus.git": {
         "models": [

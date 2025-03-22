@@ -28,6 +28,7 @@ def install_base_custom_nodes() -> None:
     cm_cli_path = Path(options.COMFYUI_DIR).joinpath("custom_nodes").joinpath("ComfyUI-Manager").joinpath("cm-cli.py")
     clone_env = os.environ.copy()
     clone_env["COMFYUI_PATH"] = str(Path(options.COMFYUI_DIR).resolve())
+    clone_env["COMFYUI_MODEL_PATH"] = str(Path(options.MODELS_DIR).resolve())
     run(
         [
             sys.executable,
@@ -52,6 +53,7 @@ def update_base_custom_nodes() -> None:
             basic_nodes_list.append(i.split("@", maxsplit=1)[0])
     clone_env = os.environ.copy()
     clone_env["COMFYUI_PATH"] = str(Path(options.COMFYUI_DIR).resolve())
+    clone_env["COMFYUI_MODEL_PATH"] = str(Path(options.MODELS_DIR).resolve())
     run(
         [sys.executable, cm_cli_path, "uninstall", "--mode=cache", *basic_nodes_list],
         env=clone_env,
