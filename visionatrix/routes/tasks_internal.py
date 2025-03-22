@@ -183,10 +183,12 @@ async def process_string_value(request: Request, user_id: str, key: str, value: 
     if "remote_url" in input_file_info:
         await process_remote_input_url(request, input_file_info)
     elif "task_id" in input_file_info:
-        if not await get_task_async(int(input_file_info["task_id"]), user_id):
+        task_info = await get_task_async(int(input_file_info["task_id"]), user_id)
+        if not task_info:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail=f"Missing task with id={input_file_info['task_id']}"
             ) from None
+        input_file_info["task_info"] = task_info
     else:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` or `remote_url` parameter."
