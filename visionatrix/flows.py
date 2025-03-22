@@ -14,6 +14,7 @@ import typing
 import zipfile
 from base64 import b64decode
 from copy import deepcopy
+from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
@@ -394,20 +395,17 @@ def prepare_flow_comfy_files_params(
         if file_param_name not in in_files_params and not file_param.get("optional", False):
             raise RuntimeError(f"The parameter '{file_param_name}' is required, but missing.")
     for param_name, v in in_files_params.items():
-        file_name = f"{task_id}_{param_name}"
-        for k, input_path in flow_input_file_params[param_name]["comfy_node_id"].items():
-            node = r.get(k, {})
-            if not node:
-                raise RuntimeError(f"Bad workflow, node with id=`{k}` can not be found.")
-            set_node_value(node, input_path, file_name)
-        result_path = os.path.join(options.INPUT_DIR, file_name)
         if isinstance(v, dict):
             if "input_index" in v:
-                input_file = os.path.join(options.INPUT_DIR, f"{v['task_id']}_{v['input_index']}")
+                input_file = str(
+                    os.path.join(options.INPUT_DIR, v["task_info"]["input_files"][v["input_index"]]["file_name"])
+                )
                 if not os.path.exists(input_file):
                     raise RuntimeError(
                         f"Bad flow, file from task_id=`{v['task_id']}`, index=`{v['input_index']}` not found."
                     )
+                file_name = f"{task_id}_{param_name}" + Path(input_file).suffix
+                result_path = os.path.join(options.INPUT_DIR, file_name)
                 shutil.copy(input_file, result_path)
             elif "node_id" in v:
                 input_file = ""
@@ -416,12 +414,17 @@ def prepare_flow_comfy_files_params(
                 for filename in os.listdir(visionatrix_output_dir):
                     if filename.startswith(result_prefix):
                         input_file = os.path.join(visionatrix_output_dir, filename)
+                        break
                 if not input_file or not os.path.exists(input_file):
                     raise RuntimeError(
                         f"Bad flow, file from task_id=`{v['task_id']}`, node_id={v['node_id']} not found."
                     )
+                file_name = f"{task_id}_{param_name}" + Path(input_file).suffix
+                result_path = os.path.join(options.INPUT_DIR, file_name)
                 shutil.copy(input_file, result_path)
             elif "file_content" in v:
+                file_name = f"{task_id}_{param_name}" + Path(v["remote_url"]).suffix
+                result_path = os.path.join(options.INPUT_DIR, file_name)
                 with builtins.open(result_path, mode="wb") as fp:
                     fp.write(v["file_content"])
             else:
@@ -430,6 +433,8 @@ def prepare_flow_comfy_files_params(
                     f"should be present for '{param_name}' parameter."
                 )
         else:
+            file_name = f"{task_id}_{param_name}" + Path(v.filename).suffix
+            result_path = os.path.join(options.INPUT_DIR, file_name)
             with builtins.open(result_path, mode="wb") as fp:
                 v.file.seek(0)
                 start_of_file = v.file.read(30)
@@ -440,6 +445,11 @@ def prepare_flow_comfy_files_params(
                 else:
                     v.file.seek(0)
                     shutil.copyfileobj(v.file, fp)
+        for k, input_path in flow_input_file_params[param_name]["comfy_node_id"].items():
+            node = r.get(k, {})
+            if not node:
+                raise RuntimeError(f"Bad workflow, node with id=`{k}` can not be found.")
+            set_node_value(node, input_path, file_name)
         task_details["input_files"].append({"file_name": file_name, "file_size": os.path.getsize(result_path)})
 
     for node_to_disconnect in flow_input_file_params.values():
