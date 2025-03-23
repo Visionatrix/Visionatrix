@@ -21,6 +21,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
+from .federation import federation_sync_engine, federation_tasks_engine
 from .pydantic_models import UserInfo
 from .tasks_engine import remove_active_task_lock, task_progress_callback
 from .tasks_engine_async import start_tasks_engine
@@ -154,9 +155,12 @@ async def lifespan(app: FastAPI):
         app.mount("/comfy", StaticFiles(directory=Path(options.COMFYUI_DIR).joinpath("web"), html=False), name="comfy")
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
 
+    _ = asyncio.create_task(federation_sync_engine(events.EXIT_EVENT_ASYNC))  # noqa
+    _ = asyncio.create_task(federation_tasks_engine(events.EXIT_EVENT_ASYNC))  # noqa
     _ = asyncio.create_task(start_all_func())  # noqa
     yield
     events.EXIT_EVENT.set()
+    events.EXIT_EVENT_ASYNC.set()
     comfyui_wrapper.interrupt_processing()
 
 
@@ -189,6 +193,7 @@ API_ROUTER.include_router(routes.settings.ROUTER)
 API_ROUTER.include_router(routes.settings_comfyui.ROUTER)
 API_ROUTER.include_router(routes.tasks.ROUTER)
 API_ROUTER.include_router(routes.workers.ROUTER)
+API_ROUTER.include_router(routes.federation.ROUTER)
 APP.include_router(API_ROUTER)
 APP.add_middleware(ComfyUIProxyMiddleware, comfy_url="127.0.0.1:8188")
 APP.add_middleware(VixAuthMiddleware)
@@ -257,6 +262,7 @@ async def run_in_worker_mode() -> None:
         print("Got signal to stop execution.")
     finally:
         events.EXIT_EVENT.set()
+        events.EXIT_EVENT_ASYNC.set()
         await remove_active_task_lock()
         print("Visionatrix is shutting down.")
 

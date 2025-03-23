@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "2.0.0.dev0"
+    "version": "2.0.1.dev0"
   },
   "paths": {
     "/comfy/": {
@@ -2266,6 +2266,166 @@
           }
         }
       }
+    },
+    "/vapi/federation/instances": {
+      "get": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "List Federated Instances",
+        "description": "Retrieve a list of all federated instances.\nRequires administrative privileges.",
+        "operationId": "list_federated_instances",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FederatedInstance"
+                  },
+                  "type": "array",
+                  "title": "Response List Federated Instances"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/federation/instance": {
+      "post": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Create Federated Instance",
+        "description": "Create a new federated instance.\nRequires administrative privileges.",
+        "operationId": "create_federated_instance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FederatedInstanceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Federated instance created successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Federated instance already exists or invalid data"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Delete Federated Instance",
+        "description": "Delete a federated instance by its name.\nRequires administrative privileges.",
+        "operationId": "delete_federated_instance",
+        "parameters": [
+          {
+            "name": "instance_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the federated instance to delete",
+              "title": "Instance Name"
+            },
+            "description": "Name of the federated instance to delete"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Federated instance deleted successfully"
+          },
+          "404": {
+            "description": "Federated instance not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Update Federated Instance Endpoint",
+        "description": "Update an existing federated instance.\nRequires administrative privileges.",
+        "operationId": "update_federated_instance_endpoint",
+        "parameters": [
+          {
+            "name": "instance_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the federated instance to update",
+              "title": "Instance Name"
+            },
+            "description": "Name of the federated instance to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FederatedInstanceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Federated instance updated successfully"
+          },
+          "404": {
+            "description": "Federated instance not found or no update performed"
+          },
+          "400": {
+            "description": "No valid fields provided for update"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2841,6 +3001,143 @@
         "type": "object",
         "title": "ExtraFlags",
         "description": "Additional options and flags that modify how the task is executed."
+      },
+      "FederatedInstance": {
+        "properties": {
+          "instance_name": {
+            "type": "string",
+            "title": "Instance Name",
+            "description": "Unique name of the federated instance."
+          },
+          "url_address": {
+            "type": "string",
+            "title": "Url Address",
+            "description": "Address of the federated instance."
+          },
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "The username present on the remote instance."
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Password for the username."
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Indicates if the federated instance is currently active.",
+            "default": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Timestamp when the federated instance record was created."
+          }
+        },
+        "type": "object",
+        "required": [
+          "instance_name",
+          "url_address",
+          "username",
+          "password",
+          "created_at"
+        ],
+        "title": "FederatedInstance"
+      },
+      "FederatedInstanceCreate": {
+        "properties": {
+          "instance_name": {
+            "type": "string",
+            "title": "Instance Name",
+            "description": "Unique name of the federated instance."
+          },
+          "url_address": {
+            "type": "string",
+            "title": "Url Address",
+            "description": "Address of the federated instance."
+          },
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "The username present on the remote instance."
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Password for the username."
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Indicates if the federated instance is currently active.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "instance_name",
+          "url_address",
+          "username",
+          "password"
+        ],
+        "title": "FederatedInstanceCreate"
+      },
+      "FederatedInstanceUpdate": {
+        "properties": {
+          "url_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url Address",
+            "description": "New address of the federated instance."
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username",
+            "description": "New username for the remote instance."
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password",
+            "description": "New password for the username."
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled",
+            "description": "New active status for the federated instance."
+          }
+        },
+        "type": "object",
+        "title": "FederatedInstanceUpdate"
       },
       "Flow": {
         "properties": {
@@ -4090,11 +4387,6 @@
       },
       "WorkerDetails": {
         "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id",
-            "description": "The primary key for the worker record, automatically incremented."
-          },
           "user_id": {
             "type": "string",
             "title": "User Id",
@@ -4103,7 +4395,7 @@
           "worker_id": {
             "type": "string",
             "title": "Worker Id",
-            "description": "Uniq identifier for the worker, constructed from user_id, hostname, device name and device index."
+            "description": "Uniq identifier for the worker, constructed from user_id, hostname, device name and device index.If 'federated_instance_name' is specified it will be added to this field automatically."
           },
           "worker_version": {
             "type": "string",
@@ -4250,6 +4542,18 @@
             "title": "Ram Free",
             "description": "Free RAM available on the worker in bytes."
           },
+          "pytorch_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pytorch Version",
+            "description": "Version of PyTorch."
+          },
           "engine_details": {
             "anyOf": [
               {
@@ -4259,11 +4563,22 @@
                 "type": "null"
               }
             ]
+          },
+          "federated_instance_name": {
+            "type": "string",
+            "title": "Federated Instance Name",
+            "description": "Name of the federated instance to which the worker belongs.",
+            "default": ""
+          },
+          "empty_task_requests_count": {
+            "type": "integer",
+            "title": "Empty Task Requests Count",
+            "description": "Counts the number of times the worker requested a task but received none. A value of 0 indicates that the worker is busy, while a value of 1 or more indicates that the worker is free.",
+            "default": 0
           }
         },
         "type": "object",
         "required": [
-          "id",
           "user_id",
           "worker_id",
           "worker_version",
@@ -4364,7 +4679,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-03-14T16:32:31.124563Z"
+            "default": "2025-03-23T11:46:02.499935Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

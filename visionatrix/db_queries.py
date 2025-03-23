@@ -5,7 +5,14 @@ from sqlalchemy import delete, false, or_, select, true, update
 from sqlalchemy.exc import IntegrityError
 
 from . import database
-from .pydantic_models import FlowProgressInstall, ModelProgressInstall, WorkerDetails
+from .pydantic_models import (
+    FederatedInstance,
+    FederatedInstanceCreate,
+    FederatedInstanceUpdate,
+    FlowProgressInstall,
+    ModelProgressInstall,
+    WorkerDetails,
+)
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -17,7 +24,7 @@ def __get_worker_query(user_id: str | None, worker_id: str):
     return query
 
 
-def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id: str):
+def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id: str, include_federated: bool):
     query = select(database.Worker)
     if user_id is not None:
         query = query.filter(database.Worker.user_id == user_id)
@@ -26,6 +33,8 @@ def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id:
         query = query.filter(database.Worker.last_seen >= time_threshold)
     if worker_id:
         query = query.filter(database.Worker.worker_id == worker_id)
+    if include_federated is False:
+        query = query.filter(database.Worker.federated_instance_name == "")
     return query
 
 
@@ -582,10 +591,12 @@ async def get_installed_models() -> dict[str, ModelProgressInstall]:
             raise e
 
 
-async def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
+async def get_workers_details(
+    user_id: str | None, last_seen_interval: int, worker_id: str, include_federated=False
+) -> list[WorkerDetails]:
     async with database.SESSION() as session:
         try:
-            query = __get_workers_query(user_id, last_seen_interval, worker_id)
+            query = __get_workers_query(user_id, last_seen_interval, worker_id, include_federated)
             results = (await session.execute(query)).scalars().all()
             return [WorkerDetails.model_validate(i) for i in results]
         except Exception:
@@ -632,3 +643,137 @@ async def _compute_flow_progress(flow_status, session) -> float:
     if not model_progresses:
         return 0.0
     return min(99.0, sum(model_progresses) / len(models_list))
+
+
+async def get_all_federated_instances() -> list[FederatedInstance]:
+    async with database.SESSION() as session:
+        try:
+            query = select(database.FederatedInstances)
+            results = (await session.execute(query)).scalars().all()
+            return [FederatedInstance.model_validate(instance) for instance in results]
+        except Exception as e:
+            LOGGER.exception("Failed to retrieve federated instances: %s.", e)
+            return []
+
+
+async def get_enabled_federated_instances() -> list[FederatedInstance]:
+    async with database.SESSION() as session:
+        try:
+            query = select(database.FederatedInstances).where(database.FederatedInstances.enabled == true())
+            results = (await session.execute(query)).scalars().all()
+            return [FederatedInstance.model_validate(instance) for instance in results]
+        except Exception as e:
+            LOGGER.exception("Failed to retrieve enabled federated instances: %s.", e)
+            return []
+
+
+async def add_federated_instance(instance: FederatedInstanceCreate) -> bool:
+    async with database.SESSION() as session:
+        try:
+            session.add(database.FederatedInstances(**instance.model_dump()))
+            await session.commit()
+            return True
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to add federated instance `%s`: %s.", instance.instance_name, e)
+            return False
+
+
+async def remove_federated_instance(instance_name: str) -> bool:
+    async with database.SESSION() as session:
+        try:
+            stmt = delete(database.FederatedInstances).where(database.FederatedInstances.instance_name == instance_name)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount > 0
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to remove federated instance `%s`: %s", instance_name, e)
+            return False
+
+
+async def update_federated_instance(instance_name: str, data: FederatedInstanceUpdate) -> bool:
+    async with database.SESSION() as session:
+        try:
+            update_values = data.model_dump(exclude_unset=True)
+            if not update_values:
+                return False
+            stmt = (
+                update(database.FederatedInstances)
+                .where(database.FederatedInstances.instance_name == instance_name)
+                .values(**update_values)
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount > 0
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to update federated instance `%s`: %s", instance_name, e)
+            return False
+
+
+async def update_installed_flows_for_federated_instance(instance_name: str, installed_flows: list) -> None:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                update(database.FederatedInstances)
+                .where(database.FederatedInstances.instance_name == instance_name)
+                .values(installed_flows=installed_flows)
+            )
+            await session.execute(stmt)
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to update installed flows for federated instance `%s`: %s", instance_name, e)
+
+
+async def update_local_workers_from_federation(federation_instance_name: str, workers_list: list[WorkerDetails]):
+    """For each worker from a federated instance, update/insert the corresponding record in the local table.
+    This function fetches all existing workers for the given federation instance in one query,
+    then updates each record by assigning all fields from the corresponding WorkerDetails.
+    """
+    async with database.SESSION() as session:
+        query = select(database.Worker).where(database.Worker.federated_instance_name == federation_instance_name)
+        result = await session.execute(query)
+        existing_workers = {w.worker_id: w for w in result.scalars().all()}
+        for worker in workers_list:
+            worker_data = worker.model_dump()
+            worker_data["federated_instance_name"] = federation_instance_name
+            if worker.worker_id in existing_workers:
+                existing_worker = existing_workers[worker.worker_id]
+                for key, value in worker_data.items():
+                    setattr(existing_worker, key, value)
+            else:
+                new_worker = database.Worker(**worker_data)
+                session.add(new_worker)
+        await session.commit()
+
+
+async def worker_reset_empty_task_requests_count(worker_id: str) -> None:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                update(database.Worker)
+                .where(database.Worker.worker_id == worker_id)
+                .values(empty_task_requests_count=0)
+            )
+            await session.execute(stmt)
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to reset worker empty tasks count `%s`: %s", worker_id, e)
+
+
+async def worker_increment_empty_task_requests_count(worker_id: str) -> None:
+    try:
+        async with database.SESSION() as session:
+            stmt = (
+                update(database.Worker)
+                .where(database.Worker.worker_id == worker_id)
+                .values(empty_task_requests_count=database.Worker.empty_task_requests_count + 1)
+            )
+            await session.execute(stmt)
+            await session.commit()
+    except Exception as e:
+        await session.rollback()
+        LOGGER.exception("Failed to increment worker empty tasks count `%s`: %s", worker_id, e)

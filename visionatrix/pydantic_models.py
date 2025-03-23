@@ -382,11 +382,11 @@ class WorkerDetailsRequest(BaseModel):
 class WorkerDetails(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int = Field(..., description="The primary key for the worker record, automatically incremented.")
     user_id: str = Field(..., description="The foreign key from the 'users' table, non-nullable.")
     worker_id: str = Field(
         ...,
-        description="Uniq identifier for the worker, constructed from user_id, hostname, device name and device index.",
+        description="Uniq identifier for the worker, constructed from user_id, hostname, device name and device index."
+        "If 'federated_instance_name' is specified it will be added to this field automatically.",
     )
     worker_version: str = Field(..., description="Version of the worker")
     last_seen: datetime = Field(..., description="The timestamp of the worker's last activity, stored in UTC.")
@@ -409,7 +409,22 @@ class WorkerDetails(BaseModel):
     torch_vram_free: int | None = Field(None, description="Free VRAM managed by PyTorch that is currently unused.")
     ram_total: int | None = Field(None, description="Total RAM available on the worker in bytes.")
     ram_free: int | None = Field(None, description="Free RAM available on the worker in bytes.")
+    pytorch_version: str | None = Field(None, description="Version of PyTorch.")
     engine_details: ComfyEngineDetails | None = Field(...)
+    federated_instance_name: str = Field("", description="Name of the federated instance to which the worker belongs.")
+    empty_task_requests_count: int = Field(
+        0,
+        description="Counts the number of times the worker requested a task but received none. "
+        "A value of 0 indicates that the worker is busy, "
+        "while a value of 1 or more indicates that the worker is free.",
+    )
+
+    @model_validator(mode="after")
+    def adjust_worker_id(self) -> Self:
+        """If federated_instance_name is present we add it to the worker_id."""
+        if self.federated_instance_name and not self.worker_id.endswith(self.federated_instance_name):
+            self.worker_id += f":{self.federated_instance_name}"
+        return self
 
 
 class UserInfo(BaseModel):
@@ -639,3 +654,40 @@ class VisionatrixUpdateStatus(BaseModel):
 
     current_version: str = Field(..., description="The current version of Visionatrix.")
     next_version: str = Field("", description="The version for update if available.")
+
+
+class FederatedInstanceCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    instance_name: str = Field(..., description="Unique name of the federated instance.")
+    url_address: str = Field(..., description="Address of the federated instance.")
+    username: str = Field(..., description="The username present on the remote instance.")
+    password: str = Field(..., description="Password for the username.")
+    enabled: bool = Field(default=True, description="Indicates if the federated instance is currently active.")
+
+
+class FederatedInstance(FederatedInstanceCreate):
+    model_config = ConfigDict(from_attributes=True)
+    created_at: datetime = Field(..., description="Timestamp when the federated instance record was created.")
+    installed_flows: list[str] = Field(..., description="List of flows IDs installed on the remote instance.")
+
+
+class FederatedInstanceUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    url_address: str | None = Field(None, description="New address of the federated instance.")
+    username: str | None = Field(None, description="New username for the remote instance.")
+    password: str | None = Field(None, description="New password for the username.")
+    enabled: bool | None = Field(None, description="New active status for the federated instance.")
+
+
+class FlowDelegationConfig(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    flow_name: str = Field(..., description="Unique identifier for the flow.")
+    delegation_threshold: int = Field(
+        ..., description="Queue length threshold for delegation (0 means delegate immediately)."
+    )
+
+
+class FederatedInstanceInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    workers: list[WorkerDetails] = Field([], description="List of available workers on the instance.")
+    installed_flows: list[str] = Field([], description="List of installed Flows IDs on the instance.")
