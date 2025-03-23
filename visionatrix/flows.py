@@ -742,7 +742,7 @@ def get_insightface_nodes(flow_comfy: dict[str, dict]) -> list[str]:
 
 
 async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
-    available_workers = await db_queries.get_workers_details(None, 5 * 60, "")
+    available_workers = await db_queries.get_workers_details(None, 5 * 60, "", include_federated=True)
     for flow in flows.values():
         if flow.is_macos_supported is False:
             flow.is_supported_by_workers = any(worker.device_type != "mps" for worker in available_workers)
