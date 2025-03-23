@@ -69,6 +69,9 @@ async def federation_tasks_engine(exit_event: asyncio.Event):
         if exit_event.is_set():
             break
 
+        # federated_instances = await get_enabled_federated_instances()
+        # workers = get_free_federated_workers(5)
+
         # Get current Queue (that includes all non-locked tasks)
         # Sort it by flow's names
         # Apply filtering by `delegation_threshold` (we skip this step for now)
