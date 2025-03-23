@@ -53,7 +53,6 @@ export interface WorkerInfo {
 	device_name: string
 	device_type: string
 	embedded_version: string
-	id: number
 	last_seen: string
 	tasks_to_give: string[]
 	os: string
@@ -65,4 +64,13 @@ export interface WorkerInfo {
 	vram_free: number
 	vram_total: number
 	worker_id: string
+	worker_version: string
+	user_id: string
+	pytorch_version: string
+	engine_details: {
+		disable_smart_memory: boolean
+		vram_state: string
+	}
+	federated_instance_name: string
+	empty_task_requests_count: number
 }

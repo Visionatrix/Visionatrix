@@ -27,8 +27,14 @@ const tableHeadersMap = [
 		sortable: true,
 	},
 	{
-		id: 'id',
-		label: 'ID',
+		id: 'federated',
+		label: 'Federated',
+		sortable: true,
+	},
+	{
+		id: 'busy',
+		label: 'Busy',
+		sortable: true,
 	},
 	{
 		id: 'worker_id',
@@ -145,11 +151,14 @@ onBeforeMount(() => {
 	}
 	tasksToGive.value = [...flowsAvailableOptions.value]
 })
+const tasksToGiveLabel = computed(() => {
+	return tasksToGive.value.length === 0 ? 'All' : tasksToGive.value.length
+})
 const settingTasksToGive = ref(false)
 
 function updateSelectedTasksToGive() {
 	settingTasksToGive.value = true
-	Promise.all(selectedRows.value.map((row: any) => {
+	Promise.all(selectedRows.value.filter((worker: WorkerInfo) => worker.federated_instance_name === '').map((row: any) => {
 		return workersStore.setTasksToGive(row.worker_id, tasksToGive.value.map((task: any) => task.value))
 	})).then(() => {
 		const toast = useToast()
@@ -191,8 +200,8 @@ const selectedRows: any = ref([])
 watch(rows, (newRows: WorkerInfo[]) => {
 	// restore selected rows after data is updated
 	if (selectedRows.value.length > 0) {
-		const selectedRowsIds = selectedRows.value.map((row: WorkerInfo) => row.id)
-		selectedRows.value = newRows.filter((row: WorkerInfo) => selectedRowsIds.includes(row.id))
+		const selectedRowsIds = selectedRows.value.map((row: WorkerInfo) => row.worker_id)
+		selectedRows.value = newRows.filter((row: WorkerInfo) => selectedRowsIds.includes(row.worker_id))
 	}
 })
 </script>
@@ -215,11 +224,12 @@ watch(rows, (newRows: WorkerInfo[]) => {
 					<div v-if="selectedRows.length >= 1" class="flex flex-col md:flex-row items-center">
 						<USelectMenu
 							v-model="tasksToGive"
+							searchable
 							class="mr-3 my-3 lg:mx-3 lg:my-0 w-full max-w-64 min-w-64"
 							:options="flowsAvailableOptions"
 							multiple>
 							<template #label>
-								<span>Tasks to give</span>
+								<span>Tasks to give ({{ tasksToGiveLabel }})</span>
 							</template>
 						</USelectMenu>
 						<UTooltip
@@ -234,6 +244,14 @@ watch(rows, (newRows: WorkerInfo[]) => {
 								Update tasks to give
 							</UButton>
 						</UTooltip>
+						<UButton
+							icon="i-heroicons-x-mark"
+							variant="outline"
+							color="white"
+							class="ml-2"
+							@click="() => {
+								tasksToGive = []
+							}" />
 					</div>
 				</div>
 				<UTable
@@ -241,11 +259,26 @@ watch(rows, (newRows: WorkerInfo[]) => {
 					:columns="selectedColumns"
 					:rows="filterQuery === '' ? rows : rowsFiltered"
 					:loading="workersStore.$state.loading">
+
 					<template #worker_status-data="{ row }">
 						<UBadge
 							variant="solid"
 							:color="getWorkerStatus(row) === 'Online' ? 'green' : 'red'">
 							{{ getWorkerStatus(row) }}
+						</UBadge>
+					</template>
+					<template #federated-data="{ row }">
+						<UBadge
+							variant="solid"
+							:color="row.federated_instance_name !== '' ? 'blue' : 'green'">
+							{{ row.federated_instance_name !== '' ? 'Yes' : 'No' }}
+						</UBadge>
+					</template>
+					<template #busy-data="{ row }">
+						<UBadge
+							variant="solid"
+							:color="row.empty_task_requests_count === 0 ? 'red' : 'green'">
+							{{ row.empty_task_requests_count === 0 ? 'Yes' : 'No' }}
 						</UBadge>
 					</template>
 					<template #tasks_to_give-data="{ row }">
@@ -273,6 +306,7 @@ watch(rows, (newRows: WorkerInfo[]) => {
 							</UPopover>
 						</template>
 					</template>
+					
 					<template #last_seen-data="{ row }">
 						{{ new Date(row.last_seen).toLocaleString() }}
 					</template>
