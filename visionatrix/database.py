@@ -109,8 +109,8 @@ class Worker(Base):
     ram_total = Column(BigInteger)
     ram_free = Column(BigInteger)
     engine_details = Column(JSON, default=None, nullable=True)
-    federated_instance_name = Column(String, nullable=False, index=True)
-    empty_task_requests_count = Column(BigInteger, nullable=False, index=True)
+    federated_instance_name = Column(String, nullable=False, default="", index=True)
+    empty_task_requests_count = Column(BigInteger, nullable=False, default=0, index=True)
 
 
 class UserInfo(Base):
