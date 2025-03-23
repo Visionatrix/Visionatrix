@@ -152,7 +152,7 @@ def prepare_worker_info_update(worker_user_id: str, worker_details: WorkerDetail
     )
 
 
-def get_get_incomplete_task_without_error_query(
+def get_incomplete_task_without_error_query(
     tasks_to_ask: list[str],
     tasks_to_give: list[str],
     last_task_name: str,

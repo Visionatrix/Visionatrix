@@ -311,6 +311,7 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
     except KeyboardInterrupt:
         # this will only work for the "install-flow" command when run from terminal
         events.EXIT_EVENT.set()
+        events.EXIT_EVENT_ASYNC.set()
         for future in futures:
             with contextlib.suppress(Exception):
                 future.result()

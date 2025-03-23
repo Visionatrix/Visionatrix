@@ -109,6 +109,8 @@ class Worker(Base):
     ram_total = Column(BigInteger)
     ram_free = Column(BigInteger)
     engine_details = Column(JSON, default=None, nullable=True)
+    federated_instance_name = Column(String, nullable=False, index=True)
+    empty_task_requests_count = Column(BigInteger, nullable=False, index=True)
 
 
 class UserInfo(Base):
@@ -148,13 +150,12 @@ class FlowsInstallStatus(Base):
     error = Column(String, default="")
     started_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
-    installed = Column(Boolean, default=False, nullable=False)
+    installed = Column(Boolean, default=False, nullable=False, index=True)
     models = Column(JSON, nullable=True)
 
 
 class ModelsInstallStatus(Base):
     __tablename__ = "models_install_status"
-
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False, unique=True)
     flow_name = Column(String, nullable=False)
@@ -164,6 +165,24 @@ class ModelsInstallStatus(Base):
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     file_mtime = Column(Float, nullable=True)
     filename = Column(String, default="")
+
+
+class FederatedInstances(Base):
+    __tablename__ = "federated_instances"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    instance_name = Column(String, unique=True, nullable=False, index=True)
+    enabled = Column(Boolean, default=True, nullable=False, index=True)
+    url_address = Column(String, nullable=False)
+    username = Column(String, nullable=False)
+    password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+
+
+class FlowDelegationConfig(Base):
+    __tablename__ = "flow_delegation_config"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    flow_name = Column(String, unique=True, nullable=False, index=True)
+    delegation_threshold = Column(Integer, default=0, nullable=False)
 
 
 async def init_database_engine() -> None:
