@@ -98,12 +98,12 @@ BASIC_NODE_LIST = {
     "comfyui_pulid_flux_ll@1.1.4": {},
     "comfyui-inpaint-cropandstitch@1.0.0": {},
     "comfyui-videohelpersuite@1.5.12": {},
-    "comfyui-frame-interpolation@1.0.6": {},
+    "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation": {},
     "comfyui-kjnodes@1.0.6": {},
     "comfyui_layerstyle@1.0.90": {},
     "comfyui-easy-use@1.2.8": {},
     "comfyui_birefnet_ll@1.1.1": {},
-    "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus.git": {
+    "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
         "models": [
             AIResourceModel(
                 name="buffalo_l",
@@ -122,7 +122,7 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "https://github.com/liusida/ComfyUI-AutoCropFaces.git": {},
+    "https://github.com/liusida/ComfyUI-AutoCropFaces": {},
     "https://github.com/kaibioinfo/ComfyUI_AdvancedRefluxControl": {},
     "https://github.com/FizzleDorf/ComfyUI_FizzNodes": {},
 }
