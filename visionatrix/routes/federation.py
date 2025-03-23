@@ -5,12 +5,15 @@ from fastapi import APIRouter, Body, HTTPException, Query, Request, responses, s
 from ..db_queries import (
     add_federated_instance,
     get_all_federated_instances,
+    get_installed_flows,
+    get_workers_details,
     remove_federated_instance,
     update_federated_instance,
 )
 from ..pydantic_models import (
     FederatedInstance,
     FederatedInstanceCreate,
+    FederatedInstanceInfo,
     FederatedInstanceUpdate,
 )
 from .helpers import require_admin
@@ -101,3 +104,11 @@ async def update_federated_instance_endpoint(
             detail=f"Federated instance '{instance_name}' not found or no valid fields provided for update.",
         )
     return responses.Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@ROUTER.get("/instance_info")
+async def get_instance_info(request: Request) -> FederatedInstanceInfo:
+    require_admin(request)
+    workers = await get_workers_details(None, 0, "", include_federated=False)
+    installed_flows = [i.name for i in await get_installed_flows()]
+    return FederatedInstanceInfo.model_validate({"workers": workers, "installed_flows": installed_flows})

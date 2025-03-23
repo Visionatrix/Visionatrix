@@ -409,6 +409,7 @@ class WorkerDetails(BaseModel):
     torch_vram_free: int | None = Field(None, description="Free VRAM managed by PyTorch that is currently unused.")
     ram_total: int | None = Field(None, description="Total RAM available on the worker in bytes.")
     ram_free: int | None = Field(None, description="Free RAM available on the worker in bytes.")
+    pytorch_version: str | None = Field(None, description="Version of PyTorch.")
     engine_details: ComfyEngineDetails | None = Field(...)
     federated_instance_name: str = Field("", description="Name of the federated instance to which the worker belongs.")
     empty_task_requests_count: int = Field(
@@ -667,6 +668,7 @@ class FederatedInstanceCreate(BaseModel):
 class FederatedInstance(FederatedInstanceCreate):
     model_config = ConfigDict(from_attributes=True)
     created_at: datetime = Field(..., description="Timestamp when the federated instance record was created.")
+    installed_flows: list[str] = Field(..., description="List of flows IDs installed on the remote instance.")
 
 
 class FederatedInstanceUpdate(BaseModel):
@@ -683,3 +685,9 @@ class FlowDelegationConfig(BaseModel):
     delegation_threshold: int = Field(
         ..., description="Queue length threshold for delegation (0 means delegate immediately)."
     )
+
+
+class FederatedInstanceInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    workers: list[WorkerDetails] = Field([], description="List of available workers on the instance.")
+    installed_flows: list[str] = Field([], description="List of installed Flows IDs on the instance.")

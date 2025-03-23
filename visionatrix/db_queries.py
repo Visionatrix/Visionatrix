@@ -24,7 +24,7 @@ def __get_worker_query(user_id: str | None, worker_id: str):
     return query
 
 
-def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id: str):
+def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id: str, include_federated: bool):
     query = select(database.Worker)
     if user_id is not None:
         query = query.filter(database.Worker.user_id == user_id)
@@ -33,6 +33,8 @@ def __get_workers_query(user_id: str | None, last_seen_interval: int, worker_id:
         query = query.filter(database.Worker.last_seen >= time_threshold)
     if worker_id:
         query = query.filter(database.Worker.worker_id == worker_id)
+    if include_federated is False:
+        query = query.filter(database.Worker.federated_instance_name == "")
     return query
 
 
@@ -589,10 +591,12 @@ async def get_installed_models() -> dict[str, ModelProgressInstall]:
             raise e
 
 
-async def get_workers_details(user_id: str | None, last_seen_interval: int, worker_id: str) -> list[WorkerDetails]:
+async def get_workers_details(
+    user_id: str | None, last_seen_interval: int, worker_id: str, include_federated=False
+) -> list[WorkerDetails]:
     async with database.SESSION() as session:
         try:
-            query = __get_workers_query(user_id, last_seen_interval, worker_id)
+            query = __get_workers_query(user_id, last_seen_interval, worker_id, include_federated)
             results = (await session.execute(query)).scalars().all()
             return [WorkerDetails.model_validate(i) for i in results]
         except Exception:
@@ -706,6 +710,21 @@ async def update_federated_instance(instance_name: str, data: FederatedInstanceU
             await session.rollback()
             LOGGER.exception("Failed to update federated instance `%s`: %s", instance_name, e)
             return False
+
+
+async def update_installed_flows_for_federated_instance(instance_name: str, installed_flows: list) -> None:
+    async with database.SESSION() as session:
+        try:
+            stmt = (
+                update(database.FederatedInstances)
+                .where(database.FederatedInstances.instance_name == instance_name)
+                .values(installed_flows=installed_flows)
+            )
+            await session.execute(stmt)
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to update installed flows for federated instance `%s`: %s", instance_name, e)
 
 
 async def update_local_workers_from_federation(federation_instance_name: str, workers_list: list[WorkerDetails]):

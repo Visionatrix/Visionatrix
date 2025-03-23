@@ -176,6 +176,7 @@ class FederatedInstances(Base):
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    installed_flows = Column(JSON, nullable=False, default=[])
 
 
 class FlowDelegationConfig(Base):
