@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 
 import httpx
 
@@ -43,6 +44,8 @@ async def federation_sync_engine(exit_event: asyncio.Event):
         if exit_event.is_set():
             break
 
+        start_time = time.perf_counter()
+
         federated_instances = await get_enabled_federated_instances()
 
         tasks = [get_instance_data(instance) for instance in federated_instances]
@@ -58,10 +61,15 @@ async def federation_sync_engine(exit_event: asyncio.Event):
             instance_data: FederatedInstanceInfo = res[1]
             await update_local_workers_from_federation(instance_name, instance_data.workers)
             await update_installed_flows_for_federated_instance(instance_name, instance_data.installed_flows)
-        try:
-            await asyncio.wait_for(exit_event.wait(), timeout=3.0)
-        except asyncio.TimeoutError:
-            continue
+
+        elapsed = time.perf_counter() - start_time
+        remaining = 3.0 - elapsed
+
+        if remaining > 0:
+            try:
+                await asyncio.wait_for(exit_event.wait(), timeout=remaining)
+            except asyncio.TimeoutError:
+                continue
 
 
 async def federation_tasks_engine(exit_event: asyncio.Event):
@@ -70,7 +78,7 @@ async def federation_tasks_engine(exit_event: asyncio.Event):
             break
 
         # federated_instances = await get_enabled_federated_instances()
-        # workers = get_free_federated_workers(5)
+        # workers = get_free_federated_workers(5, [i.instance_name for i in federated_instances])
 
         # Get current Queue (that includes all non-locked tasks)
         # Sort it by flow's names

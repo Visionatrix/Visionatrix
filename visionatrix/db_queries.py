@@ -604,13 +604,13 @@ async def get_workers_details(
             raise
 
 
-async def get_free_federated_workers(last_seen_interval: int) -> list[WorkerDetails]:
+async def get_free_federated_workers(last_seen_interval: int, instance_name: list[str]) -> list[WorkerDetails]:
     async with database.SESSION() as session:
         try:
             query = select(database.Worker)
             time_threshold = datetime.now(timezone.utc) - timedelta(seconds=last_seen_interval)
             query = query.filter(database.Worker.last_seen >= time_threshold)
-            query = query.filter(database.Worker.federated_instance_name != "")
+            query = query.filter(database.Worker.federated_instance_name.in_(instance_name))
             query = query.filter(database.Worker.empty_task_requests_count > 1)
             results = (await session.execute(query)).scalars().all()
             return [WorkerDetails.model_validate(i) for i in results]
