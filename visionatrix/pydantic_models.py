@@ -418,6 +418,9 @@ class WorkerDetails(BaseModel):
         "A value of 0 indicates that the worker is busy, "
         "while a value of 1 or more indicates that the worker is free.",
     )
+    last_asked_tasks: list[str] = Field(
+        [], description="List of flows IDs that the worker last requested to be processed."
+    )
 
     @model_validator(mode="after")
     def adjust_worker_id(self) -> Self:
@@ -668,7 +671,9 @@ class FederatedInstanceCreate(BaseModel):
 class FederatedInstance(FederatedInstanceCreate):
     model_config = ConfigDict(from_attributes=True)
     created_at: datetime = Field(..., description="Timestamp when the federated instance record was created.")
-    installed_flows: list[str] = Field(..., description="List of flows IDs installed on the remote instance.")
+    installed_flows: dict[str, str] = Field(
+        ..., description="A dictionary with installed Flows identifiers and their versions."
+    )
 
 
 class FederatedInstanceUpdate(BaseModel):
@@ -690,4 +695,6 @@ class FlowDelegationConfig(BaseModel):
 class FederatedInstanceInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     workers: list[WorkerDetails] = Field([], description="List of available workers on the instance.")
-    installed_flows: list[str] = Field([], description="List of installed Flows IDs on the instance.")
+    installed_flows: dict[str, str] = Field(
+        {}, description="A dictionary with installed Flows identifiers and their versions."
+    )

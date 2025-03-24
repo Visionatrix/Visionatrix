@@ -727,7 +727,7 @@ async def update_federated_instance(instance_name: str, data: FederatedInstanceU
             return False
 
 
-async def update_installed_flows_for_federated_instance(instance_name: str, installed_flows: list) -> None:
+async def update_installed_flows_for_federated_instance(instance_name: str, installed_flows: dict[str, str]) -> None:
     async with database.SESSION() as session:
         try:
             stmt = (

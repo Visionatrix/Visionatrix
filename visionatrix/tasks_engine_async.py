@@ -27,6 +27,7 @@ from .tasks_engine_etc import (
 )
 
 LOGGER = logging.getLogger("visionatrix")
+BG_THREAD = []
 
 
 async def create_new_task_async(name: str, input_params: dict, user_info: UserInfo) -> dict:
@@ -189,7 +190,7 @@ async def start_tasks_engine(prompt_executor_args: tuple | list, exit_event: thr
     async def start_background_tasks_engine(prompt_executor):
         await asyncio.to_thread(background_prompt_executor, prompt_executor, exit_event)
 
-    _ = asyncio.create_task(start_background_tasks_engine(prompt_executor_args))  # noqa
+    BG_THREAD.append(asyncio.create_task(start_background_tasks_engine(prompt_executor_args)))
 
 
 async def update_task_info_database_async(task_id: int, update_fields: dict) -> bool:

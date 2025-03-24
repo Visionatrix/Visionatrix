@@ -21,7 +21,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
-from .federation import federation_sync_engine, federation_tasks_engine
+from .federation import federation_engine
 from .pydantic_models import UserInfo
 from .tasks_engine import remove_active_task_lock, task_progress_callback
 from .tasks_engine_async import start_tasks_engine
@@ -155,9 +155,13 @@ async def lifespan(app: FastAPI):
         app.mount("/comfy", StaticFiles(directory=Path(options.COMFYUI_DIR).joinpath("web"), html=False), name="comfy")
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
 
-    _ = asyncio.create_task(federation_sync_engine(events.EXIT_EVENT_ASYNC))  # noqa
-    _ = asyncio.create_task(federation_tasks_engine(events.EXIT_EVENT_ASYNC))  # noqa
-    _ = asyncio.create_task(start_all_func())  # noqa
+    background_tasks = set()
+    background_tasks.add(
+        asyncio.create_task(federation_engine(events.EXIT_EVENT_ASYNC)),
+    )
+    background_tasks.add(
+        asyncio.create_task(start_all_func()),
+    )
     yield
     events.EXIT_EVENT.set()
     events.EXIT_EVENT_ASYNC.set()

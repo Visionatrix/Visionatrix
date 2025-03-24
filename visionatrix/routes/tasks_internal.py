@@ -1,13 +1,14 @@
 import json
 import logging
 import typing
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import HTTPException, Request, status
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import models_map
-from ..db_queries import get_installed_models, get_setting
+from ..db_queries import get_installed_models, get_setting, get_worker_details
 from ..flows import (
     Flow,
     flow_prepare_output_params,
@@ -87,7 +88,8 @@ async def task_run(
         task_details["extra_flags"] = extra_flags
     if custom_worker:
         task_details["custom_worker"] = custom_worker
-    task_details["hidden"] = flow.hidden
+    if flow.hidden or extra_flags.get("federated_task"):
+        task_details["hidden"] = True
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     await put_task_in_queue_async(task_details)
     return task_details
@@ -165,14 +167,32 @@ def get_task_creation_extra_flags(request: Request, is_user_admin: bool) -> [dic
     extra_flags = {}
     custom_worker = None
     if is_user_admin:
+        custom_worker = request.headers.get("X-WORKER-ID")
         if request.headers.get("X-WORKER-UNLOAD-MODELS") == "1":
             extra_flags["unload_models"] = True
         if request.headers.get("X-WORKER-EXECUTION-PROFILER") == "1":
             extra_flags["profiler_execution"] = True
-        custom_worker = request.headers.get("X-WORKER-ID")
+        if request.headers.get("X-FEDERATED-TASK") == "1":
+            if not custom_worker:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing `X-WORKER-ID` header.") from None
+            extra_flags["federated_task"] = True
     if not extra_flags:
         extra_flags = None
     return extra_flags, custom_worker
+
+
+async def preprocess_federation_task(extra_flags: dict | None, custom_worker: str | None) -> None:
+    if not extra_flags or not extra_flags.get("federated_task"):
+        return
+    worker = await get_worker_details(None, custom_worker)
+    if not worker:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No such worker available.") from None
+    if worker.empty_task_requests_count < 2:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Worker is busy.") from None
+    if worker.federated_instance_name:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Worker is a federated one.") from None
+    if worker.last_seen.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc) - timedelta(seconds=15.0):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Worker is offline.") from None
 
 
 async def process_string_value(request: Request, user_id: str, key: str, value: str, in_files_params: dict) -> None:

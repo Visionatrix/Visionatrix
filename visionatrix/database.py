@@ -111,6 +111,7 @@ class Worker(Base):
     engine_details = Column(JSON, default=None, nullable=True)
     federated_instance_name = Column(String, nullable=False, default="", index=True)
     empty_task_requests_count = Column(BigInteger, nullable=False, default=0, index=True)
+    last_asked_tasks = Column(JSON, default=[], nullable=False)
 
 
 class UserInfo(Base):
@@ -176,7 +177,7 @@ class FederatedInstances(Base):
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
-    installed_flows = Column(JSON, nullable=False, default=[])
+    installed_flows = Column(JSON, nullable=False, default={})
 
 
 class FlowDelegationConfig(Base):

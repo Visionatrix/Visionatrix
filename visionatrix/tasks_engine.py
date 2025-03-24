@@ -196,6 +196,24 @@ async def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last
     return {}
 
 
+async def get_task_for_federated_worker(
+    tasks_to_ask: list[str],
+) -> dict:
+    if not tasks_to_ask:
+        return {}
+    async with database.SESSION() as session:
+        try:
+            query = get_incomplete_task_without_error_query(tasks_to_ask, [], "", "non-existing", None)
+            task = (await session.execute(query)).scalar()
+            if not task:
+                return {}
+            return await lock_task_and_return_details(session, task)
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to retrieve task for processing: %s", e)
+            return {}
+
+
 async def get_incomplete_task_without_error_database(
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
@@ -208,6 +226,7 @@ async def get_incomplete_task_without_error_database(
             worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(
                 worker_user_id, worker_details
             )
+            worker_info_values["last_asked_tasks"] = tasks_to_ask
             result = await session.execute(
                 update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
             )
@@ -263,6 +282,7 @@ def __lock_task_and_return_details(task: type[database.TaskDetails] | database.T
         "webhook_url": task.webhook_url,
         "webhook_headers": task.webhook_headers,
         "extra_flags": task.extra_flags,
+        "translated_input_params": task.translated_input_params,
     }
 
 

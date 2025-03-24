@@ -44,12 +44,15 @@ def upgrade() -> None:
     op.create_index(op.f("ix_flow_delegation_config_flow_name"), "flow_delegation_config", ["flow_name"], unique=True)
     op.add_column("workers", sa.Column("federated_instance_name", sa.String(), nullable=True))
     op.add_column("workers", sa.Column("empty_task_requests_count", sa.BigInteger(), nullable=True))
+    op.add_column("workers", sa.Column("last_asked_tasks", sa.JSON(), nullable=True))
 
     op.execute("UPDATE workers SET federated_instance_name = '' WHERE federated_instance_name IS NULL")
     op.execute("UPDATE workers SET empty_task_requests_count = 0 WHERE empty_task_requests_count IS NULL")
+    op.execute("UPDATE workers SET last_asked_tasks = '[]' WHERE last_asked_tasks IS NULL")
     with op.batch_alter_table("workers") as batch_op:
         batch_op.alter_column("federated_instance_name", existing_type=sa.String(), nullable=False)
-        batch_op.alter_column("empty_task_requests_count", existing_type=sa.Integer(), nullable=False)
+        batch_op.alter_column("empty_task_requests_count", existing_type=sa.BigInteger(), nullable=False)
+        batch_op.alter_column("last_asked_tasks", existing_type=sa.JSON(), nullable=False)
 
     op.create_index(
         op.f("ix_workers_empty_task_requests_count"), "workers", ["empty_task_requests_count"], unique=False
@@ -64,6 +67,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_workers_empty_task_requests_count"), table_name="workers")
     op.drop_column("workers", "empty_task_requests_count")
     op.drop_column("workers", "federated_instance_name")
+    op.drop_column("workers", "last_asked_tasks")
     op.drop_index(op.f("ix_flow_delegation_config_flow_name"), table_name="flow_delegation_config")
     op.drop_table("flow_delegation_config")
     op.drop_index(op.f("ix_federated_instances_instance_name"), table_name="federated_instances")
