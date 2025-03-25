@@ -753,7 +753,6 @@ async def update_local_workers_from_federation(federation_instance_name: str, wo
         existing_workers = {w.worker_id: w for w in result.scalars().all()}
         for worker in workers_list:
             worker_data = worker.model_dump()
-            worker_data["federated_instance_name"] = federation_instance_name
             if worker.worker_id in existing_workers:
                 existing_worker = existing_workers[worker.worker_id]
                 for key, value in worker_data.items():
@@ -792,3 +791,17 @@ async def worker_increment_empty_task_requests_count(worker_id: str) -> None:
     except Exception as e:
         await session.rollback()
         LOGGER.exception("Failed to increment worker empty tasks count `%s`: %s", worker_id, e)
+
+
+async def is_custom_worker_free(custom_worker: str) -> bool:
+    async with database.SESSION() as session:
+        try:
+            query = select(database.TaskDetails).where(
+                database.TaskDetails.custom_worker == custom_worker,
+                database.TaskDetails.progress < 100,
+                database.TaskDetails.error == "",
+            )
+            return (await session.execute(query)).scalars().first() is None
+        except Exception:
+            LOGGER.exception("Failed to check unfinished tasks for custom worker '%s'", custom_worker)
+            raise

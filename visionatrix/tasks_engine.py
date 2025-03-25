@@ -510,13 +510,17 @@ async def update_task_progress_database(
     progress: float,
     error: str,
     execution_time: float,
-    worker_user_id: str,
-    worker_details: WorkerDetailsRequest,
+    worker_user_or_id: str,
+    worker_details: WorkerDetailsRequest | None,
     execution_details: ExecutionDetails | None = None,
 ) -> bool:
     async with database.SESSION() as session:
         try:
-            worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
+            if worker_details:
+                worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_or_id, worker_details)
+            else:
+                worker_id = worker_user_or_id
+                worker_info_values = {}
             update_values = {
                 "progress": progress,
                 "error": error,
@@ -532,7 +536,7 @@ async def update_task_progress_database(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
             await session.commit()
-            if (task_updated := result.rowcount == 1) is True:
+            if (task_updated := result.rowcount == 1) is True and worker_info_values:
                 await session.execute(
                     update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
                 )
@@ -648,40 +652,42 @@ async def upload_results_to_server(task_details: dict) -> bool:
         return True
     files = []
     try:
-        for output_file in output_files:
-            file_handle = builtins.open(output_file[1], mode="rb")  # noqa pylint: disable=consider-using-with
-            files.append(
-                ("files", (output_file[0], file_handle)),
-            )
-        try:
-            for i in range(3):
-                try:
-                    async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
-                        r = await client.put(
-                            options.VIX_SERVER.rstrip("/") + "/vapi/tasks/results",
-                            params={
-                                "task_id": task_id,
-                            },
-                            files=files,
-                            auth=options.worker_auth(),
+        with contextlib.ExitStack() as stack:
+            for output_file in output_files:
+                files.append(
+                    ("files", (output_file[0], stack.enter_context(builtins.open(output_file[1], "rb")))),
+                )
+            try:
+                for i in range(3):
+                    try:
+                        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+                            r = await client.put(
+                                options.VIX_SERVER.rstrip("/") + "/vapi/tasks/results",
+                                params={
+                                    "task_id": task_id,
+                                },
+                                files=files,
+                                auth=options.worker_auth(),
+                            )
+                        if r.status_code == httpx.codes.NOT_FOUND:
+                            return False
+                        if not httpx.codes.is_error(r.status_code):
+                            return True
+                        LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
+                    except (httpx.TimeoutException, httpx.RemoteProtocolError):
+                        if i != 2:
+                            LOGGER.warning(
+                                "Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i
+                            )
+                            continue
+                        LOGGER.error(
+                            "Task %s: attempt number %s: timeout or protocol exception occurred, task failed.",
+                            task_id,
+                            i,
                         )
-                    if r.status_code == httpx.codes.NOT_FOUND:
-                        return False
-                    if not httpx.codes.is_error(r.status_code):
-                        return True
-                    LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
-                except (httpx.TimeoutException, httpx.RemoteProtocolError):
-                    if i != 2:
-                        LOGGER.warning("Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i)
-                        continue
-                    LOGGER.error(
-                        "Task %s: attempt number %s: timeout or protocol exception occurred, task failed.", task_id, i
-                    )
-        except Exception as e:
-            LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
+            except Exception as e:
+                LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
     finally:
-        for f in files:
-            f[1][1].close()
         remove_task_files(task_id, ["output", "input"])
     return False
 

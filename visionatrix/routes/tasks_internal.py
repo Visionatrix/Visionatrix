@@ -8,7 +8,12 @@ from fastapi import HTTPException, Request, status
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import models_map
-from ..db_queries import get_installed_models, get_setting, get_worker_details
+from ..db_queries import (
+    get_installed_models,
+    get_setting,
+    get_worker_details,
+    is_custom_worker_free,
+)
 from ..flows import (
     Flow,
     flow_prepare_output_params,
@@ -88,7 +93,7 @@ async def task_run(
         task_details["extra_flags"] = extra_flags
     if custom_worker:
         task_details["custom_worker"] = custom_worker
-    if flow.hidden or extra_flags.get("federated_task"):
+    if flow.hidden or (extra_flags and extra_flags.get("federated_task")):
         task_details["hidden"] = True
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     await put_task_in_queue_async(task_details)
@@ -130,25 +135,6 @@ async def get_translated_input_params(
                     ) from None
                 translated_input_params_dict[node_to_translate["input_param_id"]] = r.result
     return translated_input_params_dict
-
-
-async def webhook_task_progress(
-    url: str, headers: dict | None, task_id: int, progress: float, execution_time: float, error: str
-) -> None:
-    try:
-        async with httpx.AsyncClient(base_url=url, timeout=3.0) as client:
-            await client.post(
-                url="task-progress",
-                json={
-                    "task_id": task_id,
-                    "progress": progress,
-                    "execution_time": execution_time,
-                    "error": error,
-                },
-                headers=headers,
-            )
-    except httpx.RequestError as e:
-        LOGGER.exception("Exception during calling webhook %s, progress=%s: %s", url, progress, e)
 
 
 async def process_remote_input_url(request: Request, input_file_info: dict[str, str | bytes]) -> None:
@@ -193,6 +179,8 @@ async def preprocess_federation_task(extra_flags: dict | None, custom_worker: st
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Worker is a federated one.") from None
     if worker.last_seen.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc) - timedelta(seconds=15.0):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Worker is offline.") from None
+    if not await is_custom_worker_free(custom_worker):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Worker has unfinished tasks.") from None
 
 
 async def process_string_value(request: Request, user_id: str, key: str, value: str, in_files_params: dict) -> None:

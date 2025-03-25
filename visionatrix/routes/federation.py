@@ -110,5 +110,5 @@ async def update_federated_instance_endpoint(
 async def get_instance_info(request: Request) -> FederatedInstanceInfo:
     require_admin(request)
     workers = await get_workers_details(None, 0, "", include_federated=False)
-    installed_flows = {i: v.version for i, v in (await get_installed_flows({})).values()}
+    installed_flows = {i: v.version for i, v in (await get_installed_flows({})).items()}
     return FederatedInstanceInfo.model_validate({"workers": workers, "installed_flows": installed_flows})
