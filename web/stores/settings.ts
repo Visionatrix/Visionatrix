@@ -16,6 +16,11 @@ export const useSettingsStore = defineStore('settingsStore', {
 				icon: 'i-heroicons-rectangle-group-16-solid',
 				to: '/settings/comfyui',
 			},
+			{
+				label: 'Federated',
+				icon: 'i-mdi-mixcloud',
+				to: '/settings/federated',
+			},
 		],
 		settingsMap: {
 			huggingface_auth_token: {
