@@ -62,7 +62,7 @@ async def get_instance_data(federated_instance: FederatedInstance) -> [str, Fede
         if count % 5 == 0:
             LOGGER.warning("Cannot connect to federated instance %s: %s", federated_instance.instance_name, url)
     except httpx.TimeoutException:
-        LOGGER.error("Timeout reading from federated instance %s: %s", federated_instance.instance_name, url)
+        LOGGER.warning("Timeout reading from federated instance %s: %s", federated_instance.instance_name, url)
     except httpx.RequestError:
         LOGGER.exception("Error fetching workers from federated instance %s.", federated_instance.instance_name)
     return federated_instance.instance_name, None
