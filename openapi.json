@@ -1201,7 +1201,7 @@
           "tasks"
         ],
         "summary": "Create Task",
-        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Custom Headers (Admin Only):**\n\n- `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.\n- `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.\n- `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
+        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Custom Headers (Admin Only):**\n\n- `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.\n- `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.\n- `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.\n- `X-FEDERATED-TASK`: If `1`, requires X-WORKER-ID`, rejects the task if the worker is busy, mark task as hidden.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
         "operationId": "create_task",
         "parameters": [
           {
@@ -2426,6 +2426,27 @@
           }
         }
       }
+    },
+    "/vapi/federation/instance_info": {
+      "get": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Get Instance Info",
+        "operationId": "get_instance_info",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederatedInstanceInfo"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3035,6 +3056,14 @@
             "format": "date-time",
             "title": "Created At",
             "description": "Timestamp when the federated instance record was created."
+          },
+          "installed_flows": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Installed Flows",
+            "description": "A dictionary with installed Flows identifiers and their versions."
           }
         },
         "type": "object",
@@ -3043,7 +3072,8 @@
           "url_address",
           "username",
           "password",
-          "created_at"
+          "created_at",
+          "installed_flows"
         ],
         "title": "FederatedInstance"
       },
@@ -3084,6 +3114,30 @@
           "password"
         ],
         "title": "FederatedInstanceCreate"
+      },
+      "FederatedInstanceInfo": {
+        "properties": {
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerDetails"
+            },
+            "type": "array",
+            "title": "Workers",
+            "description": "List of available workers on the instance.",
+            "default": []
+          },
+          "installed_flows": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Installed Flows",
+            "description": "A dictionary with installed Flows identifiers and their versions.",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "title": "FederatedInstanceInfo"
       },
       "FederatedInstanceUpdate": {
         "properties": {
@@ -4575,6 +4629,15 @@
             "title": "Empty Task Requests Count",
             "description": "Counts the number of times the worker requested a task but received none. A value of 0 indicates that the worker is busy, while a value of 1 or more indicates that the worker is free.",
             "default": 0
+          },
+          "last_asked_tasks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Last Asked Tasks",
+            "description": "List of flows IDs that the worker last requested to be processed.",
+            "default": []
           }
         },
         "type": "object",
@@ -4679,7 +4742,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-03-23T11:46:02.499935Z"
+            "default": "2025-03-26T19:21:53.278899Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
