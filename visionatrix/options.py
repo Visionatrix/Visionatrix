@@ -110,11 +110,6 @@ ADMIN_OVERRIDE = environ.get("ADMIN_OVERRIDE", "")
 and it is considered as an admin user (emulated, without actual DB record).
 """
 
-FEDERATION = bool(int(environ.get("FEDERATION", "0")))
-"""Flag to enable/disable the federation feature, that allows to ask another instance to help processing tasks.
-Disabled by default.
-"""
-
 
 def get_admin_override_credentials() -> tuple[str, str] | None:
     if ":" not in ADMIN_OVERRIDE:

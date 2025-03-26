@@ -15,6 +15,7 @@ from .db_queries import (
     update_installed_flows_for_federated_instance,
     update_local_workers_from_federation,
 )
+from .flows import get_installed_flows
 from .pydantic_models import (
     ExecutionDetails,
     FederatedInstance,
@@ -32,6 +33,7 @@ from .webhooks import webhook_task_progress
 
 LOGGER = logging.getLogger("visionatrix")
 CONNECT_ERROR_COUNTS = {}
+MIN_INTERVAL_FOR_FED_SYNC = 3.0  # multiplied by 10 where there is no enabled federation instances.
 
 
 async def get_instance_data(federated_instance: FederatedInstance) -> [str, FederatedInstanceInfo | None]:
@@ -68,6 +70,7 @@ async def get_instance_data(federated_instance: FederatedInstance) -> [str, Fede
 
 async def federation_engine(exit_event: asyncio.Event):
     background_tasks = set()
+    local_installed_flows = {}
 
     while True:
         if exit_event.is_set():
@@ -103,15 +106,26 @@ async def federation_engine(exit_event: asyncio.Event):
                     if worker.last_seen.replace(tzinfo=timezone.utc) >= time_threshold
                     and worker.empty_task_requests_count > 1
                 ]
+                if free_workers_dict:
+                    local_installed_flows = {i: v.version for i, v in (await get_installed_flows({})).items()}
 
             if exit_event.is_set():
                 break
 
             for instance, workers in free_workers_dict.items():
                 for worker in workers:
-                    federated_task = await get_task_for_federated_worker(worker.last_asked_tasks)
-                    if federated_task:
-                        instances_dict[instance]["tasks"].append((worker, federated_task))
+                    instance_flows = instances_dict[instance]["instance"].installed_flows
+                    filtered_tasks = [
+                        task
+                        for task in worker.last_asked_tasks
+                        if task in instance_flows
+                        and task in local_installed_flows
+                        and instance_flows[task] == local_installed_flows[task]
+                    ]
+                    if filtered_tasks:
+                        federated_task = await get_task_for_federated_worker(filtered_tasks)
+                        if federated_task:
+                            instances_dict[instance]["tasks"].append((worker, federated_task))
 
             for instance_data in instances_dict.values():
                 instance = instance_data["instance"]
@@ -120,7 +134,8 @@ async def federation_engine(exit_event: asyncio.Event):
                     background_tasks.add(t)
                     t.add_done_callback(background_tasks.discard)
 
-        remaining = 3.0 - (time.perf_counter() - start_time)
+        multiplier = 1 if federated_instances else 10
+        remaining = (multiplier * MIN_INTERVAL_FOR_FED_SYNC) - (time.perf_counter() - start_time)
         if remaining > 0:
             try:
                 await asyncio.wait_for(exit_event.wait(), timeout=remaining)

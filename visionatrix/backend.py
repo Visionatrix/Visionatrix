@@ -156,10 +156,9 @@ async def lifespan(app: FastAPI):
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
 
     background_tasks = set()
-    if options.FEDERATION:
-        background_tasks.add(
-            asyncio.create_task(federation_engine(events.EXIT_EVENT_ASYNC)),
-        )  # TO-DO: create special lock table to limit number of background jobs when running multiple webserver workers
+    background_tasks.add(
+        asyncio.create_task(federation_engine(events.EXIT_EVENT_ASYNC)),
+    )  # TO-DO: create special lock table to limit number of background jobs when running multiple webserver workers
     background_tasks.add(
         asyncio.create_task(start_all_func()),
     )
@@ -198,8 +197,7 @@ API_ROUTER.include_router(routes.settings.ROUTER)
 API_ROUTER.include_router(routes.settings_comfyui.ROUTER)
 API_ROUTER.include_router(routes.tasks.ROUTER)
 API_ROUTER.include_router(routes.workers.ROUTER)
-if options.FEDERATION:
-    API_ROUTER.include_router(routes.federation.ROUTER)
+API_ROUTER.include_router(routes.federation.ROUTER)
 APP.include_router(API_ROUTER)
 APP.add_middleware(ComfyUIProxyMiddleware, comfy_url="127.0.0.1:8188")
 APP.add_middleware(VixAuthMiddleware)
