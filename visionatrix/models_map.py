@@ -26,6 +26,12 @@ MODEL_LOAD_CLASSES = {
             "type": "checkpoints",
         },
     },
+    "ImageOnlyCheckpointLoader": {
+        "1": {
+            "path": ["inputs", "ckpt_name"],
+            "type": "checkpoints",
+        },
+    },
     "ControlNetLoader": {
         "1": {
             "path": ["inputs", "control_net_name"],

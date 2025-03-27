@@ -72,6 +72,7 @@ SUPPORTED_OUTPUTS = {
     "SaveWEBM": "video",
     "SaveAudio": "audio",
     "SaveText|pysssss": "text",
+    "SaveGLB": "3d-model",
 }
 
 SUPPORTED_TEXT_TYPES_INPUTS = ["text", "number", "list", "bool", "range", "range_scale"]

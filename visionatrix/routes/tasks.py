@@ -493,6 +493,8 @@ async def get_task_results(
         relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.AUDIO_EXTENSIONS)]
     elif output_node["type"] == "text":
         relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.TEXT_EXTENSIONS)]
+    elif output_node["type"] == "3d-model":
+        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.MODEL3D_EXTENSION)]
     if not relevant_files:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
