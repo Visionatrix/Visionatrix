@@ -12,6 +12,7 @@ useHead({
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 const federatedStore = useFederatedStore()
+const toast = useToast()
 
 onMounted(() => {
 	federatedStore.startPolling()
@@ -22,6 +23,11 @@ onBeforeUnmount(() => {
 })
 
 const tableHeadersMap = [
+	{
+		id: 'actions',
+		label: 'Actions',
+		sortable: false,
+	},
 	{
 		id: 'instance_name',
 		label: 'Instance name',
@@ -47,11 +53,6 @@ const tableHeadersMap = [
 		label: 'Created at',
 		sortable: true,
 	},
-	{
-		id: 'actions',
-		label: 'Actions',
-		sortable: false,
-	}
 ]
 
 const columns = tableHeadersMap.map((header) => {
@@ -66,12 +67,14 @@ const columns = tableHeadersMap.map((header) => {
 const rows = computed(() => federatedStore.$state.instances)
 
 const showRegisterModal = ref(false)
+const deleting = ref(false)
 const editingInstance = ref<FederationInstance | null>(null)
 const newInstanceName = ref('')
 const newInstanceUrl = ref('')
 const newInstanceUsername = ref('')
 const newInstancePassword = ref('')
 const newInstanceEnabled = ref(false)
+
 watch(showRegisterModal, (value) => {
 	if (!value) {
 		newInstanceName.value = ''
@@ -94,7 +97,16 @@ watch(editingInstance, (value) => {
 	}
 })
 
+const registerNewInstanceValid = computed(() => {
+	return newInstanceName.value.length > 0
+		&& newInstanceUrl.value.length > 0
+		&& newInstanceUsername.value.length > 0
+		&& newInstancePassword.value.length > 0
+})
+
+const registerOrUpdateLoading = ref(false)
 function handleRegisterOrEditInstance() {
+	registerOrUpdateLoading.value = true
 	if (editingInstance.value !== null) {
 		// Update instance
 		federatedStore.updateFederationInstance({
@@ -107,6 +119,14 @@ function handleRegisterOrEditInstance() {
 		}).then(() => {
 			showRegisterModal.value = false
 			editingInstance.value = null
+		}).catch((res) => {
+			console.error(res)
+			toast.add({
+				title: 'Error',
+				description: res.details ? res.details : 'Failed to update federated instance. Check console for more details.',
+			})
+		}).finally(() => {
+			registerOrUpdateLoading.value = false
 		})
 	} else {
 		// Register new instance
@@ -119,6 +139,14 @@ function handleRegisterOrEditInstance() {
 		}).then(() => {
 			federatedStore.loadFederationInstances()
 			showRegisterModal.value = false
+		}).catch((res) => {
+			console.error(res)
+			toast.add({
+				title: 'Error',
+				description: res.details ? res.details : 'Failed to register new federated instance. Check console for more details.',
+			})
+		}).finally(() => {
+			registerOrUpdateLoading.value = false
 		})
 	}
 }
@@ -188,8 +216,19 @@ function handleRegisterOrEditInstance() {
 										variant="outline"
 										color="red"
 										size="sm"
+										:loading="deleting"
 										@click="() => {
+											deleting = true
 											federatedStore.deleteFederationInstance(row.instance_name)
+												.catch((res) => {
+													console.error(res)
+													toast.add({
+														title: 'Error',
+														description: res.details ? res.details : 'Failed to delete federated instance. Check console for more details.',
+													})
+												}).finally(() => {
+													deleting = false
+												})
 										}">
 										Delete
 									</UButton>
@@ -197,7 +236,7 @@ function handleRegisterOrEditInstance() {
 							</template>
 						</UTable>
 
-						<UModal v-model="showRegisterModal">
+						<UModal v-model="showRegisterModal" :transition="false">
 							<div class="p-4 overflow-y-auto">
 								<h2 class="font-bold">
 									{{ editingInstance !== null ? 'Edit instance' : 'Register new instance' }}
@@ -205,19 +244,23 @@ function handleRegisterOrEditInstance() {
 
 								<div class="flex flex-col gap-2 mt-3">
 									<UFormGroup label="Instance name"
-										class="flex justify-center flex-col w-full">
+										class="flex justify-center flex-col w-full"
+										:error="!newInstanceName || newInstanceName.length === 0 ? 'Instance name is required' : ''">
 										<UInput v-model="newInstanceName" type="text" placeholder="Instance name" />
 									</UFormGroup>
 									<UFormGroup label="URL address"
-										class="flex justify-center flex-col w-full">
+										class="flex justify-center flex-col w-full"
+										:error="!newInstanceUrl || newInstanceUrl.length === 0 ? 'URL address is required' : ''">
 										<UInput v-model="newInstanceUrl" type="text" placeholder="URL address" />
 									</UFormGroup>
 									<UFormGroup label="Username"
-										class="flex justify-center flex-col w-full">
+										class="flex justify-center flex-col w-full"
+										:error="!newInstanceUsername || newInstanceUsername.length === 0 ? 'Username is required' : ''">
 										<UInput v-model="newInstanceUsername" type="text" placeholder="Username" />
 									</UFormGroup>
 									<UFormGroup label="Password"
-										class="flex justify-center flex-col w-full">
+										class="flex justify-center flex-col w-full"
+										:error="!newInstancePassword || newInstancePassword.length === 0 ? 'Password is required' : ''">
 										<UInput v-model="newInstancePassword" type="password"  placeholder="Password" autocomplete="off" />
 									</UFormGroup>
 									<UFormGroup label="Enabled"
@@ -237,6 +280,8 @@ function handleRegisterOrEditInstance() {
 									<UButton
 										variant="solid"
 										color="cyan"
+										:loading="registerOrUpdateLoading"
+										:disabled="!registerNewInstanceValid"
 										@click="handleRegisterOrEditInstance">
 										{{ editingInstance !== null ? 'Update' : 'Register' }}
 									</UButton>

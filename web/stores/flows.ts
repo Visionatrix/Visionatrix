@@ -100,7 +100,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 				if (state.flow_results_filter !== '') {
 					return state.flow_results
 						.filter(task => task.flow_name === name
-							&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter))
+							&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
+							&& !task.hidden)
 						.sort((a: FlowResult, b: FlowResult) => {
 							if (a.finished_at && b.finished_at) {
 								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -109,7 +110,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						})
 				}
 				return state.flow_results
-					.filter(task => task.flow_name === name)
+					.filter(task => task.flow_name === name && !task.hidden)
 					.sort((a: FlowResult, b: FlowResult) => {
 						if (a.finished_at && b.finished_at) {
 							return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -125,7 +126,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 						state.flow_results
 							.filter(task => task.flow_name === name
 								&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
-								&& task.parent_task_id === null)
+								&& task.parent_task_id === null
+								&& !task.hidden)
 							.sort((a: FlowResult, b: FlowResult) => {
 								if (a.finished_at && b.finished_at) {
 									return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -136,7 +138,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				}
 				return paginate(
 					state.flow_results
-						.filter(task => task.flow_name === name && task.parent_task_id === null)
+						.filter(task => task.flow_name === name && task.parent_task_id === null && !task.hidden)
 						.sort((a: FlowResult, b: FlowResult) => {
 							if (a.finished_at && b.finished_at) {
 								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -152,7 +154,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowsRunningByName(state) {
 			return (name: string) => {
 				return state.running
-					.filter(flow => flow.flow_name === name && flow.parent_task_id === null)
+					.filter(flow => flow.flow_name === name && flow.parent_task_id === null && !flow.hidden)
 					.sort((a: FlowRunning, b: FlowRunning) => {
 						// if progress is available, sort by progress DESC
 						if (a.progress || b.progress) {
@@ -175,7 +177,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 		},
 		flowsRunningByNameWithErrors(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null) ?? null
+			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null && !flow.hidden) ?? null
 		},
 		currentFlow(state): Flow {
 			return state.current_flow
@@ -966,6 +968,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 							}
 							// Save flow results history
 							const flow = <Flow>this.flowByName(runningFlow.flow_name)
+							// TODO: Add hidden flag to filter-out these results from the UI
 							const flowResult = <FlowResult>{
 								task_id: task_id.toString(),
 								flow_name: flow.name,

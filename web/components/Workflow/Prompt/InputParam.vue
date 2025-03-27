@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
 				}" />
 
 			<template v-if="inputParam.type === 'number'">
-				<template v-if="inputParam.name === 'seed'">
+				<div v-if="inputParam.name === 'seed'" class="flex w-full items-center justify-between">
 					<div class="flex items-center">
 						<UInput
 							v-if="inputParam.type === 'number'"
@@ -286,7 +286,10 @@ onBeforeUnmount(() => {
 								inputParamsMap[index][inputParam.name].value = Math.floor(Math.random() * 10000000) as number
 							}" />
 					</div>
-				</template>
+					<UCheckbox
+						v-model="inputParamsMap[index][inputParam.name].auto_increment"
+						label="Auto-increment seed" />
+				</div>
 				<UInput
 					v-else
 					v-model="inputParamsMap[index][inputParam.name].value"
