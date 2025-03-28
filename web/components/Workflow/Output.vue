@@ -260,6 +260,9 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					<WorkflowOutputText
 						v-else-if="flowResult.outputs.some((output) => output.type === 'text')"
 						:flow-result="flowResult" />
+					<WorkflowOutput3dModel
+						v-else-if="flowResult.outputs.some((output) => output.type === '3d-model')"
+						:flow-result="flowResult" />
 					<div class="text-sm text-slate-500 text-center mb-1">
 						<div class="w-5/6 mx-auto flex flex-wrap items-center justify-center">
 							<WorkflowOutputParams :flow-result="flowResult" />
