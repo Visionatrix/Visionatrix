@@ -65,6 +65,10 @@ TEXT_EXTENSIONS = [
     ".txt",
 ]
 
+MODEL3D_EXTENSION = [
+    ".glb",
+]
+
 
 def get_log_level(log_level_str):
     """Convert log level string to logging module log level."""

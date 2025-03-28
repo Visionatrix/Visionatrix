@@ -14,5 +14,10 @@ export default defineNuxtConfig({
 	compatibilityDate: '2024-08-03',
 	icon: {
 		iconifyApiEndpoint: process.env.ICONIFY_API_URL || 'https://api.iconify.design',
-	}
+	},
+	vue: {
+		compilerOptions: {
+			isCustomElement: tag => ['model-viewer'].includes(tag),
+		},
+	},
 })

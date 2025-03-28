@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@google/model-viewer": "^4.0.0",
     "@img-comparison-slider/vue": "^8.0.0",
     "@nuxt/ui": "^2.21.0",
     "konva": "^9.3.18",
