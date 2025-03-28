@@ -362,6 +362,8 @@ def get_formatted_models_catalog() -> list[AIResourceModel]:
 def get_possible_paths_for_model(model: AIResourceModel) -> list[(Path, str)]:
     if not model.types:
         # this is a custom node model that does not support ComfyUI path configuration.
+        if model.filename.startswith("custom_nodes/"):
+            return [(Path(options.COMFYUI_DIR), model.filename)]
         return [(Path(get_root_models_dir()), model.filename)]
 
     comfyui_models_paths = get_folder_names_and_paths()
