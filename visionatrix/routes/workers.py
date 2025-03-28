@@ -26,7 +26,7 @@ async def get_info(
     Useful for monitoring and managing worker resources in distributed computing environments.
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
-    return await get_workers_details(user_id, last_seen_interval, worker_id)
+    return await get_workers_details(user_id, last_seen_interval, worker_id, include_federated=True)
 
 
 @ROUTER.post(

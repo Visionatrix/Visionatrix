@@ -14,7 +14,13 @@ from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import comfyui_wrapper, database, models_map, options
-from .db_queries import get_global_setting, get_installed_models, get_setting
+from .db_queries import (
+    get_global_setting,
+    get_installed_models,
+    get_setting,
+    worker_increment_empty_task_requests_count,
+    worker_reset_empty_task_requests_count,
+)
 from .flows import (
     get_google_nodes,
     get_insightface_nodes,
@@ -30,7 +36,7 @@ from .pydantic_models import (
 from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS,
     TASK_DETAILS_COLUMNS_SHORT,
-    get_get_incomplete_task_without_error_query,
+    get_incomplete_task_without_error_query,
     nodes_execution_profiler,
     prepare_worker_info_update,
 )
@@ -65,7 +71,8 @@ def collect_child_task_ids(task: dict | TaskDetailsShort, output_ids: list) -> N
 async def get_incomplete_task_without_error(last_task_name: str) -> dict:
     tasks_to_ask = list(await get_installed_flows())
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        task_to_exec = await get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)
+        if not (task_to_exec := await get_incomplete_task_without_error_server(tasks_to_ask, last_task_name)):
+            return {}
     else:
         task_to_exec = await get_incomplete_task_without_error_database(
             database.DEFAULT_USER.user_id,
@@ -73,8 +80,8 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
             tasks_to_ask,
             last_task_name,
         )
-    if not task_to_exec:
-        return {}
+        if not task_to_exec:
+            return {}
 
     ollama_nodes = get_ollama_nodes(task_to_exec["flow_comfy"])
     if ollama_nodes:
@@ -189,6 +196,24 @@ async def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last
     return {}
 
 
+async def get_task_for_federated_worker(
+    tasks_to_ask: list[str],
+) -> dict:
+    if not tasks_to_ask:
+        return {}
+    async with database.SESSION() as session:
+        try:
+            query = get_incomplete_task_without_error_query(tasks_to_ask, [], "", "non-existing", None)
+            task = (await session.execute(query)).scalar()
+            if not task:
+                return {}
+            return await lock_task_and_return_details(session, task)
+        except Exception as e:
+            await session.rollback()
+            LOGGER.exception("Failed to retrieve task for processing: %s", e)
+            return {}
+
+
 async def get_incomplete_task_without_error_database(
     worker_user_id: str,
     worker_details: WorkerDetailsRequest,
@@ -201,6 +226,7 @@ async def get_incomplete_task_without_error_database(
             worker_id, worker_device_name, worker_info_values = prepare_worker_info_update(
                 worker_user_id, worker_details
             )
+            worker_info_values["last_asked_tasks"] = tasks_to_ask
             result = await session.execute(
                 update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
             )
@@ -224,13 +250,17 @@ async def get_incomplete_task_without_error_database(
                 query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
                 tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
 
-            query = get_get_incomplete_task_without_error_query(
+            query = get_incomplete_task_without_error_query(
                 tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
             )
             task = (await session.execute(query)).scalar()
             if not task:
+                await worker_increment_empty_task_requests_count(worker_id)
                 return {}
-            return await lock_task_and_return_details(session, task)
+            task_details = await lock_task_and_return_details(session, task)
+            if task_details:
+                await worker_reset_empty_task_requests_count(worker_id)
+            return task_details
         except Exception as e:
             await session.rollback()
             LOGGER.exception("Failed to retrieve task for processing: %s", e)
@@ -252,6 +282,7 @@ def __lock_task_and_return_details(task: type[database.TaskDetails] | database.T
         "webhook_url": task.webhook_url,
         "webhook_headers": task.webhook_headers,
         "extra_flags": task.extra_flags,
+        "translated_input_params": task.translated_input_params,
     }
 
 
@@ -479,13 +510,17 @@ async def update_task_progress_database(
     progress: float,
     error: str,
     execution_time: float,
-    worker_user_id: str,
-    worker_details: WorkerDetailsRequest,
+    worker_user_or_id: str,
+    worker_details: WorkerDetailsRequest | None,
     execution_details: ExecutionDetails | None = None,
 ) -> bool:
     async with database.SESSION() as session:
         try:
-            worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_id, worker_details)
+            if worker_details:
+                worker_id, _, worker_info_values = prepare_worker_info_update(worker_user_or_id, worker_details)
+            else:
+                worker_id = worker_user_or_id
+                worker_info_values = {}
             update_values = {
                 "progress": progress,
                 "error": error,
@@ -501,7 +536,7 @@ async def update_task_progress_database(
                 update(database.TaskDetails).where(database.TaskDetails.task_id == task_id).values(**update_values)
             )
             await session.commit()
-            if (task_updated := result.rowcount == 1) is True:
+            if (task_updated := result.rowcount == 1) is True and worker_info_values:
                 await session.execute(
                     update(database.Worker).where(database.Worker.worker_id == worker_id).values(**worker_info_values)
                 )
@@ -617,40 +652,42 @@ async def upload_results_to_server(task_details: dict) -> bool:
         return True
     files = []
     try:
-        for output_file in output_files:
-            file_handle = builtins.open(output_file[1], mode="rb")  # noqa pylint: disable=consider-using-with
-            files.append(
-                ("files", (output_file[0], file_handle)),
-            )
-        try:
-            for i in range(3):
-                try:
-                    async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
-                        r = await client.put(
-                            options.VIX_SERVER.rstrip("/") + "/vapi/tasks/results",
-                            params={
-                                "task_id": task_id,
-                            },
-                            files=files,
-                            auth=options.worker_auth(),
+        with contextlib.ExitStack() as stack:
+            for output_file in output_files:
+                files.append(
+                    ("files", (output_file[0], stack.enter_context(builtins.open(output_file[1], "rb")))),
+                )
+            try:
+                for i in range(3):
+                    try:
+                        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+                            r = await client.put(
+                                options.VIX_SERVER.rstrip("/") + "/vapi/tasks/results",
+                                params={
+                                    "task_id": task_id,
+                                },
+                                files=files,
+                                auth=options.worker_auth(),
+                            )
+                        if r.status_code == httpx.codes.NOT_FOUND:
+                            return False
+                        if not httpx.codes.is_error(r.status_code):
+                            return True
+                        LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
+                    except (httpx.TimeoutException, httpx.RemoteProtocolError):
+                        if i != 2:
+                            LOGGER.warning(
+                                "Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i
+                            )
+                            continue
+                        LOGGER.error(
+                            "Task %s: attempt number %s: timeout or protocol exception occurred, task failed.",
+                            task_id,
+                            i,
                         )
-                    if r.status_code == httpx.codes.NOT_FOUND:
-                        return False
-                    if not httpx.codes.is_error(r.status_code):
-                        return True
-                    LOGGER.error("Task %s: server return status: %s", task_id, r.status_code)
-                except (httpx.TimeoutException, httpx.RemoteProtocolError):
-                    if i != 2:
-                        LOGGER.warning("Task %s: attempt number %s: timeout or protocol exception occurred", task_id, i)
-                        continue
-                    LOGGER.error(
-                        "Task %s: attempt number %s: timeout or protocol exception occurred, task failed.", task_id, i
-                    )
-        except Exception as e:
-            LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
+            except Exception as e:
+                LOGGER.exception("Task %s: exception occurred: %s", task_id, e)
     finally:
-        for f in files:
-            f[1][1].close()
         remove_task_files(task_id, ["output", "input"])
     return False
 

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "2.0.0.dev0"
+    "version": "2.0.1.dev0"
   },
   "paths": {
     "/comfy/": {
@@ -1201,7 +1201,7 @@
           "tasks"
         ],
         "summary": "Create Task",
-        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Custom Headers (Admin Only):**\n\n- `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.\n- `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.\n- `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
+        "description": "Endpoint to initiate the creation and execution of tasks from the flows.\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created\n\n**Reserved Form Fields:**\n\n- `group_scope`: Group number to which task should be assigned. Maximum value is 255\n- `priority`: Task execution priority. Higher numbers indicate higher priority. Maximum value is 15\n- `child_task`: Int boolean indicating whether to create a relation between tasks\n- `webhook_url`: Optional. URL to call when task state changes\n- `webhook_headers`: Optional. Headers for webhook URL as encoded JSON string. Used only when `webhook_url` is set\n- `count`: Number of tasks to be created\n- `translate`: Should the prompt be translated if auto-translation option is enabled\n\n**Dynamic Task Parameters:**\n\nAll other form fields will be considered as **dynamic task-specific input parameters**.\nThese parameters vary depending on the flow specified by `name` and can be either text parameters or input files.\n\n**Custom Headers (Admin Only):**\n\n- `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.\n- `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.\n- `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.\n- `X-FEDERATED-TASK`: If `1`, requires X-WORKER-ID`, rejects the task if the worker is busy, mark task as hidden.\n\n**Response:**\n\n- Returns a `TaskRunResults` object containing the list of task IDs and the outputs for the created tasks.\n\n**Notes:**\n\n- The request must use `multipart/form-data` as the content type.\n- Dynamic parameters should correspond to the inputs expected by the specified flow.\n- If a parameter is expected to be a file, include it as a file upload in the form data.\n- If a parameter is expected to be text, include it as a regular form field.\n- The endpoint accepts both text and file inputs as dynamic parameters.",
         "operationId": "create_task",
         "parameters": [
           {
@@ -2266,6 +2266,187 @@
           }
         }
       }
+    },
+    "/vapi/federation/instances": {
+      "get": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "List Federated Instances",
+        "description": "Retrieve a list of all federated instances.\nRequires administrative privileges.",
+        "operationId": "list_federated_instances",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FederatedInstance"
+                  },
+                  "type": "array",
+                  "title": "Response List Federated Instances"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/federation/instance": {
+      "post": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Create Federated Instance",
+        "description": "Create a new federated instance.\nRequires administrative privileges.",
+        "operationId": "create_federated_instance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FederatedInstanceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Federated instance created successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Federated instance already exists or invalid data"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Delete Federated Instance",
+        "description": "Delete a federated instance by its name.\nRequires administrative privileges.",
+        "operationId": "delete_federated_instance",
+        "parameters": [
+          {
+            "name": "instance_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the federated instance to delete",
+              "title": "Instance Name"
+            },
+            "description": "Name of the federated instance to delete"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Federated instance deleted successfully"
+          },
+          "404": {
+            "description": "Federated instance not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Update Federated Instance Endpoint",
+        "description": "Update an existing federated instance.\nRequires administrative privileges.",
+        "operationId": "update_federated_instance_endpoint",
+        "parameters": [
+          {
+            "name": "instance_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the federated instance to update",
+              "title": "Instance Name"
+            },
+            "description": "Name of the federated instance to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FederatedInstanceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Federated instance updated successfully"
+          },
+          "404": {
+            "description": "Federated instance not found or no update performed"
+          },
+          "400": {
+            "description": "No valid fields provided for update"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vapi/federation/instance_info": {
+      "get": {
+        "tags": [
+          "federation"
+        ],
+        "summary": "Get Instance Info",
+        "operationId": "get_instance_info",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederatedInstanceInfo"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2309,6 +2490,7 @@
             "description": "SHA256 hash of the model file for integrity verification."
           },
           "hashes": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Hashes",
             "description": "For archives, may contain filename:hash pairs for integrity checks after the archive is deleted.",
@@ -2316,6 +2498,7 @@
           },
           "regexes": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -2651,6 +2834,7 @@
             "description": "SHA256 hash of the model file for integrity verification."
           },
           "hashes": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Hashes",
             "description": "For archives, may contain filename:hash pairs for integrity checks after the archive is deleted.",
@@ -2658,6 +2842,7 @@
           },
           "regexes": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -2842,6 +3027,176 @@
         "title": "ExtraFlags",
         "description": "Additional options and flags that modify how the task is executed."
       },
+      "FederatedInstance": {
+        "properties": {
+          "instance_name": {
+            "type": "string",
+            "title": "Instance Name",
+            "description": "Unique name of the federated instance."
+          },
+          "url_address": {
+            "type": "string",
+            "title": "Url Address",
+            "description": "Address of the federated instance."
+          },
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "The username present on the remote instance."
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Password for the username."
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Indicates if the federated instance is currently active.",
+            "default": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Timestamp when the federated instance record was created."
+          },
+          "installed_flows": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Installed Flows",
+            "description": "A dictionary with installed Flows identifiers and their versions."
+          }
+        },
+        "type": "object",
+        "required": [
+          "instance_name",
+          "url_address",
+          "username",
+          "password",
+          "created_at",
+          "installed_flows"
+        ],
+        "title": "FederatedInstance"
+      },
+      "FederatedInstanceCreate": {
+        "properties": {
+          "instance_name": {
+            "type": "string",
+            "title": "Instance Name",
+            "description": "Unique name of the federated instance."
+          },
+          "url_address": {
+            "type": "string",
+            "title": "Url Address",
+            "description": "Address of the federated instance."
+          },
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "The username present on the remote instance."
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Password for the username."
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Indicates if the federated instance is currently active.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "instance_name",
+          "url_address",
+          "username",
+          "password"
+        ],
+        "title": "FederatedInstanceCreate"
+      },
+      "FederatedInstanceInfo": {
+        "properties": {
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerDetails"
+            },
+            "type": "array",
+            "title": "Workers",
+            "description": "List of available workers on the instance.",
+            "default": []
+          },
+          "installed_flows": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Installed Flows",
+            "description": "A dictionary with installed Flows identifiers and their versions.",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "title": "FederatedInstanceInfo"
+      },
+      "FederatedInstanceUpdate": {
+        "properties": {
+          "url_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url Address",
+            "description": "New address of the federated instance."
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username",
+            "description": "New username for the remote instance."
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password",
+            "description": "New password for the username."
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled",
+            "description": "New active status for the federated instance."
+          }
+        },
+        "type": "object",
+        "title": "FederatedInstanceUpdate"
+      },
       "Flow": {
         "properties": {
           "name": {
@@ -2912,6 +3267,7 @@
           },
           "input_params": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -3144,6 +3500,7 @@
             "description": "Parsed information about Flow in Visionatrix format."
           },
           "flow_comfy": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Flow Comfy",
             "description": "The ComfyUI workflow which are installed."
@@ -3359,6 +3716,7 @@
           },
           "input_params": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -3463,6 +3821,7 @@
             "description": "The unique identifier of the flow."
           },
           "input_params": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Input Params",
             "description": "Incoming textual parameters based on which the ComfyUI workflow was generated."
@@ -3555,6 +3914,7 @@
           "translated_input_params": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -3613,6 +3973,7 @@
             "description": "Finish time of the task."
           },
           "flow_comfy": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Flow Comfy",
             "description": "The final generated ComfyUI workflow."
@@ -3637,6 +3998,7 @@
           "webhook_headers": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -3771,6 +4133,7 @@
             "description": "The unique identifier of the flow."
           },
           "input_params": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Input Params",
             "description": "Incoming textual parameters based on which the ComfyUI workflow was generated."
@@ -3863,6 +4226,7 @@
           "translated_input_params": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -4090,11 +4454,6 @@
       },
       "WorkerDetails": {
         "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id",
-            "description": "The primary key for the worker record, automatically incremented."
-          },
           "user_id": {
             "type": "string",
             "title": "User Id",
@@ -4103,7 +4462,7 @@
           "worker_id": {
             "type": "string",
             "title": "Worker Id",
-            "description": "Uniq identifier for the worker, constructed from user_id, hostname, device name and device index."
+            "description": "Uniq identifier for the worker, constructed from user_id, hostname, device name and device index.If 'federated_instance_name' is specified it will be added to this field automatically."
           },
           "worker_version": {
             "type": "string",
@@ -4250,6 +4609,18 @@
             "title": "Ram Free",
             "description": "Free RAM available on the worker in bytes."
           },
+          "pytorch_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pytorch Version",
+            "description": "Version of PyTorch."
+          },
           "engine_details": {
             "anyOf": [
               {
@@ -4259,11 +4630,31 @@
                 "type": "null"
               }
             ]
+          },
+          "federated_instance_name": {
+            "type": "string",
+            "title": "Federated Instance Name",
+            "description": "Name of the federated instance to which the worker belongs.",
+            "default": ""
+          },
+          "empty_task_requests_count": {
+            "type": "integer",
+            "title": "Empty Task Requests Count",
+            "description": "Counts the number of times the worker requested a task but received none. A value of 0 indicates that the worker is busy, while a value of 1 or more indicates that the worker is free.",
+            "default": 0
+          },
+          "last_asked_tasks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Last Asked Tasks",
+            "description": "List of flows IDs that the worker last requested to be processed.",
+            "default": []
           }
         },
         "type": "object",
         "required": [
-          "id",
           "user_id",
           "worker_id",
           "worker_version",
@@ -4364,7 +4755,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-03-14T16:32:31.124563Z"
+            "default": "2025-03-28T05:40:10.225081Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

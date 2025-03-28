@@ -42,7 +42,7 @@ from .flows_loras import (
 from .models import fill_flows_model_installed_field, install_model
 from .models_map import process_flow_models
 from .nodes_helpers import get_node_value, set_node_value
-from .pydantic_models import Flow, FlowCloneRequest, LoraConnectionPoint
+from .pydantic_models import Flow, FlowCloneRequest, LoraConnectionPoint, WorkerDetails
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -312,6 +312,7 @@ def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
     except KeyboardInterrupt:
         # this will only work for the "install-flow" command when run from terminal
         events.EXIT_EVENT.set()
+        events.EXIT_EVENT_ASYNC.set()
         for future in futures:
             with contextlib.suppress(Exception):
                 future.result()
@@ -741,25 +742,25 @@ def get_insightface_nodes(flow_comfy: dict[str, dict]) -> list[str]:
     return r
 
 
-async def fill_flows_supported_field(flows: dict[str, Flow]) -> dict[str, Flow]:
-    available_workers = await db_queries.get_workers_details(None, 5 * 60, "")
+def is_flow_supported(flow: Flow, available_workers: list[WorkerDetails]) -> bool:
+    if flow.is_macos_supported is False and not any(worker.device_type != "mps" for worker in available_workers):
+        return False
+    if flow.required_memory_gb:
+        required_memory_bytes = flow.required_memory_gb * 1024 * 1024 * 1000  # GPU sometimes have less mem
+        return any(worker.vram_total >= required_memory_bytes for worker in available_workers)
+    return True
+
+
+def fill_flows_supported_field(flows: dict[str, Flow], available_workers: list[WorkerDetails]) -> dict[str, Flow]:
     for flow in flows.values():
-        if flow.is_macos_supported is False:
-            flow.is_supported_by_workers = any(worker.device_type != "mps" for worker in available_workers)
-        if flow.is_supported_by_workers is False:
-            continue  # Flow already marked as unsupported, skip additional checks
-        if flow.required_memory_gb:
-            required_memory_bytes = flow.required_memory_gb * 1024 * 1024 * 1000  # GPU sometimes have less mem
-            # Check if any worker has sufficient available memory
-            flow.is_supported_by_workers = any(
-                worker.vram_total >= required_memory_bytes for worker in available_workers
-            )
+        flow.is_seed_supported = is_flow_supported(flow, available_workers)
     return flows
 
 
 async def calculate_dynamic_fields_for_flows(flows: dict[str, Flow]) -> dict[str, Flow]:
     flows_with_filled_fields = await fill_flows_model_installed_field(flows)
-    return await fill_flows_supported_field(flows_with_filled_fields)
+    available_workers = await db_queries.get_workers_details(None, 3 * 60, "", include_federated=True)
+    return fill_flows_supported_field(flows_with_filled_fields, available_workers)
 
 
 async def create_new_flow(flow: Flow, flow_comfy: dict[str, dict], data: FlowCloneRequest) -> dict[str, dict]:

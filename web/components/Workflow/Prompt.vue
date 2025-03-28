@@ -131,9 +131,13 @@ if (flowStore.currentFlow.is_seed_supported) {
 			advanced: true,
 			min: 0,
 			max: 10000000,
+			auto_increment: true,
 		}
 	})
 }
+const seedAutoIncrementEnabled = computed(() => additionalInputParamsMap.value.find((inputParam: any) => {
+	return Object.keys(inputParam)[0] === 'seed'
+})?.seed.auto_increment || false)
 
 const settingsStore = useSettingsStore()
 const shouldTranslate = ref(flowStore.currentFlow.is_translations_supported
@@ -297,16 +301,18 @@ function runPrompt(surprise = false) {
 	flowStore.runFlow(
 		flowStore.currentFlow,
 		[...inputParamsMap.value, ...additionalInputParamsMap.value],
-		batchSize.value,
+		seedAutoIncrementEnabled.value ? batchSize.value : 1,
 		shouldTranslate.value && translatePrompt.value,
 		false, null, surprise,
 		headers
 	).finally(() => {
 		running.value = false
-		const seed = additionalInputParamsMap.value.find((inputParam: any) => {
-			return Object.keys(inputParam)[0] === 'seed'
-		})
-		seed.seed.value = Number(seed.seed.value) + batchSize.value + 1
+		if (seedAutoIncrementEnabled.value) {
+			const seed = additionalInputParamsMap.value.find((inputParam: any) => {
+				return Object.keys(inputParam)[0] === 'seed'
+			})
+			seed.seed.value = Number(seed.seed.value) + batchSize.value + 1
+		}
 	})
 }
 </script>
@@ -346,6 +352,7 @@ function runPrompt(surprise = false) {
 					min="1"
 					max="50"
 					label="Batch size"
+					:disabled="!seedAutoIncrementEnabled"
 					class="mb-3 max-w-fit flex justify-end" />
 			</UFormGroup>
 			<UFormGroup
