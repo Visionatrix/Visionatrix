@@ -47,12 +47,13 @@ from ..tasks_engine_async import (
     update_task_info_database_async,
     update_task_outputs_async,
 )
+from ..webhooks import webhook_task_progress
 from .tasks_internal import (
     get_task_creation_extra_flags,
     get_translated_input_params,
+    preprocess_federation_task,
     process_string_value,
     task_run,
-    webhook_task_progress,
 )
 
 LOGGER = logging.getLogger("visionatrix")
@@ -92,6 +93,7 @@ async def create_task(
     - `X-WORKER-UNLOAD-MODELS`: If `1`, unloads all models from memory before task execution.
     - `X-WORKER-EXECUTION-PROFILER`: If `1`, enables detailed profiling of task execution.
     - `X-WORKER-ID`: Forces the tasks to be assigned to a specific worker.
+    - `X-FEDERATED-TASK`: If `1`, requires X-WORKER-ID`, rejects the task if the worker is busy, mark task as hidden.
 
     **Response:**
 
@@ -109,6 +111,7 @@ async def create_task(
     user_id = request.scope["user_info"].user_id
     is_user_admin = request.scope["user_info"].is_admin
     extra_flags, custom_worker = get_task_creation_extra_flags(request, is_user_admin)
+    await preprocess_federation_task(extra_flags, custom_worker)
 
     flow_comfy = {}
     flow = await get_installed_flow(name, flow_comfy)
