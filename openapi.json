@@ -2490,6 +2490,7 @@
             "description": "SHA256 hash of the model file for integrity verification."
           },
           "hashes": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Hashes",
             "description": "For archives, may contain filename:hash pairs for integrity checks after the archive is deleted.",
@@ -2497,6 +2498,7 @@
           },
           "regexes": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -2832,6 +2834,7 @@
             "description": "SHA256 hash of the model file for integrity verification."
           },
           "hashes": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Hashes",
             "description": "For archives, may contain filename:hash pairs for integrity checks after the archive is deleted.",
@@ -2839,6 +2842,7 @@
           },
           "regexes": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -3263,6 +3267,7 @@
           },
           "input_params": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -3495,6 +3500,7 @@
             "description": "Parsed information about Flow in Visionatrix format."
           },
           "flow_comfy": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Flow Comfy",
             "description": "The ComfyUI workflow which are installed."
@@ -3710,6 +3716,7 @@
           },
           "input_params": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -3814,6 +3821,7 @@
             "description": "The unique identifier of the flow."
           },
           "input_params": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Input Params",
             "description": "Incoming textual parameters based on which the ComfyUI workflow was generated."
@@ -3906,6 +3914,7 @@
           "translated_input_params": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -3964,6 +3973,7 @@
             "description": "Finish time of the task."
           },
           "flow_comfy": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Flow Comfy",
             "description": "The final generated ComfyUI workflow."
@@ -3988,6 +3998,7 @@
           "webhook_headers": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -4122,6 +4133,7 @@
             "description": "The unique identifier of the flow."
           },
           "input_params": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Input Params",
             "description": "Incoming textual parameters based on which the ComfyUI workflow was generated."
@@ -4214,6 +4226,7 @@
           "translated_input_params": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -4742,7 +4755,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-03-26T19:21:53.278899Z"
+            "default": "2025-03-28T05:40:10.225081Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
