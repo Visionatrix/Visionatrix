@@ -138,16 +138,28 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
                 for node in remote_vae_switches:
                     task_to_exec["flow_comfy"][node]["inputs"]["state"] = True
 
-    insightface_nodes = get_insightface_nodes(task_to_exec["flow_comfy"])
-    if insightface_nodes:
-        insightface_provider = await get_worker_value("insightface_provider", task_to_exec["user_id"])
-        if insightface_provider:
-            for node in insightface_nodes:
-                task_to_exec["flow_comfy"][node]["inputs"]["provider"] = insightface_provider
+    await task_preprocess_insightface_nodes(task_to_exec["flow_comfy"], task_to_exec["user_id"])
 
     models_map.process_flow_models(task_to_exec["flow_comfy"], await get_installed_models())
 
     return task_to_exec
+
+
+async def task_preprocess_insightface_nodes(flow_comfy: dict, user_id: str) -> None:
+    insightface_nodes = get_insightface_nodes(flow_comfy)
+    if not insightface_nodes:
+        return
+    insightface_provider = await get_worker_value("insightface_provider", user_id)
+    if not insightface_provider:
+        return
+    for node in insightface_nodes:
+        node_details = flow_comfy[node]
+        if "insightface" in node_details["inputs"] and node_details["class_type"] == "InfiniteYouApply":
+            flow_comfy[node]["inputs"]["insightface"] = insightface_provider
+        elif "provider" in node_details["inputs"]:
+            flow_comfy[node]["inputs"]["provider"] = insightface_provider
+        else:
+            LOGGER.warning("Can not set `insightface_provider` for node %s.", node_details["class_type"])
 
 
 async def get_worker_value(key_name: str, user_id: str = "") -> str:

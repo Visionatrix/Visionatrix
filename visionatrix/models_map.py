@@ -210,6 +210,12 @@ MODEL_LOAD_CLASSES = {
             "type": "clip_vision",
         },
     },
+    "InfiniteYouApply": {
+        "1": {
+            "path": ["inputs", "adapter_file"],
+            "type": "InfiniteYou",
+        },
+    },
 }
 MODELS_CATALOG: dict[str, dict] = {}
 
