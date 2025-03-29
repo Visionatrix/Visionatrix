@@ -737,6 +737,7 @@ def get_insightface_nodes(flow_comfy: dict[str, dict]) -> list[str]:
             "PulidInsightFaceLoader",
             "PhotoMakerInsightFaceLoader",
             "PulidFluxInsightFaceLoader",
+            "InfiniteYouApply",
         ):
             r.append(node_id)
     return r
