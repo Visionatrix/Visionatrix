@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0 - 2025-03-30]
+
+### Added
+
+- `3D` flows support, `Hunuyan 3D` flow. #356
+- Initial support(beta) for `Federation`. Connection of the remote Visionatrix-es to your local one. #357
+
+### Changed
+
+- `Visionatrix` tasks results now stored in the `visionatrix` subfolder of `output` folder. #349
+- `Input` files for tasks are now stored with extensions. #351
+
+### Fixed
+
+- Optimized Dockerfile, fixed not working docker images deploying for `Novita.ai`. #354
+- macOS: `ComfyUI-Frame-Interpolation` node(for `AllYourLife` flow) now works correctly. #352
+- Invalid model download path for `ComfyUI-Frame-Interpolation` node models, that were leading to duplicates. #357
+
 ## [2.0.0 - 2025-03-15]
 
 If you have any problems with this version, feel free to ask questions [here](https://github.com/Visionatrix/Visionatrix/issues/332).
