@@ -66,3 +66,6 @@ build-client-nextcloud:
 	@rm -rf visionatrix/client && rm -rf web/.output/public/
 	@cd web && NUXT_APP_BASE_URL=/index.php/apps/app_api/proxy/visionatrix/ NEXTCLOUD_INTEGRATION=true npm run build && \
 		cp -r .output/public ../visionatrix/client
+	@rm -rf web/.output/public/
+	@cd web && NUXT_APP_BASE_URL=/exapps/visionatrix/ NEXTCLOUD_INTEGRATION=true npm run build && \
+		cp -r .output/public ../visionatrix/client_harp
