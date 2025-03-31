@@ -40,6 +40,7 @@ from .tasks_engine_etc import (
     nodes_execution_profiler,
     prepare_worker_info_update,
 )
+from .webhooks import webhook_task_progress
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -495,25 +496,14 @@ async def update_task_progress(task_details: dict) -> bool:
         ExecutionDetails.model_validate(execution_details) if execution_details else None,
     )
     if r and task_details["webhook_url"]:
-        try:
-            async with httpx.AsyncClient(base_url=task_details["webhook_url"], timeout=3.0) as client:
-                await client.post(
-                    url="task-progress",
-                    json={
-                        "task_id": task_details["task_id"],
-                        "progress": task_details["progress"],
-                        "execution_time": task_details["execution_time"],
-                        "error": task_details["error"],
-                    },
-                    headers=task_details["webhook_headers"],
-                )
-        except httpx.RequestError as e:
-            LOGGER.exception(
-                "Exception during calling webhook %s, progress=%s: %s",
-                task_details["webhook_url"],
-                task_details["progress"],
-                e,
-            )
+        await webhook_task_progress(
+            task_details["webhook_url"],
+            task_details["webhook_headers"],
+            task_details["task_id"],
+            task_details["progress"],
+            task_details["execution_time"],
+            task_details["error"],
+        )
     return r
 
 
