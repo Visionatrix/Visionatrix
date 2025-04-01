@@ -27,6 +27,16 @@ const columnsTable = [
 ]
 
 const selectedRows = ref<ModelApiItem[]>([])
+watch(selectedRows, (newSelectedRows, oldSelectedRows) => {
+	const deselectedRows = oldSelectedRows.filter((row: ModelApiItem) => {
+		return !newSelectedRows.includes(row)
+	})
+	deselectedRows.forEach((row: ModelApiItem) => {
+		if (row.currentFlowLora) {
+			removeCurrentLora(row)
+		}
+	})
+})
 const expand = ref({
 	openedRows: [],
 	row: {}
@@ -172,6 +182,11 @@ const newFlowNameValidationError = computed(() => {
 	return ''
 })
 
+const hasRemovedCurrentLoras = computed(() => {
+	return Object.values(currentFlowLorasInfo.value).some((lora: any) => {
+		return lora === null
+	})
+})
 const hasSelectedLoras = computed(() => selectedRows.value.filter((row: ModelApiItem) => {
 	if (currentFlowLorasInfo.value[row.modelVersions[0].files[0].hashes['SHA256'].toLowerCase()]) {
 		return false
@@ -179,8 +194,11 @@ const hasSelectedLoras = computed(() => selectedRows.value.filter((row: ModelApi
 	return true
 }).length !== 0)
 
+const canClearSelection = computed(() => {
+	return hasSelectedLoras.value || hasRemovedCurrentLoras.value
+})
 const canApplyAndInstall = computed(() => {
-	return hasSelectedLoras.value
+	return (hasSelectedLoras.value || hasRemovedCurrentLoras.value)
 		&& newFlowNameValid.value
 		&& newDisplayName.value !== ''
 		&& newFlowDescription.value !== ''
@@ -202,7 +220,7 @@ const applyButtonTooltip = computed(() => {
 })
 
 function applyAndInstall() {
-	if (selectedRows.value.length === 0) {
+	if (selectedRows.value.length === 0 && !hasRemovedCurrentLoras.value) {
 		toast.add({
 			title: 'No LoRAs selected',
 			description: 'Please select at least one LoRA to apply and install.',
@@ -249,14 +267,15 @@ function applyAndInstall() {
 }
 
 const currentFlowLorasInfo = ref<{[hash: string]: any}>({})
-function fetchCurrentFlowLorasInfo() {
+function fetchCurrentFlowLorasInfo(force = false) {
 	const flowLoras: LoraPoint[] = props.flow.lora_connect_points[Object.keys(props.flow.lora_connect_points)[0]].connected_loras
 	console.debug('Flow LORAs: ', flowLoras)
 
 	Promise.all(
 		flowLoras.map((lora: any) => {
 			return civitAiStore.fetchFlowLorasByHash(props.flow, token.value, lora.hash)?.then((res: ModelApiItem|any) => {
-				if (!(lora.hash in currentFlowLorasInfo.value)) {
+				// force fetch if clearing current changes
+				if (!(lora.hash in currentFlowLorasInfo.value) || force) {
 					currentFlowLorasInfo.value[lora.hash] = res
 				}
 				return res
@@ -386,7 +405,7 @@ function fetchLoras(nextPage = false) {
 								v-model="newFlowName"
 								type="text"
 								placeholder="unique_flow_name"
-								@input="(e) => {
+								@input="(e: InputEvent|any) => {
 									e.target.value = e.target.value.toLowerCase()
 									newFlowName = e.target.value.toLowerCase()
 								}" />
@@ -414,7 +433,7 @@ function fetchLoras(nextPage = false) {
 						</UFormGroup>
 					</div>
 				</div>
-	
+
 
 				<UCard
 					class="w-full"
@@ -438,12 +457,15 @@ function fetchLoras(nextPage = false) {
 								v-model="keepPreviousLoras"
 								label="Keep previous LoRAs"
 								class="mr-2" />
-							<UButton v-if="hasSelectedLoras"
+							<UButton v-if="canClearSelection"
 								variant="outline"
 								icon="i-heroicons-x-circle"
 								color="orange"
 								class="mr-2"
-								@click="() => selectedRows.splice(0)">
+								@click="() => {
+									selectedRows.splice(0)
+									fetchCurrentFlowLorasInfo(true)
+								}">
 								Clear selection
 							</UButton>
 							<UTooltip :text="applyButtonTooltip">
@@ -481,16 +503,6 @@ function fetchLoras(nextPage = false) {
 									aria-label="Select row"
 									:checked="checked"
 									:indeterminate="indeterminate && hasSelectedLoras"
-									@change="(e: any) => change(e.target.checked)">
-							</div>
-						</template>
-
-						<template #select-data="{ checked, change, row }">
-							<div v-if="!row?.currentFlowLora" class="flex items-center h-5">
-								<input type="checkbox"
-									class="h-4 w-4 dark:checked:bg-current dark:checked:border-transparent dark:indeterminate:bg-current dark:indeterminate:border-transparent disabled:opacity-50 disabled:cursor-not-allowed focus:ring-0 focus:ring-transparent focus:ring-offset-transparent form-checkbox rounded bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 text-primary-500 dark:text-primary-400"
-									aria-label="Select row"
-									:checked="checked"
 									@change="(e: any) => change(e.target.checked)">
 							</div>
 						</template>
