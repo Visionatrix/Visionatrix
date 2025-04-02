@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import re
+import shutil
 import time
 import zipfile
 from pathlib import Path
@@ -186,6 +187,20 @@ async def download_model(
 
                 total_size = get_model_total_size(response)
                 check_etag(response, model)
+
+                # Check available disk space before downloading
+                available_space = shutil.disk_usage(save_path.parent).free
+                required_space = total_size - existing_file_size
+                if available_space < required_space:
+                    error_msg = (
+                        f"Insufficient disk space to download {model.name}. "
+                        f"Required: {required_space // (1024*1024)}MB, "
+                        f"Available: {available_space // (1024*1024)}MB"
+                    )
+                    LOGGER.error(error_msg)
+                    await db_queries.set_model_progress_install_error(model.name, flow_name, error_msg)
+                    await db_queries.set_flow_progress_install_error(flow_name, error_msg)
+                    return False
 
                 # Actual downloading logic starts here
                 if existing_file_size > 0:
