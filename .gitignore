@@ -109,3 +109,8 @@ temp_repo_clones
 
 model_paths.yaml
 extra_model_paths.yaml
+
+tunableop_results0.csv
+
+.cursorignore
+Visionatrix.code-workspace

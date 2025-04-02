@@ -1,7 +1,5 @@
 import asyncio
 import builtins
-import concurrent.futures
-import contextlib
 import io
 import json
 import logging
@@ -267,62 +265,75 @@ async def get_installed_flow(flow_name: str, flow_comfy: dict[str, dict]) -> Flo
     return flow
 
 
-def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
-    asyncio.run(db_queries.delete_flow_progress_install(flow.name))
-    asyncio.run(db_queries.add_flow_progress_install(flow.name, flow_comfy, [i.name for i in flow.models]))
+async def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
+    await db_queries.delete_flow_progress_install(flow.name)
+    await db_queries.add_flow_progress_install(flow.name, flow_comfy, [i.name for i in flow.models])
 
     auth_tokens = {"huggingface_auth_token": "", "civitai_auth_token": ""}
-    for token_env, token_key in [("HF_AUTH_TOKEN", "huggingface_auth_token"), ("CA_AUTH_TOKEN", "civitai_auth_token")]:
-        if token_env in os.environ:
-            auth_tokens[token_key] = os.environ[token_env]
-        elif options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-            try:
-                r = httpx.get(
-                    options.VIX_SERVER.rstrip("/") + "/setting",
-                    params={"key": token_key},
-                    auth=options.worker_auth(),
-                    timeout=float(options.WORKER_NET_TIMEOUT),
-                )
-                if not httpx.codes.is_error(r.status_code):
-                    auth_tokens[token_key] = r.text.strip()
-            except Exception as e:
-                LOGGER.error("Error fetching `%s`: %s", token_key, str(e))
-        else:
-            auth_tokens[token_key] = asyncio.run(db_queries.get_global_setting(token_key, True))
-
-    try:
-        install_models_results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            futures = [
-                executor.submit(
-                    install_model,
-                    model,
-                    flow.name,
-                    (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
-                )
-                for model in flow.models
-            ]
-            for future in concurrent.futures.as_completed(futures):
+    async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+        for token_env, token_key in [
+            ("HF_AUTH_TOKEN", "huggingface_auth_token"),
+            ("CA_AUTH_TOKEN", "civitai_auth_token"),
+        ]:
+            if token_env in os.environ:
+                auth_tokens[token_key] = os.environ[token_env]
+            elif options.VIX_MODE == "WORKER" and options.VIX_SERVER:
                 try:
-                    install_models_result = future.result()
-                    install_models_results.append(install_models_result)
+                    r = await client.get(
+                        options.VIX_SERVER.rstrip("/") + "/setting",
+                        params={"key": token_key},
+                        auth=options.worker_auth(),
+                    )
+                    if not httpx.codes.is_error(r.status_code):
+                        auth_tokens[token_key] = r.text.strip()
                 except Exception as e:
-                    LOGGER.exception("Error during models installation: %s", e)
-                    return False
+                    LOGGER.error("Error fetching `%s`: %s", token_key, str(e))
+            else:
+                auth_tokens[token_key] = await db_queries.get_global_setting(token_key, True)
+
+    semaphore = asyncio.Semaphore(2)
+
+    async def _install_model_with_semaphore(model_to_install):
+        async with semaphore:
+            return await install_model(
+                model_to_install,
+                flow.name,
+                (auth_tokens["huggingface_auth_token"], auth_tokens["civitai_auth_token"]),
+            )
+
+    tasks = [asyncio.create_task(_install_model_with_semaphore(model)) for model in flow.models]
+
+    install_models_results = []
+    try:
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for result in results:
+            if isinstance(result, Exception):
+                if isinstance(result, KeyboardInterrupt):
+                    raise result
+                LOGGER.exception("Error during models installation: %s", result)
+                install_models_results.append(False)
+            else:
+                install_models_results.append(result)
+
     except KeyboardInterrupt:
-        # this will only work for the "install-flow" command when run from terminal
+        LOGGER.warning("Flow installation interrupted by user.")
+        for task in tasks:
+            if not task.done():
+                task.cancel()
         events.EXIT_EVENT.set()
         events.EXIT_EVENT_ASYNC.set()
-        for future in futures:
-            with contextlib.suppress(Exception):
-                future.result()
+        await db_queries.set_flow_progress_install_error(flow.name, "Installation canceled by user")
+        return False
+    except Exception as e:
+        LOGGER.exception("Unexpected error during flow installation: %s", e)
+        await db_queries.set_flow_progress_install_error(flow.name, f"Unexpected error: {e}")
         return False
 
     if not all(install_models_results):
         LOGGER.info("Installation of `%s` was unsuccessful", flow.name)
         return False
 
-    if not asyncio.run(db_queries.mark_flow_as_installed(flow.name)):
+    if not await db_queries.mark_flow_as_installed(flow.name):
         return False
     LOGGER.info("Installation of `%s` flow completed", flow.name)
 

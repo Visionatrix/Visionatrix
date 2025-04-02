@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import re
+import shutil
 import time
 import zipfile
 from pathlib import Path
@@ -21,15 +22,7 @@ DOWNLOAD_RETRY_COUNT = 3
 LOGGER = logging.getLogger("visionatrix")
 
 
-def install_model(
-    model: AIResourceModel,
-    flow_name: str,
-    auth_tokens: tuple[str, str] = ("", ""),  # (huggingface_token, civitai_token)
-) -> bool:
-    return asyncio.run(__install_model(model, flow_name, auth_tokens))
-
-
-async def __install_model(
+async def install_model(
     model: AIResourceModel,
     flow_name: str,
     auth_tokens: tuple[str, str] = ("", ""),  # (huggingface_token, civitai_token)
@@ -192,58 +185,79 @@ async def download_model(
                 if httpx.codes.is_error(response.status_code):
                     raise RuntimeError(f"Download request failed with status: {response.status_code}")
 
-                total_size = get_model_total_size(response)
-                check_etag(response, model)
+                return await perform_downloading(model, save_path, save_name, flow_name, existing_file_size, response)
 
-                # Actual downloading logic starts here
-                if existing_file_size > 0:
-                    # Report initial progress based on existing file size
-                    model_progress_percentage = existing_file_size / total_size * 100.0
+    save_path.unlink(missing_ok=True)
+    raise RuntimeError("Failed to download model after retries")
+
+
+async def perform_downloading(
+    model: AIResourceModel,
+    save_path: Path,
+    save_name: str,
+    flow_name: str,
+    existing_file_size: int,
+    response: httpx.Response,
+) -> bool:
+    total_size = get_model_total_size(response)
+    check_etag(response, model)
+    # Check available disk space before downloading
+    available_space = shutil.disk_usage(save_path.parent).free
+    required_space = total_size - existing_file_size
+    if available_space < required_space:
+        error_msg = (
+            f"Insufficient disk space to download {model.name}. "
+            f"Required: {required_space // (1024 * 1024)}MB, "
+            f"Available: {available_space // (1024 * 1024)}MB"
+        )
+        LOGGER.error(error_msg)
+        await db_queries.set_model_progress_install_error(model.name, flow_name, error_msg)
+        await db_queries.set_flow_progress_install_error(flow_name, error_msg)
+        return False
+
+    # Actual downloading logic starts here
+    if existing_file_size > 0:
+        # Report initial progress based on existing file size
+        model_progress_percentage = existing_file_size / total_size * 100.0
+        if not await db_queries.update_model_progress_install(model.name, flow_name, model_progress_percentage):
+            return False
+
+    current_file_size = existing_file_size
+    mode = "ab" if existing_file_size > 0 else "wb"
+    with builtins.open(save_path, mode) as file:
+        last_reported_progress = existing_file_size / total_size * 100.0
+        last_flow_update = time.monotonic()
+        async for chunk in response.aiter_bytes(10 * 1024 * 1024):
+            if chunk:
+                bytes_written = await asyncio.to_thread(file.write, chunk)
+                current_file_size += bytes_written
+                model_progress_percentage = min((current_file_size / total_size) * 100.0, 99.9)
+                if model_progress_percentage - last_reported_progress >= 0.3:
                     if not await db_queries.update_model_progress_install(
                         model.name, flow_name, model_progress_percentage
                     ):
                         return False
-
-                current_file_size = existing_file_size
-                mode = "ab" if existing_file_size > 0 else "wb"
-                with builtins.open(save_path, mode) as file:
-                    last_reported_progress = existing_file_size / total_size * 100.0
-                    last_flow_update = time.monotonic()
-                    async for chunk in response.aiter_bytes(10 * 1024 * 1024):
-                        if chunk:
-                            bytes_written = file.write(chunk)
-                            current_file_size += bytes_written
-                            model_progress_percentage = min((current_file_size / total_size) * 100.0, 99.9)
-                            if model_progress_percentage - last_reported_progress >= 0.3:
-                                if not await db_queries.update_model_progress_install(
-                                    model.name, flow_name, model_progress_percentage
-                                ):
-                                    return False
-                                LOGGER.info(
-                                    "Model `%s` for flow `%s`: installation: %s",
-                                    model.name,
-                                    flow_name,
-                                    math.floor(model_progress_percentage * 10) / 10,
-                                )
-                                last_reported_progress = model_progress_percentage
-                            if time.monotonic() - last_flow_update >= 1.5:
-                                if not await db_queries.update_flow_updated_at(flow_name):
-                                    return False
-                                last_flow_update = time.monotonic()
-                if not check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
-                    save_path.unlink(missing_ok=True)
-                    raise RuntimeError("Downloaded file hash does not match the expected hash.")
-                if model.url.endswith(".zip"):
-                    extract_zip_with_subfolder(save_path, save_path.parent)
-                    save_path.unlink(missing_ok=True)
-                else:
-                    await db_queries.update_model_mtime(
-                        model.name, save_path.stat().st_mtime, flow_name, new_filename=save_name
+                    LOGGER.info(
+                        "Model `%s` for flow `%s`: installation: %s",
+                        model.name,
+                        flow_name,
+                        math.floor(model_progress_percentage * 10) / 10,
                     )
-                await db_queries.update_model_progress_install(model.name, flow_name, 100.0)
-                return True
-    save_path.unlink(missing_ok=True)
-    raise RuntimeError("Failed to download model after retries")
+                    last_reported_progress = model_progress_percentage
+                if time.monotonic() - last_flow_update >= 1.5:
+                    if not await db_queries.update_flow_updated_at(flow_name):
+                        return False
+                    last_flow_update = time.monotonic()
+    if not await check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
+        save_path.unlink(missing_ok=True)
+        raise RuntimeError("Downloaded file hash does not match the expected hash.")
+    if model.url.endswith(".zip"):
+        extract_zip_with_subfolder(save_path, save_path.parent)
+        save_path.unlink(missing_ok=True)
+    else:
+        await db_queries.update_model_mtime(model.name, save_path.stat().st_mtime, flow_name, new_filename=save_name)
+    await db_queries.update_model_progress_install(model.name, flow_name, 100.0)
+    return True
 
 
 def get_model_total_size(response: httpx.Response) -> int:
@@ -344,7 +358,7 @@ async def does_model_exist_in_fs(
             for model_name, model_hash in model.hashes.items():
                 archive_element = Path(save_path.with_suffix("")).joinpath(model_name)
                 if archive_element.exists():
-                    if check_hash(model_hash, archive_element, True):
+                    if await check_hash(model_hash, archive_element, True):
                         LOGGER.info("`%s` already exists.", archive_element)
                         continue
                     if delete_invalid:
@@ -381,7 +395,7 @@ async def check_model_file(
                     "`%s` already exists, but filename from database does not match, checking hash...",
                     model_existing_path,
                 )
-        if check_hash(model.hash, model_existing_path):
+        if await check_hash(model.hash, model_existing_path):
             LOGGER.info("`%s` already exists, and hash is fine.", model_existing_path)
             if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
                 return True
@@ -430,7 +444,7 @@ async def lookup_for_model_file_in_directory(
                     LOGGER.info("Found potential match for `%s` at `%s`.", model.name, file_path)
 
                     # Validate the file hash
-                    if check_hash(model.hash, file_path):
+                    if await check_hash(model.hash, file_path):
                         LOGGER.info("Validated hash for `%s` at `%s`.", model.name, file_path)
                         model_filename = str(file_path.relative_to(model_possible_directory))
 
@@ -448,14 +462,25 @@ async def lookup_for_model_file_in_directory(
     return False
 
 
-def check_hash(etag: str, model_path: str | Path, force_full_model: bool = False) -> bool:
+def _check_hash_sync(etag: str, model_path: str | Path) -> bool:
+    try:
+        with builtins.open(model_path, "rb") as file:
+            sha256_hash = hashlib.sha256()
+            for byte_block in iter(lambda: file.read(1024 * 1024), b""):
+                sha256_hash.update(byte_block)
+            return f"{sha256_hash.hexdigest()}" == etag
+    except FileNotFoundError:
+        LOGGER.warning("File not found for hash check: %s", model_path)
+        return False
+    except Exception as e:
+        LOGGER.error("Error during hash check for %s: %s", model_path, e)
+        return False
+
+
+async def check_hash(etag: str, model_path: str | Path, force_full_model: bool = False) -> bool:
     if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0" and force_full_model is False:
         return True
-    with builtins.open(model_path, "rb") as file:
-        sha256_hash = hashlib.sha256()
-        for byte_block in iter(lambda: file.read(4096), b""):
-            sha256_hash.update(byte_block)
-        return f"{sha256_hash.hexdigest()}" == etag
+    return await asyncio.to_thread(_check_hash_sync, etag, model_path)
 
 
 def check_etag(response: httpx.Response, model: AIResourceModel) -> None:
