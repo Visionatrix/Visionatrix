@@ -21,15 +21,7 @@ DOWNLOAD_RETRY_COUNT = 3
 LOGGER = logging.getLogger("visionatrix")
 
 
-def install_model(
-    model: AIResourceModel,
-    flow_name: str,
-    auth_tokens: tuple[str, str] = ("", ""),  # (huggingface_token, civitai_token)
-) -> bool:
-    return asyncio.run(__install_model(model, flow_name, auth_tokens))
-
-
-async def __install_model(
+async def install_model(
     model: AIResourceModel,
     flow_name: str,
     auth_tokens: tuple[str, str] = ("", ""),  # (huggingface_token, civitai_token)
@@ -230,7 +222,7 @@ async def download_model(
                                 if not await db_queries.update_flow_updated_at(flow_name):
                                     return False
                                 last_flow_update = time.monotonic()
-                if not check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
+                if not await check_hash(model.hash, save_path, bool(save_path.suffix == ".zip")):
                     save_path.unlink(missing_ok=True)
                     raise RuntimeError("Downloaded file hash does not match the expected hash.")
                 if model.url.endswith(".zip"):
@@ -344,7 +336,7 @@ async def does_model_exist_in_fs(
             for model_name, model_hash in model.hashes.items():
                 archive_element = Path(save_path.with_suffix("")).joinpath(model_name)
                 if archive_element.exists():
-                    if check_hash(model_hash, archive_element, True):
+                    if await check_hash(model_hash, archive_element, True):
                         LOGGER.info("`%s` already exists.", archive_element)
                         continue
                     if delete_invalid:
@@ -381,7 +373,7 @@ async def check_model_file(
                     "`%s` already exists, but filename from database does not match, checking hash...",
                     model_existing_path,
                 )
-        if check_hash(model.hash, model_existing_path):
+        if await check_hash(model.hash, model_existing_path):
             LOGGER.info("`%s` already exists, and hash is fine.", model_existing_path)
             if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0":
                 return True
@@ -430,7 +422,7 @@ async def lookup_for_model_file_in_directory(
                     LOGGER.info("Found potential match for `%s` at `%s`.", model.name, file_path)
 
                     # Validate the file hash
-                    if check_hash(model.hash, file_path):
+                    if await check_hash(model.hash, file_path):
                         LOGGER.info("Validated hash for `%s` at `%s`.", model.name, file_path)
                         model_filename = str(file_path.relative_to(model_possible_directory))
 
@@ -448,14 +440,25 @@ async def lookup_for_model_file_in_directory(
     return False
 
 
-def check_hash(etag: str, model_path: str | Path, force_full_model: bool = False) -> bool:
+def _check_hash_sync(etag: str, model_path: str | Path) -> bool:
+    try:
+        with builtins.open(model_path, "rb") as file:
+            sha256_hash = hashlib.sha256()
+            for byte_block in iter(lambda: file.read(1024 * 1024), b""):
+                sha256_hash.update(byte_block)
+            return f"{sha256_hash.hexdigest()}" == etag
+    except FileNotFoundError:
+        LOGGER.warning("File not found for hash check: %s", model_path)
+        return False
+    except Exception as e:
+        LOGGER.error("Error during hash check for %s: %s", model_path, e)
+        return False
+
+
+async def check_hash(etag: str, model_path: str | Path, force_full_model: bool = False) -> bool:
     if options.VIX_MODE == "SERVER" and options.VIX_SERVER_FULL_MODELS == "0" and force_full_model is False:
         return True
-    with builtins.open(model_path, "rb") as file:
-        sha256_hash = hashlib.sha256()
-        for byte_block in iter(lambda: file.read(4096), b""):
-            sha256_hash.update(byte_block)
-        return f"{sha256_hash.hexdigest()}" == etag
+    return await asyncio.to_thread(_check_hash_sync, etag, model_path)
 
 
 def check_etag(response: httpx.Response, model: AIResourceModel) -> None:

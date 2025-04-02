@@ -211,7 +211,7 @@ if __name__ == "__main__":
             if path.is_file():
                 with path.open("rb") as fp:
                     install_flow_comfy = json.loads(fp.read())
-                r = install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy)
+                r = asyncio.run(install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy))
             elif path.is_dir():
                 json_files = list(path.glob("*.json"))
                 if not json_files:
@@ -224,7 +224,7 @@ if __name__ == "__main__":
                     logging.getLogger("visionatrix").info("Installing flow from file: '%s'", json_file)
                     with json_file.open("rb") as fp:
                         install_flow_comfy = json.loads(fp.read())
-                    if not install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy):
+                    if not asyncio.run(install_custom_flow(get_vix_flow(install_flow_comfy), install_flow_comfy)):
                         r = False
             else:
                 logging.getLogger("visionatrix").error("Path is neither a file nor a directory: '%s'", path)
@@ -255,7 +255,7 @@ if __name__ == "__main__":
                     logging.getLogger("visionatrix").info("Aborting installation.")
                     sys.exit(0)
             for flow_name, flow in flows_to_install.items():
-                if not install_custom_flow(flow=flow, flow_comfy=flows_comfy[flow_name]):
+                if not asyncio.run(install_custom_flow(flow=flow, flow_comfy=flows_comfy[flow_name])):
                     r = False
         if not r:
             sys.exit(1)

@@ -130,7 +130,7 @@ def update() -> None:
     avail_flows = asyncio.run(get_available_flows(avail_flows_comfy))
     for i in asyncio.run(get_installed_flows()):
         if i in avail_flows:
-            install_custom_flow(avail_flows[i], avail_flows_comfy[i])
+            asyncio.run(install_custom_flow(avail_flows[i], avail_flows_comfy[i]))
         else:
             logging.warning("`%s` flow not found in repository, skipping update of it.", i)
 
