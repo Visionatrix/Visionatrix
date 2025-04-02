@@ -135,7 +135,10 @@ function sortColumnsOrder(a: any, b: any) {
 }
 
 const flowsStore = useFlowsStore()
-const flowsAvailableOptions = computed(() => flowsStore.flows.map((flow: Flow) => {
+const flowsAvailableOptions = computed(() => [
+	...flowsStore.$state.flows_installed,
+	...flowsStore.$state.flows_available,
+].map((flow: Flow) => {
 	return {
 		label: flow.display_name,
 		value: flow.name,
