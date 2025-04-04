@@ -39,6 +39,16 @@ const flowsStore = useFlowsStore()
 const flowFileInput = ref(null)
 const uploadingFlow = ref(false)
 
+const ollamaHasError = computed(() => {
+	return settingsStore.ollamaFetchError !== ''
+		&& (
+			settingsStore.settingsMap.ollama_vision_model.value !== ''
+			|| settingsStore.settingsMap.ollama_llm_model.value !== ''
+			|| settingsStore.settingsMap.translations_provider.value === 'ollama'
+			|| settingsStore.settingsMap.llm_provider.value === 'ollama'
+		)
+})
+
 function uploadFlow() {
 	// @ts-ignore
 	const file = flowFileInput.value.$refs.input.files[0] || null
@@ -265,17 +275,12 @@ const passwordInputs = ref({
 							size="md"
 							autocomplete="off"
 						/>
-					</UFormGroup>
-					<UFormGroup
-						size="md"
-						class="py-3"
-						label="Ollama Vision Model"
-						description="Override Ollama Vision model used by default.">
-						<UAlert v-if="settingsStore.ollamaFetchError !== ''"
-							color="red"
+						<UAlert v-if="ollamaHasError"
+							color="yellow"
 							variant="soft"
+							class="mt-3"
 							icon="i-heroicons-exclamation-circle"
-							title="Error fetching Ollama models list. Try again later"
+							title="Failed to fetch Ollama models list"
 							:description="settingsStore.ollamaFetchError">
 							<template #actions>
 								<UButton
@@ -287,6 +292,12 @@ const passwordInputs = ref({
 								</UButton>
 							</template>
 						</UAlert>
+					</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Ollama Vision Model"
+						description="Override Ollama Vision model used by default.">
 						<div class="flex w-full items-center my-2">
 							<USelectMenu
 								v-model="settingsStore.settingsMap.ollama_vision_model.value"
@@ -312,22 +323,6 @@ const passwordInputs = ref({
 						class="py-3"
 						label="Ollama LLM Model"
 						description="Override Ollama LLM model used by default.">
-						<UAlert v-if="settingsStore.ollamaFetchError !== ''"
-							color="red"
-							variant="soft"
-							icon="i-heroicons-exclamation-circle"
-							title="Error fetching Ollama models list. Try again later"
-							:description="settingsStore.ollamaFetchError">
-							<template #actions>
-								<UButton
-									icon="i-heroicons-arrow-path-solid"
-									variant="outline"
-									color="white"
-									@click="() => settingsStore.getOllamaModelsList()">
-									Retry
-								</UButton>
-							</template>
-						</UAlert>
 						<div class="flex w-full items-center my-2">
 							<USelectMenu
 								v-model="settingsStore.settingsMap.ollama_llm_model.value"
