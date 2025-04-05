@@ -92,7 +92,7 @@ BASIC_NODE_LIST = {
     "was-node-suite-comfyui@1.0.2": {},
     "comfyui-visionatrix@1.0.8": {},
     "comfyui-remotevae@1.0.0": {},
-    "comfyui-gemini@1.0.3": {},
+    "comfyui-gemini@1.0.4": {},
     "comfyui-ollama@2.0.1": {},
     "pulid_comfyui@1.0.1": {},
     "comfyui_pulid_flux_ll@1.1.4": {},
