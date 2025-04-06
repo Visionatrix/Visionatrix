@@ -20,7 +20,7 @@ from . import (
     update_pip_auto_fix_requirements,
 )
 from .db_queries import get_all_global_settings, get_global_setting, set_global_setting
-from .etc import get_higher_log_level, get_log_level
+from .etc import setup_logging
 from .flows import get_not_installed_flows, get_vix_flow, install_custom_flow
 from .orphan_models import process_orphan_models
 
@@ -138,15 +138,7 @@ if __name__ == "__main__":
             comfyui_wrapper.add_arguments(subparser)
 
     args = parser.parse_args()
-
-    defined_loglvl = get_log_level(args.verbose)
-    logging.basicConfig(
-        level=defined_loglvl,
-        format="%(asctime)s: [%(funcName)s]:%(levelname)s: %(message)s",
-        datefmt="%H:%M:%S",
-    )
-    logging.getLogger("httpx").setLevel(get_higher_log_level(defined_loglvl))
-    logging.getLogger("alembic").setLevel(get_higher_log_level(defined_loglvl))
+    setup_logging(log_level_name=args.verbose)
 
     if args.command == "run":
         if args.host:

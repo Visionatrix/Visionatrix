@@ -1,6 +1,7 @@
 import logging
 import os
 import string
+import sys
 from contextlib import contextmanager
 
 IMAGE_EXTENSIONS = [
@@ -69,17 +70,8 @@ MODEL3D_EXTENSION = [
     ".glb",
 ]
 
-
-def get_log_level(log_level_str):
-    """Convert log level string to logging module log level."""
-    log_levels = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL,
-    }
-    return log_levels.get(log_level_str.upper(), logging.INFO)
+DEFAULT_LOG_FORMAT = "%(asctime)s: [%(funcName)s]:%(levelname)s: %(message)s"
+DEFAULT_DATE_FORMAT = "%H:%M:%S"
 
 
 def get_higher_log_level(current_level):
@@ -91,6 +83,54 @@ def get_higher_log_level(current_level):
         logging.CRITICAL: logging.CRITICAL,
     }
     return level_mapping.get(current_level, logging.WARNING)
+
+
+def setup_logging(
+    log_level_name: str = "INFO", log_format: str = DEFAULT_LOG_FORMAT, date_format: str = DEFAULT_DATE_FORMAT
+):
+    requested_level_name = log_level_name.upper()
+    log_level = logging.getLevelName(log_level_name.upper())
+    if not isinstance(log_level, int):
+        print(f"Warning: Invalid log level name '{log_level_name}'. Defaulting to INFO.", file=sys.stderr)
+        log_level = logging.INFO
+        resolved_log_level_name = logging.getLevelName(log_level)
+    else:
+        resolved_log_level_name = requested_level_name
+
+    # Set Environment Variable (Important: BEFORE configuring loggers that might read it)
+    # This makes the resolved level available to child processes or other parts
+    # of the current process that might check the environment later.
+    os.environ["LOG_LEVEL"] = resolved_log_level_name
+    logger = logging.getLogger("visionatrix")
+    logger.setLevel(log_level)  # Set level for the application logger FIRST
+
+    # Check if a handler of the correct type and target (stdout/stderr) already exists
+    # to prevent duplicates, especially relevant if called multiple times or in complex setups.
+    handler_exists = False
+    for h in logger.handlers:
+        if isinstance(h, logging.StreamHandler) and h.stream in (sys.stdout, sys.stderr):
+            handler_exists = True
+            h.setLevel(log_level)
+            formatter = logging.Formatter(log_format, datefmt=date_format)
+            h.setFormatter(formatter)
+            break  # Assume one console handler is enough
+
+    if not handler_exists:
+        handler = logging.StreamHandler(sys.stdout)  # Use stdout for all log levels
+        handler.setLevel(log_level)  # Crucial: Handler must also have the level set
+        formatter = logging.Formatter(log_format, datefmt=date_format)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    # Prevent messages from propagating to the root logger if we have our own handler.
+    # This stops potential double logging if the root logger is configured separately  (e.g., by default or by Uvicorn).
+    logger.propagate = False
+
+    # Make noisy libraries less verbose unless we are in DEBUG mode
+    dependency_level = log_level if log_level == logging.DEBUG else get_higher_log_level(log_level)
+    logging.getLogger("httpx").setLevel(dependency_level)
+    logging.getLogger("alembic").setLevel(dependency_level)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING if log_level > logging.DEBUG else logging.DEBUG)
 
 
 def is_english(input_string: str) -> bool:

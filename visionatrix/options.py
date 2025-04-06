@@ -1,6 +1,5 @@
 """Options to change Visionatrix runtime behavior."""
 
-import logging
 import sys
 from os import environ, path
 from pathlib import Path
@@ -153,7 +152,6 @@ def init_dirs_values(
 
 def get_server_mode_options_as_env() -> dict[str, str]:
     return {
-        "LOG_LEVEL": logging.getLevelName(logging.getLogger().getEffectiveLevel()),
         "COMFYUI_DIR": COMFYUI_DIR,
         "BASE_DATA_DIR": BASE_DATA_DIR,
         "INPUT_DIR": INPUT_DIR,

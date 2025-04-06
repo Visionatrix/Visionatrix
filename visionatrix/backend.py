@@ -21,12 +21,14 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
+from .etc import setup_logging
 from .federation import federation_engine
 from .pydantic_models import UserInfo
 from .tasks_engine import remove_active_task_lock, task_progress_callback
 from .tasks_engine_async import start_tasks_engine
 from .user_backends import perform_auth_http, perform_auth_ws
 
+setup_logging(log_level_name=os.environ.get("LOG_LEVEL", "INFO").upper())
 LOGGER = logging.getLogger("visionatrix")
 
 
@@ -142,7 +144,6 @@ def parse_cookies_and_headers(scope: Scope) -> tuple[dict[str, str], dict[str, s
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     register_heif_opener()
-    logging.getLogger("uvicorn.access").setLevel(logging.getLogger().getEffectiveLevel())
     await database.init_database_engine()
 
     routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = await comfyui_wrapper.load(
@@ -250,6 +251,7 @@ def run_vix(*args, **kwargs) -> None:
             host=options.get_host_to_map(),
             port=options.get_port_to_map(),
             workers=int(options.VIX_SERVER_WORKERS),
+            log_level=os.environ.get("LOG_LEVEL", "info").lower(),
             **kwargs,
         )
     else:
