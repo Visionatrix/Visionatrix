@@ -187,6 +187,14 @@ class FlowDelegationConfig(Base):
     delegation_threshold = Column(Integer, default=0, nullable=False)
 
 
+class BackgroundJobLock(Base):
+    __tablename__ = "background_job_locks"
+    job_name = Column(String, primary_key=True)
+    worker_id = Column(String, nullable=True)
+    expires_at = Column(DateTime, nullable=True, index=True)
+    last_run_at = Column(DateTime, nullable=True, index=True)
+
+
 async def init_database_engine() -> None:
     global SESSION
     if SESSION is not None:

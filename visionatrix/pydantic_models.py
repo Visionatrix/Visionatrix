@@ -698,3 +698,40 @@ class FederatedInstanceInfo(BaseModel):
     installed_flows: dict[str, str] = Field(
         {}, description="A dictionary with installed Flows identifiers and their versions."
     )
+
+
+class BackgroundJobLockModel(BaseModel):
+    """
+    Represents the state and locking information for a background job
+    as stored in the database, used for coordination across multiple web workers.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    job_name: str = Field(
+        ..., description="Unique name identifying the background job (corresponds to the primary key)."
+    )
+    worker_id: str | None = Field(
+        None, description="Identifier (e.g., 'hostname:pid') of the worker process currently holding the lock."
+    )
+    expires_at: datetime | None = Field(
+        None,
+        description="Timestamp (UTC) indicating when the current lock expires if not renewed by a heartbeat. "
+        "Null if unlocked.",
+    )
+    last_run_at: datetime | None = Field(
+        None, description="Timestamp (UTC) indicating when this job last started execution."
+    )
+
+    @field_validator("expires_at", "last_run_at", mode="before")
+    @classmethod
+    def ensure_aware_datetime(cls, value: Any) -> datetime | None:
+        """
+        Ensures that datetime fields read from the database are timezone-aware (UTC).
+
+        SQLAlchemy/DB drivers might return naive datetimes even if stored aware,
+        especially with backends like SQLite. We assume naive datetimes from DB represent UTC time.
+        """
+        if isinstance(value, datetime) and value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
