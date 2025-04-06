@@ -32,7 +32,7 @@ def install() -> None:
         LOGGER.info("Removing existing ComfyUI directory: %s", comfyui_dir)
         rmtree(comfyui_dir, onerror=remove_readonly)
     os.makedirs(comfyui_dir)
-    logging.info("Installing ComfyUI..")
+    LOGGER.info("Installing ComfyUI..")
     check_call(["git", "clone", "https://github.com/comfyanonymous/ComfyUI.git", comfyui_dir])
     if not dev_release:
         clone_env = os.environ.copy()
@@ -44,7 +44,7 @@ def install() -> None:
     )
     create_nodes_stuff()
     comfyui_manager_path = Path(comfyui_dir).joinpath("custom_nodes").joinpath("ComfyUI-Manager")
-    logging.info("Installing ComfyUI-Manager..")
+    LOGGER.info("Installing ComfyUI-Manager..")
     check_call(["git", "clone", "https://github.com/ltdrdata/ComfyUI-Manager.git", comfyui_manager_path])
     if not dev_release:
         clone_env = os.environ.copy()
@@ -68,7 +68,7 @@ def install() -> None:
 
 
 def update() -> None:
-    logging.info("Updating ComfyUI..")
+    LOGGER.info("Updating ComfyUI..")
     dev_release = Version(_version.__version__).is_devrelease
     comfyui_dir = Path(options.COMFYUI_DIR)
     requirements_path = os.path.join(comfyui_dir, "requirements.txt")
@@ -78,7 +78,7 @@ def update() -> None:
         try:
             check_call(["git", "pull"], cwd=comfyui_dir)
         except CalledProcessError:
-            logging.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_dir)
+            LOGGER.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_dir)
             check_call(["git", "pull", "--rebase"], cwd=comfyui_dir)
     else:
         check_call(["git", "fetch", "--all"], cwd=comfyui_dir)
@@ -93,7 +93,7 @@ def update() -> None:
         )
     create_nodes_stuff()
     comfyui_manager_path = Path(comfyui_dir).joinpath("custom_nodes").joinpath("ComfyUI-Manager")
-    logging.info("Updating ComfyUI-Manager..")
+    LOGGER.info("Updating ComfyUI-Manager..")
     requirements_path = os.path.join(comfyui_manager_path, "requirements.txt")
     old_requirements = Path(requirements_path).read_text(encoding="utf-8")
     if dev_release:
@@ -101,7 +101,7 @@ def update() -> None:
         try:
             check_call(["git", "pull"], cwd=comfyui_manager_path)
         except CalledProcessError:
-            logging.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_manager_path)
+            LOGGER.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_manager_path)
             check_call(["git", "pull", "--rebase"], cwd=comfyui_manager_path)
     else:
         check_call(["git", "fetch", "--all"], cwd=comfyui_manager_path)
@@ -116,7 +116,7 @@ def update() -> None:
         check_call(
             [sys.executable, "-m", "pip", "install", "-r", os.path.join(comfyui_manager_path, "requirements.txt")],
         )
-    logging.info("Updating custom nodes..")
+    LOGGER.info("Updating custom nodes..")
     update_base_custom_nodes()
     # Temporary workarounds
     run(
@@ -125,14 +125,14 @@ def update() -> None:
     )
     # ======
     asyncio.run(comfyui_wrapper.load(None))
-    logging.info("Updating flows..")
+    LOGGER.info("Updating flows..")
     avail_flows_comfy = {}
     avail_flows = asyncio.run(get_available_flows(avail_flows_comfy))
     for i in asyncio.run(get_installed_flows()):
         if i in avail_flows:
             asyncio.run(install_custom_flow(avail_flows[i], avail_flows_comfy[i]))
         else:
-            logging.warning("`%s` flow not found in repository, skipping update of it.", i)
+            LOGGER.warning("`%s` flow not found in repository, skipping update of it.", i)
 
 
 def create_nodes_stuff() -> None:
