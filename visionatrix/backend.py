@@ -22,6 +22,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
 from .background_tasks.background_tasks import run_background_jobs_cycle
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
+from .db_queries import get_global_setting
 from .etc import setup_logging
 from .pydantic_models import UserInfo
 from .tasks_engine import remove_active_task_lock, task_progress_callback
@@ -146,6 +147,16 @@ async def lifespan(app: FastAPI):
     register_heif_opener()
     await database.init_database_engine()
 
+    if os.environ.get("VIX_OPTIONS_INITIALIZED") != "1":
+        options.init_dirs_values(
+            comfyui_dir=(await get_global_setting("comfyui_folder", True)),
+            base_data_dir=(await get_global_setting("comfyui_base_data_folder", True)),
+            input_dir=(await get_global_setting("comfyui_input_folder", True)),
+            output_dir=(await get_global_setting("comfyui_output_folder", True)),
+            user_dir=(await get_global_setting("comfyui_user_folder", True)),
+            models_dir=(await get_global_setting("comfyui_models_folder", True)),
+        )
+
     routes.tasks_internal.VALIDATE_PROMPT, prompt_server_args, start_all_func = await comfyui_wrapper.load(
         task_progress_callback
     )
@@ -240,6 +251,7 @@ def run_vix(*args, **kwargs) -> None:
     # =================================================
 
     if options.VIX_MODE != "WORKER":
+        os.environ["VIX_OPTIONS_INITIALIZED"] = "1"
         if options.VIX_MODE == "SERVER":
             os.environ.update(**options.get_server_mode_options_as_env())
             _app = "visionatrix:APP"
