@@ -9,27 +9,28 @@ from pathlib import Path
 
 import httpx
 
-from . import options
-from .db_queries import (
+from .. import options
+from ..db_queries import (
     get_enabled_federated_instances,
     update_installed_flows_for_federated_instance,
     update_local_workers_from_federation,
 )
-from .flows import get_installed_flows
-from .pydantic_models import (
+from ..flows import get_installed_flows
+from ..pydantic_models import (
     ExecutionDetails,
     FederatedInstance,
     FederatedInstanceInfo,
     WorkerDetails,
 )
-from .tasks_engine import (
+from ..tasks_engine import (
     get_task_files,
     get_task_for_federated_worker,
     remove_task_lock,
     update_task_progress_database,
 )
-from .tasks_engine_async import update_task_outputs_async
-from .webhooks import webhook_task_progress
+from ..tasks_engine_async import update_task_outputs_async
+from ..webhooks import webhook_task_progress
+from .background_tasks import register_background_job
 
 LOGGER = logging.getLogger("visionatrix")
 CONNECT_ERROR_COUNTS = {}
@@ -68,23 +69,18 @@ async def get_instance_data(federated_instance: FederatedInstance) -> [str, Fede
     return federated_instance.instance_name, None
 
 
+@register_background_job("federation_engine", run_immediately=True, interval=timedelta(seconds=15.0))
 async def federation_engine(exit_event: asyncio.Event):
     background_tasks = set()
     local_installed_flows = {}
 
     while True:
-        if exit_event.is_set():
-            break
-
         start_time = time.perf_counter()
 
         federated_instances = await get_enabled_federated_instances()
         get_instance_data_tasks = [get_instance_data(instance) for instance in federated_instances]
         if get_instance_data_tasks:
             get_instance_data_tasks_results = await asyncio.gather(*get_instance_data_tasks)
-
-            if exit_event.is_set():
-                break
 
             time_threshold = datetime.now(timezone.utc) - timedelta(seconds=15.0)
             instances_dict = {
@@ -108,9 +104,6 @@ async def federation_engine(exit_event: asyncio.Event):
                 ]
                 if free_workers_dict:
                     local_installed_flows = {i: v.version for i, v in (await get_installed_flows({})).items()}
-
-            if exit_event.is_set():
-                break
 
             for instance, workers in free_workers_dict.items():
                 for worker in workers:

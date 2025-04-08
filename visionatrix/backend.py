@@ -20,9 +20,9 @@ from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import comfyui_wrapper, custom_openapi, database, events, options, routes
+from .background_tasks.background_tasks import run_background_jobs_cycle
 from .comfyui_proxy_middleware import ComfyUIProxyMiddleware
 from .etc import setup_logging
-from .federation import federation_engine
 from .pydantic_models import UserInfo
 from .tasks_engine import remove_active_task_lock, task_progress_callback
 from .tasks_engine_async import start_tasks_engine
@@ -156,11 +156,11 @@ async def lifespan(app: FastAPI):
         app.mount("/comfy", StaticFiles(directory=Path(options.COMFYUI_DIR).joinpath("web"), html=False), name="comfy")
         app.mount("/", StaticFiles(directory=options.UI_DIR, html=True), name="client")
 
-    background_tasks = set()
-    background_tasks.add(
-        asyncio.create_task(federation_engine(events.EXIT_EVENT_ASYNC)),
-    )  # TO-DO: create special lock table to limit number of background jobs when running multiple webserver workers
-    background_tasks.add(
+    lifespan_bg_tasks = set()
+    lifespan_bg_tasks.add(
+        asyncio.create_task(run_background_jobs_cycle(exit_event=events.EXIT_EVENT_ASYNC)),
+    )
+    lifespan_bg_tasks.add(
         asyncio.create_task(start_all_func()),
     )
     yield
