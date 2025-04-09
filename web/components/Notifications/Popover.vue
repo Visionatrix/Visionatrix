@@ -1,6 +1,11 @@
 <script setup lang="ts">
 const flowStore = useFlowsStore()
-const noNotifications = computed(() => flowStore.running.filter((running: FlowRunning) => !running.hidden || (running.hidden && flowStore.$state.flows_hidden_filter)).length === 0 && flowStore.installing.length === 0)
+const filteredRunning = computed(() => {
+	return flowStore.running.filter((running: FlowRunning) =>
+		!(running?.extra_flags?.federated_task === true) && (!running.hidden || (running.hidden && flowStore.$state.flows_hidden_filter))
+	)
+})
+const noNotifications = computed(() => filteredRunning.value.length === 0 && flowStore.installing.length === 0)
 </script>
 
 <template>
@@ -15,7 +20,7 @@ const noNotifications = computed(() => flowStore.running.filter((running: FlowRu
 
 		<template #panel>
 			<div class="p-4 min-w-52 max-h-52 overflow-auto">
-				<NotificationsFlowRunning v-if="flowStore.running.filter((running: FlowRunning) => !running.hidden || (running.hidden && flowStore.$state.flows_hidden_filter)).length > 0" />
+				<NotificationsFlowRunning v-if="filteredRunning.length > 0" />
 				<NotificationsFlowInstalling v-if="flowStore.installing.length > 0" />
 
 				<p v-if="noNotifications" class="text-sm text-slate-500">No notifications available</p>

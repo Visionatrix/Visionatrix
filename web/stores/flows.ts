@@ -97,55 +97,78 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 		flowResultsByName(state) {
 			return (name: string) => {
+				const isCurrentHiddenFlowPage = state.current_flow?.name === name && state.current_flow?.hidden
+				let results = state.flow_results
+					.filter(task => task.extra_flags?.federated_task !== true)
+
 				if (state.flow_results_filter !== '') {
-					return state.flow_results
-						.filter(task => task.flow_name === name
-							&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
-							&& !task.hidden)
+					results = results.filter(task =>
+						task.flow_name === name &&
+						task.input_params_mapped['prompt']?.value.toLowerCase().includes(state.flow_results_filter.toLowerCase()) && // Optional chaining for prompt & case-insensitive
+						(isCurrentHiddenFlowPage || !task.hidden || (task.hidden && state.flows_hidden_filter)) // Show if on hidden page OR not hidden OR global filter on
+					)
+						.sort((a: FlowResult, b: FlowResult) => {
+							if (a.finished_at && b.finished_at) {
+								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+							}
+							// Fallback sorting if finished_at is missing
+							if (a.task_id && b.task_id) {
+								return Number(b.task_id) - Number(a.task_id)
+							}
+							return Number(b.task_id) - Number(a.task_id) // Original fallback
+						})
+					return results
+				}
+				results = results.filter(task =>
+					task.flow_name === name &&
+					(isCurrentHiddenFlowPage || !task.hidden || (task.hidden && state.flows_hidden_filter)) // Show if on hidden page OR not hidden OR global filter on
+				)
+					.sort((a: FlowResult, b: FlowResult) => {
+						if (a.finished_at && b.finished_at) {
+							return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
+						}
+						// Fallback sorting if finished_at is missing
+						if (a.task_id && b.task_id) {
+							return Number(b.task_id) - Number(a.task_id)
+						}
+						return Number(b.task_id) - Number(a.task_id)
+					})
+				return results
+			}
+		},
+		flowResultsByNamePaginated(state) {
+			return (name: string) => {
+				const isCurrentHiddenFlowPage = state.current_flow?.name === name && state.current_flow?.hidden
+				let results = state.flow_results
+					.filter(task => task.extra_flags?.federated_task !== true)
+
+				if (state.flow_results_filter !== '') {
+					results = results.filter(task =>
+						task.flow_name === name &&
+								task.input_params_mapped['prompt']?.value.toLowerCase().includes(state.flow_results_filter.toLowerCase()) && // Optional chaining & case-insensitive
+								task.parent_task_id === null &&
+								(isCurrentHiddenFlowPage || !task.hidden || (task.hidden && state.flows_hidden_filter)) // Show if on hidden page OR not hidden OR global filter on
+					)
 						.sort((a: FlowResult, b: FlowResult) => {
 							if (a.finished_at && b.finished_at) {
 								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
 							}
 							return Number(b.task_id) - Number(a.task_id)
 						})
+					return paginate(results, state.resultsPage, state.resultsPageSize) as FlowResult[]
 				}
-				return state.flow_results
-					.filter(task => task.flow_name === name && !task.hidden)
+				results = results.filter(task =>
+					task.flow_name === name &&
+						task.parent_task_id === null &&
+						(isCurrentHiddenFlowPage || !task.hidden || (task.hidden && state.flows_hidden_filter)) // Show if on hidden page OR not hidden OR global filter on
+				)
 					.sort((a: FlowResult, b: FlowResult) => {
 						if (a.finished_at && b.finished_at) {
 							return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
 						}
 						return Number(b.task_id) - Number(a.task_id)
 					})
-			}
-		},
-		flowResultsByNamePaginated(state) {
-			return (name: string) => {
-				if (state.flow_results_filter !== '') {
-					return paginate(
-						state.flow_results
-							.filter(task => task.flow_name === name
-								&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
-								&& task.parent_task_id === null
-								&& !task.hidden)
-							.sort((a: FlowResult, b: FlowResult) => {
-								if (a.finished_at && b.finished_at) {
-									return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
-								}
-								return Number(b.task_id) - Number(a.task_id)
-							}), state.resultsPage, state.resultsPageSize
-					) as FlowResult[]
-				}
-				return paginate(
-					state.flow_results
-						.filter(task => task.flow_name === name && task.parent_task_id === null && !task.hidden)
-						.sort((a: FlowResult, b: FlowResult) => {
-							if (a.finished_at && b.finished_at) {
-								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
-							}
-							return Number(b.task_id) - Number(a.task_id)
-						}), state.resultsPage, state.resultsPageSize
-				) as FlowResult[]
+				return paginate(results, state.resultsPage, state.resultsPageSize) as FlowResult[]
 			}
 		},
 		flowInstallingByName(state) {
@@ -153,8 +176,14 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 		flowsRunningByName(state) {
 			return (name: string) => {
-				return state.running
-					.filter(flow => flow.flow_name === name && flow.parent_task_id === null && !flow.hidden)
+				const isCurrentHiddenFlowPage = state.current_flow?.name === name && state.current_flow?.hidden
+				let filteredRunning = state.running.filter(flow => flow.extra_flags?.federated_task !== true)
+				filteredRunning = filteredRunning
+					.filter(flow =>
+						flow.flow_name === name &&
+						flow.parent_task_id === null &&
+						(isCurrentHiddenFlowPage || !flow.hidden || (flow.hidden && state.flows_hidden_filter)) // Show if on hidden page OR not hidden OR global filter on
+					)
 					.sort((a: FlowRunning, b: FlowRunning) => {
 						// if progress is available, sort by progress DESC
 						if (a.progress || b.progress) {
@@ -174,10 +203,21 @@ export const useFlowsStore = defineStore('flowsStore', {
 						// otherwise sort ASC by task_id by default
 						return Number(a.task_id) - Number(b.task_id)
 					})
+				return filteredRunning
 			}
 		},
 		flowsRunningByNameWithErrors(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null && !flow.hidden) ?? null
+			return (name: string) => {
+				const isCurrentHiddenFlowPage = state.current_flow?.name === name && state.current_flow?.hidden
+				let filteredRunning = state.running.filter(flow => flow.extra_flags?.federated_task !== true)
+				filteredRunning = filteredRunning.filter(flow =>
+					flow.flow_name === name &&
+					flow.error &&
+					flow.parent_task_id === null &&
+					(isCurrentHiddenFlowPage || !flow.hidden || (flow.hidden && state.flows_hidden_filter)) // Show if on hidden page OR not hidden OR global filter on
+				) ?? null
+				return filteredRunning
+			}
 		},
 		currentFlow(state): Flow {
 			return state.current_flow
@@ -381,7 +421,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 						execution_time: task.execution_time || null,
 						child_tasks: task.child_tasks || [],
 						parent_task_id: task.parent_task_id,
+						priority: task.priority,
 						hidden: task.hidden || false,
+						extra_flags: task.extra_flags || null,
 					})
 				} else if (task.progress === 100) {
 					finishedFlows.push(<FlowResult>{
@@ -607,6 +649,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						parent_task_id: parent_task_id,
 						priority: 0,
 						hidden: flow.hidden || false,
+						extra_flags: null,
 					})
 				})
 				console.debug('running:', this.running)
@@ -931,6 +974,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 							runningFlow.error = progress[task_id].error
 							return
 						}
+						if (progress[task_id].extra_flags) {
+							runningFlow.extra_flags = progress[task_id].extra_flags
+						}
 						if (progress[task_id].execution_time) {
 							runningFlow.execution_time = progress[task_id].execution_time
 						}
@@ -985,6 +1031,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 								input_files: progress[task_id].input_files || [],
 								execution_details: progress[task_id].execution_details || null,
 								extra_flags: progress[task_id].extra_flags || null,
+								hidden: flow?.hidden || false,
 							}
 							this.flow_results.push(flowResult)
 						}
@@ -1265,6 +1312,7 @@ export interface FlowRunning {
 	parent_task_id: number|null
 	child_tasks?: TaskHistoryItem[]
 	priority: number
+	extra_flags: TaskExtraFlags | null
 	hidden: boolean
 }
 
@@ -1328,7 +1376,7 @@ export interface TaskExecutionDetails {
 }
 
 export interface TaskExtraFlags {
-	[flag: string | 'profiler_execution' | 'unload_models']: any
+	[flag: string | 'profiler_execution' | 'unload_models' | 'federated_task']: any
 }
 
 export interface TaskHistoryItem {

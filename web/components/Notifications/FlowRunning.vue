@@ -2,13 +2,24 @@
 const flowStore = useFlowsStore()
 
 const running = computed(() => flowStore.running.reduce((running, runningFlow) => {
+	// Always hide federated tasks
+	if (runningFlow?.extra_flags?.federated_task === true) {
+		return running
+	}
+
 	if (!running[runningFlow.flow_name]) {
+		// Show if not hidden OR if hidden but the global filter is enabled
 		if (!runningFlow.hidden || (runningFlow.hidden && flowStore.$state.flows_hidden_filter)) {
 			running[runningFlow.flow_name] = []
 		}
 	}
+
+	// Add to the list if not hidden OR if hidden but the global filter is enabled
 	if (!runningFlow.hidden || (runningFlow.hidden && flowStore.$state.flows_hidden_filter)) {
-		running[runningFlow.flow_name].push(runningFlow)
+		// Check again if the flow_name key exists (it might not if the first item was hidden and filter is off)
+		if (running[runningFlow.flow_name]) {
+			running[runningFlow.flow_name].push(runningFlow)
+		}
 	}
 	return running
 }, {} as any))
