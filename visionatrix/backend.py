@@ -232,6 +232,11 @@ def run_vix(*args, **kwargs) -> None:
     for filename in os.listdir(options.OUTPUT_DIR):
         file_path = os.path.join(options.OUTPUT_DIR, filename)
         if os.path.isfile(file_path) and (pattern_default.match(filename) or pattern_mp4.match(filename)):
+            # remote the destination file if it exists
+            destination_file = os.path.join(destination, filename)
+            if os.path.exists(destination_file):
+                os.remove(destination_file)
+            # Move the file to the destination directory
             shutil.move(file_path, destination)
             copied_files += 1
 

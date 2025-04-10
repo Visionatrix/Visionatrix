@@ -267,8 +267,12 @@ def get_model_total_size(response: httpx.Response) -> int:
             raise RuntimeError("Server did not provide 'Content-Range' header for partial content.")
         total_size = int(content_range.split("/")[-1])
     else:
-        total_size = int(response.headers.get("Content-Length", 0))
-
+        # fix for some servers that do not provide Content-Length header for full content
+        if "Content-Length" not in response.headers:
+            # Guess the total size based on the size of the response body
+            total_size = 10 * 1024 * 1024
+        else:
+            total_size = int(response.headers.get("Content-Length", 0))
     if not total_size:
         raise RuntimeError("Received empty response when attempting to download the model.")
     return total_size

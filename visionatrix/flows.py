@@ -506,6 +506,7 @@ def flow_prepare_output_params(
             "ShowText|pysssss",
             "MathExpression|pysssss",
             "PreviewImage",
+            "Image Comparer (rgthree)",
         ):
             continue
         supported_outputs = SUPPORTED_OUTPUTS.keys()
