@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 	devtools: { enabled: true },
-	modules: ['@nuxt/ui', '@pinia/nuxt', '@nuxt/image', '@nuxt/eslint'],
+	modules: ['@nuxt/ui', '@pinia/nuxt', '@nuxt/image', '@nuxt/eslint', '@nuxtjs/tailwindcss'],
 	runtimeConfig: {
 		app: {
 			backendApiUrl: process.env.BACKEND_API_URL || '',
