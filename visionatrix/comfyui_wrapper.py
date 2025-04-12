@@ -386,8 +386,14 @@ def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_ev
     q = prompt_executor_args[0]
     prompt_server = prompt_executor_args[1]
 
+    cache_type = execution.CacheType.CLASSIC
+    if comfy.cli_args.args.cache_lru > 0:
+        cache_type = execution.CacheType.LRU
+    elif comfy.cli_args.args.cache_none:
+        cache_type = execution.CacheType.DEPENDENCY_AWARE
+
     current_time: float = 0.0
-    e = execution.PromptExecutor(prompt_server, lru_size=comfy.cli_args.args.cache_lru)
+    e = execution.PromptExecutor(prompt_server, cache_type=cache_type, cache_size=comfy.cli_args.args.cache_lru)
     last_gc_collect = 0
     need_gc = False
     gc_collect_interval = 10.0
