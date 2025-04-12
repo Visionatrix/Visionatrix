@@ -74,30 +74,42 @@ MOODS = [
 
 SETTINGS = [
     "forest",
+    "dark forest",
+    "jungle",
     "desert",
+    "oasis",
     "city",
     "ocean",
     "space",
     "underwater",
     "mountain",
     "countryside",
-    "jungle",
     "arctic",
+    "tundra",
+    "frozen lake",
+    "crystal cave",
     "volcanic",
     "cave",
     "island",
     "swamp",
+    "marsh",
+    "savanna",
     "grassland",
     "ruins",
+    "ancient ruins",
     "castle",
     "village",
     "metropolis",
     "wasteland",
     "underworld",
     "sky realm",
-    "floating islands",
     "underground tunnels",
     "alien planet",
+    "laboratory",
+    "arena",
+    "monastery",
+    "train station",
+    "airport",
 ]
 
 STYLES = [
@@ -186,7 +198,14 @@ COLOR_PALETTES = [
 
 SUBJECTS = [
     "person",
+    "man",
+    "woman",
+    "child",
     "knight",
+    "bard",
+    "dancer",
+    "emperor",
+    "queen",
     "wizard",
     "astronaut",
     "detective",
@@ -196,12 +215,18 @@ SUBJECTS = [
     "eagle",
     "shark",
     "dragon",
+    "beast",
+    "ogre",
+    "troll",
+    "goblin",
+    "orc",
     "unicorn",
     "robot",
     "alien",
     "monster",
     "spaceship",
     "car",
+    "frog",
     "ship",
     "cityscape",
     "seascape",
@@ -215,6 +240,8 @@ SUBJECTS = [
     "android",
     "demon",
     "angel",
+    "zombie",
+    "drone",
 ]
 
 ACTIONS = [
@@ -243,6 +270,8 @@ ACTIONS = [
     "celebrating",
     "escaping danger",
     "performing a ritual",
+    "eating",
+    "praying",
 ]
 
 WEATHERS = [
@@ -336,6 +365,26 @@ PERSPECTIVES = [
     "dutch angle",
 ]
 
+EMOTION = [
+    "smiling",
+    "laughing",
+    "joyful expression",
+    "angry expression",
+    "rage",
+    "crying",
+    "tearful",
+    "sad expression",
+    "surprised",
+    "shocked",
+    "thoughtful",
+    "curious",
+    "confident",
+    "scared",
+    "terrified",
+    "peaceful look",
+    "embarrassed",
+]
+
 CATEGORIES = {
     "genres": GENRES,
     "moods": MOODS,
@@ -349,21 +398,31 @@ CATEGORIES = {
     "lightings": LIGHTINGS,
     "art_mediums": ART_MEDIUMS,
     "perspectives": PERSPECTIVES,
+    "emotion": EMOTION,
 }
 
 
-def pick_random_keywords():
-    core_categories = ["genres", "moods", "settings", "styles", "time_periods", "color_palettes"]
-    extra_categories = ["subjects", "actions", "weathers", "lightings", "art_mediums", "perspectives"]
+def pick_random_keywords(num_core_min=3, num_core_max=6, num_extra_min=2, num_extra_max=5):
+    core_categories_list = ["genres", "moods", "settings", "styles", "time_periods", "color_palettes"]
+    extra_categories_list = ["subjects", "actions", "weathers", "lightings", "art_mediums", "perspectives", "emotion"]
     chosen = {}
-    # Always pick one from each core category
-    for cat in core_categories:
+
+    # Pick a random number of core categories
+    num_core = random.randint(num_core_min, min(num_core_max, len(core_categories_list)))
+    core_chosen_names = random.sample(core_categories_list, num_core)
+    for cat in core_chosen_names:
         chosen[cat] = random.choice(CATEGORIES[cat])
+
     # Decide how many extra categories to pick
-    num_extra = random.randint(2, len(extra_categories))
-    extras_chosen = random.sample(extra_categories, num_extra)
-    for cat in extras_chosen:
-        chosen[cat] = random.choice(CATEGORIES[cat])
+    actual_num_extra_max = min(num_extra_max, len(extra_categories_list))
+    num_extra_min = min(num_extra_min, actual_num_extra_max)
+
+    num_extra = random.randint(num_extra_min, actual_num_extra_max)
+    if num_extra > 0:
+        extras_chosen_names = random.sample(extra_categories_list, num_extra)
+        for cat in extras_chosen_names:
+            chosen[cat] = random.choice(CATEGORIES[cat])
+
     return chosen
 
 
