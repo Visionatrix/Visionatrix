@@ -60,6 +60,7 @@ VIDEO_EXTENSIONS = [
 AUDIO_EXTENSIONS = [
     ".mp3",
     ".flac",
+    ".wav",
 ]
 
 TEXT_EXTENSIONS = [
@@ -68,6 +69,8 @@ TEXT_EXTENSIONS = [
 
 MODEL3D_EXTENSION = [
     ".glb",
+    ".gltf",
+    ".fbx",
 ]
 
 DEFAULT_LOG_FORMAT = "%(asctime)s: [%(funcName)s]:%(levelname)s: %(message)s"

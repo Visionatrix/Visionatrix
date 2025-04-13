@@ -604,6 +604,7 @@ def add_arguments(parser):
     class PerformanceFeature(enum.Enum):  # we need it only for definition, later we use Comfy "set()"
         Fp16Accumulation = "fp16_accumulation"
         Fp8MatrixMultiplication = "fp8_matrix_mult"
+        CublasOps = "cublas_ops"
 
     parser.add_argument(
         "--fast",
@@ -612,7 +613,7 @@ def add_arguments(parser):
         help="Enable some untested and potentially quality deteriorating optimizations. "
         "--fast with no arguments enables everything. "
         "You can pass a list specific optimizations if you only want to enable specific ones. "
-        "Current valid optimizations: fp16_accumulation fp8_matrix_mult",
+        "Current valid optimizations: fp16_accumulation fp8_matrix_mult cublas_ops",
     )
 
 
