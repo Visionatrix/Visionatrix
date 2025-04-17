@@ -1,6 +1,6 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.27"
+COMFYUI_RELEASE_TAG = "v0.3.28"
 COMFYUI_MANAGER_RELEASE_TAG = "3.31.8"
 
 ANTELOPEV2 = AIResourceModel(
@@ -80,12 +80,12 @@ BASIC_NODE_LIST = {
     "comfyui_instantid@1.0.0": {
         "models": [ANTELOPEV2],
     },
-    "efficiency-nodes-comfyui@1.0.5": {},
+    "efficiency-nodes-comfyui@1.0.6": {},
     "comfyui-wd14-tagger@1.0.0": {},
     "comfyui-supir@1.0.1": {},
     "comfyui_essentials@1.1.0": {},
     "rgthree-comfy@1.0.0": {},
-    "comfyui-custom-scripts@1.1.1": {},
+    "comfyui-custom-scripts@1.2.3": {},
     "comfyui_ipadapter_plus@2.0.0": {},
     "comfyui_controlnet_aux@1.0.7": {},
     "skimmed_cfg@1.0.0": {},
@@ -96,12 +96,12 @@ BASIC_NODE_LIST = {
     "comfyui-ollama@2.0.1": {},
     "pulid_comfyui@1.0.1": {},
     "comfyui_pulid_flux_ll@1.1.4": {},
-    "comfyui-inpaint-cropandstitch@1.0.0": {},
-    "comfyui-videohelpersuite@1.5.12": {},
+    "comfyui-inpaint-cropandstitch@2.1.3": {},
+    "comfyui-videohelpersuite@1.5.18": {},
     "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation": {},
-    "comfyui-kjnodes@1.0.6": {},
+    "comfyui-kjnodes@1.0.8": {},
     "comfyui_layerstyle@1.0.90": {},
-    "comfyui-easy-use@1.2.8": {},
+    "comfyui-easy-use@1.2.9": {},
     "comfyui_birefnet_ll@1.1.1": {},
     "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
         "models": [
