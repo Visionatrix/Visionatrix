@@ -243,8 +243,15 @@ def run_vix(*args, **kwargs) -> None:
     for filename in os.listdir(options.OUTPUT_DIR):
         file_path = os.path.join(options.OUTPUT_DIR, filename)
         if os.path.isfile(file_path) and (pattern_default.match(filename) or pattern_mp4.match(filename)):
-            shutil.move(file_path, destination)
-            copied_files += 1
+            if not os.path.exists(os.path.join(destination, filename)):
+                shutil.move(file_path, destination)
+                copied_files += 1
+            else:
+                LOGGER.debug(
+                    "Skipping migration of %s: destination %s already exists",
+                    filename,
+                    os.path.join(destination, filename),
+                )
 
     if copied_files:
         LOGGER.warning("Migration ot output files done, %s files - migrated.", copied_files)
