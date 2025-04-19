@@ -1,3 +1,5 @@
+import type { RouteLocationNormalized } from 'vue-router'
+
 export const useNextcloudStore = defineStore('nextcloudStore', {
 	state: () => ({
 		selectedFiles: {},
@@ -32,6 +34,16 @@ export const useNextcloudStore = defineStore('nextcloudStore', {
 			if (this.selectedFiles[inputParamName]) {
 				// @ts-ignore
 				this.selectedFiles[inputParamName] = null
+			}
+		},
+		handleRouteChange(to: RouteLocationNormalized, from: RouteLocationNormalized) {
+			console.debug('Route changed: ', from.path, '->', to.path)
+			// Send target route path to the parent window
+			if (to.path !== from.path) {
+				window.parent.postMessage({
+					type: 'routeChange',
+					route: to.path,
+				}, '*')
 			}
 		},
 	},
