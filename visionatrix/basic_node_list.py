@@ -1,6 +1,6 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.28"
+COMFYUI_RELEASE_TAG = "v0.3.29"
 COMFYUI_MANAGER_RELEASE_TAG = "3.31.8"
 
 ANTELOPEV2 = AIResourceModel(
@@ -90,7 +90,7 @@ BASIC_NODE_LIST = {
     "comfyui_controlnet_aux@1.0.7": {},
     "skimmed_cfg@1.0.0": {},
     "was-node-suite-comfyui@1.0.2": {},
-    "comfyui-visionatrix@1.0.8": {},
+    "comfyui-visionatrix@1.2.1": {},
     "comfyui-remotevae@1.0.0": {},
     "comfyui-gemini@1.0.4": {},
     "comfyui-ollama@2.0.1": {},
