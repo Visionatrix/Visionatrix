@@ -758,14 +758,14 @@ def is_flow_supported(flow: Flow, available_workers: list[WorkerDetails]) -> boo
     if flow.is_macos_supported is False and not any(worker.device_type != "mps" for worker in available_workers):
         return False
     if flow.required_memory_gb:
-        required_memory_bytes = flow.required_memory_gb * 1024 * 1024 * 1000  # GPU sometimes have less mem
+        required_memory_bytes = flow.required_memory_gb * 1024 * 1024 * 980  # GPU sometimes have less mem
         return any(worker.vram_total >= required_memory_bytes for worker in available_workers)
     return True
 
 
 def fill_flows_supported_field(flows: dict[str, Flow], available_workers: list[WorkerDetails]) -> dict[str, Flow]:
     for flow in flows.values():
-        flow.is_seed_supported = is_flow_supported(flow, available_workers)
+        flow.is_supported_by_workers = is_flow_supported(flow, available_workers)
     return flows
 
 
