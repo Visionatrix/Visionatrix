@@ -135,6 +135,13 @@ if (flowStore.currentFlow.is_seed_supported) {
 		}
 	})
 }
+const showAdditionalInputParams = computed(() => {
+	return additionalInputParamsMap.value.length > 0 ||
+		inputParamsMap.value.some((inputParam: any) => {
+			const input_param_name = Object.keys(inputParam)[0]
+			return inputParam[input_param_name].advanced
+		})
+})
 const seedAutoIncrementEnabled = computed(() => additionalInputParamsMap.value.find((inputParam: any) => {
 	return Object.keys(inputParam)[0] === 'seed'
 })?.seed.auto_increment || false)
@@ -338,7 +345,7 @@ function runPrompt(surprise = false) {
 				v-model:additional-input-params-map="additionalInputParamsMap"
 				:advanced="false" />
 			<WorkflowPromptInputParams
-				v-if="additionalInputParamsMap.length > 0"
+				v-if="showAdditionalInputParams"
 				v-model:input-params-map="inputParamsMap"
 				v-model:additional-input-params-map="additionalInputParamsMap"
 				v-model:profiling-options="profilingOptions"
