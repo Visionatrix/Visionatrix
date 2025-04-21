@@ -21,32 +21,26 @@ run:
 
 .PHONY: push-cpu
 push-cpu:
-	docker login ghcr.io
 	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:release-cpu --build-arg BUILD_TYPE=cpu -f docker/Dockerfile .
 
 .PHONY: push-latest-cpu
 push-latest-cpu:
-	docker login ghcr.io
 	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:latest-cpu --build-arg BUILD_TYPE=cpu -f docker/Dockerfile .
 
 .PHONY: push-cuda
 push-cuda:
-	docker login ghcr.io
 	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:release-cuda --build-arg BUILD_TYPE=cuda -f docker/Dockerfile .
 
 .PHONY: push-latest-cuda
 push-latest-cuda:
-	docker login ghcr.io
 	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:latest-cuda --build-arg BUILD_TYPE=cuda -f docker/Dockerfile .
 
 .PHONY: push-rocm
 push-rocm:
-	docker login ghcr.io
 	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:release-rocm --build-arg BUILD_TYPE=rocm -f docker/Dockerfile .
 
 .PHONY: push-latest-rocm
 push-latest-rocm:
-	docker login ghcr.io
 	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:latest-rocm --build-arg BUILD_TYPE=rocm -f docker/Dockerfile .
 
 .PHONY: openapi
