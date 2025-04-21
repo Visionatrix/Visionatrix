@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - UI: Updated packages to last versions. #373
 - Much more advanced parallel model loading/flows install algorithm. #362
 - Deselecting LoRA from the existing flow now correctly allows to save the modified flow. #361
+- Adjusted memory requirements to mark flows as supported; UI correctly displays advanced options when `is_seed_supported=False`. #381
 - The log level is now set correctly when Visionatrix is started directly from `uvicorn`. #366
 - Now when running Visionatrix directly from `uvicorn` the correct values settings are read from the database. #369
 
