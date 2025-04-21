@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0 - 2025-04-21]
+
+### Added
+
+- New Photomaker flow based on the new `InfiniteYou` tech from ByteDance. #359
+- The new `gemini-2.0-flash-lite-001` model can now be configured to use LLM. #365
+- New `background tasks` engine; refactored `federation feature` to use it. #367
+
+### Fixed
+
+- UI: Much less spam with warnings when Ollama is not found. #364
+- UI: Updated packages to last versions. #373
+- Much more advanced parallel model loading/flows install algorithm. #362
+- Deselecting LoRA from the existing flow now correctly allows to save the modified flow. #361
+- The log level is now set correctly when Visionatrix is started directly from `uvicorn`. #366
+- Now when running Visionatrix directly from `uvicorn` the correct values settings are read from the database. #369
+
 ## [2.1.0 - 2025-03-30]
 
 ### Added
