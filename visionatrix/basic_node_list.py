@@ -89,7 +89,6 @@ BASIC_NODE_LIST = {
     "comfyui_ipadapter_plus@2.0.0": {},
     "comfyui_controlnet_aux@1.0.7": {},
     "skimmed_cfg@1.0.0": {},
-    "was-node-suite-comfyui@1.0.2": {},
     "comfyui-visionatrix@1.2.1": {},
     "comfyui-remotevae@1.0.0": {},
     "comfyui-gemini@1.0.4": {},
