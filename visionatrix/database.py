@@ -211,6 +211,7 @@ async def init_database_engine() -> None:
             database_uri = (
                 f"sqlite+aiosqlite:///{os.path.abspath(os.path.join(os.getcwd(), database_uri[len(local_dir) - 1:]))}"
             )
+        LOGGER.info("SQLite file in use: %s", database_uri)
 
     engine = create_async_engine(database_uri, connect_args=connect_args)
 
