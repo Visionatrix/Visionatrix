@@ -217,7 +217,10 @@ async def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dic
     current_time = time.time()
 
     with LOCK_INSTALLED_FLOWS:
-        if current_time < LAST_GOOD_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS:
+        if (
+            current_time < LAST_GOOD_INSTALLED_FLOWS["update_time"] + SECONDS_TO_CACHE_INSTALLED_FLOWS
+            and LAST_GOOD_INSTALLED_FLOWS["flows"]
+        ):
             flows_comfy.update(LAST_GOOD_INSTALLED_FLOWS["flows_comfy"])
             return deepcopy(LAST_GOOD_INSTALLED_FLOWS["flows"])
 
@@ -233,9 +236,24 @@ async def get_installed_flows(flows_comfy: dict[str, dict] | None = None) -> dic
         finally:
             LOCK_INSTALLED_FLOWS_UPDATING.release()
 
+    # another coroutine is already building the cache
     with LOCK_INSTALLED_FLOWS:
-        flows_comfy.update(LAST_GOOD_INSTALLED_FLOWS["flows_comfy"])
-        return deepcopy(LAST_GOOD_INSTALLED_FLOWS["flows"])
+        if LAST_GOOD_INSTALLED_FLOWS["flows"]:  # cache is non-empty -> return immediately
+            flows_comfy.update(LAST_GOOD_INSTALLED_FLOWS["flows_comfy"])
+            return deepcopy(LAST_GOOD_INSTALLED_FLOWS["flows"])
+
+    # cache empty - let's wait a bit
+    waited = 0.0
+    while waited < 2.0:
+        await asyncio.sleep(0.05)
+        waited += 0.05
+        with LOCK_INSTALLED_FLOWS:
+            if LAST_GOOD_INSTALLED_FLOWS["flows"]:
+                flows_comfy.update(LAST_GOOD_INSTALLED_FLOWS["flows_comfy"])
+                return deepcopy(LAST_GOOD_INSTALLED_FLOWS["flows"])
+
+    LOGGER.warning("Installed-flows cache still empty after %.1f s, returning empty list", 2.0)
+    return {}
 
 
 async def __get_installed_flows() -> [dict[str, Flow], dict[str, dict]]:

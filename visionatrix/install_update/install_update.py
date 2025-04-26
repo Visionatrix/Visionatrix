@@ -1,4 +1,3 @@
-import asyncio
 import importlib.metadata
 import logging
 import os
@@ -67,7 +66,7 @@ def install() -> None:
     # ======
 
 
-def update() -> None:
+async def update() -> None:
     LOGGER.info("Updating ComfyUI..")
     dev_release = Version(_version.__version__).is_devrelease
     comfyui_dir = Path(options.COMFYUI_DIR)
@@ -124,13 +123,13 @@ def update() -> None:
         check=True,
     )
     # ======
-    asyncio.run(comfyui_wrapper.load(None))
+    await comfyui_wrapper.load(None)
     LOGGER.info("Updating flows..")
     avail_flows_comfy = {}
-    avail_flows = asyncio.run(get_available_flows(avail_flows_comfy))
-    for i in asyncio.run(get_installed_flows()):
+    avail_flows = await get_available_flows(avail_flows_comfy)
+    for i in await get_installed_flows():
         if i in avail_flows:
-            asyncio.run(install_custom_flow(avail_flows[i], avail_flows_comfy[i]))
+            await install_custom_flow(avail_flows[i], avail_flows_comfy[i])
         else:
             LOGGER.warning("`%s` flow not found in repository, skipping update of it.", i)
 

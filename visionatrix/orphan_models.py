@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -102,12 +101,12 @@ async def remove_orphan_model(orphan_path: str) -> bool:
     return bool(r)
 
 
-def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool) -> None:
-    if asyncio.run(db_queries.models_installation_in_progress()):
+async def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models: bool) -> None:
+    if await db_queries.models_installation_in_progress():
         print("Some models have the status of being installed. Repeat the request in 3 minutes.")
         return
 
-    orphan_models = asyncio.run(get_orphan_models())
+    orphan_models = await get_orphan_models()
     if not include_useful_models:
         orphan_models = [model for model in orphan_models if not model.possible_flows]
 
@@ -135,7 +134,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
             continue
         if no_confirm:
             try:
-                asyncio.run(remove_orphan_model(orphan.path))
+                await remove_orphan_model(orphan.path)
                 print(f"Deleted: {orphan.path}")
             except Exception as e:
                 print(f"Error deleting {orphan.path}: {e}")
@@ -143,7 +142,7 @@ def process_orphan_models(dry_run: bool, no_confirm: bool, include_useful_models
             user_input = input(f"Delete {orphan.path}? (y/Y to confirm, any other key to skip): ").lower()
             if user_input == "y":
                 try:
-                    asyncio.run(remove_orphan_model(orphan.path))
+                    await remove_orphan_model(orphan.path)
                     print(f"Deleted: {orphan.path}")
                 except Exception as e:
                     print(f"Error deleting {orphan.path}: {e}")
