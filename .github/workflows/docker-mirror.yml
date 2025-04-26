@@ -1,0 +1,41 @@
+name: Mirror to Docker Hub
+
+on:
+  registry_package:
+    types: [published]
+
+permissions:
+  packages: read
+  contents: read
+
+env:
+  OWNER: ${{ github.repository_owner }}
+  IMAGE: ${{ github.event.registry_package.name }}
+  TAG:   ${{ github.event.registry_package.package_version.container_metadata.tag.name }}
+  DEST_OWNER: bigcat88
+
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.registry_package.package_version.container_metadata.tag.name != '' }}
+
+    steps:
+      - run: sudo apt-get update && sudo apt-get -y install skopeo
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Mirror ${{ env.IMAGE }}:${{ env.TAG }}
+        run: |
+          OWNER_LC=${OWNER,,}
+          SRC="docker://ghcr.io/${OWNER_LC}/${IMAGE}:${TAG}"
+          DST="docker://docker.io/${DEST_OWNER}/${IMAGE}:${TAG}"
+          echo "$SRC -> $DST"
+          skopeo copy --all --retry-times 3 "$SRC" "$DST"
