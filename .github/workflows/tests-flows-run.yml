@@ -40,9 +40,9 @@ jobs:
 #      - name: Perform Tensor tests
 #        run: python3 tests/rm_background.py
 
-  github_flows_run_linux:
-    name: Flows Run GitHub Ubuntu 22
-    runs-on: ubuntu-22.04
+  github_flows_run_linux_sqlite:
+    name: Flows Run Ubuntu 24 SQLite
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -59,6 +59,52 @@ jobs:
 
       - name: Install Visionatrix dependencies
         run: python3 -m pip install .
+
+      - name: Run Visionatrix install
+        run: python3 -m visionatrix install
+
+      - name: Autoconfig Models Paths
+        run: python3 -m visionatrix set-global-setting --key="comfyui_models_folder" --value="./vix_models"
+
+      - name: Perform Tensor tests
+        run: python3 tests/rm_background.py
+
+  github_flows_run_linux_pgsql:
+    name: Flows Run Ubuntu 24 PgSQL
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    env:
+      DATABASE_URI: postgresql+psycopg://vix_user:vix_password@localhost:5432/vix_db
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: vix_user
+          POSTGRES_PASSWORD: vix_password
+          POSTGRES_DB: vix_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Linux dependencies
+        run: sudo apt update && sudo apt install ffmpeg libsm6 libxext6
+
+      - name: Install Visionatrix dependencies
+        run: python3 -m pip install ".[pgsql]"
 
       - name: Run Visionatrix install
         run: python3 -m visionatrix install
