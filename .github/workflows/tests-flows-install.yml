@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   github_flows_install_linux:
-    name: Flows Install GitHub Ubuntu 22
-    runs-on: ubuntu-22.04
+    name: Flows Install GitHub Ubuntu 24
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
