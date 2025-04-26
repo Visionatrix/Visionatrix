@@ -166,7 +166,13 @@ Updating the portable version involves:
 
 ## Docker Compose
 
-Starting with Visionatrix version 2, we provide official Docker images along with a pre-configured `docker-compose.yml` file, making deployment faster and easier. The file is located at the root of the Visionatrix repository.
+We provide official Docker images along with a pre-configured `docker-compose.yml` file, making deployment faster and easier. The file is located at the root of the Visionatrix repository.
+
+### Image Registries
+
+Our Docker images are primarily hosted on **GitHub Container Registry (GHCR)**: `ghcr.io/visionatrix/visionatrix`. This is the default used by the `docker-compose.yml` file.
+
+For users who experience slow download speeds from GHCR (e.g., on certain cloud providers), we also provide a mirror on **Docker Hub**: `docker.io/bigcat88/visionatrix`.
 
 ### Available Services
 
@@ -176,6 +182,8 @@ Starting with Visionatrix version 2, we provide official Docker images along wit
 - **pgsql**: A PostgreSQL 17 container for the database.
 
 ### Usage
+
+Choose the service appropriate for your hardware:
 
 - For NVIDIA GPU support:
   ```bash
@@ -192,9 +200,37 @@ Starting with Visionatrix version 2, we provide official Docker images along wit
   docker compose up -d visionatrix_cpu
   ```
 
-By default, `visionatrix-data` directory will be created in the current directory in the host and used for the `models`, `user`, `input` and `output` files.
+By default, these commands will pull images from GHCR. A `visionatrix-data` directory will be created in the current directory in the host and used for the `models`, `user`, `input` and `output` files.
 
 You can easily customize the configuration by modifying environment variables or volume mounts in the `docker-compose.yml` file.
+
+### Using the Docker Hub Mirror
+
+If you prefer to pull images from Docker Hub instead of GHCR, you can set the `VIX_IMAGE_BASE` environment variable *before* running `docker compose up`.
+
+**Method 1: Using a `.env` file**
+
+1.  Create a file named `.env` in the same directory as your `docker-compose.yml` file.
+2.  Add the following line to the `.env` file:
+
+    ```dotenv
+    VIX_IMAGE_BASE=docker.io/bigcat88/visionatrix
+    ```
+
+3.  Now, run `docker compose up` as usual. Compose will automatically read the `.env` file and use the Docker Hub images.
+
+    ```bash
+    # Example: Start NVIDIA service using images from Docker Hub defined in .env
+    docker compose up -d visionatrix_nvidia
+    ```
+
+**Method 2: Setting the variable temporarily**
+
+You can set the environment variable directly on the command line for a single command execution:
+
+```bash
+VIX_IMAGE_BASE=docker.io/bigcat88/visionatrix docker compose up -d visionatrix_nvidia
+```
 
 ## 📚 Documentation and Support
 
