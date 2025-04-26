@@ -223,7 +223,7 @@ if cors_origins := os.getenv("CORS_ORIGINS", "").split(","):
     )
 
 
-def run_vix(*args, **kwargs) -> None:
+async def run_vix(*args, **kwargs) -> None:
     if options.VIX_MODE == "WORKER" and options.UI_DIR:
         LOGGER.error("`WORKER` mode is incompatible with UI")
         return
@@ -264,18 +264,21 @@ def run_vix(*args, **kwargs) -> None:
             _app = "visionatrix:APP"
         else:
             _app = APP
-        uvicorn.run(
+
+        config = uvicorn.Config(
             _app,
             *args,
             host=options.get_host_to_map(),
             port=options.get_port_to_map(),
             workers=int(options.VIX_SERVER_WORKERS),
-            log_level=os.environ.get("LOG_LEVEL", "info").lower(),
+            log_level=os.getenv("LOG_LEVEL", "info").lower(),
             **kwargs,
         )
+        server = uvicorn.Server(config)
+        await server.serve()
     else:
         register_heif_opener()
-        asyncio.run(run_in_worker_mode())
+        await run_in_worker_mode()
 
 
 async def run_in_worker_mode() -> None:
@@ -292,11 +295,13 @@ async def run_in_worker_mode() -> None:
         print("Visionatrix is shutting down.")
 
 
-def generate_openapi(flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
-    return custom_openapi.generate_openapi(APP, flows, skip_not_installed, exclude_base)
+async def generate_openapi(flows: str = "", skip_not_installed: bool = True, exclude_base: bool = False):
+    return await custom_openapi.generate_openapi(APP, flows, skip_not_installed, exclude_base)
 
 
-APP.openapi = generate_openapi
+@APP.get("/openapi.json", include_in_schema=False)
+async def openapi_json():
+    return await generate_openapi()
 
 
 @APP.get("/openapi/flows.json", include_in_schema=False)
@@ -304,7 +309,7 @@ async def openapi_flows_json(
     flows: str = Query("", description="Flows to include in OpenAPI specs (comma-separated list or '*')"),
     skip_not_installed: bool = Query(True, description="Skip flows that are not installed"),
 ):
-    return custom_openapi.generate_openapi(APP, flows=flows, skip_not_installed=skip_not_installed)
+    return await custom_openapi.generate_openapi(APP, flows=flows, skip_not_installed=skip_not_installed)
 
 
 @APP.get("/docs/flows", include_in_schema=False)
