@@ -123,7 +123,6 @@ BASIC_NODE_LIST = {
     },
     "https://github.com/liusida/ComfyUI-AutoCropFaces": {},
     "https://github.com/kaibioinfo/ComfyUI_AdvancedRefluxControl": {},
-    "https://github.com/FizzleDorf/ComfyUI_FizzNodes": {},
     "https://github.com/ZenAI-Vietnam/ComfyUI_InfiniteYou": {
         "models": [ANTELOPEV2],
     },
