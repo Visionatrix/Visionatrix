@@ -20,7 +20,7 @@ ANTELOPEV2 = AIResourceModel(
 )
 
 BASIC_NODE_LIST = {
-    "comfyui-impact-pack@8.8.1": {
+    "comfyui-impact-pack@8.14.0": {
         "models": [
             AIResourceModel(
                 name="mmdet_anime-face_yolov3",
@@ -48,7 +48,7 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "comfyui-impact-subpack@1.2.9": {
+    "comfyui-impact-subpack@1.2.10": {
         "models": [
             AIResourceModel(
                 name="face_yolov8m",
@@ -95,7 +95,7 @@ BASIC_NODE_LIST = {
     "comfyui-ollama@2.0.1": {},
     "pulid_comfyui@1.0.1": {},
     "comfyui_pulid_flux_ll@1.1.4": {},
-    "comfyui-inpaint-cropandstitch@2.1.3": {},
+    "comfyui-inpaint-cropandstitch@2.1.4": {},
     "comfyui-videohelpersuite@1.5.18": {},
     "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation": {},
     "comfyui-kjnodes@1.0.8": {},
