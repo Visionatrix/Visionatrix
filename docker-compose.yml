@@ -1,6 +1,6 @@
 services:
   visionatrix_nvidia:
-    image: ghcr.io/visionatrix/visionatrix:release-cuda
+    image: ${VIX_IMAGE_BASE:-ghcr.io/visionatrix/visionatrix}:release-cuda
     container_name: visionatrix_nvidia
     ports:
       - "${VIX_PORT:-8288}:8288"
@@ -24,7 +24,7 @@ services:
       - visionatrix_net
 
   visionatrix_amd:
-    image: ghcr.io/visionatrix/visionatrix:release-rocm
+    image: ${VIX_IMAGE_BASE:-ghcr.io/visionatrix/visionatrix}:release-rocm
     container_name: visionatrix_amd
     ports:
       - "${VIX_PORT:-8288}:8288"
@@ -44,7 +44,7 @@ services:
       - visionatrix_net
 
   visionatrix_cpu:
-    image: ghcr.io/visionatrix/visionatrix:release-cpu
+    image: ${VIX_IMAGE_BASE:-ghcr.io/visionatrix/visionatrix}:release-cpu
     container_name: visionatrix_cpu
     ports:
       - "${VIX_PORT:-8288}:8288"
