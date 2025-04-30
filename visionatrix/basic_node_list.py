@@ -20,7 +20,8 @@ ANTELOPEV2 = AIResourceModel(
 )
 
 BASIC_NODE_LIST = {
-    "comfyui-impact-pack@8.14.0": {
+    "comfyui-impact-pack": {
+        "version": "8.14.0",
         "models": [
             AIResourceModel(
                 name="mmdet_anime-face_yolov3",
@@ -48,7 +49,8 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "comfyui-impact-subpack@1.2.10": {
+    "comfyui-impact-subpack": {
+        "version": "1.2.10",
         "models": [
             AIResourceModel(
                 name="face_yolov8m",
@@ -76,33 +78,81 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "comfyui_ultimatesdupscale@1.1.2": {},
-    "comfyui_instantid@1.0.0": {
+    "comfyui_ultimatesdupscale": {
+        "version": "1.1.2",
+    },
+    "comfyui_instantid": {
+        "version": "1.0.0",
         "models": [ANTELOPEV2],
     },
-    "efficiency-nodes-comfyui@1.0.6": {},
-    "comfyui-wd14-tagger@1.0.0": {},
-    "comfyui-supir@1.0.1": {},
-    "comfyui_essentials@1.1.0": {},
-    "rgthree-comfy@1.0.0": {},
-    "comfyui-custom-scripts@1.2.3": {},
-    "comfyui_ipadapter_plus@2.0.0": {},
-    "comfyui_controlnet_aux@1.0.7": {},
-    "skimmed_cfg@1.0.0": {},
-    "comfyui-visionatrix@1.2.1": {},
-    "comfyui-remotevae@1.0.0": {},
-    "comfyui-gemini@1.0.4": {},
-    "comfyui-ollama@2.0.1": {},
-    "pulid_comfyui@1.0.1": {},
-    "comfyui_pulid_flux_ll@1.1.4": {},
-    "comfyui-inpaint-cropandstitch@2.1.4": {},
-    "comfyui-videohelpersuite@1.5.18": {},
-    "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation": {},
-    "comfyui-kjnodes@1.0.8": {},
-    "comfyui_layerstyle@1.0.90": {},
-    "comfyui-easy-use@1.2.9": {},
-    "comfyui_birefnet_ll@1.1.1": {},
+    "efficiency-nodes-comfyui": {
+        "version": "1.0.6",
+    },
+    "comfyui-wd14-tagger": {
+        "version": "1.0.0",
+    },
+    "comfyui-supir": {
+        "version": "1.0.1",
+    },
+    "comfyui_essentials": {
+        "version": "1.1.0",
+    },
+    "rgthree-comfy": {
+        "version": "1.0.0",
+    },
+    "comfyui-custom-scripts": {
+        "version": "1.2.3",
+    },
+    "comfyui_ipadapter_plus": {
+        "version": "2.0.0",
+    },
+    "comfyui_controlnet_aux": {
+        "version": "1.0.7",
+    },
+    "skimmed_cfg": {
+        "version": "1.0.0",
+    },
+    "comfyui-visionatrix": {
+        "version": "1.2.1",
+    },
+    "comfyui-remotevae": {
+        "version": "1.0.0",
+    },
+    "comfyui-gemini": {
+        "version": "1.0.4",
+    },
+    "comfyui-ollama": {
+        "version": "2.0.1",
+    },
+    "pulid_comfyui": {
+        "version": "1.0.1",
+    },
+    "comfyui_pulid_flux_ll": {
+        "version": "1.1.4",
+    },
+    "comfyui-inpaint-cropandstitch": {
+        "version": "2.1.4",
+    },
+    "comfyui-videohelpersuite": {
+        "version": "1.5.18",
+    },
+    "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation": {
+        "version": "",
+    },
+    "comfyui-kjnodes": {
+        "version": "1.0.8",
+    },
+    "comfyui_layerstyle": {
+        "version": "1.0.90",
+    },
+    "comfyui-easy-use": {
+        "version": "1.2.9",
+    },
+    "comfyui_birefnet_ll": {
+        "version": "1.1.1",
+    },
     "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
+        "version": "",
         "models": [
             AIResourceModel(
                 name="buffalo_l",
@@ -121,10 +171,17 @@ BASIC_NODE_LIST = {
             ),
         ],
     },
-    "https://github.com/liusida/ComfyUI-AutoCropFaces": {},
-    "https://github.com/kaibioinfo/ComfyUI_AdvancedRefluxControl": {},
-    "https://github.com/FizzleDorf/ComfyUI_FizzNodes": {},
+    "https://github.com/liusida/ComfyUI-AutoCropFaces": {
+        "version": "",
+    },
+    "https://github.com/kaibioinfo/ComfyUI_AdvancedRefluxControl": {
+        "version": "",
+    },
+    "https://github.com/FizzleDorf/ComfyUI_FizzNodes": {
+        "version": "",
+    },
     "https://github.com/ZenAI-Vietnam/ComfyUI_InfiniteYou": {
+        "version": "",
         "models": [ANTELOPEV2],
     },
 }

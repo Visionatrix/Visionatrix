@@ -226,7 +226,7 @@ def process_flow_models(
     nodes_with_models = {}
     for key, value in BASIC_NODE_LIST.items():
         if value.get("models"):
-            key = key.rstrip("/").split("/")[-1] if key.startswith("https://") else key.split("@", maxsplit=1)[0]
+            key = key.rstrip("/").split("/")[-1] if key.startswith("https://") else key
             nodes_with_models[key] = value["models"]
     nodes_class_mappings = get_node_class_mappings()
 

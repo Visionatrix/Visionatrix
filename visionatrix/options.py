@@ -109,6 +109,11 @@ ADMIN_OVERRIDE = environ.get("ADMIN_OVERRIDE", "")
 and it is considered as an admin user (emulated, without actual DB record).
 """
 
+INSTALL_EXCLUDE_NODES_SET = {
+    node.strip() for node in environ.get("VISIONATRIX_INSTALL_EXCLUDE_NODES", "").split(";") if node.strip()
+}
+"""List of custom node names(separated by ';') to exclude during installation."""
+
 
 def get_admin_override_credentials() -> tuple[str, str] | None:
     if ":" not in ADMIN_OVERRIDE:
