@@ -11,7 +11,6 @@ import contextlib
 import enum
 import gc
 import importlib.util
-import inspect
 import logging
 import os
 import subprocess
@@ -115,20 +114,7 @@ async def load(
     folder_paths.set_input_directory(str(Path(options.INPUT_DIR)))
     folder_paths.set_user_directory(str(Path(options.USER_DIR)))
 
-    original_add_handler = logging.Logger.addHandler
-
-    def out_add_handler(self, hdlr):
-        stack = inspect.stack()  # Get the current stack frames
-        if any(frame.function == "setup_logger" for frame in stack):
-            return  # Skip adding handler (prevent duplicate logs)
-        original_add_handler(self, hdlr)  # Call the original addHandler method
-
-    logging.Logger.addHandler = out_add_handler
-
     import main  # noqa # isort: skip
-
-    logging.Logger.addHandler = original_add_handler
-
     import execution  # noqa # isort: skip
     import nodes  # noqa # isort: skip
     import server  # noqa # isort: skip
