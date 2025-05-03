@@ -143,6 +143,13 @@ async def __fetch_and_merge_all_flows(
             if flow_name not in combined_flows or parse(flow_obj.version) > parse(combined_flows[flow_name].version):
                 combined_flows[flow_name] = flow_obj
                 combined_flows_comfy[flow_name] = flows_comfy_dict[flow_name]
+
+    if options.EXCLUDE_FLOWS_SET:
+        for flow_id in list(combined_flows.keys()):
+            if flow_id.lower() in options.EXCLUDE_FLOWS_SET:
+                combined_flows.pop(flow_id, None)
+                combined_flows_comfy.pop(flow_id, None)
+
     return combined_flows, combined_flows_comfy, new_per_storage
 
 
