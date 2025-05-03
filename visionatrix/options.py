@@ -114,6 +114,11 @@ INSTALL_EXCLUDE_NODES_SET = {
 }
 """List of custom node names(separated by ';') to exclude during installation."""
 
+EXCLUDE_FLOWS_SET: set[str] = {
+    flow_id.strip().lower() for flow_id in environ.get("VISIONATRIX_EXCLUDE_FLOWS", "").split(";") if flow_id.strip()
+}
+"""List of flow IDs(separated by ';') to exclude from available-flows."""
+
 
 def get_admin_override_credentials() -> tuple[str, str] | None:
     if ":" not in ADMIN_OVERRIDE:
