@@ -163,6 +163,24 @@ MODEL_LOAD_CLASSES = {
             "type": "text_encoders",
         },
     },
+    "QuadrupleCLIPLoader": {
+        "1": {
+            "path": ["inputs", "clip_name1"],
+            "type": "text_encoders",
+        },
+        "2": {
+            "path": ["inputs", "clip_name2"],
+            "type": "text_encoders",
+        },
+        "3": {
+            "path": ["inputs", "clip_name3"],
+            "type": "text_encoders",
+        },
+        "4": {
+            "path": ["inputs", "clip_name4"],
+            "type": "text_encoders",
+        },
+    },
     "PhotoMakerLoaderPlus": {
         "1": {
             "path": ["inputs", "photomaker_model_name"],
