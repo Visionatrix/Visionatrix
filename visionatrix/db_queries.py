@@ -77,6 +77,17 @@ async def get_user_setting(user_id: str, key: str) -> str:
             raise
 
 
+async def get_system_setting(key: str) -> str:
+    async with database.SESSION() as session:
+        try:
+            query = select(database.SystemSettings.value).where(database.SystemSettings.name == key)
+            result = (await session.execute(query)).scalar_one_or_none()
+            return result if result is not None else ""
+        except Exception:
+            LOGGER.exception("Failed to retrieve system setting for `%s`", key)
+            raise
+
+
 async def set_global_setting(key: str, value: str, sensitive: bool) -> None:
     async with database.SESSION() as session:
         try:
@@ -129,6 +140,27 @@ async def set_user_setting(user_id: str, key: str, value: str) -> None:
             raise
 
 
+async def set_system_setting(key: str, value: str) -> None:
+    async with database.SESSION() as session:
+        try:
+            if value:
+                stmt = update(database.SystemSettings).where(database.SystemSettings.name == key).values(value=value)
+                result = await session.execute(stmt)
+                if result.rowcount == 0:
+                    session.add(database.SystemSettings(name=key, value=value))
+                await session.commit()
+            else:
+                result = await session.execute(
+                    delete(database.SystemSettings).where(database.SystemSettings.name == key)
+                )
+                if result.rowcount:
+                    await session.commit()
+        except Exception:
+            await session.rollback()
+            LOGGER.exception("Failed to set system setting for `%s`", key)
+            raise
+
+
 async def get_all_settings(user_id: str, admin: bool) -> dict[str, str]:
     """Retrieve all settings with user settings having higher priority over global settings."""
     user_settings = await get_user_settings(user_id)
@@ -163,6 +195,17 @@ async def get_user_settings(user_id: str) -> dict[str, str]:
             return {name: value for name, value in results}  # noqa pylint: disable=unnecessary-comprehension
         except Exception:
             LOGGER.exception("Failed to retrieve all user settings for user `%s`", user_id)
+            raise
+
+
+async def get_all_system_settings() -> dict[str, str]:
+    async with database.SESSION() as session:
+        try:
+            query = select(database.SystemSettings.name, database.SystemSettings.value)
+            results = (await session.execute(query)).all()
+            return {name: value for name, value in results}  # noqa pylint: disable=unnecessary-comprehension
+        except Exception:
+            LOGGER.exception("Failed to retrieve all system settings")
             raise
 
 

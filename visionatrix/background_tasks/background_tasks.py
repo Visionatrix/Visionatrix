@@ -17,6 +17,7 @@ from ..pydantic_models import BackgroundJobLockModel
 DEFAULT_LOCK_TTL = timedelta(minutes=3)  # How long a lock is valid without renewal
 CYCLE_SLEEP_TIME = 10  # How often the main cycle checks for jobs in seconds
 BACKGROUND_JOB_WORKER_ID = f"{platform.node()}:{os.getpid()}"  # Unique ID for this worker process
+PROCESS_START_TIME = datetime.now(timezone.utc)
 
 
 @dataclass
@@ -24,6 +25,7 @@ class BackgroundJobDefinition:
     func: Callable[[asyncio.Event], Awaitable[None]]
     job_name: str
     run_immediately: bool = False  # Run as soon as possible after startup if never run
+    run_on_startup: bool = False  # Run on each startup
     interval: timedelta | None = None  # Run periodically if set
     lock_ttl: timedelta = DEFAULT_LOCK_TTL
 
@@ -36,6 +38,7 @@ F = TypeVar("F", bound=Callable[[], Awaitable[None]])
 def register_background_job(
     job_name: str,
     run_immediately: bool = False,
+    run_on_startup: bool = False,
     interval: timedelta | None = None,
     lock_ttl: timedelta = DEFAULT_LOCK_TTL,
 ):
@@ -45,6 +48,7 @@ def register_background_job(
     Args:
         job_name: Unique name for the job (used as DB lock key).
         run_immediately: If True, tries to run the job ASAP after startup if it hasn't run successfully before.
+        run_on_startup: If True, tries to run the job ASAP after startup.
         interval: If set, runs the job periodically with this interval after successful completion.
         lock_ttl: Time duration the lock is held before expiring if not renewed.
     """
@@ -58,17 +62,11 @@ def register_background_job(
         if job_name in JOB_REGISTRY:
             raise ValueError(f"Background job '{job_name}' is already registered.")
 
-        LOGGER.info(
-            "Registering background job: '%s' (Function: %s, Interval: %s, Immediate: %s)",
-            job_name,
-            func.__name__,
-            interval,
-            run_immediately,
-        )
         JOB_REGISTRY[job_name] = BackgroundJobDefinition(
             func=func,
             job_name=job_name,
             run_immediately=run_immediately,
+            run_on_startup=run_on_startup,
             interval=interval,
             lock_ttl=lock_ttl,
         )
@@ -147,6 +145,17 @@ async def run_background_jobs_cycle(exit_event: asyncio.Event):
                                 job_def.interval,
                                 job_name,
                             )
+                    elif job_def.run_on_startup and (
+                        lock_info.last_run_at is None or lock_info.last_run_at < PROCESS_START_TIME
+                    ):
+                        is_due_for_run = True
+                        LOGGER.debug(
+                            "Worker %s: Startup job '%s' due for run (last_run_at=%s, process_started=%s).",
+                            BACKGROUND_JOB_WORKER_ID,
+                            job_name,
+                            lock_info.last_run_at,
+                            PROCESS_START_TIME,
+                        )
                     elif job_def.run_immediately and lock_info.last_run_at is None:
                         is_due_for_run = True
                         LOGGER.debug(

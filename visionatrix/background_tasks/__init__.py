@@ -2,4 +2,5 @@
 
 from . import (
     federation,
+    post_update,
 )

@@ -70,7 +70,7 @@ async def get_instance_data(federated_instance: FederatedInstance) -> [str, Fede
 
 
 @register_background_job("federation_engine", run_immediately=True, interval=timedelta(seconds=15.0))
-async def federation_engine(exit_event: asyncio.Event):
+async def federation_engine_bg_job(exit_event: asyncio.Event):
     background_tasks = set()
     local_installed_flows = {}
 

@@ -13,6 +13,7 @@ from packaging.version import Version
 from .. import _version, basic_node_list, comfyui_wrapper, options
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
 from .custom_nodes import install_base_custom_nodes, update_base_custom_nodes
+from ..db_queries import set_system_setting
 
 LOGGER = logging.getLogger("visionatrix")
 
@@ -124,6 +125,11 @@ async def update() -> None:
     )
     # ======
     await comfyui_wrapper.load(None)
+    await update_flows()
+    await set_system_setting("visionatrix_version", _version.__version__)
+
+
+async def update_flows() -> None:
     LOGGER.info("Updating flows..")
     avail_flows_comfy = {}
     avail_flows = await get_available_flows(avail_flows_comfy)
@@ -132,6 +138,7 @@ async def update() -> None:
             await install_custom_flow(avail_flows[i], avail_flows_comfy[i])
         else:
             LOGGER.warning("`%s` flow not found in repository, skipping update of it.", i)
+    LOGGER.info("Completed flows update.")
 
 
 def create_nodes_stuff() -> None:

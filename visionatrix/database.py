@@ -195,6 +195,13 @@ class BackgroundJobLock(Base):
     last_run_at = Column(DateTime, nullable=True, index=True)
 
 
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False, unique=True)
+    value = Column(String, nullable=False)
+
+
 async def init_database_engine() -> None:
     global SESSION
     if SESSION is not None:
