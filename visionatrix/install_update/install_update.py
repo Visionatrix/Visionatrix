@@ -11,9 +11,9 @@ from packaging.requirements import InvalidRequirement, Requirement
 from packaging.version import Version
 
 from .. import _version, basic_node_list, comfyui_wrapper, options
+from ..db_queries import set_system_setting
 from ..flows import get_available_flows, get_installed_flows, install_custom_flow
 from .custom_nodes import install_base_custom_nodes, update_base_custom_nodes
-from ..db_queries import set_system_setting
 
 LOGGER = logging.getLogger("visionatrix")
 
