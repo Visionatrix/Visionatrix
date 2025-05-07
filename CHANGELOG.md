@@ -2,19 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.3.0 - 2025-05-0x]
+## [2.3.0 - 2025-05-07]
 
 ### Added
 
 - Automatic update of Flows when version changes(mostly for Docker installs).
 - Support for `QuadrupleCLIPLoader` node, HiDream flow. #396
-- Ability for integrations to easily exclude nodes and flows. #395  #394
+- Ability for integrations to easily exclude nodes and flows. #395 #394
 - Mirroring od docker images to `docker.io`. #388
 
 ### Changed
 
 - Removed WAS-node-suite from the default nodes list. #383
-- Updated Comfy and Nodes to the latest versions. #385  #394
+- Updated ComfyUI to **v0.3.31** and Nodes to the latest versions. #385 #394
 - Refactored code to be fully async, even in `__main__.py`. #386
 
 ### Fixed
