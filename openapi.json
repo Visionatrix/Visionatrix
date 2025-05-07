@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "2.3.0.dev0"
+    "version": "2.3.1.dev0"
   },
   "paths": {
     "/comfy/": {
@@ -4755,7 +4755,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-04-21T18:40:09.643593Z"
+            "default": "2025-05-07T11:39:22.660160Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
