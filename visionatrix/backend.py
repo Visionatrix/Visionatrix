@@ -270,7 +270,7 @@ async def run_vix(*args, **kwargs) -> None:
             *args,
             host=options.get_host_to_map(),
             port=options.get_port_to_map(),
-            workers=int(options.VIX_SERVER_WORKERS),
+            workers=options.VIX_SERVER_WORKERS,
             log_level=os.getenv("LOG_LEVEL", "info").lower(),
             **kwargs,
         )

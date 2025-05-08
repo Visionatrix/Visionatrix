@@ -45,7 +45,7 @@ Whether authentication is enabled. By default (`0`), authentication is disabled!
 Set to `1` to enable authentication, especially recommended for remote or shared deployments.
 """
 
-AUTH_ADMIN_OVERRIDE = environ.get("VIX_AUTH_ADMIN_OVERRIDE", "admin2:admin2")
+AUTH_ADMIN_OVERRIDE = environ.get("VIX_AUTH_ADMIN_OVERRIDE", "")
 """
 Used only when authentication is enabled.
 If set, this should be in the format "username:password".
@@ -56,9 +56,9 @@ VIX_SERVER = environ.get("VIX_SERVER", "")
 """Only for WORKER in the `Worker to Server` mode, should contain full URL of server ."""
 WORKER_AUTH = environ.get("WORKER_AUTH", "admin:admin")
 """Only for WORKER in the `Worker to Server` mode."""
-WORKER_NET_TIMEOUT = environ.get("WORKER_NET_TIMEOUT", "15.0")
+WORKER_NET_TIMEOUT = float(environ.get("WORKER_NET_TIMEOUT", "15.0"))
 """Only for WORKER in the `Worker to Server` mode."""
-VIX_SERVER_WORKERS = environ.get("VIX_SERVER_WORKERS", "1")
+VIX_SERVER_WORKERS = int(environ.get("VIX_SERVER_WORKERS", "1"))
 """Only for SERVER mode. How many Server instances should be spawned(using uvicorn)."""
 VIX_SERVER_FULL_MODELS = environ.get("VIX_SERVER_FULL_MODELS", "0")
 """Flag that determines whether full rather than dummy models should be stored in SERVER mode.

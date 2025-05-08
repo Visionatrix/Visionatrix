@@ -295,7 +295,7 @@ async def install_custom_flow(flow: Flow, flow_comfy: dict) -> bool:
     await db_queries.add_flow_progress_install(flow.name, flow_comfy, [i.name for i in flow.models])
 
     auth_tokens = {"huggingface_auth_token": "", "civitai_auth_token": ""}
-    async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+    async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
         for token_env, token_key in [
             ("HF_AUTH_TOKEN", "huggingface_auth_token"),
             ("CA_AUTH_TOKEN", "civitai_auth_token"),

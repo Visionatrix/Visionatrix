@@ -168,7 +168,7 @@ async def get_worker_value(key_name: str, user_id: str = "") -> str:
     if key_value:
         return key_value
     if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
-        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+        async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
             r = await client.get(
                 options.VIX_SERVER.rstrip("/") + "/vapi/settings/get",
                 params={"key": key_name.lower()},
@@ -187,7 +187,7 @@ async def get_worker_value(key_name: str, user_id: str = "") -> str:
 
 async def get_incomplete_task_without_error_server(tasks_to_ask: list[str], last_task_name: str) -> dict:
     try:
-        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+        async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
             r = await client.post(
                 options.VIX_SERVER.rstrip("/") + "/vapi/tasks/next",
                 json={
@@ -453,7 +453,7 @@ async def remove_task_lock_database(task_id: int) -> None:
 
 async def remove_task_lock_server(task_id: int) -> None:
     try:
-        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+        async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
             r = await client.delete(
                 options.VIX_SERVER.rstrip("/") + "/vapi/tasks/lock",
                 params={"task_id": task_id},
@@ -564,7 +564,7 @@ async def update_task_progress_server(task_details: dict, execution_details: dic
         request_data["execution_details"] = execution_details
     for i in range(3):
         try:
-            async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+            async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
                 r = await client.put(
                     options.VIX_SERVER.rstrip("/") + "/vapi/tasks/progress",
                     json=request_data,
@@ -606,7 +606,7 @@ async def init_active_task_inputs_from_server() -> bool:
         for i, _ in enumerate(ACTIVE_TASK["input_files"]):
             for k in range(3):
                 try:
-                    async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+                    async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
                         r = await client.get(
                             options.VIX_SERVER.rstrip("/") + "/vapi/tasks/inputs",
                             params={"task_id": task_id, "input_index": i},
@@ -662,7 +662,7 @@ async def upload_results_to_server(task_details: dict) -> bool:
             try:
                 for i in range(3):
                     try:
-                        async with httpx.AsyncClient(timeout=float(options.WORKER_NET_TIMEOUT)) as client:
+                        async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
                             r = await client.put(
                                 options.VIX_SERVER.rstrip("/") + "/vapi/tasks/results",
                                 params={
