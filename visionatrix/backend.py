@@ -54,9 +54,9 @@ class VixAuthMiddleware:
     async def _handle_http(self, scope: Scope, receive: Receive, send: Send) -> None:
         conn = HTTPConnection(scope)
         url_path = conn.url.path.lstrip("/")
-        if options.VIX_MODE == "DEFAULT":
+        if not options.AUTH_ENABLED:
             scope["user_info"] = database.DEFAULT_USER
-        elif not fnmatch.filter(self._disable_for, url_path):
+        elif not any(fnmatch.fnmatch(url_path, i) for i in self._disable_for):
             userinfo = self._check_admin_override_auth(conn.headers)
             if userinfo:
                 scope["user_info"] = userinfo
@@ -80,9 +80,9 @@ class VixAuthMiddleware:
 
     async def _handle_websocket(self, scope: Scope, receive: Receive, send: Send) -> None:
         url_path = scope.get("path", "").lstrip("/")
-        if options.VIX_MODE == "DEFAULT":
+        if not options.AUTH_ENABLED:
             scope["user_info"] = database.DEFAULT_USER
-        elif not fnmatch.filter(self._disable_for, url_path):
+        elif not any(fnmatch.fnmatch(url_path, i) for i in self._disable_for):
             headers_dict, cookies_dict = parse_cookies_and_headers(scope)
             userinfo = self._check_admin_override_auth(headers_dict)
             if userinfo:

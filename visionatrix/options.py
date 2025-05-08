@@ -34,9 +34,22 @@ VIX_PORT = environ.get("VIX_PORT", "")
 UI_DIR = environ.get("UI_DIR", "")
 VIX_MODE = environ.get("VIX_MODE", "DEFAULT")
 """
-* DEFAULT - storage and delivery of tasks(Server) + tasks processing(Worker), authentication is disabled.
-* SERVER - only storage and managing of tasks, authentication is enabled, requires PgSQL database.
+* DEFAULT - storage and delivery of tasks(Server) + tasks processing(Worker).
+* SERVER - only storage and managing of tasks.
 * WORKER - only processing tasks for the Server(client consuming mode, no backend)
+"""
+
+AUTH_ENABLED = int(environ.get("VIX_AUTH", "0"))
+"""
+Whether authentication is enabled. By default (`0`), authentication is disabled!
+Set to `1` to enable authentication, especially recommended for remote or shared deployments.
+"""
+
+AUTH_ADMIN_OVERRIDE = environ.get("VIX_AUTH_ADMIN_OVERRIDE", "admin2:admin2")
+"""
+Used only when authentication is enabled.
+If set, this should be in the format "username:password".
+The specified user is treated as admin without requiring database record (useful for headless setups or initial access).
 """
 
 VIX_SERVER = environ.get("VIX_SERVER", "")
@@ -104,11 +117,6 @@ Example:
 This will enable `nextcloud` user backend in addition to the default `vix_db`.
 """
 
-ADMIN_OVERRIDE = environ.get("ADMIN_OVERRIDE", "")
-"""If set, should contain something like "admin:pass",
-and it is considered as an admin user (emulated, without actual DB record).
-"""
-
 INSTALL_EXCLUDE_NODES_SET = {
     node.strip() for node in environ.get("VISIONATRIX_INSTALL_EXCLUDE_NODES", "").split(";") if node.strip()
 }
@@ -121,9 +129,9 @@ EXCLUDE_FLOWS_SET: set[str] = {
 
 
 def get_admin_override_credentials() -> tuple[str, str] | None:
-    if ":" not in ADMIN_OVERRIDE:
+    if ":" not in AUTH_ADMIN_OVERRIDE:
         return None
-    user, password = ADMIN_OVERRIDE.split(":", 1)
+    user, password = AUTH_ADMIN_OVERRIDE.split(":", 1)
     user, password = user.strip(), password.strip()
     if not user or not password:
         return None
