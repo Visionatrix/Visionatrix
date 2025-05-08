@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     python3 -m venv venv && \
     set -eux; \
     if [ "$BUILD_TYPE" = "cuda" ]; then \
-      venv/bin/python -m pip install torch torchaudio torchvision --extra-index-url https://download.pytorch.org/whl/cu126; \
+      venv/bin/python -m pip install torch torchaudio torchvision --extra-index-url https://download.pytorch.org/whl/cu128; \
     elif [ "$BUILD_TYPE" = "rocm" ]; then \
       venv/bin/python -m pip install torch torchaudio torchvision --index-url https://download.pytorch.org/whl/rocm6.3; \
     elif [ "$BUILD_TYPE" = "cpu" ]; then \

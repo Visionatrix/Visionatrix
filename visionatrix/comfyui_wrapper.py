@@ -72,7 +72,7 @@ async def load(
                         "torchvision",
                         "torchaudio",
                         "--index-url",
-                        "https://download.pytorch.org/whl/cu126",
+                        "https://download.pytorch.org/whl/cu128",
                         # !!! do not forget to change PyTorch version in "scripts/easy_install.py" !!!
                     ]
                 )
