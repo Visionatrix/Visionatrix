@@ -601,6 +601,7 @@ def add_arguments(parser):
         "You can pass a list specific optimizations if you only want to enable specific ones. "
         "Current valid optimizations: fp16_accumulation fp8_matrix_mult cublas_ops",
     )
+    parser.add_argument("--mmap-torch-files", action="store_true", help="Use mmap when loading ckpt/pt files.")
 
 
 def fill_comfyui_args():
