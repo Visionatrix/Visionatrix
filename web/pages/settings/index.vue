@@ -26,6 +26,7 @@ const settingsKeys = [
 	'ollama_keepalive',
 	'translations_provider',
 	'llm_provider',
+	'save_metadata',
 ]
 const savingSettings = ref(false)
 function saveChanges() {
@@ -117,6 +118,17 @@ const passwordInputs = ref({
 						<span>Current version: {{ settingsStore.other.current_version }}</span>&nbsp;
 						<span v-if="settingsStore.other.next_version !== ''">Next version: {{ settingsStore.other.next_version }}</span>
 					</div>
+
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Save metadata"
+						description="Save metadata to the output results.">
+						<UCheckbox
+							v-model="settingsStore.settingsMap.save_metadata.value"
+							color="white"
+							label="Save metadata" />
+					</UFormGroup>
 
 					<UFormGroup
 						size="md"
