@@ -84,6 +84,7 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
         if not task_to_exec:
             return {}
 
+    await task_preprocess_extra_flags(task_to_exec["extra_flags"])
     ollama_nodes = get_ollama_nodes(task_to_exec["flow_comfy"])
     if ollama_nodes:
         ollama_vision_model = ""
@@ -144,6 +145,10 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
     models_map.process_flow_models(task_to_exec["flow_comfy"], await get_installed_models())
 
     return task_to_exec
+
+
+async def task_preprocess_extra_flags(extra_flags: dict) -> None:
+    comfyui_wrapper.set_comfy_save_metadata_flag(extra_flags.get("save_metadata"))
 
 
 async def task_preprocess_insightface_nodes(flow_comfy: dict, user_id: str) -> None:

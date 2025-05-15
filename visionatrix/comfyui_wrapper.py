@@ -622,3 +622,9 @@ def fill_comfyui_args():
     # '--fast' is provided with a list of performance features, use that list
     else:
         comfy.cli_args.args.fast = set(comfy.cli_args.args.fast)
+
+
+def set_comfy_save_metadata_flag(value: bool) -> None:
+    import comfy.cli_args  # noqa # isort: skip
+
+    comfy.cli_args.args.disable_metadata = not value

@@ -47,6 +47,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: false,
 			},
+			save_metadata: {
+				key: 'save_metadata',
+				value: false,
+				sensitive: false,
+				admin: true,
+			},
 			gemini_model: {
 				key: 'gemini_model',
 				value: '',
@@ -162,6 +168,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 					if (key === this.settingsMap.remote_vae_flows.key) {
 						value = JSON.parse(value)
 					}
+					if (key === this.settingsMap.save_metadata.key) {
+						value = value === '1'
+					}
 					if (this.settingsMap[key + '_user']) {
 						this.settingsMap[key + '_user'].value = value
 					} else if (this.settingsMap[key]) {
@@ -181,7 +190,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 				console.debug('[DEBUG] All global settings:', allGlobalSettings)
 				Object.keys(allGlobalSettings).forEach((key: string) => {
 					if (this.settingsMap[key]) {
-						this.settingsMap[key].value = allGlobalSettings[key]
+						let value = allGlobalSettings[key]
+						if (key === this.settingsMap.remote_vae_flows.key) {
+							value = JSON.parse(value)
+						}
+						if (key === this.settingsMap.save_metadata.key) {
+							value = value === '1'
+						}
+						this.settingsMap[key].value = value
 					}
 				})
 			})
@@ -359,6 +375,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 				let value = this.settingsMap[key].value
 				if (key === this.settingsMap.remote_vae_flows.key) {
 					value = JSON.stringify(value)
+				}
+				if (key === this.settingsMap.save_metadata.key) {
+					value = value ? '1' : '0'
 				}
 				if (this.settingsMap[key].admin && userStore.isAdmin) {
 					return this.saveGlobalSetting(this.settingsMap[key].key, value, this.settingsMap[key].sensitive)

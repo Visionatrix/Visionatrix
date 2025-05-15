@@ -9,6 +9,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import models_map
 from ..db_queries import (
+    get_global_setting,
     get_installed_models,
     get_setting,
     get_worker_details,
@@ -49,7 +50,7 @@ async def task_run(
     child_task: bool,
     group_scope: int,
     priority: int,
-    extra_flags: dict | None,
+    extra_flags: dict,
     custom_worker: str | None,
 ):
     task_details = await create_new_task_async(name, input_params, user_info)
@@ -93,7 +94,7 @@ async def task_run(
         task_details["extra_flags"] = extra_flags
     if custom_worker:
         task_details["custom_worker"] = custom_worker
-    if flow.hidden or (extra_flags and extra_flags.get("federated_task")):
+    if flow.hidden or extra_flags.get("federated_task"):
         task_details["hidden"] = True
     flow_prepare_output_params(flow_validation[2], task_details["task_id"], task_details, flow_comfy)
     await put_task_in_queue_async(task_details)
@@ -149,8 +150,10 @@ async def process_remote_input_url(request: Request, input_file_info: dict[str, 
         input_file_info["file_content"] = input_file.content
 
 
-def get_task_creation_extra_flags(request: Request, is_user_admin: bool) -> [dict | None, str | None]:
-    extra_flags = {}
+async def get_task_creation_extra_flags(request: Request, is_user_admin: bool) -> [dict, str | None]:
+    extra_flags = {
+        "save_metadata": bool(await get_global_setting("save_metadata", True) not in ("", "0")),
+    }
     custom_worker = None
     if is_user_admin:
         custom_worker = request.headers.get("X-WORKER-ID")
@@ -162,13 +165,11 @@ def get_task_creation_extra_flags(request: Request, is_user_admin: bool) -> [dic
             if not custom_worker:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing `X-WORKER-ID` header.") from None
             extra_flags["federated_task"] = True
-    if not extra_flags:
-        extra_flags = None
     return extra_flags, custom_worker
 
 
-async def preprocess_federation_task(extra_flags: dict | None, custom_worker: str | None) -> None:
-    if not extra_flags or not extra_flags.get("federated_task"):
+async def preprocess_federation_task(extra_flags: dict, custom_worker: str | None) -> None:
+    if not extra_flags.get("federated_task"):
         return
     worker = await get_worker_details(None, custom_worker)
     if not worker:

@@ -110,7 +110,7 @@ async def create_task(
 
     user_id = request.scope["user_info"].user_id
     is_user_admin = request.scope["user_info"].is_admin
-    extra_flags, custom_worker = get_task_creation_extra_flags(request, is_user_admin)
+    extra_flags, custom_worker = await get_task_creation_extra_flags(request, is_user_admin)
     await preprocess_federation_task(extra_flags, custom_worker)
 
     flow_comfy = {}
