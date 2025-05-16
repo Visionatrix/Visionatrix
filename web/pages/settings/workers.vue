@@ -207,6 +207,17 @@ watch(rows, (newRows: WorkerInfo[]) => {
 		selectedRows.value = newRows.filter((row: WorkerInfo) => selectedRowsIds.includes(row.worker_id))
 	}
 })
+
+const settingsKeys = [
+	'smart_memory',
+]
+const savingSettings = ref(false)
+function saveChanges() {
+	savingSettings.value = true
+	settingsStore.saveChanges(settingsKeys).finally(() => {
+		savingSettings.value = false
+	})
+}
 </script>
 
 <template>
@@ -215,6 +226,29 @@ watch(rows, (newRows: WorkerInfo[]) => {
 			<UVerticalNavigation :links="settingsStore.links" class="md:w-1/5" />
 			<div class="px-5 md:w-4/5">
 				<h2 class="mb-3 text-xl">Workers</h2>
+
+				<UDivider class="mb-3" label="Default Workers settings" />
+
+				<UFormGroup
+					size="md"
+					class="py-3"
+					label="Smart memory"
+					description="When disabled forces ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.">
+					<UCheckbox
+						v-model="settingsStore.settingsMap.smart_memory.value"
+						color="primary"
+						label="Enable smart memory" />
+				</UFormGroup>
+
+				<UButton
+					icon="i-heroicons-check-16-solid"
+					:loading="savingSettings"
+					@click="saveChanges">
+					Save
+				</UButton>
+
+				<UDivider class="my-3" />
+
 				<div class="flex flex-col lg:flex-row px-3 py-3.5 border-b border-gray-200 dark:border-gray-700">
 					<div class="flex">
 						<USelectMenu

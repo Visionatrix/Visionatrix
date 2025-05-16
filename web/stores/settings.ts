@@ -7,7 +7,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 				to: '/settings',
 			},
 			{
-				label: 'Workers information',
+				label: 'Workers',
 				icon: 'i-heroicons-chart-bar-16-solid',
 				to: '/settings/workers',
 			},
@@ -139,6 +139,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: true,
 				admin: true,
 			},
+			smart_memory: {
+				key: 'smart_memory',
+				value: false,
+				sensitive: false,
+				admin: true,
+			},
 			remote_vae_flows: {
 				key: 'remote_vae_flows',
 				value: '',
@@ -171,6 +177,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 					if (key === this.settingsMap.save_metadata.key) {
 						value = value === '1'
 					}
+					if (key === this.settingsMap.smart_memory.key) {
+						value = value === '1'
+					}
 					if (this.settingsMap[key + '_user']) {
 						this.settingsMap[key + '_user'].value = value
 					} else if (this.settingsMap[key]) {
@@ -195,6 +204,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 							value = JSON.parse(value)
 						}
 						if (key === this.settingsMap.save_metadata.key) {
+							value = value === '1'
+						}
+						if (key === this.settingsMap.smart_memory.key) {
 							value = value === '1'
 						}
 						this.settingsMap[key].value = value
@@ -377,6 +389,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 					value = JSON.stringify(value)
 				}
 				if (key === this.settingsMap.save_metadata.key) {
+					value = value ? '1' : '0'
+				}
+				if (key === this.settingsMap.smart_memory.key) {
 					value = value ? '1' : '0'
 				}
 				if (this.settingsMap[key].admin && userStore.isAdmin) {

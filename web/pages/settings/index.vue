@@ -126,7 +126,7 @@ const passwordInputs = ref({
 						description="Save metadata to the output results.">
 						<UCheckbox
 							v-model="settingsStore.settingsMap.save_metadata.value"
-							color="white"
+							color="primary"
 							label="Save metadata" />
 					</UFormGroup>
 
