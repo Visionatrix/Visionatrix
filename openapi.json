@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "2.3.1.dev0"
+    "version": "2.4.0.dev0"
   },
   "paths": {
     "/comfy/": {
@@ -2727,7 +2727,7 @@
               }
             ],
             "title": "Disable Smart Memory",
-            "description": "Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+            "description": "Flag indicating whether ComfyUIs 'smart memory' was disabled."
           },
           "vram_state": {
             "anyOf": [
@@ -2950,7 +2950,7 @@
               }
             ],
             "title": "Disable Smart Memory",
-            "description": "Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+            "description": "Flag indicating whether ComfyUIs 'smart memory' was disabled."
           },
           "vram_state": {
             "anyOf": [
@@ -4755,7 +4755,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-05-07T11:39:22.660160Z"
+            "default": "2025-05-15T17:48:09.360297Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

@@ -321,7 +321,7 @@ class ComfyEngineDetails(BaseModel):
     """Performance options that ComfyUI is running with."""
 
     disable_smart_memory: bool | None = Field(
-        None, description="Flag indicating whether ComfyUI '--disable-smart-memory' is enabled."
+        None, description="Flag indicating whether ComfyUIs 'smart memory' was disabled."
     )
     vram_state: str | None = Field(None, description="Current VRAM management mode used by ComfyUI.")
 

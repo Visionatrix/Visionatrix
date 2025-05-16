@@ -581,12 +581,6 @@ def add_arguments(parser):
         "By default some amount is reserved depending on your OS.",
     )
 
-    parser.add_argument(
-        "--disable-smart-memory",
-        action="store_true",
-        help="Force ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.",
-    )
-
     class PerformanceFeature(enum.Enum):  # we need it only for definition, later we use Comfy "set()"
         Fp16Accumulation = "fp16_accumulation"
         Fp8MatrixMultiplication = "fp8_matrix_mult"
@@ -624,7 +618,14 @@ def fill_comfyui_args():
         comfy.cli_args.args.fast = set(comfy.cli_args.args.fast)
 
 
-def set_comfy_save_metadata_flag(value: bool) -> None:
-    import comfy.cli_args  # noqa # isort: skip
+def set_comfy_internal_flags(save_metadata: bool, smart_memory: bool) -> None:
+    import comfy  # noqa # isort: skip
 
-    comfy.cli_args.args.disable_metadata = not value
+    comfy.cli_args.args.disable_metadata = not save_metadata
+
+    disable_smart_memory = not smart_memory
+    if comfy.cli_args.args.disable_smart_memory != disable_smart_memory:
+        comfy.model_management.unload_all_models()
+
+        comfy.cli_args.args.disable_smart_memory = disable_smart_memory
+        comfy.model_management.DISABLE_SMART_MEMORY = disable_smart_memory

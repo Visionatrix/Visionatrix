@@ -148,7 +148,9 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
 
 
 async def task_preprocess_extra_flags(extra_flags: dict) -> None:
-    comfyui_wrapper.set_comfy_save_metadata_flag(extra_flags.get("save_metadata"))
+    comfyui_wrapper.set_comfy_internal_flags(
+        extra_flags.get("save_metadata", False), extra_flags.get("smart_memory", False)
+    )
 
 
 async def task_preprocess_insightface_nodes(flow_comfy: dict, user_id: str) -> None:
