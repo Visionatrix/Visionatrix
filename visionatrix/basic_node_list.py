@@ -97,9 +97,6 @@ BASIC_NODE_LIST = {
     "comfyui_essentials": {
         "version": "1.1.0",
     },
-    "rgthree-comfy": {
-        "version": "1.0.0",
-    },
     "comfyui-custom-scripts": {
         "version": "1.2.3",
     },
