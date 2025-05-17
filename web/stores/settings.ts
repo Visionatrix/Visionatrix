@@ -145,6 +145,32 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			cache_type: {
+				key: 'cache_type',
+				value: 'classic',
+				options: [
+					{
+						label: 'Classic',
+						value: 'classic',
+					},
+					{
+						label: 'LRU',
+						value: 'lru',
+					},
+					{
+						label: 'None',
+						value: 'none',
+					},
+				],
+				sensitive: false,
+				admin: true,
+			},
+			cache_size: {
+				key: 'cache_size',
+				value: '1',
+				sensitive: false,
+				admin: true,
+			},
 			remote_vae_flows: {
 				key: 'remote_vae_flows',
 				value: '',

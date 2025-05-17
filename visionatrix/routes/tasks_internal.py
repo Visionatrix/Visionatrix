@@ -9,7 +9,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import models_map
 from ..db_queries import (
-    get_global_setting,
+    get_all_global_settings_for_task_execution,
     get_installed_models,
     get_setting,
     get_worker_details,
@@ -151,10 +151,7 @@ async def process_remote_input_url(request: Request, input_file_info: dict[str, 
 
 
 async def get_task_creation_extra_flags(request: Request, is_user_admin: bool) -> [dict, str | None]:
-    extra_flags = {
-        "save_metadata": bool(await get_global_setting("save_metadata", True) not in ("", "0")),
-        "smart_memory": bool(await get_global_setting("smart_memory", True) not in ("", "0")),
-    }
+    extra_flags = await get_all_global_settings_for_task_execution()
     custom_worker = None
     if is_user_admin:
         custom_worker = request.headers.get("X-WORKER-ID")

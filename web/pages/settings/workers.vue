@@ -210,6 +210,8 @@ watch(rows, (newRows: WorkerInfo[]) => {
 
 const settingsKeys = [
 	'smart_memory',
+	'cache_type',
+	'cache_size',
 ]
 const savingSettings = ref(false)
 function saveChanges() {
@@ -240,7 +242,37 @@ function saveChanges() {
 						label="Enable smart memory" />
 				</UFormGroup>
 
+				<UFormGroup
+					size="md"
+					class="py-3"
+					label="Cache type">
+					<template #description>
+						<p>
+							Classic - Use the old style (aggressive) caching. <br>
+							LRU - Use LRU caching with a maximum of N node results cached. May use more RAM/VRAM. <br>
+							None - Reduced RAM/VRAM usage at the expense of executing every node for each run. <br>
+						</p>
+					</template>
+					<USelectMenu
+						v-model="settingsStore.settingsMap.cache_type.value"
+						class="w-fit"
+						placeholder="Select cache type"
+						value-attribute="value"
+						:options="settingsStore.settingsMap.cache_type.options" />
+
+					<UInput
+						v-if="settingsStore.settingsMap.cache_type.value === 'lru'"
+						v-model="settingsStore.settingsMap.cache_size.value"
+						type="number"
+						class="w-fit mt-3"
+						min="1"
+						@change="() => {
+							settingsStore.settingsMap.cache_size.value = settingsStore.settingsMap.cache_size.value.toString()
+						}" />
+				</UFormGroup>
+
 				<UButton
+					class="mt-3"
 					icon="i-heroicons-check-16-solid"
 					:loading="savingSettings"
 					@click="saveChanges">

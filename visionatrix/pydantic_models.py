@@ -339,10 +339,15 @@ class ExecutionDetails(ComfyEngineDetails):
 
 
 class ExtraFlags(BaseModel):
-    """Additional options and flags that modify how the task is executed."""
+    """Additional options and flags that were applied during task execution."""
 
-    profiler_execution: bool = Field(False, description="Enable profiling for this task execution.")
-    unload_models: bool = Field(False, description="Unload all models before task execution.")
+    profiler_execution: bool = Field(False, description="Whether profiling was enabled during task execution.")
+    unload_models: bool = Field(False, description="Whether all models were unloaded before task execution.")
+    federated_task: bool = Field(False, description="Whether the task originated from a federated instance.")
+    save_metadata: bool = Field(False, description="Whether the ComfyUI workflow metadata was saved.")
+    smart_memory: bool = Field(False, description="Whether ComfyUI smart memory was enabled.")
+    cache_type: str = Field("classic", description="The type of cache that was used (classic, lru, none).")
+    cache_size: int = Field(1, description="How many node results were cached (applied only when cache_type was lru).")
 
 
 class WorkerDetailsSystemRequest(BaseModel):
