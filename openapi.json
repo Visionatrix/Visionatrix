@@ -3013,19 +3013,49 @@
           "profiler_execution": {
             "type": "boolean",
             "title": "Profiler Execution",
-            "description": "Enable profiling for this task execution.",
+            "description": "Whether profiling was enabled during task execution.",
             "default": false
           },
           "unload_models": {
             "type": "boolean",
             "title": "Unload Models",
-            "description": "Unload all models before task execution.",
+            "description": "Whether all models were unloaded before task execution.",
             "default": false
+          },
+          "federated_task": {
+            "type": "boolean",
+            "title": "Federated Task",
+            "description": "Whether the task originated from a federated instance.",
+            "default": false
+          },
+          "save_metadata": {
+            "type": "boolean",
+            "title": "Save Metadata",
+            "description": "Whether the ComfyUI workflow metadata was saved.",
+            "default": false
+          },
+          "smart_memory": {
+            "type": "boolean",
+            "title": "Smart Memory",
+            "description": "Whether ComfyUI smart memory was enabled.",
+            "default": false
+          },
+          "cache_type": {
+            "type": "string",
+            "title": "Cache Type",
+            "description": "The type of cache that was used (classic, lru, none).",
+            "default": "classic"
+          },
+          "cache_size": {
+            "type": "integer",
+            "title": "Cache Size",
+            "description": "How many node results were cached (applied only when cache_type was lru).",
+            "default": 1
           }
         },
         "type": "object",
         "title": "ExtraFlags",
-        "description": "Additional options and flags that modify how the task is executed."
+        "description": "Additional options and flags that were applied during task execution."
       },
       "FederatedInstance": {
         "properties": {
@@ -4755,7 +4785,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-05-15T17:48:09.360297Z"
+            "default": "2025-05-17T07:55:44.816386Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

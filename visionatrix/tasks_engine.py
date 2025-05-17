@@ -149,7 +149,10 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
 
 async def task_preprocess_extra_flags(extra_flags: dict) -> None:
     comfyui_wrapper.set_comfy_internal_flags(
-        extra_flags.get("save_metadata", False), extra_flags.get("smart_memory", False)
+        extra_flags.get("save_metadata", False),
+        extra_flags.get("smart_memory", False),
+        extra_flags.get("cache_type", "classic"),
+        extra_flags.get("cache_size", 1),
     )
 
 

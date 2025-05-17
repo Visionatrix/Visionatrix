@@ -37,6 +37,7 @@ SYSTEM_DETAILS = {
     "embedded_python": options.PYTHON_EMBEDED,
 }
 TORCH_VERSION: str | None = None
+PROMPT_EXECUTOR: typing.Any
 
 
 async def load(
@@ -366,20 +367,16 @@ def need_cpu_flag() -> bool:
 
 
 def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_event: threading.Event):
+    global PROMPT_EXECUTOR
+
     import comfy  # noqa
     import execution  # noqa
 
     q = prompt_executor_args[0]
     prompt_server = prompt_executor_args[1]
 
-    cache_type = execution.CacheType.CLASSIC
-    if comfy.cli_args.args.cache_lru > 0:
-        cache_type = execution.CacheType.LRU
-    elif comfy.cli_args.args.cache_none:
-        cache_type = execution.CacheType.DEPENDENCY_AWARE
-
     current_time: float = 0.0
-    e = execution.PromptExecutor(prompt_server, cache_type=cache_type, cache_size=comfy.cli_args.args.cache_lru)
+    PROMPT_EXECUTOR = execution.PromptExecutor(prompt_server, cache_type=execution.CacheType.CLASSIC, cache_size=0)
     last_gc_collect = 0
     need_gc = False
     gc_collect_interval = 10.0
@@ -406,13 +403,15 @@ def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_ev
             prompt_id = item[1]
             prompt_server.last_prompt_id = prompt_id
 
-            e.execute(item[2], prompt_id, item[3], item[4])
+            PROMPT_EXECUTOR.execute(item[2], prompt_id, item[3], item[4])
             need_gc = True
             q.task_done(
                 item_id,
-                e.history_result,
+                PROMPT_EXECUTOR.history_result,
                 status=execution.PromptQueue.ExecutionStatus(
-                    status_str="success" if e.success else "error", completed=e.success, messages=e.status_messages
+                    status_str="success" if PROMPT_EXECUTOR.success else "error",
+                    completed=PROMPT_EXECUTOR.success,
+                    messages=PROMPT_EXECUTOR.status_messages,
                 ),
             )
             if prompt_server.client_id is not None:
@@ -431,7 +430,7 @@ def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_ev
             last_gc_collect = 0
 
         if free_memory:
-            e.reset()
+            PROMPT_EXECUTOR.reset()
             need_gc = True
             last_gc_collect = 0
 
@@ -500,15 +499,6 @@ def add_arguments(parser):
 
     parser.add_argument(
         "--force-channels-last", action="store_true", help="Force channels last format when inferencing the models."
-    )
-
-    cache_group = parser.add_mutually_exclusive_group()
-    cache_group.add_argument("--cache-classic", action="store_true", help="Use the old style (aggressive) caching.")
-    cache_group.add_argument(
-        "--cache-lru",
-        type=int,
-        default=0,
-        help="Use LRU caching with a maximum of N node results cached. May use more RAM/VRAM.",
     )
 
     parser.add_argument(
@@ -618,8 +608,9 @@ def fill_comfyui_args():
         comfy.cli_args.args.fast = set(comfy.cli_args.args.fast)
 
 
-def set_comfy_internal_flags(save_metadata: bool, smart_memory: bool) -> None:
-    import comfy  # noqa # isort: skip
+def set_comfy_internal_flags(save_metadata: bool, smart_memory: bool, cache_type: str, cache_size: int) -> None:
+    import comfy  # noqa
+    import execution  # noqa
 
     comfy.cli_args.args.disable_metadata = not save_metadata
 
@@ -629,3 +620,15 @@ def set_comfy_internal_flags(save_metadata: bool, smart_memory: bool) -> None:
 
         comfy.cli_args.args.disable_smart_memory = disable_smart_memory
         comfy.model_management.DISABLE_SMART_MEMORY = disable_smart_memory
+
+    if cache_type == "lru":
+        cache_type = execution.CacheType.LRU
+    elif cache_type == "none":
+        cache_type = execution.CacheType.DEPENDENCY_AWARE
+    else:
+        cache_type = execution.CacheType.CLASSIC
+
+    if PROMPT_EXECUTOR.cache_type != cache_type or PROMPT_EXECUTOR.cache_size != cache_size:
+        PROMPT_EXECUTOR.cache_type = cache_type
+        PROMPT_EXECUTOR.cache_size = cache_size
+        PROMPT_EXECUTOR.reset()

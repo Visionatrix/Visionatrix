@@ -209,6 +209,37 @@ async def get_all_system_settings() -> dict[str, str]:
             raise
 
 
+async def get_all_global_settings_for_task_execution() -> dict[str, bool | int | str]:
+    """Retrieve all global settings related to task execution to init the ExtraFlags model."""
+    async with database.SESSION() as session:
+        try:
+            query = select(database.GlobalSettings.name, database.GlobalSettings.value).where(
+                database.GlobalSettings.name.in_(("save_metadata", "smart_memory", "cache_type", "cache_size"))
+            )
+            results = (await session.execute(query)).all()
+            settings = {name: value or "" for name, value in results}
+
+            save_metadata = settings.get("save_metadata", "") not in ("", "0")
+            smart_memory = settings.get("smart_memory", "") not in ("", "0")
+
+            cache_type = settings.get("cache_type") or "classic"
+            cache_size_raw = settings.get("cache_size", "")
+            try:
+                cache_size = int(cache_size_raw) if cache_size_raw not in ("", None) else 1
+            except ValueError:
+                LOGGER.warning("Invalid cache_size '%s' in GlobalSettings, defaulting to 1", cache_size_raw)
+                cache_size = 1
+            return {
+                "save_metadata": save_metadata,
+                "smart_memory": smart_memory,
+                "cache_type": cache_type,
+                "cache_size": cache_size,
+            }
+        except Exception:
+            LOGGER.exception("Failed to retrieve all global task execution settings")
+            raise
+
+
 async def get_flow_progress_install(name: str) -> FlowProgressInstall | None:
     async with database.SESSION() as session:
         try:
