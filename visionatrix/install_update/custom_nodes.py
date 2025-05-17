@@ -36,6 +36,7 @@ def install_base_custom_nodes() -> None:
             "install",
             f"--user-directory={options.USER_DIR}",
             "--mode=cache",
+            "--exit-on-fail",
             *get_basic_nodes_to_install(),
         ],
         env=clone_env,
