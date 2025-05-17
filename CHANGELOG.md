@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0 - 2025-05-17]
+
+### Added
+
+- New **ACE-Step Audio music flow**.
+- Enabling/disabling ComfyUI `Smart Memory` now should be done from the **Settings -> Workers** UI page. **By default** `Smart memory` will be disabled. #403
+- Changing ComfyUI **cache** settings(`lru`, `none`) now should be done from the **Settings -> Workers** UI page. #404
+- Enabling/disabling ComfyUI `save metadata` option now should be done from the **Settings -> Settings** UI page. **By default** `save metadata` will be disabled. #402
+
+### Changed
+
+- CUDA: For the new installations will be used `12.8` version to support NVIDIA `5xxx` series graphic cards.
+- `rgthree-comfy` node was removed from the basic node list. #405
+
 ## [2.3.0 - 2025-05-07]
 
 ### Added
