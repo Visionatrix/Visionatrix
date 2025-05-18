@@ -212,6 +212,7 @@ const settingsKeys = [
 	'smart_memory',
 	'cache_type',
 	'cache_size',
+	'vae_cpu',
 ]
 const savingSettings = ref(false)
 function saveChanges() {
@@ -235,7 +236,7 @@ function saveChanges() {
 					size="md"
 					class="py-3"
 					label="Smart memory"
-					description="When disabled forces ComfyUI to aggressively offload to regular ram instead of keeping models in vram when it can.">
+					description="When disabled forces ComfyUI to aggressively offload to regular RAM instead of keeping models in VRAM when it can.">
 					<UCheckbox
 						v-model="settingsStore.settingsMap.smart_memory.value"
 						color="primary"
@@ -269,6 +270,17 @@ function saveChanges() {
 						@change="() => {
 							settingsStore.settingsMap.cache_size.value = settingsStore.settingsMap.cache_size.value.toString()
 						}" />
+				</UFormGroup>
+
+				<UFormGroup
+					size="md"
+					class="py-3"
+					label="VAE cpu"
+					description="Run the VAE on the CPU.">
+					<UCheckbox
+						v-model="settingsStore.settingsMap.vae_cpu.value"
+						color="primary"
+						label="VAE on CPU" />
 				</UFormGroup>
 
 				<UButton
@@ -375,7 +387,7 @@ function saveChanges() {
 							</UPopover>
 						</template>
 					</template>
-					
+
 					<template #last_seen-data="{ row }">
 						{{ new Date(row.last_seen).toLocaleString() }}
 					</template>

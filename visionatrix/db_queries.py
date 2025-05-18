@@ -214,7 +214,9 @@ async def get_all_global_settings_for_task_execution() -> dict[str, bool | int |
     async with database.SESSION() as session:
         try:
             query = select(database.GlobalSettings.name, database.GlobalSettings.value).where(
-                database.GlobalSettings.name.in_(("save_metadata", "smart_memory", "cache_type", "cache_size"))
+                database.GlobalSettings.name.in_(
+                    ("save_metadata", "smart_memory", "cache_type", "cache_size", "vae_cpu")
+                )
             )
             results = (await session.execute(query)).all()
             settings = {name: value or "" for name, value in results}
@@ -229,11 +231,15 @@ async def get_all_global_settings_for_task_execution() -> dict[str, bool | int |
             except ValueError:
                 LOGGER.warning("Invalid cache_size '%s' in GlobalSettings, defaulting to 1", cache_size_raw)
                 cache_size = 1
+
+            vae_cpu = settings.get("vae_cpu", "") not in ("", "0")
+
             return {
                 "save_metadata": save_metadata,
                 "smart_memory": smart_memory,
                 "cache_type": cache_type,
                 "cache_size": cache_size,
+                "vae_cpu": vae_cpu,
             }
         except Exception:
             LOGGER.exception("Failed to retrieve all global task execution settings")
