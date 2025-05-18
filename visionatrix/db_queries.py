@@ -220,7 +220,7 @@ async def get_all_global_settings_for_task_execution() -> dict[str, bool | int |
             settings = {name: value or "" for name, value in results}
 
             save_metadata = settings.get("save_metadata", "") not in ("", "0")
-            smart_memory = settings.get("smart_memory", "") not in ("", "0")
+            smart_memory = settings.get("smart_memory", "") != "0"
 
             cache_type = settings.get("cache_type") or "classic"
             cache_size_raw = settings.get("cache_size", "")

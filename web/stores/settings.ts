@@ -141,7 +141,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 			},
 			smart_memory: {
 				key: 'smart_memory',
-				value: false,
+				value: true,
 				sensitive: false,
 				admin: true,
 			},
