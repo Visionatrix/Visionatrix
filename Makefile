@@ -1,12 +1,44 @@
 .DEFAULT_GOAL := help
 
+VISIONATRIX_VERSION := $(shell grep -Po '(?<=__version__ = ")[^"]*' visionatrix/_version.py)
+
+ifeq ($(VISIONATRIX_VERSION),)
+$(error Could not extract version from visionatrix/_version.py. Please check the file.)
+endif
+
+IS_DEV_VERSION := $(findstring .dev,$(VISIONATRIX_VERSION))
+
+CPU_TAG_OPTIONS := --tag ghcr.io/visionatrix/visionatrix:$(VISIONATRIX_VERSION)-cpu
+CUDA_TAG_OPTIONS := --tag ghcr.io/visionatrix/visionatrix:$(VISIONATRIX_VERSION)-cuda
+ROCM_TAG_OPTIONS := --tag ghcr.io/visionatrix/visionatrix:$(VISIONATRIX_VERSION)-rocm
+ifeq ($(IS_DEV_VERSION),)
+    CPU_TAG_OPTIONS  += --tag ghcr.io/visionatrix/visionatrix:release-cpu
+    CUDA_TAG_OPTIONS += --tag ghcr.io/visionatrix/visionatrix:release-cuda
+    ROCM_TAG_OPTIONS += --tag ghcr.io/visionatrix/visionatrix:release-rocm
+    VERSION_TYPE_MSG := This is a RELEASE version ($(VISIONATRIX_VERSION)). Tagging also as 'release-<type>'.
+else
+    CPU_TAG_OPTIONS  += --tag ghcr.io/visionatrix/visionatrix:latest-cpu
+    CUDA_TAG_OPTIONS += --tag ghcr.io/visionatrix/visionatrix:latest-cuda
+    ROCM_TAG_OPTIONS += --tag ghcr.io/visionatrix/visionatrix:latest-rocm
+    VERSION_TYPE_MSG := This is a DEV version ($(VISIONATRIX_VERSION)). Tagging also as 'latest-<type>'.
+endif
+
+
 .PHONY: help
 help:
 	@echo "Welcome to Visionatrix development. Please use \`make <target>\` where <target> is one of"
 	@echo "  run                run the installed Visionatrix"
 	@echo "  openapi       		build openapi.json"
 	@echo "  build-client       build frontend client"
+	@echo "  push-cpu           build and push CPU image."
+	@echo "                     Tags: $(VISIONATRIX_VERSION)-cpu. Also 'release-cpu' for releases, or 'latest-cpu' for .dev versions."
+	@echo "  push-cuda          build and push CUDA image."
+	@echo "                     Tags: $(VISIONATRIX_VERSION)-cuda. Also 'release-cuda' for releases, or 'latest-cuda' for .dev versions."
+	@echo "  push-rocm          build and push ROCm image."
+	@echo "                     Tags: $(VISIONATRIX_VERSION)-rocm. Also 'release-rocm' for releases, or 'latest-rocm' for .dev versions."
 	@echo " "
+	@echo "Current Visionatrix Version: $(VISIONATRIX_VERSION)"
+	@echo "$(VERSION_TYPE_MSG)"
 
 .PHONY: run
 run:
@@ -21,27 +53,27 @@ run:
 
 .PHONY: push-cpu
 push-cpu:
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:release-cpu --build-arg BUILD_TYPE=cpu -f docker/Dockerfile .
-
-.PHONY: push-latest-cpu
-push-latest-cpu:
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:latest-cpu --build-arg BUILD_TYPE=cpu -f docker/Dockerfile .
+	@echo "Building and pushing CPU image..."
+	@echo "$(VERSION_TYPE_MSG)"
+	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 \
+		$(CPU_TAG_OPTIONS) \
+		--build-arg BUILD_TYPE=cpu -f docker/Dockerfile .
 
 .PHONY: push-cuda
 push-cuda:
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:release-cuda --build-arg BUILD_TYPE=cuda -f docker/Dockerfile .
-
-.PHONY: push-latest-cuda
-push-latest-cuda:
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:latest-cuda --build-arg BUILD_TYPE=cuda -f docker/Dockerfile .
+	@echo "Building and pushing CUDA image..."
+	@echo "$(VERSION_TYPE_MSG)"
+	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 \
+		$(CUDA_TAG_OPTIONS) \
+		--build-arg BUILD_TYPE=cuda -f docker/Dockerfile .
 
 .PHONY: push-rocm
 push-rocm:
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:release-rocm --build-arg BUILD_TYPE=rocm -f docker/Dockerfile .
-
-.PHONY: push-latest-rocm
-push-latest-rocm:
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 --tag ghcr.io/visionatrix/visionatrix:latest-rocm --build-arg BUILD_TYPE=rocm -f docker/Dockerfile .
+	@echo "Building and pushing ROCm image..."
+	@echo "$(VERSION_TYPE_MSG)"
+	DOCKER_BUILDKIT=1 docker buildx build --progress=plain --push --platform linux/amd64 \
+		$(ROCM_TAG_OPTIONS) \
+		--build-arg BUILD_TYPE=rocm -f docker/Dockerfile .
 
 .PHONY: openapi
 openapi:
