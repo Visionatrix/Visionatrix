@@ -485,8 +485,6 @@ def add_arguments(parser):
     fpvae_group.add_argument("--fp32-vae", action="store_true", help="Run the VAE in full precision fp32.")
     fpvae_group.add_argument("--bf16-vae", action="store_true", help="Run the VAE in bf16.")
 
-    parser.add_argument("--cpu-vae", action="store_true", help="Run the VAE on the CPU.")
-
     fpte_group = parser.add_mutually_exclusive_group()
     fpte_group.add_argument(
         "--fp8_e4m3fn-text-enc", action="store_true", help="Store text encoder weights in fp8 (e4m3fn variant)."
@@ -608,15 +606,20 @@ def fill_comfyui_args():
         comfy.cli_args.args.fast = set(comfy.cli_args.args.fast)
 
 
-def set_comfy_internal_flags(save_metadata: bool, smart_memory: bool, cache_type: str, cache_size: int) -> None:
+def set_comfy_internal_flags(
+    save_metadata: bool, smart_memory: bool, cache_type: str, cache_size: int, vae_cpu: bool
+) -> None:
     import comfy  # noqa
     import execution  # noqa
 
     comfy.cli_args.args.disable_metadata = not save_metadata
 
+    models_were_unloaded = False
+
     disable_smart_memory = not smart_memory
     if comfy.cli_args.args.disable_smart_memory != disable_smart_memory:
         comfy.model_management.unload_all_models()
+        models_were_unloaded = True
 
         comfy.cli_args.args.disable_smart_memory = disable_smart_memory
         comfy.model_management.DISABLE_SMART_MEMORY = disable_smart_memory
@@ -632,3 +635,8 @@ def set_comfy_internal_flags(save_metadata: bool, smart_memory: bool, cache_type
         PROMPT_EXECUTOR.cache_type = cache_type
         PROMPT_EXECUTOR.cache_size = cache_size
         PROMPT_EXECUTOR.reset()
+
+    if comfy.cli_args.args.cpu_vae != vae_cpu:
+        if not models_were_unloaded:
+            comfy.model_management.unload_all_models()
+        comfy.cli_args.args.cpu_vae = vae_cpu

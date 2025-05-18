@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [2.4.1 - 2025-05-18]
 
+### Added
+
+- UI option to enable processing `VAE` on the CPU, located in the **Settings -> Workers** page. #408
+
 ### Changed
 
-- `Smart Memory` is enabled by default, like it was before `2.4.0` version. #407
+- `Smart Memory` is enabled by default (like it was before `2.4.0` version). #407
 
 ## [2.4.0 - 2025-05-17]
 

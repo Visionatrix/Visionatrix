@@ -171,6 +171,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			vae_cpu: {
+				key: 'vae_cpu',
+				value: false,
+				sensitive: false,
+				admin: true,
+			},
 			remote_vae_flows: {
 				key: 'remote_vae_flows',
 				value: '',
@@ -206,6 +212,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 					if (key === this.settingsMap.smart_memory.key) {
 						value = value === '1'
 					}
+					if (key === this.settingsMap.vae_cpu.key) {
+						value = value === '1'
+					}
 					if (this.settingsMap[key + '_user']) {
 						this.settingsMap[key + '_user'].value = value
 					} else if (this.settingsMap[key]) {
@@ -233,6 +242,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 							value = value === '1'
 						}
 						if (key === this.settingsMap.smart_memory.key) {
+							value = value === '1'
+						}
+						if (key === this.settingsMap.vae_cpu.key) {
 							value = value === '1'
 						}
 						this.settingsMap[key].value = value
@@ -418,6 +430,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 					value = value ? '1' : '0'
 				}
 				if (key === this.settingsMap.smart_memory.key) {
+					value = value ? '1' : '0'
+				}
+				if (key === this.settingsMap.vae_cpu.key) {
 					value = value ? '1' : '0'
 				}
 				if (this.settingsMap[key].admin && userStore.isAdmin) {
