@@ -1,27 +1,5 @@
 export const useSettingsStore = defineStore('settingsStore', {
 	state: () => ({
-		links: [
-			{
-				label: 'Settings',
-				icon: 'i-heroicons-cog-6-tooth-20-solid',
-				to: '/settings',
-			},
-			{
-				label: 'Workers',
-				icon: 'i-heroicons-chart-bar-16-solid',
-				to: '/settings/workers',
-			},
-			{
-				label: 'ComfyUI',
-				icon: 'i-heroicons-rectangle-group-16-solid',
-				to: '/settings/comfyui',
-			},
-			{
-				label: 'Federated',
-				icon: 'i-mdi-mixcloud',
-				to: '/settings/federated',
-			},
-		],
 		settingsMap: {
 			huggingface_auth_token: {
 				key: 'huggingface_auth_token',
@@ -194,6 +172,36 @@ export const useSettingsStore = defineStore('settingsStore', {
 			next_version: '',
 		},
 	}),
+
+	getters: {
+		links: () => {
+			const userStore = useUserStore()
+			const baseLinks = [
+				{
+					label: 'Settings',
+					icon: 'i-heroicons-cog-6-tooth-20-solid',
+					to: '/settings',
+				},
+				{
+					label: 'Workers',
+					icon: 'i-heroicons-chart-bar-16-solid',
+					to: '/settings/workers',
+				},
+			]
+			if (userStore.isAdmin) {
+				baseLinks.push({
+					label: 'ComfyUI',
+					icon: 'i-heroicons-rectangle-group-16-solid',
+					to: '/settings/comfyui',
+				}, {
+					label: 'Federated',
+					icon: 'i-mdi-mixcloud',
+					to: '/settings/federated',
+				})
+			}
+			return baseLinks
+		}
+	},
 
 	actions: {
 		async fetchAllSettings() {

@@ -11,6 +11,7 @@ useHead({
 
 const workersStore = useWorkersStore()
 const settingsStore = useSettingsStore()
+const userStore = useUserStore()
 
 onMounted(() => {
 	workersStore.startPolling()
@@ -230,66 +231,68 @@ function saveChanges() {
 			<div class="px-5 md:w-4/5">
 				<h2 class="mb-3 text-xl">Workers</h2>
 
-				<UDivider class="mb-3" label="Default Workers settings" />
+				<div v-if="userStore.isAdmin">
+					<UDivider class="mb-3" label="Default Workers settings" />
 
-				<UFormGroup
-					size="md"
-					class="py-3"
-					label="Smart memory"
-					description="When disabled forces ComfyUI to aggressively offload to regular RAM instead of keeping models in VRAM when it can.">
-					<UCheckbox
-						v-model="settingsStore.settingsMap.smart_memory.value"
-						color="primary"
-						label="Enable smart memory" />
-				</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Smart memory"
+						description="When disabled forces ComfyUI to aggressively offload to regular RAM instead of keeping models in VRAM when it can.">
+						<UCheckbox
+							v-model="settingsStore.settingsMap.smart_memory.value"
+							color="primary"
+							label="Enable smart memory" />
+					</UFormGroup>
 
-				<UFormGroup
-					size="md"
-					class="py-3"
-					label="Cache type">
-					<template #description>
-						<p>
-							Classic - Use the old style (aggressive) caching. <br>
-							LRU - Use LRU caching with a maximum of N node results cached. May use more RAM/VRAM. <br>
-							None - Reduced RAM/VRAM usage at the expense of executing every node for each run. <br>
-						</p>
-					</template>
-					<USelectMenu
-						v-model="settingsStore.settingsMap.cache_type.value"
-						class="w-fit"
-						placeholder="Select cache type"
-						value-attribute="value"
-						:options="settingsStore.settingsMap.cache_type.options" />
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Cache type">
+						<template #description>
+							<p>
+								Classic - Use the old style (aggressive) caching. <br>
+								LRU - Use LRU caching with a maximum of N node results cached. May use more RAM/VRAM. <br>
+								None - Reduced RAM/VRAM usage at the expense of executing every node for each run. <br>
+							</p>
+						</template>
+						<USelectMenu
+							v-model="settingsStore.settingsMap.cache_type.value"
+							class="w-fit"
+							placeholder="Select cache type"
+							value-attribute="value"
+							:options="settingsStore.settingsMap.cache_type.options" />
 
-					<UInput
-						v-if="settingsStore.settingsMap.cache_type.value === 'lru'"
-						v-model="settingsStore.settingsMap.cache_size.value"
-						type="number"
-						class="w-fit mt-3"
-						min="1"
-						@change="() => {
-							settingsStore.settingsMap.cache_size.value = settingsStore.settingsMap.cache_size.value.toString()
-						}" />
-				</UFormGroup>
+						<UInput
+							v-if="settingsStore.settingsMap.cache_type.value === 'lru'"
+							v-model="settingsStore.settingsMap.cache_size.value"
+							type="number"
+							class="w-fit mt-3"
+							min="1"
+							@change="() => {
+								settingsStore.settingsMap.cache_size.value = settingsStore.settingsMap.cache_size.value.toString()
+							}" />
+					</UFormGroup>
 
-				<UFormGroup
-					size="md"
-					class="py-3"
-					label="VAE cpu"
-					description="Run the VAE on the CPU.">
-					<UCheckbox
-						v-model="settingsStore.settingsMap.vae_cpu.value"
-						color="primary"
-						label="VAE on CPU" />
-				</UFormGroup>
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="VAE cpu"
+						description="Run the VAE on the CPU.">
+						<UCheckbox
+							v-model="settingsStore.settingsMap.vae_cpu.value"
+							color="primary"
+							label="VAE on CPU" />
+					</UFormGroup>
 
-				<UButton
-					class="mt-3"
-					icon="i-heroicons-check-16-solid"
-					:loading="savingSettings"
-					@click="saveChanges">
-					Save
-				</UButton>
+					<UButton
+						class="mt-3"
+						icon="i-heroicons-check-16-solid"
+						:loading="savingSettings"
+						@click="saveChanges">
+						Save
+					</UButton>
+				</div>
 
 				<UDivider class="my-3" />
 
