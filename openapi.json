@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "visionatrix",
-    "version": "2.4.1"
+    "version": "2.5.0.dev0"
   },
   "paths": {
     "/comfy/": {
@@ -2740,6 +2740,24 @@
             ],
             "title": "Vram State",
             "description": "Current VRAM management mode used by ComfyUI."
+          },
+          "cache_type": {
+            "type": "string",
+            "title": "Cache Type",
+            "description": "The type of cache that is in use (classic, lru, none).",
+            "default": "classic"
+          },
+          "cache_size": {
+            "type": "integer",
+            "title": "Cache Size",
+            "description": "How many node results to cache (applies only when cache_type is lru).",
+            "default": 1
+          },
+          "vae_cpu": {
+            "type": "boolean",
+            "title": "Vae Cpu",
+            "description": "Does decoding VAE on CPU is enabled.",
+            "default": false
           }
         },
         "type": "object",
@@ -2964,6 +2982,24 @@
             "title": "Vram State",
             "description": "Current VRAM management mode used by ComfyUI."
           },
+          "cache_type": {
+            "type": "string",
+            "title": "Cache Type",
+            "description": "The type of cache that is in use (classic, lru, none).",
+            "default": "classic"
+          },
+          "cache_size": {
+            "type": "integer",
+            "title": "Cache Size",
+            "description": "How many node results to cache (applies only when cache_type is lru).",
+            "default": 1
+          },
+          "vae_cpu": {
+            "type": "boolean",
+            "title": "Vae Cpu",
+            "description": "Does decoding VAE on CPU is enabled.",
+            "default": false
+          },
           "nodes_profiling": {
             "anyOf": [
               {
@@ -3051,6 +3087,12 @@
             "title": "Cache Size",
             "description": "How many node results were cached (applied only when cache_type was lru).",
             "default": 1
+          },
+          "vae_cpu": {
+            "type": "boolean",
+            "title": "Vae Cpu",
+            "description": "Flag indication was VAE decoded on the CPU or not.",
+            "default": false
           }
         },
         "type": "object",
@@ -4785,7 +4827,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-05-18T10:42:00.533228Z"
+            "default": "2025-05-23T11:10:37.790802Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

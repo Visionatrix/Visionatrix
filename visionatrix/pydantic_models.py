@@ -324,6 +324,9 @@ class ComfyEngineDetails(BaseModel):
         None, description="Flag indicating whether ComfyUIs 'smart memory' was disabled."
     )
     vram_state: str | None = Field(None, description="Current VRAM management mode used by ComfyUI.")
+    cache_type: str = Field("classic", description="The type of cache that is in use (classic, lru, none).")
+    cache_size: int = Field(1, description="How many node results to cache (applies only when cache_type is lru).")
+    vae_cpu: bool = Field(False, description="Does decoding VAE on CPU is enabled.")
 
 
 class ExecutionDetails(ComfyEngineDetails):
@@ -348,6 +351,7 @@ class ExtraFlags(BaseModel):
     smart_memory: bool = Field(False, description="Whether ComfyUI smart memory was enabled.")
     cache_type: str = Field("classic", description="The type of cache that was used (classic, lru, none).")
     cache_size: int = Field(1, description="How many node results were cached (applied only when cache_type was lru).")
+    vae_cpu: bool = Field(False, description="Flag indication was VAE decoded on the CPU or not.")
 
 
 class WorkerDetailsSystemRequest(BaseModel):

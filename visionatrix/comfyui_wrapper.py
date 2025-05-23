@@ -280,10 +280,21 @@ def soft_empty_cache() -> None:
 
 def get_engine_details() -> dict:
     import comfy  # noqa
+    import execution  # noqa
+
+    if PROMPT_EXECUTOR.cache_type == execution.CacheType.LRU:
+        cache_type = "lru"
+    elif PROMPT_EXECUTOR.cache_type == execution.CacheType.DEPENDENCY_AWARE:
+        cache_type = "none"
+    else:
+        cache_type = "classic"
 
     return {
         "disable_smart_memory": bool(comfy.model_management.DISABLE_SMART_MEMORY),
         "vram_state": str(comfy.model_management.vram_state.name),
+        "cache_type": cache_type,
+        "cache_size": int(PROMPT_EXECUTOR.cache_size),
+        "vae_cpu": bool(comfy.cli_args.args.cpu_vae),
     }
 
 
