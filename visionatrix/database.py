@@ -94,6 +94,11 @@ class Worker(Base):
     pytorch_version = Column(String, default="")
     last_seen = Column(DateTime, default=datetime.now(timezone.utc), index=True, nullable=False)
     tasks_to_give = Column(JSON, default=[])
+    smart_memory = Column(Boolean, nullable=True)
+    cache_type = Column(String, nullable=True)
+    cache_size = Column(Integer, nullable=True)
+    vae_cpu = Column(Boolean, nullable=True)
+    reserve_vram = Column(Float, nullable=True)
 
     os = Column(String)
     version = Column(String)

@@ -2222,19 +2222,19 @@
         }
       }
     },
-    "/vapi/workers/tasks": {
+    "/vapi/workers/settings": {
       "post": {
         "tags": [
           "workers"
         ],
-        "summary": "Set Tasks To Process",
-        "description": "Sets the tasks that a worker can work on. An empty list indicates that all tasks are allowed.\nThe administrator can set `tasks_to_give` for all workers, users only for their own.",
-        "operationId": "set_tasks_to_process",
+        "summary": "Set Worker Settings",
+        "description": "Sets the desired worker settings that should differ from the defaults.\nThe administrator can change settings for all workers, users only for their own workers.",
+        "operationId": "set_worker_settings",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_set_tasks_to_process"
+                "$ref": "#/components/schemas/WorkerSettingsRequest"
               }
             }
           },
@@ -2242,7 +2242,7 @@
         },
         "responses": {
           "204": {
-            "description": "Worker tasks set successfully"
+            "description": "Worker settings set successfully"
           },
           "404": {
             "description": "Worker not found",
@@ -2625,29 +2625,6 @@
           "files"
         ],
         "title": "Body_set_task_results"
-      },
-      "Body_set_tasks_to_process": {
-        "properties": {
-          "worker_id": {
-            "type": "string",
-            "title": "Worker Id",
-            "description": "ID of the worker"
-          },
-          "tasks_to_give": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tasks To Give",
-            "description": "List of tasks the worker can handle"
-          }
-        },
-        "type": "object",
-        "required": [
-          "worker_id",
-          "tasks_to_give"
-        ],
-        "title": "Body_set_tasks_to_process"
       },
       "Body_set_user": {
         "properties": {
@@ -3091,7 +3068,7 @@
           "vae_cpu": {
             "type": "boolean",
             "title": "Vae Cpu",
-            "description": "Flag indication was VAE decoded on the CPU or not.",
+            "description": "Flag indicating was VAE decoded on the CPU or not.",
             "default": false
           }
         },
@@ -4723,6 +4700,54 @@
             "title": "Last Asked Tasks",
             "description": "List of flows IDs that the worker last requested to be processed.",
             "default": []
+          },
+          "smart_memory": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smart Memory",
+            "description": "Should ComfyUI smart memory be enabled."
+          },
+          "cache_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Type",
+            "description": "The type of cache to use (classic, lru, none)."
+          },
+          "cache_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Size",
+            "description": "How many node results to cache (when cache_type is lru)."
+          },
+          "vae_cpu": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vae Cpu",
+            "description": "Should VAE be decoded on the CPU or not."
           }
         },
         "type": "object",
@@ -4827,7 +4852,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-05-23T11:10:37.790802Z"
+            "default": "2025-05-24T05:54:37.544480Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
@@ -4875,6 +4900,84 @@
         ],
         "title": "WorkerDetailsSystemRequest",
         "description": "Provides OS and Python environment details of the worker."
+      },
+      "WorkerSettingsRequest": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id",
+            "description": "ID of the worker"
+          },
+          "tasks_to_give": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tasks To Give",
+            "description": "List of tasks the worker should ask for."
+          },
+          "smart_memory": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smart Memory",
+            "description": "Should ComfyUI smart memory be enabled."
+          },
+          "cache_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Type",
+            "description": "The type of cache to use (classic, lru, none)."
+          },
+          "cache_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Size",
+            "description": "How many node results to cache (when cache_type is lru)."
+          },
+          "vae_cpu": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vae Cpu",
+            "description": "Should VAE be decoded on the CPU or not."
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id"
+        ],
+        "title": "WorkerSettingsRequest",
+        "description": "Custom settings available to be set dynamically for a worker."
       }
     }
   },

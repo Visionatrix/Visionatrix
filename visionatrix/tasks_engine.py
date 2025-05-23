@@ -268,14 +268,14 @@ async def get_incomplete_task_without_error_database(
             if not tasks_to_ask:
                 return {}
 
-            tasks_to_give = []
+            worker_record = None
             if not new_worker:
-                # just an optimization to not fetch the "tasks_to_give" list if it's a newly created worker
+                # just an optimization to not fetch the worker settings if it's a newly created worker
                 query = select(database.Worker).filter(database.Worker.worker_id == worker_id)
-                tasks_to_give = (await session.execute(query)).scalar().tasks_to_give
+                worker_record = (await session.execute(query)).scalar()
 
             query = get_incomplete_task_without_error_query(
-                tasks_to_ask, tasks_to_give, last_task_name, worker_id, user_id
+                tasks_to_ask, worker_record.tasks_to_give if worker_record else [], last_task_name, worker_id, user_id
             )
             task = (await session.execute(query)).scalar()
             if not task:
@@ -284,6 +284,16 @@ async def get_incomplete_task_without_error_database(
             task_details = await lock_task_and_return_details(session, task)
             if task_details:
                 await worker_reset_empty_task_requests_count(worker_id)
+                if worker_record:
+                    worker_specific_settings_map = {
+                        "smart_memory": worker_record.smart_memory,
+                        "cache_type": worker_record.cache_type,
+                        "cache_size": worker_record.cache_size,
+                        "vae_cpu": worker_record.vae_cpu,
+                    }
+                    for setting_name, worker_value in worker_specific_settings_map.items():
+                        if worker_value is not None:
+                            task_details["extra_flags"][setting_name] = worker_value
             return task_details
         except Exception as e:
             await session.rollback()
