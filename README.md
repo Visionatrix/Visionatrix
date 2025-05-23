@@ -9,7 +9,7 @@
   <img alt="Visionatrix Logo" height="200px" src="https://raw.githubusercontent.com/Visionatrix/VixFlowsDocs/main/screenshots/logo.png">
 </div>
 
-**Simplify your AI image generation workflows with Visionatrix—an intuitive interface built on top of [ComfyUI](https://github.com/comfyanonymous/ComfyUI)**
+**Simplify your AI media generation workflows with Visionatrix—an intuitive interface built on top of [ComfyUI](https://github.com/comfyanonymous/ComfyUI)**
 
 ## 🚀 Features
 
@@ -52,6 +52,10 @@ Access the Visionatrix UI at [http://localhost:8288](http://localhost:8288) (def
 </details>
 
 ## 📥 Installation
+
+We provide public template for RunPOD to help you quickly see if this project fits your needs.
+
+* [RunPOD template](https://runpod.io/console/deploy?template=8kkjfu0j04&ref=9r8xbeuy)
 
 ### Requirements
 

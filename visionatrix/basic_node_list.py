@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.34"
-COMFYUI_MANAGER_RELEASE_TAG = "3.32.2"
+COMFYUI_RELEASE_TAG = "v0.3.35"
+COMFYUI_MANAGER_RELEASE_TAG = "3.32.3"
 
 ANTELOPEV2 = AIResourceModel(
     name="antelopev2",
@@ -21,7 +21,7 @@ ANTELOPEV2 = AIResourceModel(
 
 BASIC_NODE_LIST = {
     "comfyui-impact-pack": {
-        "version": "8.14.2",
+        "version": "8.15.1",
         "models": [
             AIResourceModel(
                 name="mmdet_anime-face_yolov3",
@@ -98,7 +98,7 @@ BASIC_NODE_LIST = {
         "version": "1.1.0",
     },
     "comfyui-custom-scripts": {
-        "version": "1.2.3",
+        "version": "1.2.5",
     },
     "comfyui_ipadapter_plus": {
         "version": "2.0.0",
@@ -119,7 +119,7 @@ BASIC_NODE_LIST = {
         "version": "1.0.4",
     },
     "comfyui-ollama": {
-        "version": "2.0.1",
+        "version": "2.0.3",
     },
     "pulid_comfyui": {
         "version": "1.0.1",
@@ -128,16 +128,16 @@ BASIC_NODE_LIST = {
         "version": "1.1.4",
     },
     "comfyui-inpaint-cropandstitch": {
-        "version": "2.1.5",
+        "version": "2.1.7",
     },
     "comfyui-videohelpersuite": {
-        "version": "1.5.18",
+        "version": "1.6.1",
     },
-    "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation": {
-        "version": "",
+    "comfyui-frame-interpolation": {
+        "version": "1.0.7",
     },
     "comfyui-kjnodes": {
-        "version": "1.0.8",
+        "version": "1.1.0",
     },
     "comfyui_layerstyle": {
         "version": "1.0.90",
@@ -146,7 +146,7 @@ BASIC_NODE_LIST = {
         "version": "1.2.9",
     },
     "comfyui_birefnet_ll": {
-        "version": "1.1.2",
+        "version": "1.1.3",
     },
     "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
         "version": "",
