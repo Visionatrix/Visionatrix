@@ -134,7 +134,6 @@ async def load(
     main.cleanup_temp()
 
     prompt_server = get_comfy_prompt_server_class_instance(task_progress_callback)
-    q = execution.PromptQueue(prompt_server)
 
     nodes.init_extra_nodes(init_custom_nodes=True)
 
@@ -155,7 +154,7 @@ async def load(
             call_on_start=None,
         )
 
-    return execution.validate_prompt, [q, prompt_server], start_all
+    return execution.validate_prompt, [prompt_server.prompt_queue, prompt_server], start_all
 
 
 def get_autoconfigured_model_folders_from(models_dir: str) -> list[ComfyUIFolderPathDefinition]:
