@@ -174,9 +174,6 @@ BASIC_NODE_LIST = {
     "https://github.com/kaibioinfo/ComfyUI_AdvancedRefluxControl": {
         "version": "",
     },
-    "https://github.com/FizzleDorf/ComfyUI_FizzNodes": {
-        "version": "",
-    },
     "https://github.com/ZenAI-Vietnam/ComfyUI_InfiniteYou": {
         "version": "",
         "models": [ANTELOPEV2],
