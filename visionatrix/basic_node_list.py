@@ -133,9 +133,6 @@ BASIC_NODE_LIST = {
     "comfyui-videohelpersuite": {
         "version": "1.6.1",
     },
-    "comfyui-frame-interpolation": {
-        "version": "1.0.7",
-    },
     "comfyui-kjnodes": {
         "version": "1.1.0",
     },
