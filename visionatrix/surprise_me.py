@@ -481,7 +481,7 @@ async def surprise_me(
             ollama_url = None
         ollama_llm_model = await get_setting(user_id, "ollama_llm_model", is_admin)
         if not ollama_llm_model:
-            ollama_llm_model = "qwen2.5:14b"
+            ollama_llm_model = "gemma3:12b-it-qat"
         ollama_keepalive = await get_setting(user_id, "ollama_keepalive", is_admin)
         if ollama_keepalive:
             ollama_keepalive += "m"

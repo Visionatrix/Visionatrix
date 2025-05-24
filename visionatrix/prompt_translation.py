@@ -28,7 +28,7 @@ async def translate_prompt_with_ollama(
         ollama_url = None
     if not ollama_llm_model:
         LOGGER.debug("No custom Ollama LLM model defined, trying default one.")
-        ollama_llm_model = "qwen2.5:14b"
+        ollama_llm_model = "gemma3:12b-it-qat"
 
     system_prompt = LLM_TRANSLATE_SYSTEM_PROMPT if data.system_prompt is None else data.system_prompt
 
