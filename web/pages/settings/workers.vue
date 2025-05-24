@@ -23,6 +23,11 @@ onBeforeUnmount(() => {
 
 const tableHeadersMap = [
 	{
+		id: 'actions',
+		label: 'Actions',
+		sortable: false,
+	},
+	{
 		id: 'worker_status',
 		label: 'Worker status',
 		sortable: true,
@@ -103,6 +108,26 @@ const tableHeadersMap = [
 	{
 		id: 'ram_free',
 		label: 'RAM free',
+		sortable: true,
+	},
+	{
+		id: 'smart_memory',
+		label: 'Smart memory',
+		sortable: true,
+	},
+	{
+		id: 'cache_type',
+		label: 'Cache type',
+		sortable: true,
+	},
+	{
+		id: 'cache_size',
+		label: 'Cache size',
+		sortable: true,
+	},
+	{
+		id: 'vae_cpu',
+		label: 'VAE CPU',
 		sortable: true,
 	},
 ]
@@ -222,6 +247,44 @@ function saveChanges() {
 		savingSettings.value = false
 	})
 }
+const showEditWorkerModal = ref(false)
+const selectedWorker = ref<WorkerInfo | null>(null)
+const openEditWorkerModal = (worker: WorkerInfo) => {
+	selectedWorker.value = worker
+	showEditWorkerModal.value = true
+}
+const closeEditWorkerModal = () => {
+	showEditWorkerModal.value = false
+	selectedWorker.value = null
+}
+const updatingWorker = ref(false)
+const updateSelectedWorkerOptions = () => {
+	if (selectedWorker.value) {
+		updatingWorker.value = true
+		workersStore.updateWorkerOptions(selectedWorker.value.worker_id, {
+			smart_memory: selectedWorker.value.smart_memory ?? null,
+			cache_type: selectedWorker.value.cache_type ?? null,
+			cache_size: selectedWorker.value.cache_size ?? null,
+			vae_cpu: selectedWorker.value.vae_cpu ?? null,
+		}).then(() => {
+			const toast = useToast()
+			toast.add({
+				title: 'Worker options updated',
+				description: 'Worker options updated successfully',
+			})
+			workersStore.loadWorkers()
+		}).catch(() => {
+			const toast = useToast()
+			toast.add({
+				title: 'Failed to update worker options',
+				description: 'Try again',
+			})
+		}).finally(() => {
+			updatingWorker.value = false
+			closeEditWorkerModal()
+		})
+	}
+}
 </script>
 
 <template>
@@ -242,6 +305,7 @@ function saveChanges() {
 						<UCheckbox
 							v-model="settingsStore.settingsMap.smart_memory.value"
 							color="primary"
+							class="py-3"
 							label="Enable smart memory" />
 					</UFormGroup>
 
@@ -256,18 +320,19 @@ function saveChanges() {
 								None - Reduced RAM/VRAM usage at the expense of executing every node for each run. <br>
 							</p>
 						</template>
-						<USelectMenu
-							v-model="settingsStore.settingsMap.cache_type.value"
-							class="w-fit"
-							placeholder="Select cache type"
-							value-attribute="value"
-							:options="settingsStore.settingsMap.cache_type.options" />
-
+						<div class="flex w-full items-center my-2">
+							<USelectMenu
+								v-model="settingsStore.settingsMap.cache_type.value"
+								class="w-fit"
+								placeholder="Select cache type"
+								value-attribute="value"
+								:options="settingsStore.settingsMap.cache_type.options" />
+						</div>
 						<UInput
 							v-if="settingsStore.settingsMap.cache_type.value === 'lru'"
 							v-model="settingsStore.settingsMap.cache_size.value"
 							type="number"
-							class="w-fit mt-3"
+							class="w-fit"
 							min="1"
 							@change="() => {
 								settingsStore.settingsMap.cache_size.value = settingsStore.settingsMap.cache_size.value.toString()
@@ -282,13 +347,14 @@ function saveChanges() {
 						<UCheckbox
 							v-model="settingsStore.settingsMap.vae_cpu.value"
 							color="primary"
+							class="py-3"
 							label="VAE on CPU" />
 					</UFormGroup>
 
 					<UButton
 						class="mt-3"
 						icon="i-heroicons-check-16-solid"
-						:loading="savingSettings"
+						:loading="updatingWorker"
 						@click="saveChanges">
 						Save
 					</UButton>
@@ -338,11 +404,182 @@ function saveChanges() {
 							}" />
 					</div>
 				</div>
+
+				<UModal v-model="showEditWorkerModal" :transition="false">
+					<div class="p-4 overflow-y-auto relative">
+						<h2 class="font-bold">Individual worker configuration options</h2>
+						<p class="text-sm text-slate-500">{{ selectedWorker?.worker_id }}</p>
+
+						<div v-if="selectedWorker">
+							<UFormGroup
+								size="md"
+								class="py-3"
+								label="Smart memory"
+								description="When disabled forces ComfyUI to aggressively offload to regular RAM instead of keeping models in VRAM when it can.">
+								<UAlert
+									v-if="selectedWorker.smart_memory === null"
+									color="cyan"
+									variant="soft"
+									title="Not set"
+									class="mb-2" />
+								<div class="flex items-center w-full">
+									<UCheckbox
+										v-model="selectedWorker.smart_memory"
+										color="primary"
+										class="py-3"
+										label="Enable smart memory" />
+									<UButton
+										v-if="selectedWorker.smart_memory"
+										icon="i-heroicons-x-mark"
+										variant="outline"
+										color="white"
+										class="ml-2"
+										@click="() => { 
+											if (selectedWorker) {
+												// @ts-ignore
+												selectedWorker.smart_memory = null
+											}
+										}" />
+								</div>
+							</UFormGroup>
+							
+							<UFormGroup
+								size="md"
+								class="py-3"
+								label="Cache type">
+								<template #description>
+									<p>
+										Classic - Use the old style (aggressive) caching. <br>
+										LRU - Use LRU caching with a maximum of N node results cached. May use more RAM/VRAM. <br>
+										None - Reduced RAM/VRAM usage at the expense of executing every node for each run. <br>
+									</p>
+								</template>
+								<UAlert
+									v-if="selectedWorker.cache_type === null"
+									color="cyan"
+									variant="soft"
+									title="Not set"
+									class="mb-2" />
+								<div class="flex w-full items-center my-2">
+									<USelectMenu
+										v-model="selectedWorker.cache_type"
+										class="w-fit"
+										placeholder="Select cache type"
+										value-attribute="value"
+										:options="settingsStore.settingsMap.cache_type.options" />
+									<UButton
+										v-if="selectedWorker.cache_type !== null"
+										icon="i-heroicons-x-mark"
+										variant="outline"
+										color="white"
+										class="ml-2"
+										@click="() => {
+											if (selectedWorker) {
+												// @ts-ignore
+												selectedWorker.cache_type = null
+											}
+										}" />
+								</div>
+
+								<UAlert
+									v-if="selectedWorker.cache_type === 'lru' && selectedWorker.cache_size === null"
+									color="cyan"
+									variant="soft"
+									title="Not set"
+									class="mb-2" />
+								<div v-if="selectedWorker.cache_type === 'lru'"
+									class="flex w-full items-center my-2">
+									<UInput
+										v-model="selectedWorker.cache_size"
+										type="number"
+										class="w-fit"
+										min="1" />
+									<UButton
+										v-if="selectedWorker.cache_size !== null"
+										icon="i-heroicons-x-mark"
+										variant="outline"
+										color="white"
+										class="ml-2"
+										@click="() => { 
+											if (selectedWorker) {
+												// @ts-ignore
+												selectedWorker.cache_size = null
+											}
+										}" />
+								</div>
+							</UFormGroup>
+
+							<UFormGroup
+								size="md"
+								class="py-3"
+								label="VAE cpu"
+								description="Run the VAE on the CPU.">
+								<UAlert
+									v-if="selectedWorker.vae_cpu === null"
+									color="cyan"
+									variant="soft"
+									title="Not set"
+									class="mb-2" />
+								<div class="flex items-center w-full">
+									<UCheckbox
+										v-model="selectedWorker.vae_cpu"
+										color="primary"
+										class="py-3"
+										label="VAE on CPU" />
+									<UButton
+										v-if="selectedWorker.vae_cpu"
+										icon="i-heroicons-x-mark"
+										variant="outline"
+										color="white"
+										class="ml-2"
+										@click="() => {
+											if (selectedWorker) {
+												// @ts-ignore
+												selectedWorker.vae_cpu = null
+											}
+										}" />
+								</div>
+							</UFormGroup>
+						</div>
+
+						<div class="flex justify-end my-4">
+							<UButton
+								class="mr-2"
+								variant="solid"
+								color="green"
+								:loading="settingTasksToGive"
+								@click="updateSelectedWorkerOptions">
+								Save
+							</UButton>
+							<UButton
+								class="mr-2"
+								variant="solid"
+								color="white"
+								@click="closeEditWorkerModal">
+								Cancel
+							</UButton>
+						</div>
+					</div>
+				</UModal>
+
 				<UTable
 					v-model="selectedRows"
 					:columns="selectedColumns"
 					:rows="filterQuery === '' ? rows : rowsFiltered"
 					:loading="workersStore.$state.loading">
+
+					<template #actions-data="{ row }">
+						<UButton
+							icon="i-heroicons-pencil-16-solid"
+							variant="outline"
+							color="cyan"
+							size="sm"
+							@click="() => {
+								openEditWorkerModal(row)
+							}">
+							Edit
+						</UButton>
+					</template>
 
 					<template #worker_status-data="{ row }">
 						<UBadge
@@ -411,6 +648,30 @@ function saveChanges() {
 					</template>
 					<template #ram_free-data="{ row }">
 						{{ formatBytes(row.ram_free) }}
+					</template>
+					<template #smart_memory-data="{ row }">
+						<UBadge
+							variant="solid"
+							:color="row.smart_memory ? 'green' : 'red'">
+							{{ row.smart_memory ? 'Yes' : 'No' }}
+						</UBadge>
+					</template>
+					<template #cache_type-data="{ row }">
+						<UBadge
+							variant="solid"
+							:color="row.cache_type === 'none' ? 'red' : 'green'">
+							{{ row.cache_type ?? settingsStore.settingsMap.cache_type.value }}
+						</UBadge>
+					</template>
+					<template #cache_size-data="{ row }">
+						{{ row.cache_size && row.cache_type === 'lru' ? row.cache_size + ' nodes' : 'N/A' }}
+					</template>
+					<template #vae_cpu-data="{ row }">
+						<UBadge
+							variant="solid"
+							:color="row.vae_cpu ? 'green' : 'red'">
+							{{ row.vae_cpu ? 'Yes' : 'No' }}
+						</UBadge>
 					</template>
 				</UTable>
 			</div>
