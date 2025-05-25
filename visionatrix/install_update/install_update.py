@@ -58,6 +58,7 @@ def install() -> None:
         [sys.executable, "-m", "pip", "install", "-r", comfyui_manager_path.joinpath("requirements.txt")],
         check=True,
     )
+    update_pip_auto_fix_requirements()  # update the required python packages after installing ComfyUI
     install_base_custom_nodes()
     # Temporary workarounds
     run(
@@ -91,6 +92,7 @@ async def update() -> None:
         check_call(
             [sys.executable, "-m", "pip", "install", "-r", os.path.join(comfyui_dir, "requirements.txt")],
         )
+    update_pip_auto_fix_requirements()  # update the required python packages after updating ComfyUI
     create_nodes_stuff()
     comfyui_manager_path = Path(comfyui_dir).joinpath("custom_nodes").joinpath("ComfyUI-Manager")
     LOGGER.info("Updating ComfyUI-Manager..")
@@ -161,7 +163,7 @@ def update_pip_auto_fix_requirements() -> None:
     if not pip_auto_fix_path.exists():
         pip_auto_fix_path.touch()
 
-    existing_reqs = {}
+    existing_reqs: dict[str, Requirement] = {}
     with pip_auto_fix_path.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -175,17 +177,27 @@ def update_pip_auto_fix_requirements() -> None:
                 continue
 
     visionatrix_reqs = _get_visionatrix_requirements()
+    comfyui_reqs = _get_comfyui_requirements()
 
-    merged_reqs = existing_reqs.copy()
-    merged_reqs.update({req.name.lower(): req for req in visionatrix_reqs.values()})
+    merged_reqs: dict[str, Requirement] = {}
+    merged_reqs.update(existing_reqs)
+    merged_reqs.update(comfyui_reqs)
+    merged_reqs.update(visionatrix_reqs)
 
     if merged_reqs != existing_reqs:
-        with pip_auto_fix_path.open("w", encoding="utf-8") as f:
-            for req_obj in merged_reqs.values():
-                f.write(str(req_obj) + "\n")
+        try:
+            with pip_auto_fix_path.open("w", encoding="utf-8") as f:
+                sorted_req_names = sorted(merged_reqs.keys())
+                for name in sorted_req_names:
+                    f.write(str(merged_reqs[name]) + "\n")
+            LOGGER.info("Updated pip_auto_fix.list at %s", pip_auto_fix_path)
+        except Exception as e:
+            LOGGER.exception("Error writing to pip_auto_fix.list file(%s): %s", pip_auto_fix_path, e)
+    else:
+        LOGGER.info("No changes required for pip_auto_fix.list at %s.", pip_auto_fix_path)
 
 
-def _get_visionatrix_requirements():
+def _get_visionatrix_requirements() -> dict[str, Requirement]:
     """
     Retrieve and parse the requirements declared by the 'visionatrix' package
     from its metadata using importlib.metadata.
@@ -199,7 +211,7 @@ def _get_visionatrix_requirements():
         LOGGER.warning("'visionatrix' distribution not found. No requirements to merge.")
         return {}
 
-    visionatrix_reqs = {}
+    visionatrix_reqs: dict[str, Requirement] = {}
     for line in raw_reqs:
         # Each line is something like 'some_pkg>=1.2,<2.0' or 'other_pkg==5.6'
         # We parse them into packaging.requirements.Requirement objects
@@ -220,3 +232,32 @@ def _get_visionatrix_requirements():
         except Exception as exc:
             LOGGER.warning("Failed to parse requirement line '%s': %s", line, exc)
     return visionatrix_reqs
+
+
+def _get_comfyui_requirements() -> dict[str, Requirement]:
+    comfyui_req_file_path = Path(options.COMFYUI_DIR).joinpath("requirements.txt")
+    parsed_comfyui_reqs: dict[str, Requirement] = {}
+    if not comfyui_req_file_path.exists():
+        return parsed_comfyui_reqs
+
+    try:
+        with comfyui_req_file_path.open("r", encoding="utf-8") as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                # Skip empty lines, comments, or pip options (like -r, -i, -f)
+                if not line or line.startswith(("#", "-")):
+                    continue
+                try:
+                    req = Requirement(line)
+                    req_name_lower = req.name.lower()
+                    if req_name_lower in ("comfyui-frontend-package", "comfyui-workflow-templates"):
+                        continue
+                    if req.specifier:  # True if SpecifierSet is not empty
+                        parsed_comfyui_reqs[req_name_lower] = req
+                except InvalidRequirement:
+                    LOGGER.warning("Skipping unparseable line %d in ComfyUI requirements.txt: '%s'", line_num, line)
+                    continue
+    except Exception as e:
+        LOGGER.exception("Unexpected error parsing ComfyUI requirements.txt at %s: %s", comfyui_req_file_path, e)
+
+    return parsed_comfyui_reqs
