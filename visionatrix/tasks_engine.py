@@ -126,10 +126,11 @@ async def get_incomplete_task_without_error(last_task_name: str) -> dict:
         gemini_model = await get_worker_value("GEMINI_MODEL", task_to_exec["user_id"])
         for node in google_nodes:
             if google_api_key:
-                task_to_exec["flow_comfy"][node]["inputs"]["api_key"] = google_api_key
+                os.environ["GOOGLE_API_KEY"] = google_api_key
+            if google_proxy:
                 task_to_exec["flow_comfy"][node]["inputs"]["proxy"] = google_proxy
-                if gemini_model:
-                    task_to_exec["flow_comfy"][node]["inputs"]["model"] = gemini_model
+            if gemini_model:
+                task_to_exec["flow_comfy"][node]["inputs"]["model"] = gemini_model
 
     remote_vae_switches = get_remote_vae_switches(task_to_exec["flow_comfy"])
     if remote_vae_switches:

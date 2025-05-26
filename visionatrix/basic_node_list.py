@@ -116,7 +116,7 @@ BASIC_NODE_LIST = {
         "version": "1.0.0",
     },
     "comfyui-gemini": {
-        "version": "1.0.4",
+        "version": "1.0.5",
     },
     "comfyui-ollama": {
         "version": "2.0.3",
