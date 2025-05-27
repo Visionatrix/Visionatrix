@@ -88,4 +88,5 @@ export interface WorkerInfo {
 	cache_type: string
 	cache_size: number
 	vae_cpu: boolean
+	reserve_vram: number
 }
