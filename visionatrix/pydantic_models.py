@@ -351,7 +351,7 @@ class ExtraFlags(BaseModel):
     smart_memory: bool = Field(False, description="Whether ComfyUI smart memory was enabled.")
     cache_type: str = Field("classic", description="The type of cache that was used (classic, lru, none).")
     cache_size: int = Field(1, description="How many node results were cached (applied only when cache_type was lru).")
-    vae_cpu: bool = Field(False, description="Flag indication was VAE decoded on the CPU or not.")
+    vae_cpu: bool = Field(False, description="Flag indicating was VAE decoded on the CPU or not.")
 
 
 class WorkerDetailsSystemRequest(BaseModel):
@@ -386,6 +386,17 @@ class WorkerDetailsRequest(BaseModel):
     ram_free: int = Field(0, description="Free RAM on the worker in bytes")
     last_seen: datetime = Field(datetime.now(timezone.utc), description="Last seen time")
     engine_details: ComfyEngineDetails = Field(...)
+
+
+class WorkerSettingsRequest(BaseModel):
+    """Custom settings available to be set dynamically for a worker."""
+
+    worker_id: str = Field(..., description="ID of the worker")
+    tasks_to_give: list[str] | None = Field(None, description="List of tasks the worker should ask for.")
+    smart_memory: bool | None = Field(None, description="Should ComfyUI smart memory be enabled.")
+    cache_type: str | None = Field(None, description="The type of cache to use (classic, lru, none).")
+    cache_size: int | None = Field(None, description="How many node results to cache (when cache_type is lru).")
+    vae_cpu: bool | None = Field(None, description="Should VAE be decoded on the CPU or not.")
 
 
 class WorkerDetails(BaseModel):
@@ -430,6 +441,10 @@ class WorkerDetails(BaseModel):
     last_asked_tasks: list[str] = Field(
         [], description="List of flows IDs that the worker last requested to be processed."
     )
+    smart_memory: bool | None = Field(None, description="Should ComfyUI smart memory be enabled.")
+    cache_type: str | None = Field(None, description="The type of cache to use (classic, lru, none).")
+    cache_size: int | None = Field(None, description="How many node results to cache (when cache_type is lru).")
+    vae_cpu: bool | None = Field(None, description="Should VAE be decoded on the CPU or not.")
 
     @model_validator(mode="after")
     def adjust_worker_id(self) -> Self:

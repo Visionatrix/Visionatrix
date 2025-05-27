@@ -12,6 +12,7 @@ from .pydantic_models import (
     FlowProgressInstall,
     ModelProgressInstall,
     WorkerDetails,
+    WorkerSettingsRequest,
 )
 
 LOGGER = logging.getLogger("visionatrix")
@@ -710,18 +711,33 @@ async def get_worker_details(user_id: str | None, worker_id: str) -> WorkerDetai
             raise
 
 
-async def set_worker_tasks_to_give(user_id: str | None, worker_id: str, tasks_to_give: list[str]) -> bool:
+async def save_worker_settings(user_id: str | None, data: WorkerSettingsRequest) -> bool:
     async with database.SESSION() as session:
         try:
-            query = update(database.Worker).where(database.Worker.worker_id == worker_id)
+            query = update(database.Worker).where(database.Worker.worker_id == data.worker_id)
             if user_id is not None:
                 query = query.where(database.Worker.user_id == user_id)
-            result = await session.execute(query.values(tasks_to_give=tasks_to_give))
+            if data.tasks_to_give is None:
+                query_values = query.values(
+                    smart_memory=data.smart_memory,
+                    cache_type=data.cache_type,
+                    cache_size=data.cache_size,
+                    vae_cpu=data.vae_cpu,
+                )
+            else:
+                query_values = query.values(
+                    tasks_to_give=data.tasks_to_give,
+                    smart_memory=data.smart_memory,
+                    cache_type=data.cache_type,
+                    cache_size=data.cache_size,
+                    vae_cpu=data.vae_cpu,
+                )
+            result = await session.execute(query_values)
             await session.commit()
             return result.rowcount > 0
         except Exception as e:
             await session.rollback()
-            LOGGER.exception("Failed to update tasks for worker(`%s`, `%s`): %s", user_id, worker_id, e)
+            LOGGER.exception("Failed to update settings for worker(`%s`, `%s`): %s", user_id, data.worker_id, e)
             return False
 
 

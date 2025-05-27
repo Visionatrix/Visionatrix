@@ -2,8 +2,8 @@ import logging
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request, responses, status
 
-from ..db_queries import get_workers_details, set_worker_tasks_to_give
-from ..pydantic_models import WorkerDetails
+from ..db_queries import get_workers_details, save_worker_settings
+from ..pydantic_models import WorkerDetails, WorkerSettingsRequest
 
 LOGGER = logging.getLogger("visionatrix")
 ROUTER = APIRouter(prefix="/workers", tags=["workers"])
@@ -30,26 +30,22 @@ async def get_info(
 
 
 @ROUTER.post(
-    "/tasks",
+    "/settings",
     response_class=responses.Response,
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Worker tasks set successfully"},
+        204: {"description": "Worker settings set successfully"},
         404: {
             "description": "Worker not found",
             "content": {"application/json": {"example": {"detail": "Can't find `worker_id` worker."}}},
         },
     },
 )
-async def set_tasks_to_process(
-    request: Request,
-    worker_id: str = Body(..., description="ID of the worker"),
-    tasks_to_give: list[str] = Body(..., description="List of tasks the worker can handle"),
-):
+async def set_worker_settings(request: Request, data: WorkerSettingsRequest = Body(...)):
     """
-    Sets the tasks that a worker can work on. An empty list indicates that all tasks are allowed.
-    The administrator can set `tasks_to_give` for all workers, users only for their own.
+    Sets the desired worker settings that should differ from the defaults.
+    The administrator can change settings for all workers, users only for their own workers.
     """
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
-    if not await set_worker_tasks_to_give(user_id, worker_id, tasks_to_give):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{worker_id}` worker.")
+    if not await save_worker_settings(user_id, data):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{data.worker_id}` worker.")

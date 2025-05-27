@@ -45,6 +45,17 @@ export const useWorkersStore = defineStore('workersStore', {
 				console.error(`Error setting tasks to give for ${worker_id}: `, res.error)
 			})
 		},
+
+		updateWorkerOptions(worker_id: string, options: any) {
+			const { $apiFetch } = useNuxtApp()
+			return $apiFetch('/workers/settings', {
+				method: 'POST',
+				body: JSON.stringify({ worker_id, ...options }),
+			}).catch((res: any) => {
+				console.error(`Error updating worker options for ${worker_id}: `, res.error)
+				return res
+			})
+		}
 	},
 })
 
@@ -73,4 +84,8 @@ export interface WorkerInfo {
 	}
 	federated_instance_name: string
 	empty_task_requests_count: number
+	smart_memory: boolean
+	cache_type: string
+	cache_size: number
+	vae_cpu: boolean
 }
