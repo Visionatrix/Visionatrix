@@ -295,6 +295,7 @@ def get_engine_details() -> dict:
         "cache_type": cache_type,
         "cache_size": int(PROMPT_EXECUTOR.cache_size),
         "vae_cpu": bool(comfy.cli_args.args.cpu_vae),
+        "reserve_vram": float(comfy.model_management.EXTRA_RESERVED_VRAM),
     }
 
 
@@ -571,14 +572,6 @@ def add_arguments(parser):
     vram_group.add_argument("--novram", action="store_true", help="When lowvram isn't enough.")
     vram_group.add_argument("--cpu", action="store_true", help="To use the CPU for everything (slow).")
 
-    parser.add_argument(
-        "--reserve-vram",
-        type=float,
-        default=None,
-        help="Set the amount of vram in GB you want to reserve for use by your OS/other software. "
-        "By default some amount is reserved depending on your OS.",
-    )
-
     class PerformanceFeature(enum.Enum):  # we need it only for definition, later we use Comfy "set()"
         Fp16Accumulation = "fp16_accumulation"
         Fp8MatrixMultiplication = "fp8_matrix_mult"
@@ -617,7 +610,7 @@ def fill_comfyui_args():
 
 
 def set_comfy_internal_flags(
-    save_metadata: bool, smart_memory: bool, cache_type: str, cache_size: int, vae_cpu: bool
+    save_metadata: bool, smart_memory: bool, cache_type: str, cache_size: int, vae_cpu: bool, reserve_vram: float
 ) -> None:
     import comfy  # noqa
     import execution  # noqa
@@ -649,4 +642,10 @@ def set_comfy_internal_flags(
     if comfy.cli_args.args.cpu_vae != vae_cpu:
         if not models_were_unloaded:
             comfy.model_management.unload_all_models()
+            models_were_unloaded = True
         comfy.cli_args.args.cpu_vae = vae_cpu
+
+    if comfy.model_management.EXTRA_RESERVED_VRAM != reserve_vram * 1024 * 1024 * 1024:  # noqa
+        if not models_were_unloaded:
+            comfy.model_management.unload_all_models()
+        comfy.model_management.EXTRA_RESERVED_VRAM = reserve_vram * 1024 * 1024 * 1024

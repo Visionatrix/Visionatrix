@@ -327,6 +327,7 @@ class ComfyEngineDetails(BaseModel):
     cache_type: str = Field("classic", description="The type of cache that is in use (classic, lru, none).")
     cache_size: int = Field(1, description="How many node results to cache (applies only when cache_type is lru).")
     vae_cpu: bool = Field(False, description="Does decoding VAE on CPU is enabled.")
+    reserve_vram: float = Field(0.6, description="Amount of VRAM in GB reserved for use by other software.")
 
 
 class ExecutionDetails(ComfyEngineDetails):
@@ -352,6 +353,7 @@ class ExtraFlags(BaseModel):
     cache_type: str = Field("classic", description="The type of cache that was used (classic, lru, none).")
     cache_size: int = Field(1, description="How many node results were cached (applied only when cache_type was lru).")
     vae_cpu: bool = Field(False, description="Flag indicating was VAE decoded on the CPU or not.")
+    reserve_vram: float = Field(0.6, description="Amount of VRAM in GB that was reserved for use by other software..")
 
 
 class WorkerDetailsSystemRequest(BaseModel):
@@ -397,6 +399,7 @@ class WorkerSettingsRequest(BaseModel):
     cache_type: str | None = Field(None, description="The type of cache to use (classic, lru, none).")
     cache_size: int | None = Field(None, description="How many node results to cache (when cache_type is lru).")
     vae_cpu: bool | None = Field(None, description="Should VAE be decoded on the CPU or not.")
+    reserve_vram: float | None = Field(None, description="Amount of VRAM in GB to reserve for use.")
 
 
 class WorkerDetails(BaseModel):
@@ -445,6 +448,7 @@ class WorkerDetails(BaseModel):
     cache_type: str | None = Field(None, description="The type of cache to use (classic, lru, none).")
     cache_size: int | None = Field(None, description="How many node results to cache (when cache_type is lru).")
     vae_cpu: bool | None = Field(None, description="Should VAE be decoded on the CPU or not.")
+    reserve_vram: float | None = Field(None, description="Amount of VRAM in GB to reserve for use.")
 
     @model_validator(mode="after")
     def adjust_worker_id(self) -> Self:

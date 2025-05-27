@@ -2735,6 +2735,12 @@
             "title": "Vae Cpu",
             "description": "Does decoding VAE on CPU is enabled.",
             "default": false
+          },
+          "reserve_vram": {
+            "type": "number",
+            "title": "Reserve Vram",
+            "description": "Amount of VRAM in GB reserved for use by other software.",
+            "default": 0.6
           }
         },
         "type": "object",
@@ -2977,6 +2983,12 @@
             "description": "Does decoding VAE on CPU is enabled.",
             "default": false
           },
+          "reserve_vram": {
+            "type": "number",
+            "title": "Reserve Vram",
+            "description": "Amount of VRAM in GB reserved for use by other software.",
+            "default": 0.6
+          },
           "nodes_profiling": {
             "anyOf": [
               {
@@ -3070,6 +3082,12 @@
             "title": "Vae Cpu",
             "description": "Flag indicating was VAE decoded on the CPU or not.",
             "default": false
+          },
+          "reserve_vram": {
+            "type": "number",
+            "title": "Reserve Vram",
+            "description": "Amount of VRAM in GB that was reserved for use by other software..",
+            "default": 0.6
           }
         },
         "type": "object",
@@ -4748,6 +4766,18 @@
             ],
             "title": "Vae Cpu",
             "description": "Should VAE be decoded on the CPU or not."
+          },
+          "reserve_vram": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reserve Vram",
+            "description": "Amount of VRAM in GB to reserve for use."
           }
         },
         "type": "object",
@@ -4852,7 +4882,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-05-24T05:54:37.544480Z"
+            "default": "2025-05-27T16:49:32.105128Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
@@ -4970,6 +5000,18 @@
             ],
             "title": "Vae Cpu",
             "description": "Should VAE be decoded on the CPU or not."
+          },
+          "reserve_vram": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reserve Vram",
+            "description": "Amount of VRAM in GB to reserve for use."
           }
         },
         "type": "object",
