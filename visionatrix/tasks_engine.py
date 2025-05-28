@@ -155,6 +155,7 @@ async def task_preprocess_extra_flags(extra_flags: dict) -> None:
         extra_flags.get("cache_type", "classic"),
         extra_flags.get("cache_size", 1),
         extra_flags.get("vae_cpu", False),
+        extra_flags.get("reserve_vram", 0.6),
     )
 
 
@@ -291,6 +292,7 @@ async def get_incomplete_task_without_error_database(
                         "cache_type": worker_record.cache_type,
                         "cache_size": worker_record.cache_size,
                         "vae_cpu": worker_record.vae_cpu,
+                        "reserve_vram": worker_record.reserve_vram,
                     }
                     for setting_name, worker_value in worker_specific_settings_map.items():
                         if worker_value is not None:

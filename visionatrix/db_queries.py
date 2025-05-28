@@ -216,7 +216,7 @@ async def get_all_global_settings_for_task_execution() -> dict[str, bool | int |
         try:
             query = select(database.GlobalSettings.name, database.GlobalSettings.value).where(
                 database.GlobalSettings.name.in_(
-                    ("save_metadata", "smart_memory", "cache_type", "cache_size", "vae_cpu")
+                    ("save_metadata", "smart_memory", "cache_type", "cache_size", "vae_cpu", "reserve_vram")
                 )
             )
             results = (await session.execute(query)).all()
@@ -235,12 +235,20 @@ async def get_all_global_settings_for_task_execution() -> dict[str, bool | int |
 
             vae_cpu = settings.get("vae_cpu", "") not in ("", "0")
 
+            reserve_vram_raw = float(settings.get("reserve_vram", "0.6"))
+            try:
+                reserve_vram = float(reserve_vram_raw)
+            except ValueError:
+                LOGGER.warning("Invalid reserve_vram '%s' in GlobalSettings, defaulting to 0.6 GB", reserve_vram_raw)
+                reserve_vram = 0.6
+
             return {
                 "save_metadata": save_metadata,
                 "smart_memory": smart_memory,
                 "cache_type": cache_type,
                 "cache_size": cache_size,
                 "vae_cpu": vae_cpu,
+                "reserve_vram": reserve_vram,
             }
         except Exception:
             LOGGER.exception("Failed to retrieve all global task execution settings")
@@ -723,6 +731,7 @@ async def save_worker_settings(user_id: str | None, data: WorkerSettingsRequest)
                     cache_type=data.cache_type,
                     cache_size=data.cache_size,
                     vae_cpu=data.vae_cpu,
+                    reserve_vram=data.reserve_vram,
                 )
             else:
                 query_values = query.values(
@@ -731,6 +740,7 @@ async def save_worker_settings(user_id: str | None, data: WorkerSettingsRequest)
                     cache_type=data.cache_type,
                     cache_size=data.cache_size,
                     vae_cpu=data.vae_cpu,
+                    reserve_vram=data.reserve_vram,
                 )
             result = await session.execute(query_values)
             await session.commit()

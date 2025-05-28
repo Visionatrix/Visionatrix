@@ -130,6 +130,11 @@ const tableHeadersMap = [
 		label: 'VAE CPU',
 		sortable: true,
 	},
+	{
+		id: 'reserve_vram',
+		label: 'Reserve VRAM (GB)',
+		sortable: true,
+	},
 ]
 
 const columns = tableHeadersMap.map((header) => {
@@ -239,6 +244,7 @@ const settingsKeys = [
 	'cache_type',
 	'cache_size',
 	'vae_cpu',
+	'reserve_vram',
 ]
 const savingSettings = ref(false)
 function saveChanges() {
@@ -266,6 +272,7 @@ const updateSelectedWorkerOptions = () => {
 			cache_type: selectedWorker.value.cache_type ?? null,
 			cache_size: selectedWorker.value.cache_size ?? null,
 			vae_cpu: selectedWorker.value.vae_cpu ?? null,
+			reserve_vram: selectedWorker.value.reserve_vram ?? null,
 		}).then(() => {
 			const toast = useToast()
 			toast.add({
@@ -349,6 +356,19 @@ const updateSelectedWorkerOptions = () => {
 							color="primary"
 							class="py-3"
 							label="VAE on CPU" />
+					</UFormGroup>
+
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Reserve VRAM"
+						description="Amount of VRAM in GB to reserve for use by other software (total VRAM = total VRAM - reserve VRAM).">
+						<UInput
+							v-model="settingsStore.settingsMap.reserve_vram.value"
+							type="number"
+							min="0"
+							step="0.1"
+							class="w-fit" />
 					</UFormGroup>
 
 					<UButton
@@ -540,6 +560,39 @@ const updateSelectedWorkerOptions = () => {
 										}" />
 								</div>
 							</UFormGroup>
+
+							<UFormGroup
+								size="md"
+								class="py-3"
+								label="Reserve VRAM"
+								description="Amount of VRAM in GB to reserve for use.">
+								<UAlert
+									v-if="selectedWorker.reserve_vram === null"
+									color="cyan"
+									variant="soft"
+									title="Not set"
+									class="mb-2" />
+								<div class="flex items-center w-full">
+									<UInput
+										v-model="selectedWorker.reserve_vram"
+										type="number"
+										min="0"
+										step="0.1"
+										class="w-fit" />
+									<UButton
+										v-if="selectedWorker.reserve_vram !== null"
+										icon="i-heroicons-x-mark"
+										variant="outline"
+										color="white"
+										class="ml-2"
+										@click="() => { 
+											if (selectedWorker) {
+												// @ts-ignore
+												selectedWorker.reserve_vram = null
+											}
+										}" />
+								</div>
+							</UFormGroup>
 						</div>
 
 						<div class="flex justify-end my-4">
@@ -672,6 +725,9 @@ const updateSelectedWorkerOptions = () => {
 							:color="row.vae_cpu ? 'green' : 'red'">
 							{{ row.vae_cpu ? 'Yes' : 'No' }}
 						</UBadge>
+					</template>
+					<template #reserve_vram-data="{ row }">
+						{{ row.reserve_vram ?? 'N/A' }}
 					</template>
 				</UTable>
 			</div>
