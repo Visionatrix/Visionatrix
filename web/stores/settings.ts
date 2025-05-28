@@ -155,6 +155,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			reserve_vram: {
+				key: 'reserve_vram',
+				value: 0.6,
+				sensitive: false,
+				admin: true,
+			},
 			remote_vae_flows: {
 				key: 'remote_vae_flows',
 				value: '',
@@ -222,6 +228,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 					}
 					if (key === this.settingsMap.vae_cpu.key) {
 						value = value === '1'
+					}
+					if (key === this.settingsMap.reserve_vram.key) {
+						value = parseFloat(value)
 					}
 					if (this.settingsMap[key + '_user']) {
 						this.settingsMap[key + '_user'].value = value
@@ -442,6 +451,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 				}
 				if (key === this.settingsMap.vae_cpu.key) {
 					value = value ? '1' : '0'
+				}
+				if (key === this.settingsMap.reserve_vram.key) {
+					value = value.toString()
 				}
 				if (this.settingsMap[key].admin && userStore.isAdmin) {
 					return this.saveGlobalSetting(this.settingsMap[key].key, value, this.settingsMap[key].sensitive)

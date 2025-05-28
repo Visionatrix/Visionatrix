@@ -244,6 +244,7 @@ const settingsKeys = [
 	'cache_type',
 	'cache_size',
 	'vae_cpu',
+	'reserve_vram',
 ]
 const savingSettings = ref(false)
 function saveChanges() {
@@ -355,6 +356,19 @@ const updateSelectedWorkerOptions = () => {
 							color="primary"
 							class="py-3"
 							label="VAE on CPU" />
+					</UFormGroup>
+
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Reserve VRAM"
+						description="Amount of VRAM in GB to reserve for use.">
+						<UInput
+							v-model="settingsStore.settingsMap.reserve_vram.value"
+							type="number"
+							min="0"
+							step="0.1"
+							class="w-fit" />
 					</UFormGroup>
 
 					<UButton
