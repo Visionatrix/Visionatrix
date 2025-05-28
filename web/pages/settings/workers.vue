@@ -362,7 +362,7 @@ const updateSelectedWorkerOptions = () => {
 						size="md"
 						class="py-3"
 						label="Reserve VRAM"
-						description="Amount of VRAM in GB to reserve for use.">
+						description="Amount of VRAM in GB to reserve for use by other software (total VRAM = total VRAM - reserve VRAM).">
 						<UInput
 							v-model="settingsStore.settingsMap.reserve_vram.value"
 							type="number"
