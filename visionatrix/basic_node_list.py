@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.35"
-COMFYUI_MANAGER_RELEASE_TAG = "3.32.3"
+COMFYUI_RELEASE_TAG = "v0.3.38"
+COMFYUI_MANAGER_RELEASE_TAG = "3.32.5"
 
 ANTELOPEV2 = AIResourceModel(
     name="antelopev2",
