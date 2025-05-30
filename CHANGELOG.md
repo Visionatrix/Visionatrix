@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.0 - 2025-05-30]
+
+### Added
+
+- Option to set `reserve-vram` parameter for Workers from UI. #421
+- Ability to override `smart-memory`, `vae_cpu`, `reserve-vram`, `cache-type` for specific workers from UI. #420
+
+### Changed
+
+- Default model for LLM and VLM now is `gemma3:12b-it-qat` instead of `qwen2.5:14b`. #414
+- `ComfyUI_FizzNodes` node pack was dropped from the basic node list, as abandoned. #415
+
+### Fixed
+
+- Federation and Global Worker Settings are hidden from non-admin users. #411
+- Gemini node is now used with GOOGLE_API_KEY environment variable and did not get saved in the workflow. #418
+- ComfyUI required packages now prioritized by ComfyUI-Manager to not break ComfyUI`s dependencies. #417
+
 ## [2.4.1 - 2025-05-18]
 
 ### Added
