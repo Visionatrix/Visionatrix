@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-VISIONATRIX_VERSION := $(shell grep -Po '(?<=__version__ = ")[^"]*' visionatrix/_version.py)
+VISIONATRIX_VERSION := $(shell sed -n "s/^__version__ = ['\"]\([^'\"]*\)['\"]/\1/p" visionatrix/_version.py)
 
 ifeq ($(VISIONATRIX_VERSION),)
 $(error Could not extract version from visionatrix/_version.py. Please check the file.)
