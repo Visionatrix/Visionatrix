@@ -16,9 +16,9 @@ env:
   BUILD_RELEASE: 1
 
 jobs:
-  windows_2019_cuda:
-    name: Windows:2019-x86_64-CUDA
-    runs-on: windows-2019
+  windows_2022_cuda:
+    name: Windows:2022-x86_64-CUDA
+    runs-on: windows-2022
 
     steps:
       - uses: actions/checkout@v4
@@ -100,7 +100,7 @@ jobs:
           if-no-files-found: error
 
   publish_release:
-    needs: [windows_2019_cuda]
+    needs: [windows_2022_cuda]
     name: Publish release
     runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'workflow_dispatch' }}
