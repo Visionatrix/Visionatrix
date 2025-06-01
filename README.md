@@ -110,9 +110,10 @@ We offer a **portable version** to simplify installation (no need for Git or Vis
 
 Currently, we provide versions for CUDA/CPU. If there's demand, we can add a DirectML version.
 
-1. **Download**: Visit our [Releases page](https://github.com/Visionatrix/Visionatrix/releases).
-2. **Get the Portable Archive**: Download `vix_portable_cuda.7z`.
-3. **Unpack and Run**: Extract the archive and run `run_nvidia_gpu.bat` or `run_cpu.bat`.
+1. **Install VC++ Redistributable**: *vc_redist.x64.exe* from this [Microsoft page](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-microsoft-visual-c-redistributable-version).
+2. **Download**: Visit our [Releases page](https://github.com/Visionatrix/Visionatrix/releases).
+3. **Get the Portable Archive**: Download `vix_portable_cuda.7z`.
+4. **Unpack and Run**: Extract the archive and run `run_nvidia_gpu.bat` or `run_cpu.bat`.
 
 ### Manual Installation
 
