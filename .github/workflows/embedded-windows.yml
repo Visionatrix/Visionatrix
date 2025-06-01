@@ -38,6 +38,7 @@ jobs:
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
           ./python.exe get-pip.py
           ./python.exe -m pip install hatchling Cython
+          ./python.exe -m pip install git+https://github.com/rodjjo/filterpy.git
           cd ../..
 
       - name: Install Vix
