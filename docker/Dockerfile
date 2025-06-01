@@ -32,9 +32,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY LICENSE.txt README.md pyproject.toml /app/
 COPY visionatrix /app/visionatrix
 
-COPY ./docker/entrypoint.sh /entrypoint.sh
+COPY ./docker/entrypoint.py /entrypoint.py
 COPY ./docker/healthcheck.sh /healthcheck.sh
-RUN chmod +x /entrypoint.sh /healthcheck.sh
+RUN chmod +x /entrypoint.py /healthcheck.sh
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     venv/bin/python -m pip install -U pip && \
@@ -44,4 +44,4 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     rm -rf tmp visionatrix
 
 HEALTHCHECK --interval=10s --timeout=10s --start-period=5s --retries=18 CMD /healthcheck.sh
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/app/venv/bin/python", "/entrypoint.py"]

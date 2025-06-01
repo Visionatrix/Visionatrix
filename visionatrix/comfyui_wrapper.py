@@ -38,11 +38,13 @@ SYSTEM_DETAILS = {
 }
 TORCH_VERSION: str | None = None
 PROMPT_EXECUTOR: typing.Any
+DEVICE_CUSTOM_INDEX: int | None = None
 
 
 async def load(
     task_progress_callback,
 ) -> [typing.Callable[[dict], tuple[bool, dict, list, list]], typing.Any, typing.Any]:
+    global DEVICE_CUSTOM_INDEX
 
     # for diffusers/transformers library
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
@@ -97,6 +99,19 @@ async def load(
         elif need_cpu_flag():
             sys.argv.append("--cpu")
 
+    for env_var, name in [
+        ("CUDA_VISIBLE_DEVICES", "CUDA"),
+        ("HIP_VISIBLE_DEVICES", "HIP"),
+        ("ONEAPI_DEVICE_SELECTOR", "OneAPI"),
+    ]:
+        if custom_devices := os.environ.get(env_var):
+            LOGGER.info("%s device is set to: %s", name, custom_devices)
+            try:
+                DEVICE_CUSTOM_INDEX = int(custom_devices.split(",")[0].strip())
+            except ValueError as e:
+                raise ValueError("Cannot parse `%s` device string to get global device index.", custom_devices) from e
+            break
+
     LOGGER.debug("ComfyUI command line arguments: %s", sys.argv)
     fill_comfyui_args()
     sys.argv = original_argv
@@ -119,11 +134,6 @@ async def load(
     import execution  # noqa # isort: skip
     import nodes  # noqa # isort: skip
     import server  # noqa # isort: skip
-
-    if main.args.cuda_device is not None:
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(main.args.cuda_device)
-        LOGGER.info("Set cuda device to: %s", main.args.cuda_device)
-
     import cuda_malloc  # noqa
 
     # StartComfyUI: copy of code from ComfyUIs 'main.py'
@@ -313,10 +323,14 @@ def torch_device_info() -> dict:
     device_name = comfy.model_management.get_torch_device_name(device)
     vram_total, torch_vram_total = comfy.model_management.get_total_memory(device, torch_total_too=True)
     vram_free, torch_vram_free = comfy.model_management.get_free_memory(device, torch_free_too=True)
+    if DEVICE_CUSTOM_INDEX is not None:
+        device_index = DEVICE_CUSTOM_INDEX
+    else:
+        device_index = 0 if device.index is None else device.index
     return {
         "name": device_name,
         "type": device.type,
-        "index": 0 if device.index is None else device.index,
+        "index": device_index,
         "vram_total": vram_total,
         "vram_free": vram_free,
         "torch_vram_total": torch_vram_total,
@@ -464,13 +478,6 @@ def add_arguments(parser):
         action="append",
         help="Load one or more extra_model_paths.yaml files.",
     )
-    parser.add_argument(
-        "--cuda-device",
-        type=int,
-        default=None,
-        metavar="DEVICE_ID",
-        help="Set the id of the cuda device this instance will use.",
-    )
     cm_group = parser.add_mutually_exclusive_group()
     cm_group.add_argument(
         "--cuda-malloc", action="store_true", help="Enable cudaMallocAsync (enabled by default for torch 2.0 and up)."
@@ -510,13 +517,6 @@ def add_arguments(parser):
         "--force-channels-last", action="store_true", help="Force channels last format when inferencing the models."
     )
 
-    parser.add_argument(
-        "--oneapi-device-selector",
-        type=str,
-        default=None,
-        metavar="SELECTOR_STRING",
-        help="Sets the oneAPI device(s) this instance will use.",
-    )
     parser.add_argument(
         "--disable-ipex-optimize",
         action="store_true",
