@@ -124,6 +124,9 @@ lint.extend-ignore = [
   "SIM117",
 ]
 
+lint.per-file-ignores."docker/entrypoint.py" = [
+  "S606",
+]
 lint.per-file-ignores."scripts/*.*" = [
   "E402",
   "S602",
