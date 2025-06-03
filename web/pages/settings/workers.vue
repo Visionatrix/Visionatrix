@@ -705,29 +705,29 @@ const updateSelectedWorkerOptions = () => {
 					<template #smart_memory-data="{ row }">
 						<UBadge
 							variant="solid"
-							:color="row.smart_memory ? 'green' : 'red'">
-							{{ row.smart_memory ? 'Yes' : 'No' }}
+							:color="!row.engine_details.disable_smart_memory ? 'green' : 'red'">
+							{{ !row.engine_details.disable_smart_memory ? 'Yes' : 'No' }}
 						</UBadge>
 					</template>
 					<template #cache_type-data="{ row }">
 						<UBadge
 							variant="solid"
-							:color="row.cache_type === 'none' ? 'red' : 'green'">
-							{{ row.cache_type ?? settingsStore.settingsMap.cache_type.value }}
+							:color="row.engine_details.cache_type === 'none' ? 'red' : 'green'">
+							{{ row.engine_details.cache_type ?? 'N/A' }}
 						</UBadge>
 					</template>
 					<template #cache_size-data="{ row }">
-						{{ row.cache_size && row.cache_type === 'lru' ? row.cache_size + ' nodes' : 'N/A' }}
+						{{ row.engine_details.cache_size && row.engine_details.cache_type === 'lru' ? row.engine_details.cache_size + ' nodes' : 'N/A' }}
 					</template>
 					<template #vae_cpu-data="{ row }">
 						<UBadge
 							variant="solid"
-							:color="row.vae_cpu ? 'green' : 'red'">
-							{{ row.vae_cpu ? 'Yes' : 'No' }}
+							:color="row.engine_details.vae_cpu ? 'green' : 'red'">
+							{{ row.engine_details.vae_cpu ? 'Yes' : 'No' }}
 						</UBadge>
 					</template>
 					<template #reserve_vram-data="{ row }">
-						{{ row.reserve_vram ?? 'N/A' }}
+						{{ row.engine_details.reserve_vram ?? 'N/A' }}
 					</template>
 				</UTable>
 			</div>

@@ -81,6 +81,10 @@ export interface WorkerInfo {
 	engine_details: {
 		disable_smart_memory: boolean
 		vram_state: string
+		cache_type: string
+		cache_size: number
+		vae_cpu: boolean
+		reserve_vram: number
 	}
 	federated_instance_name: string
 	empty_task_requests_count: number
