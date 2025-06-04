@@ -305,7 +305,7 @@ def get_engine_details() -> dict:
         "cache_type": cache_type,
         "cache_size": int(PROMPT_EXECUTOR.cache_size),
         "vae_cpu": bool(comfy.cli_args.args.cpu_vae),
-        "reserve_vram": float(comfy.model_management.EXTRA_RESERVED_VRAM),
+        "reserve_vram": float(comfy.model_management.EXTRA_RESERVED_VRAM / 1024 / 1024 / 1024),
     }
 
 
