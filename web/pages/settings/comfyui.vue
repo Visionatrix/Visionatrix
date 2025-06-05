@@ -263,7 +263,7 @@ onBeforeMount(() => {
 							Save
 						</UButton>
 
-						<UModal v-if="settingsStore.settingsMap.comfyui_models_folder.value !== ''"
+						<UModal
 							v-model="showComfyUiFoldersModal"
 							class="z-[90]"
 							fullscreen>
