@@ -1,4 +1,4 @@
-3ci:
+ci:
   skip: [pylint]
 
 repos:

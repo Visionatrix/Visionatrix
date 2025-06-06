@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.1 - 2025-06-06]
+
+### Added
+
+- Docker(CUDA): from now Visionatrix will use all available GPUs by default. #427
+
+### Fixed
+
+- Windows: fix broken `filterpy` package which leads to errors in many flows. #426
+- SettingsUI(Workers): correctly display `Smart Memory`, `VRAM State`,.. details. #429
+- SettingsUI(Comfy): `Show ComfyUI folders` button now works even when you did not set custom path to models. #430
+- NPM packages update. #424
+- Security issue. Big thanks to @protozeit for reporting it.
+
 ## [2.5.0 - 2025-05-30]
 
 ### Added

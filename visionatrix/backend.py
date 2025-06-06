@@ -7,6 +7,7 @@ import re
 import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import urlencode
 
 import httpx
 import uvicorn
@@ -31,6 +32,8 @@ from .user_backends import perform_auth_http, perform_auth_ws
 
 setup_logging(log_level_name=os.environ.get("LOG_LEVEL", "INFO").upper())
 LOGGER = logging.getLogger("visionatrix")
+
+SAFE_FLOWS_RE = re.compile(r"^[\w*,]+$")
 
 
 class VixAuthMiddleware:
@@ -317,15 +320,21 @@ async def docs_flows(
     flows: str = Query("*", description="Flows to include in OpenAPI specs (comma-separated list or '*')"),
     skip_not_installed: bool = Query(True, description="Skip flows that are not installed"),
 ):
-    query_params = []
+    if not SAFE_FLOWS_RE.fullmatch(flows):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid characters in 'flows' query parameter.",
+        )
+
+    query_params: dict[str, str] = {}
     if flows:
-        query_params.append(f"flows={flows}")
+        query_params["flows"] = flows
     if not skip_not_installed:
-        query_params.append("skip_not_installed=false")
-    query_string = "&".join(query_params)
+        query_params["skip_not_installed"] = "false"
+
     openapi_url = "/openapi/flows.json"
-    if query_string:
-        openapi_url += f"?{query_string}"
+    if query_params:
+        openapi_url += "?" + urlencode(query_params, safe="*,")
     return get_swagger_ui_html(
         openapi_url=openapi_url,
         title="Flows Documentation",
