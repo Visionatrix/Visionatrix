@@ -1,6 +1,6 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.38"
+COMFYUI_RELEASE_TAG = "v0.3.40"
 COMFYUI_MANAGER_RELEASE_TAG = "3.32.5"
 
 ANTELOPEV2 = AIResourceModel(
@@ -21,7 +21,7 @@ ANTELOPEV2 = AIResourceModel(
 
 BASIC_NODE_LIST = {
     "comfyui-impact-pack": {
-        "version": "8.15.1",
+        "version": "8.15.3",
         "models": [
             AIResourceModel(
                 name="mmdet_anime-face_yolov3",
@@ -79,20 +79,20 @@ BASIC_NODE_LIST = {
         ],
     },
     "comfyui_ultimatesdupscale": {
-        "version": "1.1.3",
+        "version": "1.2.1",
     },
     "comfyui_instantid": {
         "version": "1.0.0",
         "models": [ANTELOPEV2],
     },
     "efficiency-nodes-comfyui": {
-        "version": "1.0.6",
+        "version": "1.0.7",
     },
     "comfyui-wd14-tagger": {
         "version": "1.0.0",
     },
     "comfyui-supir": {
-        "version": "1.0.1",
+        "version": "1.0.2",
     },
     "comfyui_essentials": {
         "version": "1.1.0",
@@ -119,7 +119,7 @@ BASIC_NODE_LIST = {
         "version": "1.0.5",
     },
     "comfyui-ollama": {
-        "version": "2.0.3",
+        "version": "2.0.4",
     },
     "pulid_comfyui": {
         "version": "1.0.1",
@@ -134,13 +134,13 @@ BASIC_NODE_LIST = {
         "version": "1.6.1",
     },
     "comfyui-kjnodes": {
-        "version": "1.1.0",
+        "version": "1.1.1",
     },
     "comfyui_layerstyle": {
         "version": "1.0.90",
     },
     "comfyui-easy-use": {
-        "version": "1.2.9",
+        "version": "1.3.0",
     },
     "comfyui_birefnet_ll": {
         "version": "1.1.3",
