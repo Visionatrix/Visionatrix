@@ -35,6 +35,7 @@ services:
       - VIX_PORT=8288
       - BASE_DATA_DIR=/data
       - DATABASE_URI=postgresql+psycopg://vix_user:vix_password@pgsql:5432/vix_db
+      - SKIP_MULTIPLE_WORKERS=1
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
