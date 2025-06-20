@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.40"
-COMFYUI_MANAGER_RELEASE_TAG = "3.32.5"
+COMFYUI_RELEASE_TAG = "v0.3.41"
+COMFYUI_MANAGER_RELEASE_TAG = "3.33"
 
 ANTELOPEV2 = AIResourceModel(
     name="antelopev2",
@@ -21,7 +21,7 @@ ANTELOPEV2 = AIResourceModel(
 
 BASIC_NODE_LIST = {
     "comfyui-impact-pack": {
-        "version": "8.15.3",
+        "version": "8.17.1",
         "models": [
             AIResourceModel(
                 name="mmdet_anime-face_yolov3",
@@ -50,7 +50,7 @@ BASIC_NODE_LIST = {
         ],
     },
     "comfyui-impact-subpack": {
-        "version": "1.3.2",
+        "version": "1.3.3",
         "models": [
             AIResourceModel(
                 name="face_yolov8m",
@@ -116,7 +116,7 @@ BASIC_NODE_LIST = {
         "version": "1.0.0",
     },
     "comfyui-gemini": {
-        "version": "1.0.5",
+        "version": "1.1.0",
     },
     "comfyui-ollama": {
         "version": "2.0.4",
@@ -134,7 +134,7 @@ BASIC_NODE_LIST = {
         "version": "1.6.1",
     },
     "comfyui-kjnodes": {
-        "version": "1.1.1",
+        "version": "1.1.2",
     },
     "comfyui_layerstyle": {
         "version": "1.0.90",
@@ -143,7 +143,7 @@ BASIC_NODE_LIST = {
         "version": "1.3.0",
     },
     "comfyui_birefnet_ll": {
-        "version": "1.1.3",
+        "version": "1.1.4",
     },
     "https://github.com/shiimizu/ComfyUI-PhotoMaker-Plus": {
         "version": "",
