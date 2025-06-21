@@ -37,6 +37,7 @@ from .tasks_engine_etc import (
     TASK_DETAILS_COLUMNS,
     TASK_DETAILS_COLUMNS_SHORT,
     get_incomplete_task_without_error_query,
+    initialize_comfyui_engine_settings,
     nodes_execution_profiler,
     prepare_worker_info_update,
 )
@@ -775,7 +776,9 @@ def background_prompt_executor(prompt_executor_args: tuple | list, exit_event: t
     last_task_name = ""
 
     threading.Thread(
-        target=comfyui_wrapper.background_prompt_executor_comfy, args=(prompt_executor_args, exit_event), daemon=True
+        target=comfyui_wrapper.background_prompt_executor_comfy,
+        args=(prompt_executor_args, exit_event, initialize_comfyui_engine_settings),
+        daemon=True,
     ).start()
 
     q = prompt_executor_args[0]

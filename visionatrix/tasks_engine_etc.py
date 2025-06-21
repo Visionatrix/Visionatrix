@@ -1,10 +1,12 @@
+import json
 import logging
 import time
 from datetime import datetime, timezone
 
+import httpx
 from sqlalchemy import Row, desc, or_, select
 
-from . import database
+from . import comfyui_wrapper, database, db_queries, options
 from .pydantic_models import UserInfo, WorkerDetailsRequest
 
 TASK_DETAILS_COLUMNS_SHORT = [
@@ -270,3 +272,31 @@ def __nodes_execution_profiler(active_task: dict, event: str, data: dict):
         torch.cuda.reset_peak_memory_stats()
     active_task["profiler_current_node"] = current_node
     active_task["profiler_node_start_time"] = time.perf_counter()
+
+
+async def initialize_comfyui_engine_settings() -> None:
+    extra_flags = {}
+    try:
+        if options.VIX_MODE == "WORKER" and options.VIX_SERVER:
+            async with httpx.AsyncClient(timeout=options.WORKER_NET_TIMEOUT) as client:
+                r = await client.get(
+                    options.VIX_SERVER.rstrip("/") + "/vapi/workers/default_engine_settings",
+                    auth=options.worker_auth(),
+                )
+            if httpx.codes.is_error(r.status_code):
+                LOGGER.error("Server return status: %s", r.status_code)
+            else:
+                extra_flags = json.loads(r.text)
+        else:
+            extra_flags = await db_queries.get_all_global_settings_for_task_execution()
+    except Exception as e:
+        LOGGER.warning("Can not retrieve default worker settings, exception: %s", e)
+
+    comfyui_wrapper.set_comfy_internal_flags(
+        extra_flags.get("save_metadata", False),
+        extra_flags.get("smart_memory", True),
+        extra_flags.get("cache_type", "classic"),
+        extra_flags.get("cache_size", 1),
+        extra_flags.get("vae_cpu", False),
+        extra_flags.get("reserve_vram", 0.6),
+    )
