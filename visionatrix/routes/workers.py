@@ -2,7 +2,11 @@ import logging
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request, responses, status
 
-from ..db_queries import get_workers_details, save_worker_settings
+from ..db_queries import (
+    get_all_global_settings_for_task_execution,
+    get_workers_details,
+    save_worker_settings,
+)
 from ..pydantic_models import WorkerDetails, WorkerSettingsRequest
 
 LOGGER = logging.getLogger("visionatrix")
@@ -49,3 +53,13 @@ async def set_worker_settings(request: Request, data: WorkerSettingsRequest = Bo
     user_id = None if request.scope["user_info"].is_admin else request.scope["user_info"].user_id
     if not await save_worker_settings(user_id, data):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Can't find `{data.worker_id}` worker.")
+
+
+@ROUTER.get(
+    "/default_engine_settings",
+    response_class=responses.JSONResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def default_engine_settings() -> dict[str, bool | int | str | float]:
+    """Route only for remote workers. Returns default configured values for the ComfyUI engine."""
+    return await get_all_global_settings_for_task_execution()

@@ -19,6 +19,7 @@ import threading
 import time
 import typing
 import uuid
+from collections.abc import Awaitable, Callable
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from socket import gethostname
@@ -391,7 +392,11 @@ def need_cpu_flag() -> bool:
     return True
 
 
-def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_event: threading.Event):
+def background_prompt_executor_comfy(
+    prompt_executor_args: tuple | list,
+    exit_event: threading.Event,
+    initialize_comfyui_engine_settings: Callable[[], Awaitable[None]],
+):
     global PROMPT_EXECUTOR
 
     import comfy  # noqa
@@ -402,6 +407,7 @@ def background_prompt_executor_comfy(prompt_executor_args: tuple | list, exit_ev
 
     current_time: float = 0.0
     PROMPT_EXECUTOR = execution.PromptExecutor(prompt_server, cache_type=execution.CacheType.CLASSIC, cache_size=0)
+    asyncio.run(initialize_comfyui_engine_settings())
     last_gc_collect = 0
     need_gc = False
     gc_collect_interval = 10.0

@@ -2267,6 +2267,45 @@
         }
       }
     },
+    "/vapi/workers/default_engine_settings": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Default Engine Settings",
+        "description": "Route only for remote workers. Returns default configured values for the ComfyUI engine.",
+        "operationId": "default_engine_settings",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "type": "object",
+                  "title": "Response Default Engine Settings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/federation/instances": {
       "get": {
         "tags": [
@@ -4882,7 +4921,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-06-07T06:26:32.511334Z"
+            "default": "2025-06-21T13:07:18.517725Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"

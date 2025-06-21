@@ -210,7 +210,7 @@ async def get_all_system_settings() -> dict[str, str]:
             raise
 
 
-async def get_all_global_settings_for_task_execution() -> dict[str, bool | int | str]:
+async def get_all_global_settings_for_task_execution() -> dict[str, bool | int | str | float]:
     """Retrieve all global settings related to task execution to init the ExtraFlags model."""
     async with database.SESSION() as session:
         try:
