@@ -6,7 +6,7 @@ const userStore = useUserStore()
 let prev_input_params_map: TaskHistoryInputParam|any = localStorage.getItem(`input_params_map_${flowStore.currentFlow?.name}`)
 if (prev_input_params_map) {
 	const prev_input_params_map_parsed = JSON.parse(prev_input_params_map)
-	if ('flow_version' in prev_input_params_map_parsed 
+	if ('flow_version' in prev_input_params_map_parsed
 		&& prev_input_params_map_parsed.flow_version.split('.')[0] === flowStore.currentFlow?.version.split('.')[0]) {
 		prev_input_params_map = prev_input_params_map_parsed
 	} else {
@@ -73,7 +73,7 @@ const inputParamsMap: any = ref(flowStore.currentFlow?.input_params.map(input_pa
 				optional: input_param.optional,
 				options: input_param.options,
 				advanced: input_param.advanced || false,
-				default: Object.keys(input_param.options as object)[0] || '',
+				default: input_param.default || Object.keys(input_param.options as object)[0] || '',
 				dynamic_lora: input_param.dynamic_lora || false,
 				trigger_words: input_param.trigger_words || [],
 			}
@@ -220,7 +220,7 @@ function resetParamsToDefaults() {
 		} else if (inputParam[input_param_name].type === 'number') {
 			inputParam[input_param_name].value = inputParam[input_param_name].default || inputParam[input_param_name].min || 0
 		} else if (inputParam[input_param_name].type === 'list') {
-			inputParam[input_param_name].value = Object.keys(inputParam[input_param_name].options)[0] || ''
+			inputParam[input_param_name].value = inputParam[input_param_name].default || Object.keys(inputParam[input_param_name].options)[0] || ''
 		} else if (inputParam[input_param_name].type === 'bool') {
 			inputParam[input_param_name].value = inputParam[input_param_name].default || false
 		} else if (['range', 'range_scale'].includes(inputParam[input_param_name].type)) {
