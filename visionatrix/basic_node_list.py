@@ -110,7 +110,7 @@ BASIC_NODE_LIST = {
         "version": "1.0.0",
     },
     "comfyui-visionatrix": {
-        "version": "1.2.1",
+        "version": "1.2.2",
     },
     "comfyui-remotevae": {
         "version": "1.0.0",
