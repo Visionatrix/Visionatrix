@@ -653,22 +653,14 @@ def get_flow_inputs(
                 input_param_data["options"] = r
         elif class_type == "VixUiAspectRatioSelector":
             input_param_data["default"] = node_details["inputs"]["aspect_ratio"]
-            input_param_data["options"] = {
-                "1:1 (1024x1024)": "1:1 (1024x1024)",
-                "2:3 (832x1216)": "2:3 (832x1216)",
-                "3:4 (896x1152)": "3:4 (896x1152)",
-                "5:8 (768x1216)": "5:8 (768x1216)",
-                "9:16 (768x1344)": "9:16 (768x1344)",
-                "9:19 (704x1472)": "9:19 (704x1472)",
-                "9:21 (640x1536)": "9:21 (640x1536)",
-                "3:2 (1216x832)": "3:2 (1216x832)",
-                "4:3 (1152x896)": "4:3 (1152x896)",
-                "8:5 (1216x768)": "8:5 (1216x768)",
-                "16:9 (1344x768)": "16:9 (1344x768)",
-                "19:9 (1472x704)": "19:9 (1472x704)",
-                "20:11 (1280x704)": "20:11 (1280x704)",
-                "21:9 (1536x640)": "21:9 (1536x640)",
-            }
+            node_class_mapping = get_node_class_mappings().get(class_type)
+            if not node_class_mapping:
+                raise ValueError(f"Can not find loaded node with class_type={class_type}")
+            aspects_ratios = {}
+            node_input_types = node_class_mapping.INPUT_TYPES()
+            for i in node_input_types["required"]["aspect_ratio"][0]:
+                aspects_ratios[i] = i
+            input_param_data["options"] = aspects_ratios
         input_params.append(input_param_data)
     add_loras_inputs(input_params, loras_connection_points)
     return sorted(input_params, key=lambda x: x["order"])
