@@ -237,6 +237,18 @@ You can set the environment variable directly on the command line for a single c
 VIX_IMAGE_BASE=docker.io/bigcat88/visionatrix docker compose up -d visionatrix_nvidia
 ```
 
+### Build your own
+
+1. From the root of this repo, build a new image, using the arguments:
+    - BUILD_TYPE (required): Define the build type: `cpu`, `cuda`, or `rocm`
+    - CUDA_VERSION (optional): Define the [pytorch CUDA version](https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix) (ex. 126 for 12.6) you want to use. The default is 12.8, which doesn't support older cards.
+  
+    Example for a cuda build using 12.6 CUDA version:
+
+    `docker build --build-arg BUILD_TYPE=cuda --build-arg CUDA_VERSION=126 visionatrix:release-cuda12.6 -f docker/Dockerfile .`
+2. Start the services refering the new image:
+`VIX_IMAGE_BASE=visionatrix:release-cuda12.6 docker compose up -d visionatrix_nvidia`
+
 ## 📚 Documentation and Support
 
 If you have any questions or need assistance, we're here to help! Feel free to [start a discussion](https://github.com/Visionatrix/Visionatrix/discussions/new/choose) or explore our resources:
