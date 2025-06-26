@@ -19,8 +19,11 @@ from ..db_queries import (
     is_custom_worker_free,
 )
 from ..flows import (
+    SUPPORTED_FILE_TYPES_INPUTS,
+    SUPPORTED_TEXT_TYPES_INPUTS,
     Flow,
     flow_prepare_output_params,
+    get_installed_flow,
     get_nodes_for_translate,
     prepare_flow_comfy,
 )
@@ -28,7 +31,12 @@ from ..prompt_translation import (
     translate_prompt_with_gemini,
     translate_prompt_with_ollama,
 )
-from ..pydantic_models import TranslatePromptRequest, UserInfo
+from ..pydantic_models import (
+    TaskCreationWithFullParams,
+    TranslatePromptRequest,
+    UserInfo,
+)
+from ..surprise_me import surprise_me
 from ..tasks_engine import remove_task_files
 from ..tasks_engine_async import (
     create_new_task_async,
@@ -204,6 +212,110 @@ async def process_string_value(request: Request, user_id: str, key: str, value: 
             status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` or `remote_url` parameter."
         ) from None
     in_files_params[key] = input_file_info
+
+
+async def create_task_logic(
+    request: Request,
+    name: str,
+    data: TaskCreationWithFullParams,
+) -> list[dict]:
+    """Internal logic to create one or more tasks, returns a list of task_details dicts."""
+    user_id = request.scope["user_info"].user_id
+    is_user_admin = request.scope["user_info"].is_admin
+    extra_flags, custom_worker = await get_task_creation_extra_flags(request, is_user_admin)
+    await preprocess_federation_task(extra_flags, custom_worker)
+
+    flow_comfy = {}
+    flow = await get_installed_flow(name, flow_comfy)
+    if not flow:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
+
+    form_data = await request.form()
+
+    in_text_params: dict[str, int | float | str] = {}
+    in_files_params = {}
+    flow_input_params = {}
+    for input_param in flow.input_params:
+        flow_input_params[input_param["name"]] = input_param
+
+    standard_params = list(TaskCreationWithFullParams.model_fields.keys())
+    surprise_me_active = False
+    for key in form_data:
+        if flow.is_seed_supported and key == "seed":
+            in_text_params["seed"] = int(form_data.get(key))
+            continue
+        if key == "surprise_me" and flow.is_surprise_me_supported and form_data["surprise_me"] == "1":
+            surprise_me_active = True
+            continue
+        if key in standard_params:
+            continue
+        if key not in flow_input_params:
+            LOGGER.warning("Unexpected parameter '%s' for '%s' task creation, ignoring.", key, name)
+            continue
+        value = form_data.get(key)
+        if flow_input_params[key]["type"] in SUPPORTED_TEXT_TYPES_INPUTS:
+            in_text_params[key] = value
+            continue
+        if flow_input_params[key]["type"] not in SUPPORTED_FILE_TYPES_INPUTS:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported input type '{flow_input_params[key]['type']}' for {key} parameter.",
+            ) from None
+        if isinstance(value, str):
+            await process_string_value(request, user_id, key, value, in_files_params)
+        elif isinstance(value, StarletteUploadFile):
+            in_files_params[key] = value
+        else:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail=f"Unsupported input file type: {type(value)}"
+            ) from None
+
+    translated_in_text_params = await get_translated_input_params(
+        bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
+    )
+
+    if "seed" in in_text_params:
+        in_text_params_list = [dict(in_text_params, seed=in_text_params["seed"] + i) for i in range(data.count)]
+    else:
+        in_text_params_list = [in_text_params.copy() for _ in range(data.count)]
+    translated_in_text_params_list = [translated_in_text_params.copy() for _ in range(data.count)]
+
+    if surprise_me_active:
+        if "prompt" in translated_in_text_params:
+            ai_generated_prompts: list = await surprise_me(
+                user_id, is_user_admin, translated_in_text_params["prompt"], count=data.count
+            )
+            for i in range(data.count):
+                translated_in_text_params_list[i]["prompt"] = ai_generated_prompts[i]
+        else:
+            ai_generated_prompts: list = await surprise_me(
+                user_id, is_user_admin, in_text_params.get("prompt", ""), count=data.count
+            )
+            for i in range(data.count):
+                in_text_params_list[i]["prompt"] = ai_generated_prompts[i]
+
+    created_tasks = []
+    webhook_headers_dict = json.loads(data.webhook_headers) if data.webhook_headers else None
+    for i in range(data.count):
+        task_details = await task_run(
+            name,
+            in_text_params_list[i],
+            translated_in_text_params_list[i],
+            in_files_params,
+            flow,
+            flow_comfy,
+            request.scope["user_info"],
+            data.webhook_url if data.webhook_url else None,
+            webhook_headers_dict,
+            bool(data.child_task),
+            data.group_scope,
+            data.priority,
+            extra_flags,
+            custom_worker,
+        )
+        created_tasks.append(task_details)
+
+    return created_tasks
 
 
 def get_files_for_node(
