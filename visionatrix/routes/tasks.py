@@ -3,17 +3,15 @@ import json
 import logging
 import os
 import shutil
-from io import BytesIO
 from pathlib import Path
 from typing import Annotated
-from zipfile import ZipFile
 
 from fastapi import APIRouter, BackgroundTasks, Body, Form, HTTPException
 from fastapi import Path as FastApiPath
 from fastapi import Query, Request, UploadFile, responses, status
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from .. import etc, options
+from .. import options
 from ..flows import (
     SUPPORTED_FILE_TYPES_INPUTS,
     SUPPORTED_TEXT_TYPES_INPUTS,
@@ -49,11 +47,13 @@ from ..tasks_engine_async import (
 )
 from ..webhooks import webhook_task_progress
 from .tasks_internal import (
+    get_files_for_node,
     get_task_creation_extra_flags,
     get_translated_input_params,
     preprocess_federation_task,
     process_string_value,
     task_run,
+    zip_files_as_response,
 )
 
 LOGGER = logging.getLogger("visionatrix")
@@ -476,45 +476,19 @@ async def get_task_results(
     if task["progress"] < 100.0:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` is not completed yet.")
 
-    result_prefix = f"{task_id}_{node_id}_"
-    output_files = get_task_files(task_id, "output")
-    relevant_files = [file_info for file_info in output_files if file_info[0].startswith(result_prefix)]
-    output_node = None
-    for output in task["outputs"]:
-        if output["comfy_node_id"] == node_id:
-            output_node = output
-            break
+    output_node = next((o for o in task["outputs"] if o["comfy_node_id"] == node_id), None)
     if not output_node:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"No such node in the flow for task=`{task_id}`.")
-    if output_node["type"] == "image":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_EXTENSIONS)]
-    elif output_node["type"] == "image-animated":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_ANIMATED_EXTENSIONS)]
-    elif output_node["type"] == "video":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.VIDEO_EXTENSIONS)]
-    elif output_node["type"] == "audio":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.AUDIO_EXTENSIONS)]
-    elif output_node["type"] == "text":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.TEXT_EXTENSIONS)]
-    elif output_node["type"] == "3d-model":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.MODEL3D_EXTENSION)]
+
+    all_output_files = get_task_files(task_id, "output")
+    relevant_files = get_files_for_node(task_id, output_node, all_output_files)
     if not relevant_files:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             detail=f"Missing result for task=`{task_id}` and node=`{node_id}`.",
         )
     if batch_index == -1:
-        zip_buffer = BytesIO()
-        with ZipFile(zip_buffer, "w") as zip_file:
-            for file_name, file_path in relevant_files:
-                with builtins.open(file_path, "rb") as f:
-                    zip_file.writestr(file_name, f.read())
-        zip_buffer.seek(0)
-        return responses.Response(
-            content=zip_buffer.read(),
-            media_type="application/zip",
-            headers={"Content-Disposition": f"attachment; filename={task_id}_{node_id}_results.zip"},
-        )
+        return zip_files_as_response(relevant_files, f"{task_id}_{node_id}_results.zip")
     if batch_index + 1 > len(relevant_files):
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,

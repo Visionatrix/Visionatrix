@@ -1,13 +1,16 @@
+import builtins
 import json
 import logging
 import typing
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
+from zipfile import ZipFile
 
 import httpx
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Request, responses, status
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from .. import models_map
+from .. import etc, models_map
 from ..db_queries import (
     get_all_global_settings_for_task_execution,
     get_installed_models,
@@ -201,3 +204,41 @@ async def process_string_value(request: Request, user_id: str, key: str, value: 
             status.HTTP_400_BAD_REQUEST, detail="Missing `task_id` or `remote_url` parameter."
         ) from None
     in_files_params[key] = input_file_info
+
+
+def get_files_for_node(
+    task_id: int, output_node: dict, all_output_files: list[tuple[str, str]]
+) -> list[tuple[str, str]]:
+    """Filters a list of all output files to find those relevant to a specific output node."""
+    node_id = output_node["comfy_node_id"]
+    result_prefix = f"{task_id}_{node_id}_"
+    relevant_files = [f_info for f_info in all_output_files if f_info[0].startswith(result_prefix)]
+    type_extensions = {
+        "image": etc.IMAGE_EXTENSIONS,
+        "image-animated": etc.IMAGE_ANIMATED_EXTENSIONS,
+        "video": etc.VIDEO_EXTENSIONS,
+        "audio": etc.AUDIO_EXTENSIONS,
+        "text": etc.TEXT_EXTENSIONS,
+        "3d-model": etc.MODEL3D_EXTENSION,
+    }
+    extensions_to_check = type_extensions.get(output_node["type"])
+    if extensions_to_check:
+        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in extensions_to_check)]
+    return relevant_files
+
+
+def zip_files_as_response(files_to_zip: list[tuple[str, str]], archive_name: str) -> responses.Response:
+    """Zips a list of files into a FastAPI response."""
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, "w") as zip_file:
+        for file_name, file_path in files_to_zip:
+            with builtins.open(file_path, "rb") as f:
+                zip_file.writestr(file_name, f.read())
+
+    zip_buffer.seek(0)
+
+    return responses.Response(
+        content=zip_buffer.read(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={archive_name}"},
+    )
