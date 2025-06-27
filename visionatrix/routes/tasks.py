@@ -1,24 +1,16 @@
+import asyncio
 import builtins
-import json
 import logging
 import os
 import shutil
-from io import BytesIO
 from pathlib import Path
 from typing import Annotated
-from zipfile import ZipFile
 
 from fastapi import APIRouter, BackgroundTasks, Body, Form, HTTPException
 from fastapi import Path as FastApiPath
 from fastapi import Query, Request, UploadFile, responses, status
-from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from .. import etc, options
-from ..flows import (
-    SUPPORTED_FILE_TYPES_INPUTS,
-    SUPPORTED_TEXT_TYPES_INPUTS,
-    get_installed_flow,
-)
+from .. import options
 from ..pydantic_models import (
     ExecutionDetails,
     TaskCreationWithFullParams,
@@ -28,7 +20,6 @@ from ..pydantic_models import (
     TaskUpdateRequest,
     WorkerDetailsRequest,
 )
-from ..surprise_me import surprise_me
 from ..tasks_engine import (
     collect_child_task_ids,
     get_incomplete_task_without_error_database,
@@ -49,11 +40,9 @@ from ..tasks_engine_async import (
 )
 from ..webhooks import webhook_task_progress
 from .tasks_internal import (
-    get_task_creation_extra_flags,
-    get_translated_input_params,
-    preprocess_federation_task,
-    process_string_value,
-    task_run,
+    create_task_logic,
+    get_files_for_node,
+    zip_files_as_response,
 )
 
 LOGGER = logging.getLogger("visionatrix")
@@ -108,107 +97,99 @@ async def create_task(
     - The endpoint accepts both text and file inputs as dynamic parameters.
     """
 
-    user_id = request.scope["user_info"].user_id
-    is_user_admin = request.scope["user_info"].is_admin
-    extra_flags, custom_worker = await get_task_creation_extra_flags(request, is_user_admin)
-    await preprocess_federation_task(extra_flags, custom_worker)
-
-    flow_comfy = {}
-    flow = await get_installed_flow(name, flow_comfy)
-    if not flow:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Flow `{name}` is not installed.") from None
-
-    form_data = await request.form()
-
-    in_text_params: dict[str, int | float | str] = {}
-    in_files_params = {}
-    flow_input_params = {}
-    for input_param in flow.input_params:
-        flow_input_params[input_param["name"]] = input_param
-
-    standard_params = list(TaskCreationWithFullParams.model_fields.keys())
-    surprise_me_active = False
-    for key in form_data:
-        if flow.is_seed_supported and key == "seed":
-            in_text_params["seed"] = int(form_data.get(key))
-            continue
-        if key == "surprise_me" and flow.is_surprise_me_supported and form_data["surprise_me"] == "1":
-            surprise_me_active = True
-            continue
-        if key in standard_params:
-            continue
-        if key not in flow_input_params:
-            LOGGER.warning("Unexpected parameter '%s' for '%s' task creation, ignoring.", key, name)
-            continue
-        value = form_data.get(key)
-        if flow_input_params[key]["type"] in SUPPORTED_TEXT_TYPES_INPUTS:
-            in_text_params[key] = value
-            continue
-        if flow_input_params[key]["type"] not in SUPPORTED_FILE_TYPES_INPUTS:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported input type '{flow_input_params[key]['type']}' for {key} parameter.",
-            ) from None
-        if isinstance(value, str):
-            await process_string_value(request, user_id, key, value, in_files_params)
-        elif isinstance(value, StarletteUploadFile):
-            in_files_params[key] = value
-        else:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, detail=f"Unsupported input file type: {type(value)}"
-            ) from None
-
-    translated_in_text_params = await get_translated_input_params(
-        bool(data.translate), flow, in_text_params, flow_comfy, user_id, is_user_admin
-    )
-
-    if "seed" in in_text_params:
-        in_text_params_list = [dict(in_text_params, seed=in_text_params["seed"] + i) for i in range(data.count)]
-    else:
-        in_text_params_list = [in_text_params.copy() for _ in range(data.count)]
-    translated_in_text_params_list = [translated_in_text_params.copy() for _ in range(data.count)]
-
-    if surprise_me_active:
-        if "prompt" in translated_in_text_params:
-            ai_generated_prompts: list = await surprise_me(
-                user_id, is_user_admin, translated_in_text_params["prompt"], count=data.count
-            )
-            for i in range(data.count):
-                translated_in_text_params_list[i]["prompt"] = ai_generated_prompts[i]
-        else:
-            ai_generated_prompts: list = await surprise_me(
-                user_id, is_user_admin, in_text_params.get("prompt", ""), count=data.count
-            )
-            for i in range(data.count):
-                in_text_params_list[i]["prompt"] = ai_generated_prompts[i]
-
-    tasks_ids = []
-    outputs = None
-    webhook_headers_dict = json.loads(data.webhook_headers) if data.webhook_headers else None
-    for i in range(data.count):
-        task_details = await task_run(
-            name,
-            in_text_params_list[i],
-            translated_in_text_params_list[i],
-            in_files_params,
-            flow,
-            flow_comfy,
-            request.scope["user_info"],
-            data.webhook_url if data.webhook_url else None,
-            webhook_headers_dict,
-            bool(data.child_task),
-            data.group_scope,
-            data.priority,
-            extra_flags,
-            custom_worker,
-        )
-        tasks_ids.append(task_details["task_id"])
-        if outputs is None:
-            outputs = task_details["outputs"]
+    created_tasks = await create_task_logic(request, name, data)
+    tasks_ids = [td["task_id"] for td in created_tasks]
+    outputs = created_tasks[0]["outputs"] if created_tasks else None
     try:
         return TaskRunResults.model_validate({"tasks_ids": tasks_ids, "outputs": outputs})
     except Exception as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Data validation error: {e}") from None
+
+
+@ROUTER.put("/create-sync/{name}", response_class=responses.Response)
+async def create_task_sync(
+    request: Request,
+    name: Annotated[str, FastApiPath(title="Name of the flow from which the task should be created")],
+    data: Annotated[TaskCreationWithFullParams, Form()],
+    cleanup: bool = Query(True, description="If true, the task record and its files will be deleted after completion."),
+    timeout: int = Query(600, description="Timeout in seconds for task completion.", ge=5),
+):
+    """
+    Synchronously creates and executes a task, returning the results directly.
+
+    This endpoint behaves like `/create/{name}` but waits for the task to finish
+    and returns a ZIP archive containing all output files. It only supports creating single task at a time (`count=1`).
+
+    **Path Parameter:**
+
+    - `name`: Name of the flow from which the task should be created.
+
+    **Query Parameters:**
+
+    - `cleanup`: If `true`(default), the task record and its files will be deleted after completion.
+    - `timeout`: Timeout in seconds to wait for the task to complete (default: 600s).
+
+    **Form Data and Headers:**
+
+    - Same as the `/create/{name}` endpoint, but `count` must be 1.
+
+    **Response:**
+
+    - On success, returns a ZIP file (`application/zip`) containing all output files from the task.
+    - On failure (e.g., task error, timeout), returns an appropriate HTTP error.
+    """
+    if data.count > 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Synchronous execution does not support count > 1."
+        )
+
+    created_tasks = await create_task_logic(request, name, data)
+    task_id = created_tasks[0]["task_id"]
+
+    loop = asyncio.get_event_loop()
+    end_time = loop.time() + timeout
+    task = None
+
+    try:
+        # Polling for task completion
+        while loop.time() < end_time:
+            task = await get_task_async(task_id, request.scope["user_info"].user_id)
+            if not task:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Task disappeared during execution."
+                )
+            if task["error"]:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Task failed: {task['error']}"
+                )
+            if task["progress"] == 100.0:
+                break
+            await asyncio.sleep(0.2)
+        else:  # Loop finished without break, indicating a timeout
+            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Task execution timed out.")
+
+        # Fetch final task details and prepare results
+        task = await get_task_async(task_id, request.scope["user_info"].user_id, fetch_child=True)
+        if not task:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Completed task could not be retrieved.")
+
+        all_output_files = get_task_files(task_id, "output")
+        files_to_zip = []
+        for output_node in task["outputs"]:
+            files_to_zip.extend(get_files_for_node(task_id, output_node, all_output_files))
+
+        if not files_to_zip:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail=f"No result files found for task=`{task_id}`.",
+            )
+        return zip_files_as_response(files_to_zip, f"results_{task_id}.zip")
+    finally:
+        if cleanup:
+            task_ids_to_remove = [task_id]
+            if task:
+                collect_child_task_ids(task, task_ids_to_remove)
+            await remove_task_by_id_database(task_ids_to_remove)
 
 
 @ROUTER.get("/progress")
@@ -476,45 +457,19 @@ async def get_task_results(
     if task["progress"] < 100.0:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Task `{task_id}` is not completed yet.")
 
-    result_prefix = f"{task_id}_{node_id}_"
-    output_files = get_task_files(task_id, "output")
-    relevant_files = [file_info for file_info in output_files if file_info[0].startswith(result_prefix)]
-    output_node = None
-    for output in task["outputs"]:
-        if output["comfy_node_id"] == node_id:
-            output_node = output
-            break
+    output_node = next((o for o in task["outputs"] if o["comfy_node_id"] == node_id), None)
     if not output_node:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"No such node in the flow for task=`{task_id}`.")
-    if output_node["type"] == "image":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_EXTENSIONS)]
-    elif output_node["type"] == "image-animated":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.IMAGE_ANIMATED_EXTENSIONS)]
-    elif output_node["type"] == "video":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.VIDEO_EXTENSIONS)]
-    elif output_node["type"] == "audio":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.AUDIO_EXTENSIONS)]
-    elif output_node["type"] == "text":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.TEXT_EXTENSIONS)]
-    elif output_node["type"] == "3d-model":
-        relevant_files = [f for f in relevant_files if any(f[0].endswith(ext) for ext in etc.MODEL3D_EXTENSION)]
+
+    all_output_files = get_task_files(task_id, "output")
+    relevant_files = get_files_for_node(task_id, output_node, all_output_files)
     if not relevant_files:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             detail=f"Missing result for task=`{task_id}` and node=`{node_id}`.",
         )
     if batch_index == -1:
-        zip_buffer = BytesIO()
-        with ZipFile(zip_buffer, "w") as zip_file:
-            for file_name, file_path in relevant_files:
-                with builtins.open(file_path, "rb") as f:
-                    zip_file.writestr(file_name, f.read())
-        zip_buffer.seek(0)
-        return responses.Response(
-            content=zip_buffer.read(),
-            media_type="application/zip",
-            headers={"Content-Disposition": f"attachment; filename={task_id}_{node_id}_results.zip"},
-        )
+        return zip_files_as_response(relevant_files, f"{task_id}_{node_id}_results.zip")
     if batch_index + 1 > len(relevant_files):
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,

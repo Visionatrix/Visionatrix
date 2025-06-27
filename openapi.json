@@ -1248,6 +1248,77 @@
         }
       }
     },
+    "/vapi/tasks/create-sync/{name}": {
+      "put": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Create Task Sync",
+        "description": "Synchronously creates and executes a task, returning the results directly.\n\nThis endpoint behaves like `/create/{name}` but waits for the task to finish\nand returns a ZIP archive containing all output files. It only supports creating single task at a time (`count=1`).\n\n**Path Parameter:**\n\n- `name`: Name of the flow from which the task should be created.\n\n**Query Parameters:**\n\n- `cleanup`: If `true`(default), the task record and its files will be deleted after completion.\n- `timeout`: Timeout in seconds to wait for the task to complete (default: 600s).\n\n**Form Data and Headers:**\n\n- Same as the `/create/{name}` endpoint, but `count` must be 1.\n\n**Response:**\n\n- On success, returns a ZIP file (`application/zip`) containing all output files from the task.\n- On failure (e.g., task error, timeout), returns an appropriate HTTP error.",
+        "operationId": "create_task_sync",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name of the flow from which the task should be created"
+            }
+          },
+          {
+            "name": "cleanup",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "If true, the task record and its files will be deleted after completion.",
+              "default": true,
+              "title": "Cleanup"
+            },
+            "description": "If true, the task record and its files will be deleted after completion."
+          },
+          {
+            "name": "timeout",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 5,
+              "description": "Timeout in seconds for task completion.",
+              "default": 600,
+              "title": "Timeout"
+            },
+            "description": "Timeout in seconds for task completion."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreationWithFullParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/tasks/progress": {
       "get": {
         "tags": [
@@ -4921,7 +4992,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-06-21T13:07:18.517725Z"
+            "default": "2025-06-26T10:14:58.521133Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
