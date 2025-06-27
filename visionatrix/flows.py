@@ -497,25 +497,70 @@ def prepare_flow_comfy_files_params(
 
 
 def disconnect_node_graph(node_id: str, flow_comfy: dict[str, dict]) -> None:
-    next_nodes_to_disconnect = []
+    """Disconnects a node from the graph.
+    If the node has exactly one surviving input, it attempts to re-wire graph to bypass the removed node.
+    Otherwise, it disconnects the node and recursively removes dependent nodes that have required inputs.
+    """
+    node_to_remove = flow_comfy.get(node_id)
+    if not node_to_remove:
+        return
     nodes_class_mappings = get_node_class_mappings()
+
+    surviving_inputs = [details for details in node_to_remove.get("inputs", {}).values() if isinstance(details, list)]
+    replacement_connection = surviving_inputs[0] if len(surviving_inputs) == 1 else None
+    replacement_node_return_type = None
+    if replacement_connection:
+        replacement_node_id = flow_comfy.get(surviving_inputs[0][0])
+        if replacement_node_id:
+            replacement_node_class_mapping = nodes_class_mappings.get(replacement_node_id.get("class_type"))
+            if replacement_node_class_mapping and hasattr(replacement_node_class_mapping, "RETURN_TYPES"):
+                replacement_node_return_type = replacement_node_class_mapping.RETURN_TYPES[surviving_inputs[0][1]]
+            else:
+                replacement_connection = None
+        else:
+            replacement_connection = None
+
+    next_nodes_to_disconnect = []
     for next_node_id, next_node_details in flow_comfy.items():
-        nodes_to_pop = []
-        for input_id, input_details in next_node_details.get("inputs", {}).items():
+        if next_node_id == node_id:
+            continue
+        node_class_input_types = None
+        if class_type := next_node_details.get("class_type"):
+            node_class_mapping = nodes_class_mappings.get(class_type)
+            if node_class_mapping and hasattr(node_class_mapping, "INPUT_TYPES"):
+                node_class_input_types = node_class_mapping.INPUT_TYPES()
+
+        inputs_to_pop = []
+        for input_name, input_details in next_node_details.get("inputs", {}).items():
             if isinstance(input_details, list) and input_details[0] == node_id:
-                nodes_to_pop.append(input_id)
-        for i in nodes_to_pop:
-            class_type = next_node_details.get("class_type")
-            if class_type is not None:
-                node_class_mapping = nodes_class_mappings.get(class_type)
-                if node_class_mapping is not None and hasattr(node_class_mapping, "INPUT_TYPES"):
-                    next_node_input_types = node_class_mapping.INPUT_TYPES()
-                    if "required" in next_node_input_types and i in next_node_input_types["required"]:
-                        next_nodes_to_disconnect.append(next_node_id)
-            next_node_details["inputs"].pop(i)
+                param_input_type = (
+                    get_node_parameter_input_type(node_class_input_types, input_name) if node_class_input_types else ""
+                )
+                if replacement_connection and param_input_type in ("*", replacement_node_return_type):
+                    next_node_details["inputs"][input_name] = replacement_connection
+                else:
+                    inputs_to_pop.append(input_name)
+
+        if inputs_to_pop:
+            for i in inputs_to_pop:
+                is_required = False
+                if node_class_input_types and i in node_class_input_types.get("required", []):
+                    is_required = True
+                next_node_details["inputs"].pop(i)
+                if is_required and next_node_id not in next_nodes_to_disconnect:
+                    next_nodes_to_disconnect.append(next_node_id)
+
     flow_comfy.pop(node_id)
     for i in next_nodes_to_disconnect:
         disconnect_node_graph(i, flow_comfy)
+
+
+def get_node_parameter_input_type(input_types: dict[str, typing.Any], parameter_name: str) -> str:
+    if parameter_name in input_types.get("required", []):
+        return input_types["required"][parameter_name][0]
+    if parameter_name in input_types.get("optional", []):
+        return input_types["optional"][parameter_name][0]
+    return ""
 
 
 def flow_prepare_output_params(
