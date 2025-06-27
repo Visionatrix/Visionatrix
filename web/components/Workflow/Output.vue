@@ -167,7 +167,7 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 			<UIcon
 				:name="collapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
 				class="mr-2" />
-			Output ({{ results.filter((task: FlowResult) => task.parent_task_id === null && !task.hidden).length }})
+			Output ({{ results.filter((task: FlowResult) => task.parent_task_id === null).length }})
 		</h2>
 
 		<template v-if="!collapsed">
@@ -181,11 +181,11 @@ function buildResultDropdownItems(flowResult: FlowResult) {
 					:trailing="true"
 					:placeholder="'Filter results by prompt'" />
 				<UPagination
-					v-if="results.filter((task: FlowResult) => task.parent_task_id === null && !task.hidden).length > flowStore.$state.resultsPageSize"
+					v-if="results.filter((task: FlowResult) => task.parent_task_id === null).length > flowStore.$state.resultsPageSize"
 					v-model="flowStore.$state.resultsPage"
 					class="my-1 md:my-0"
 					:page-count="flowStore.$state.resultsPageSize"
-					:total="results.filter((task: FlowResult) => task.parent_task_id === null && !task.hidden).length"
+					:total="results.filter((task: FlowResult) => task.parent_task_id === null).length"
 					show-first
 					show-last />
 				<div class="flex items-center justify-center">

@@ -100,8 +100,8 @@ export const useFlowsStore = defineStore('flowsStore', {
 				if (state.flow_results_filter !== '') {
 					return state.flow_results
 						.filter(task => task.flow_name === name
-							&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
-							&& !task.hidden)
+							&& task.input_params_mapped['prompt']?.value.includes(state.flow_results_filter)
+							&& (!task.hidden || state.flows_hidden_filter))
 						.sort((a: FlowResult, b: FlowResult) => {
 							if (a.finished_at && b.finished_at) {
 								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -110,7 +110,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 						})
 				}
 				return state.flow_results
-					.filter(task => task.flow_name === name && !task.hidden)
+					.filter(task => task.flow_name === name && (!task.hidden || state.flows_hidden_filter))
 					.sort((a: FlowResult, b: FlowResult) => {
 						if (a.finished_at && b.finished_at) {
 							return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -125,9 +125,9 @@ export const useFlowsStore = defineStore('flowsStore', {
 					return paginate(
 						state.flow_results
 							.filter(task => task.flow_name === name
-								&& task.input_params_mapped['prompt'].value.includes(state.flow_results_filter)
+								&& task.input_params_mapped['prompt']?.value.includes(state.flow_results_filter)
 								&& task.parent_task_id === null
-								&& !task.hidden)
+								&& (!task.hidden || state.flows_hidden_filter))
 							.sort((a: FlowResult, b: FlowResult) => {
 								if (a.finished_at && b.finished_at) {
 									return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -138,7 +138,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 				}
 				return paginate(
 					state.flow_results
-						.filter(task => task.flow_name === name && task.parent_task_id === null && !task.hidden)
+						.filter(task => task.flow_name === name && task.parent_task_id === null && (!task.hidden || state.flows_hidden_filter))
 						.sort((a: FlowResult, b: FlowResult) => {
 							if (a.finished_at && b.finished_at) {
 								return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime()
@@ -154,7 +154,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 		flowsRunningByName(state) {
 			return (name: string) => {
 				return state.running
-					.filter(flow => flow.flow_name === name && flow.parent_task_id === null && !flow.hidden)
+					.filter(flow => flow.flow_name === name && flow.parent_task_id === null && (!flow.hidden || state.flows_hidden_filter))
 					.sort((a: FlowRunning, b: FlowRunning) => {
 						// if progress is available, sort by progress DESC
 						if (a.progress || b.progress) {
@@ -177,7 +177,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 			}
 		},
 		flowsRunningByNameWithErrors(state) {
-			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null && !flow.hidden) ?? null
+			return (name: string) => state.running.filter(flow => flow.flow_name === name && flow.error && flow.parent_task_id === null && (!flow.hidden || state.flows_hidden_filter)) ?? null
 		},
 		currentFlow(state): Flow {
 			return state.current_flow
@@ -926,6 +926,11 @@ export const useFlowsStore = defineStore('flowsStore', {
 						if (!runningFlow) {
 							return
 						}
+						// Update hidden flag
+						if (progress[task_id]?.hidden) {
+							runningFlow.hidden = progress[task_id].hidden
+						}
+
 						runningFlow.progress = <number>progress[task_id].progress
 						if (progress[task_id].error && progress[task_id].error !== '') {
 							runningFlow.error = progress[task_id].error
@@ -985,6 +990,7 @@ export const useFlowsStore = defineStore('flowsStore', {
 								input_files: progress[task_id].input_files || [],
 								execution_details: progress[task_id].execution_details || null,
 								extra_flags: progress[task_id].extra_flags || null,
+								hidden: progress[task_id].hidden || false,
 							}
 							this.flow_results.push(flowResult)
 						}
