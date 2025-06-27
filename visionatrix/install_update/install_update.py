@@ -68,56 +68,67 @@ def install() -> None:
     # ======
 
 
-async def update() -> None:
-    LOGGER.info("Updating ComfyUI..")
-    dev_release = Version(_version.__version__).is_devrelease
-    comfyui_dir = Path(options.COMFYUI_DIR)
-    requirements_path = os.path.join(comfyui_dir, "requirements.txt")
-    old_requirements = Path(requirements_path).read_text(encoding="utf-8")
-    if dev_release:
-        check_call(["git", "checkout", "master"], cwd=comfyui_dir)
-        try:
-            check_call(["git", "pull"], cwd=comfyui_dir)
-        except CalledProcessError:
-            LOGGER.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_dir)
-            check_call(["git", "pull", "--rebase"], cwd=comfyui_dir)
+async def update(stage_2: bool = False) -> bool:
+    if not stage_2:
+        restart_required = False
+        LOGGER.info("Updating ComfyUI..")
+        dev_release = Version(_version.__version__).is_devrelease
+        comfyui_dir = Path(options.COMFYUI_DIR)
+        requirements_path = os.path.join(comfyui_dir, "requirements.txt")
+        old_requirements = Path(requirements_path).read_text(encoding="utf-8")
+        if dev_release:
+            check_call(["git", "checkout", "master"], cwd=comfyui_dir)
+            try:
+                check_call(["git", "pull"], cwd=comfyui_dir)
+            except CalledProcessError:
+                LOGGER.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_dir)
+                check_call(["git", "pull", "--rebase"], cwd=comfyui_dir)
+        else:
+            check_call(["git", "fetch", "--all"], cwd=comfyui_dir)
+            clone_env = os.environ.copy()
+            clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+            check_call(
+                ["git", "checkout", f"tags/{basic_node_list.COMFYUI_MANAGER_RELEASE_TAG}"],
+                env=clone_env,
+                cwd=comfyui_dir,
+            )
+        if Path(requirements_path).read_text(encoding="utf-8") != old_requirements:
+            check_call(
+                [sys.executable, "-m", "pip", "install", "-r", os.path.join(comfyui_dir, "requirements.txt")],
+            )
+            restart_required = True
+        update_pip_auto_fix_requirements()  # update the required python packages after updating ComfyUI
+        create_nodes_stuff()
+        comfyui_manager_path = Path(comfyui_dir).joinpath("custom_nodes").joinpath("ComfyUI-Manager")
+        LOGGER.info("Updating ComfyUI-Manager..")
+        requirements_path = os.path.join(comfyui_manager_path, "requirements.txt")
+        old_requirements = Path(requirements_path).read_text(encoding="utf-8")
+        if dev_release:
+            check_call(["git", "checkout", "main"], cwd=comfyui_manager_path)
+            try:
+                check_call(["git", "pull"], cwd=comfyui_manager_path)
+            except CalledProcessError:
+                LOGGER.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_manager_path)
+                check_call(["git", "pull", "--rebase"], cwd=comfyui_manager_path)
+        else:
+            check_call(["git", "fetch", "--all"], cwd=comfyui_manager_path)
+            clone_env = os.environ.copy()
+            clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
+            check_call(
+                ["git", "checkout", f"tags/{basic_node_list.COMFYUI_MANAGER_RELEASE_TAG}"],
+                env=clone_env,
+                cwd=comfyui_manager_path,
+            )
+        if Path(requirements_path).read_text(encoding="utf-8") != old_requirements:
+            check_call(
+                [sys.executable, "-m", "pip", "install", "-r", os.path.join(comfyui_manager_path, "requirements.txt")],
+            )
+            restart_required = True
+        if restart_required:
+            LOGGER.info("Update requires a restart to apply changes. Restarting to complete the process...")
+            return True
     else:
-        check_call(["git", "fetch", "--all"], cwd=comfyui_dir)
-        clone_env = os.environ.copy()
-        clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
-        check_call(
-            ["git", "checkout", f"tags/{basic_node_list.COMFYUI_MANAGER_RELEASE_TAG}"], env=clone_env, cwd=comfyui_dir
-        )
-    if Path(requirements_path).read_text(encoding="utf-8") != old_requirements:
-        check_call(
-            [sys.executable, "-m", "pip", "install", "-r", os.path.join(comfyui_dir, "requirements.txt")],
-        )
-    update_pip_auto_fix_requirements()  # update the required python packages after updating ComfyUI
-    create_nodes_stuff()
-    comfyui_manager_path = Path(comfyui_dir).joinpath("custom_nodes").joinpath("ComfyUI-Manager")
-    LOGGER.info("Updating ComfyUI-Manager..")
-    requirements_path = os.path.join(comfyui_manager_path, "requirements.txt")
-    old_requirements = Path(requirements_path).read_text(encoding="utf-8")
-    if dev_release:
-        check_call(["git", "checkout", "main"], cwd=comfyui_manager_path)
-        try:
-            check_call(["git", "pull"], cwd=comfyui_manager_path)
-        except CalledProcessError:
-            LOGGER.error("git pull for '%s' folder failed. Trying apply the `rebase` flag..", comfyui_manager_path)
-            check_call(["git", "pull", "--rebase"], cwd=comfyui_manager_path)
-    else:
-        check_call(["git", "fetch", "--all"], cwd=comfyui_manager_path)
-        clone_env = os.environ.copy()
-        clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
-        check_call(
-            ["git", "checkout", f"tags/{basic_node_list.COMFYUI_MANAGER_RELEASE_TAG}"],
-            env=clone_env,
-            cwd=comfyui_manager_path,
-        )
-    if Path(requirements_path).read_text(encoding="utf-8") != old_requirements:
-        check_call(
-            [sys.executable, "-m", "pip", "install", "-r", os.path.join(comfyui_manager_path, "requirements.txt")],
-        )
+        LOGGER.info("Resuming update after restart..")
     LOGGER.info("Updating custom nodes..")
     update_base_custom_nodes()
     # Temporary workarounds
@@ -129,6 +140,7 @@ async def update() -> None:
     await comfyui_wrapper.load(None)
     await update_flows()
     await set_system_setting("visionatrix_version", _version.__version__)
+    return False
 
 
 async def update_flows() -> None:
