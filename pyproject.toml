@@ -135,6 +135,9 @@ lint.per-file-ignores."scripts/*.*" = [
 lint.per-file-ignores."visionatrix/__init__.py" = [
   "F401",
 ]
+lint.per-file-ignores."visionatrix/__main__.py" = [
+  "S606",
+]
 lint.per-file-ignores."visionatrix/backend.py" = [
   "C901",
 ]

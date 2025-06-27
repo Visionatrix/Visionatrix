@@ -50,6 +50,9 @@ def _build_parser() -> argparse.ArgumentParser:
         ("set-global-setting", "Create or update a global setting"),
     ]:
         subparser = subparsers.add_parser(i[0], help=i[1])
+        if i[0] == "update":
+            subparser.add_argument("--stage-2", action="store_true", help=argparse.SUPPRESS)
+
         if i[0] == "create-user":
             subparser.add_argument("--name", type=str, help="User name(ID)", required=True)
             subparser.add_argument("--password", type=str, help="User password", required=True)
@@ -254,7 +257,16 @@ async def main() -> int:
                     return 0
         install()
     elif args.command == "update":
-        await update()
+        if await update(stage_2=args.stage_2):
+            new_args = [sys.executable]
+            if __package__:
+                new_args.extend(["-m", __package__])
+                new_args.extend(sys.argv[1:])
+            else:
+                new_args.extend(sys.argv)
+            if "--stage-2" not in new_args:
+                new_args.append("--stage-2")
+            os.execv(new_args[0], new_args)
     elif args.command == "run":
         await run_vix()
     elif args.command == "install-flow":
