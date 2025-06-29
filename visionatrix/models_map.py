@@ -463,6 +463,6 @@ def get_simple_model_load_classes(models_catalog: dict[str, dict]) -> dict[str, 
 
 def get_embedded_models_catalog(flow_comfy: dict[str, dict]) -> dict[str, dict]:
     for node_details in flow_comfy.values():
-        if node_details.get("_meta", {}).get("title", "") == "WF_MODELS":  # Text Multiline (Code Compatible)
+        if node_details.get("_meta", {}).get("title", "") == "WF_MODELS":  # Text Multiline
             return json.loads(node_details["inputs"]["text"])
     return {}

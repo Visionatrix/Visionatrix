@@ -162,7 +162,7 @@ async def flow_add_model(flow_comfy: dict[str, dict], civitai_model_url: str, ty
         wf_models_node_id = str(max(int(k) for k in flow_comfy) + 1)
         flow_comfy[wf_models_node_id] = {
             "inputs": {"text": "{}"},
-            "class_type": "Text Multiline (Code Compatible)",
+            "class_type": "VixMultilineText",
             "_meta": {"title": "WF_MODELS"},
         }
 
