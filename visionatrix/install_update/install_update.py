@@ -88,7 +88,7 @@ async def update(stage_2: bool = False) -> bool:
             clone_env = os.environ.copy()
             clone_env["GIT_CONFIG_PARAMETERS"] = "'advice.detachedHead=false'"
             check_call(
-                ["git", "checkout", f"tags/{basic_node_list.COMFYUI_MANAGER_RELEASE_TAG}"],
+                ["git", "checkout", f"tags/{basic_node_list.COMFYUI_RELEASE_TAG}"],
                 env=clone_env,
                 cwd=comfyui_dir,
             )
