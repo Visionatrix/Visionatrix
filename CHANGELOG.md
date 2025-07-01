@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.0 - 2025-07-01]
+
+### Added
+
+- New flows: `Flux Kontext` and `Restore Old Photo`.
+- Docker Compose: ability to specify CUDA version. #441 Thanks to @julienym
+- Pre-init ComfyUI engine settings from the database. #436
+- New **sync** endpoint to create task and receive a result(*for the upcoming MCP*). ##442
+- Added `gemma-3-12b-it` and `gemma-3-27b-it` models. #448
+
+### Changed
+
+- Flow `SDXL Ghibli` was replaced with flow `Ghibli (Flux Kontext)`.
+- Replaced `gemini-1.5-flash-002` and `gemini-1.5-pro-002` with `gemini-2.5-flash` and `gemini-2.5-pro`. #435
+
+### Fixed
+
+- UI: "Reset params button" - detection of default value of the `Aspect Ratio` parameter. #437
+- UI: correct displaying results of hidden tasks(like `Ask AI`). #445
+- Correctly rewire existing optional input param when disconnecting optional input node form graph. #443
+- Update process: restart the process after installing the new basic python packages for ComfyUI. #444
+- Docker image for AMD: do not run multiple workers to prevent running worker on APU.
+- Adding `LoRAs` to the flows in new clean installations. #447
+- Update process between the release versions. #452
+
 ## [2.5.1 - 2025-06-06]
 
 ### Added
