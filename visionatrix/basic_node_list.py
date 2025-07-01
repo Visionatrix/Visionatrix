@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.41"
-COMFYUI_MANAGER_RELEASE_TAG = "3.33"
+COMFYUI_RELEASE_TAG = "v0.3.43"
+COMFYUI_MANAGER_RELEASE_TAG = "3.33.3"
 
 ANTELOPEV2 = AIResourceModel(
     name="antelopev2",
@@ -119,7 +119,7 @@ BASIC_NODE_LIST = {
         "version": "1.1.2",
     },
     "comfyui-ollama": {
-        "version": "2.0.4",
+        "version": "2.0.5",
     },
     "pulid_comfyui": {
         "version": "1.0.1",
