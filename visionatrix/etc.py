@@ -3,6 +3,7 @@ import os
 import string
 import sys
 from contextlib import contextmanager
+from datetime import datetime, timezone
 
 IMAGE_EXTENSIONS = [
     ".png",
@@ -165,3 +166,9 @@ def temporary_env_var(key: str, new_value):
             os.environ[key] = old_value
         elif key in os.environ:
             del os.environ[key]
+
+
+def get_offset_naive_time(datetime_record: datetime) -> datetime:
+    if isinstance(datetime_record, datetime) and datetime_record.tzinfo is None:
+        return datetime_record.replace(tzinfo=timezone.utc)
+    return datetime_record

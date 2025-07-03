@@ -1,5 +1,6 @@
 import base64
 import time
+from datetime import datetime, timezone
 
 from passlib.context import CryptContext
 from sqlalchemy import select
@@ -7,6 +8,7 @@ from starlette.requests import HTTPConnection
 from starlette.types import Scope
 
 from .. import database
+from ..etc import get_offset_naive_time
 from ..pydantic_models import UserInfo
 
 AUTH_CACHE = {}
@@ -53,6 +55,8 @@ async def get_user(username: str, password: str) -> database.UserInfo | None:
         results = await session.execute(select(database.UserInfo).filter_by(user_id=username))
         user_info = results.scalar_one_or_none()
         if user_info and PWD_CONTEXT.verify(password, user_info.hashed_password):
-            AUTH_CACHE[username] = {"data": user_info, "time": current_time, "password": password}
-            return user_info
+            record_expires_at = get_offset_naive_time(user_info.record_expires_at)
+            if record_expires_at is None or record_expires_at > datetime.now(timezone.utc):
+                AUTH_CACHE[username] = {"data": user_info, "time": current_time, "password": password}
+                return user_info
     return None
