@@ -4566,6 +4566,19 @@
             "title": "Is Admin",
             "description": "Flag showing is user is admin.",
             "default": false
+          },
+          "record_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Expires At",
+            "description": "UTC timestamp after which the user record is redundant."
           }
         },
         "type": "object",
@@ -4992,7 +5005,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-07-01T11:52:50.939947Z"
+            "default": "2025-07-05T07:03:35.682653Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
