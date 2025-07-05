@@ -285,11 +285,18 @@ export const useSettingsStore = defineStore('settingsStore', {
 		},
 
 		loadAllSettings() {
+			const userStore = useUserStore()
+			if (userStore.isAdmin) {
+				return Promise.all([
+					this.fetchAllUserSettings(),
+					this.fetchAllGlobalSettings(),
+					this.getOllamaModelsList(),
+					this.fetchUpdateStatus(),
+				])
+			}
 			return Promise.all([
 				this.fetchAllUserSettings(),
 				this.fetchAllGlobalSettings(),
-				this.getOllamaModelsList(),
-				this.fetchUpdateStatus(),
 			])
 		},
 

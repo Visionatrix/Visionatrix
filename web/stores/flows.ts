@@ -833,6 +833,14 @@ export const useFlowsStore = defineStore('flowsStore', {
 		},
 
 		async restorePollingProcesses() {
+			Array.from(new Set(this.running.map(flow => flow.flow_name))).forEach(flow_name => {
+				this.startFlowProgressPolling(flow_name)
+			})
+			const userStore = useUserStore()
+			if (!userStore.isAdmin) {
+				// only admins can see installing flows
+				return
+			}
 			// Restore installing flow polling
 			await this.getFlowsInstallProgress().then((progress: any) => {
 				let hasInstallingFlows = false
@@ -853,9 +861,6 @@ export const useFlowsStore = defineStore('flowsStore', {
 					this.installingFlowsNames = installingFlows
 					this.startFlowInstallingPolling()
 				}
-			})
-			Array.from(new Set(this.running.map(flow => flow.flow_name))).forEach(flow_name => {
-				this.startFlowProgressPolling(flow_name)
 			})
 		},
 
