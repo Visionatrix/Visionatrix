@@ -115,6 +115,8 @@ Example:
     USER_BACKENDS=vix_db;nextcloud;
 
 This will enable `nextcloud` user backend in addition to the default `vix_db`.
+
+To use LDAP with caching records in the Visionatrix DB set it to the `vix_db;ldap;` (`vix_db` should come first)
 """
 
 INSTALL_EXCLUDE_NODES_SET = {

@@ -72,6 +72,9 @@ optional-dependencies.dev = [
   "pylint",
   "pytest",
 ]
+optional-dependencies.ldap = [
+  "ldap3",
+]
 optional-dependencies.pgsql = [
   "greenlet",
   "psycopg",

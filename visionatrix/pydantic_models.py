@@ -466,6 +466,9 @@ class UserInfo(BaseModel):
     full_name: str = Field("", description="Full name of the user.")
     email: str = Field("", description="Email name of the user.")
     is_admin: bool = Field(False, description="Flag showing is user is admin.")
+    record_expires_at: datetime | None = Field(
+        None, description="UTC timestamp after which the user record is redundant."
+    )
 
 
 class ComfyUIFolderPath(BaseModel):
