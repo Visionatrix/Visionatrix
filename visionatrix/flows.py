@@ -638,7 +638,11 @@ def get_flow_metadata(flow_comfy: dict[str, dict]) -> dict[str, str | list | dic
 def get_flow_subflows(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | dict]]:
     for node_details in flow_comfy.values():
         if node_details.get("_meta", {}).get("title", "") == "WF_SUBFLOWS":
-            return json.loads(node_details["inputs"]["text"])
+            if node_details["class_type"] == "VixMultilineText":  # deprecated
+                return json.loads(node_details["inputs"]["text"])
+            if node_details["class_type"] == "PrimitiveStringMultiline":
+                return json.loads(node_details["inputs"]["value"])
+            LOGGER.warning("Unsupported class_type has `WF_SUBFLOWS` title.")
     return []
 
 
