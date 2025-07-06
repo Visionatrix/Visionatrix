@@ -128,6 +128,7 @@ class UserInfo(Base):
     is_admin = Column(Boolean, default=False)
     hashed_password = Column(String)
     disabled = Column(Boolean, default=False)
+    record_expires_at = Column(DateTime, nullable=True, index=True)
 
 
 class GlobalSettings(Base):
@@ -243,7 +244,15 @@ async def init_database_engine() -> None:
         await connection.run_sync(run_db_migrations, database_uri)
 
 
-async def create_user(username: str, full_name: str, email: str, password: str, is_admin: bool, disabled: bool) -> bool:
+async def create_user(
+    username: str,
+    full_name: str,
+    email: str,
+    password: str,
+    is_admin: bool,
+    disabled: bool,
+    record_expires_at: datetime | None = None,
+) -> bool:
     async with SESSION() as session:
         session.add(
             UserInfo(
@@ -253,6 +262,7 @@ async def create_user(username: str, full_name: str, email: str, password: str, 
                 hashed_password=CryptContext(schemes=["bcrypt"], deprecated="auto").hash(password),
                 is_admin=is_admin,
                 disabled=disabled,
+                record_expires_at=record_expires_at,
             )
         )
         await session.commit()
