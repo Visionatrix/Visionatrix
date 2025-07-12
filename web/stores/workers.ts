@@ -21,6 +21,24 @@ export const useWorkersStore = defineStore('workersStore', {
 			})
 		},
 
+		deleteWorker(worker_ids: string[]) {
+			const { $apiFetch } = useNuxtApp()
+			const worker_id = Array.isArray(worker_ids) ? worker_ids.map(id => `worker_id=${id}`).join('&') : `worker_id=${worker_ids}`
+			return $apiFetch(`/workers?${worker_id}`, {
+				method: 'DELETE',
+			}).then((res: any) => {
+				if (res?.detail !== '') {
+					console.error('Error deleting workers: ', res.detail)
+				} else {
+					this.workers = this.workers.filter(worker => worker.worker_id !== worker_id)
+				}
+				return res
+			}).catch((res: any) => {
+				console.error('Error deleting workers: ', res?.detail)
+				return res
+			})
+		},
+
 		startPolling() {
 			this.fetchWorkersInfo()
 			this.interval = setInterval(() => {

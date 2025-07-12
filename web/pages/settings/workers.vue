@@ -292,6 +292,30 @@ const updateSelectedWorkerOptions = () => {
 		})
 	}
 }
+
+const deleteWorker = (workerIds: string[]) => {
+	const toast = useToast()
+	workersStore.deleteWorker(workerIds).then((res: any) => {
+		if (res?.detail) {
+			toast.add({
+				title: 'Failed to delete worker',
+				description: res.detail,
+			})
+			return
+		}
+		toast.add({
+			title: 'Worker deleted',
+			description: 'Worker deleted successfully',
+		})
+	}).catch((err: any) => {
+		toast.add({
+			title: 'Failed to delete worker',
+			description: `Error: ${err?.detail || 'Unknown error'}`,
+		})
+	}).finally(() => {
+		workersStore.loadWorkers()
+	})
+}
 </script>
 
 <template>
@@ -391,7 +415,7 @@ const updateSelectedWorkerOptions = () => {
 							multiple />
 						<UInput v-model="filterQuery" placeholder="Filter workers..." />
 					</div>
-					<div v-if="selectedRows.length >= 1" class="flex flex-col md:flex-row items-center">
+					<div v-if="selectedRows.length >= 1" class="flex flex-wrap flex-col md:flex-row items-center">
 						<USelectMenu
 							v-model="tasksToGive"
 							searchable
@@ -418,10 +442,27 @@ const updateSelectedWorkerOptions = () => {
 							icon="i-heroicons-x-mark"
 							variant="outline"
 							color="white"
-							class="ml-2"
+							class="mx-2"
 							@click="() => {
 								tasksToGive = []
 							}" />
+						<UTooltip
+							text="Delete selected workers">
+							<UButton
+								icon="i-heroicons-trash-16-solid"
+								variant="outline"
+								color="red"
+								size="sm"
+								:loading="updatingWorker"
+								@click="() => {
+									if (selectedRows.length > 0) {
+										deleteWorker(selectedRows.map((row: WorkerInfo) => row.worker_id))
+									}
+									selectedRows = []
+								}">
+								Delete
+							</UButton>
+						</UTooltip>
 					</div>
 				</div>
 
@@ -595,22 +636,39 @@ const updateSelectedWorkerOptions = () => {
 							</UFormGroup>
 						</div>
 
-						<div class="flex justify-end my-4">
-							<UButton
-								class="mr-2"
-								variant="solid"
-								color="green"
-								:loading="settingTasksToGive"
-								@click="updateSelectedWorkerOptions">
-								Save
-							</UButton>
-							<UButton
-								class="mr-2"
-								variant="solid"
-								color="white"
-								@click="closeEditWorkerModal">
-								Cancel
-							</UButton>
+						<div class="flex justify-between my-4">
+							<div>
+								<UButton
+									variant="solid"
+									icon="i-heroicons-trash-16-solid"
+									color="red"
+									:loading="updatingWorker"
+									@click="() => {
+										if (selectedWorker) {
+											deleteWorker([selectedWorker.worker_id])
+										}
+										closeEditWorkerModal()
+									}">
+									Delete worker
+								</UButton>
+							</div>
+							<div>
+								<UButton
+									class="mr-2"
+									variant="solid"
+									color="green"
+									:loading="settingTasksToGive"
+									@click="updateSelectedWorkerOptions">
+									Save
+								</UButton>
+								<UButton
+									class="mr-2"
+									variant="solid"
+									color="white"
+									@click="closeEditWorkerModal">
+									Cancel
+								</UButton>
+							</div>
 						</div>
 					</div>
 				</UModal>
