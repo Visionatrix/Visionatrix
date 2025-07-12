@@ -616,7 +616,7 @@ def process_seed_value(flow: Flow, in_texts_params: dict, flow_comfy: dict[str, 
 def get_vix_flow(flow_comfy: dict[str, dict]) -> Flow:
     vix_flow = get_flow_metadata(flow_comfy)
     vix_flow["lora_connect_points"] = get_flow_lora_connect_points(flow_comfy)
-    vix_flow["sub_flows"] = get_flow_subflows(flow_comfy)
+    vix_flow["sub_flows"] = get_flow_subflows(flow_comfy, vix_flow["name"])
     vix_flow["input_params"] = get_flow_inputs(flow_comfy, vix_flow["lora_connect_points"])
     vix_flow["models"] = process_flow_models(flow_comfy, {})
     return Flow.model_validate(vix_flow)
@@ -635,14 +635,18 @@ def get_flow_metadata(flow_comfy: dict[str, dict]) -> dict[str, str | list | dic
     raise ValueError("ComfyUI flow should contain Workflow metadata")
 
 
-def get_flow_subflows(flow_comfy: dict[str, dict]) -> list[dict[str, str | list | dict]]:
+def get_flow_subflows(flow_comfy: dict[str, dict], flow_name: str) -> list[dict[str, str | list | dict]]:
     for node_details in flow_comfy.values():
         if node_details.get("_meta", {}).get("title", "") == "WF_SUBFLOWS":
             if node_details["class_type"] == "VixMultilineText":  # deprecated
                 return json.loads(node_details["inputs"]["text"])
             if node_details["class_type"] == "PrimitiveStringMultiline":
                 return json.loads(node_details["inputs"]["value"])
-            LOGGER.warning("Unsupported class_type has `WF_SUBFLOWS` title.")
+            LOGGER.warning(
+                "Unsupported class_type(%s) has `WF_SUBFLOWS` title in '%s' flow.",
+                node_details["class_type"],
+                flow_name,
+            )
     return []
 
 
