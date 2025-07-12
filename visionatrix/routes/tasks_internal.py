@@ -45,7 +45,7 @@ from ..tasks_engine_async import (
 )
 
 LOGGER = logging.getLogger("visionatrix")
-VALIDATE_PROMPT: typing.Callable[[dict], tuple[bool, dict, list, list]] | None = None
+VALIDATE_PROMPT: typing.Callable[[str, dict], typing.Awaitable[tuple[bool, dict, list, list]]] | None = None
 
 
 async def task_run(
@@ -75,7 +75,7 @@ async def task_run(
         remove_task_files(task_details["task_id"], ["input"])
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
-    flow_validation: [bool, dict, list, list] = VALIDATE_PROMPT(flow_comfy)
+    flow_validation: [bool, dict, list, list] = await VALIDATE_PROMPT("vix-" + str(task_details["task_id"]), flow_comfy)
     if not flow_validation[0]:
         remove_task_files(task_details["task_id"], ["input"])
         LOGGER.error("Flow validation error: %s\n%s", flow_validation[1], flow_validation[3])
