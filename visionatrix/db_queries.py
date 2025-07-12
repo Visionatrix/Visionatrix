@@ -911,3 +911,21 @@ async def is_custom_worker_free(custom_worker: str) -> bool:
         except Exception:
             LOGGER.exception("Failed to check unfinished tasks for custom worker '%s'", custom_worker)
             raise
+
+
+async def delete_workers(user_id: str | None, worker_ids: list[str]) -> int:
+    if not worker_ids:
+        return 0
+    async with database.SESSION() as session:
+        try:
+            stmt = delete(database.Worker).where(database.Worker.worker_id.in_(worker_ids))
+            if user_id is not None:
+                stmt = stmt.where(database.Worker.user_id == user_id)
+
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount
+        except Exception as exc:
+            await session.rollback()
+            LOGGER.exception("Failed to delete workers %s for user %s: %s", worker_ids, user_id, exc)
+            raise

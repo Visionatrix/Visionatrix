@@ -2377,6 +2377,57 @@
         }
       }
     },
+    "/vapi/workers": {
+      "delete": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Delete Workers",
+        "description": "Delete one or many workers.\n\n* Administrators can delete **any** workers.\n* Regular users can delete **only** their own workers.\n\nA **204** status is returned on success, **404** if nothing matched.",
+        "operationId": "delete_workers",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "One or more worker IDs to delete. You can supply this parameter multiple times, e.g. `?worker_id=id1&worker_id=id2`",
+              "title": "Worker Id"
+            },
+            "description": "One or more worker IDs to delete. You can supply this parameter multiple times, e.g. `?worker_id=id1&worker_id=id2`"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Worker(s) deleted successfully"
+          },
+          "404": {
+            "description": "Worker(s) not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "No workers matched the criteria."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vapi/federation/instances": {
       "get": {
         "tags": [
@@ -5005,7 +5056,7 @@
             "format": "date-time",
             "title": "Last Seen",
             "description": "Last seen time",
-            "default": "2025-07-05T07:03:35.682653Z"
+            "default": "2025-07-12T09:54:59.033963Z"
           },
           "engine_details": {
             "$ref": "#/components/schemas/ComfyEngineDetails"
