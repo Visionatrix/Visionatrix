@@ -167,6 +167,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 				sensitive: false,
 				admin: true,
 			},
+			user_settings_disabled: {
+				key: 'user_settings_disabled',
+				value: false,
+				sensitive: false,
+				admin: true,
+			},
 		} as VixSettingsMap,
 		localSettings: {
 			showComfyUiNavbarButton: true,
@@ -232,12 +238,16 @@ export const useSettingsStore = defineStore('settingsStore', {
 					if (key === this.settingsMap.reserve_vram.key) {
 						value = parseFloat(value)
 					}
+					if (key === this.settingsMap.user_settings_disabled.key) {
+						value = value === '1'
+					}
 					if (this.settingsMap[key + '_user']) {
 						this.settingsMap[key + '_user'].value = value
 					} else if (this.settingsMap[key]) {
 						this.settingsMap[key].value = value
 					}
 				})
+				this.redirectToRootIfNonAdmin()
 			})
 		},
 
@@ -262,6 +272,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 							value = value === '1'
 						}
 						if (key === this.settingsMap.vae_cpu.key) {
+							value = value === '1'
+						}
+						if (key === this.settingsMap.user_settings_disabled.key) {
 							value = value === '1'
 						}
 						this.settingsMap[key].value = value
@@ -464,6 +477,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 				if (key === this.settingsMap.reserve_vram.key) {
 					value = value.toString()
 				}
+				if (key === this.settingsMap.user_settings_disabled.key) {
+					value = value ? '1' : '0'
+				}
 				if (this.settingsMap[key].admin && userStore.isAdmin) {
 					return this.saveGlobalSetting(this.settingsMap[key].key, value, this.settingsMap[key].sensitive)
 				}
@@ -479,6 +495,14 @@ export const useSettingsStore = defineStore('settingsStore', {
 					description: error.message,
 				})
 			})
+		},
+
+		redirectToRootIfNonAdmin() {
+			const userStore = useUserStore()
+			const router = useRouter()
+			if (!userStore.isAdmin && this.settingsMap.user_settings_disabled.value === true) {
+				router.push('/')
+			}
 		},
 	},
 })
