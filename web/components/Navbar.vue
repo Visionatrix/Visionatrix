@@ -32,6 +32,9 @@ const showComfyUiButton = computed(() => {
 		&& settingsStore.localSettings.showComfyUiNavbarButton
 		&& !settingsStore.isNextcloudIntegration
 })
+const disableUserSettingsButton = computed(() => {
+	return !userStore.isAdmin && settingsStore.settingsMap.user_settings_disabled.value === true
+})
 </script>
 
 <template>
@@ -53,7 +56,7 @@ const showComfyUiButton = computed(() => {
 							target="_blank" />
 					</UTooltip>
 
-					<ULink to="/settings">
+					<ULink v-if="!disableUserSettingsButton" to="/settings">
 						<UButton class="lg:px-3 py-2" icon="i-heroicons-cog-6-tooth-20-solid" variant="ghost" color="white" />
 					</ULink>
 

@@ -111,6 +111,7 @@ async def set_global(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         204: {"description": "User setting updated successfully"},
+        412: {"description": "User settings editing is disabled by the administrator"},
     },
 )
 async def set_user(
@@ -123,6 +124,12 @@ async def set_user(
 
     To delete a setting, specify an empty string as the value.
     """
+    disabled_flag = await get_global_setting("user_settings_disabled", True)
+    if disabled_flag and disabled_flag != "0":
+        raise HTTPException(
+            status.HTTP_412_PRECONDITION_FAILED,
+            "Changing user settings is currently disabled by the administrator.",
+        )
     await set_user_setting(request.scope["user_info"].user_id, key, value)
 
 

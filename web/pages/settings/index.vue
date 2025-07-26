@@ -27,6 +27,7 @@ const settingsKeys = [
 	'translations_provider',
 	'llm_provider',
 	'save_metadata',
+	'user_settings_disabled',
 ]
 const savingSettings = ref(false)
 function saveChanges() {
@@ -416,6 +417,26 @@ const passwordInputs = ref({
 								class="ml-2"
 								@click="() => settingsStore.settingsMap.llm_provider.value = ''" />
 						</div>
+					</UFormGroup>
+
+					<UFormGroup
+						size="md"
+						class="py-3"
+						label="Disable user settings"
+						description="Toggle Navbar button to open settings page for non-admin users">
+						<UToggle
+							v-model="settingsStore.settingsMap.user_settings_disabled.value"
+							class="mb-3" />
+						<UAlert
+							color="blue"
+							variant="soft"
+							icon="i-heroicons-exclamation-circle"
+							title="Note">
+							<template #description>
+								Disabling user settings will prevent users from changing their own settings.
+								Only global (admin) settings will be applied for all users.
+							</template>
+						</UAlert>
 					</UFormGroup>
 				</div>
 
