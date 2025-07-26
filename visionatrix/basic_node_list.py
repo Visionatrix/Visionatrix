@@ -1,7 +1,7 @@
 from .pydantic_models import AIResourceModel
 
-COMFYUI_RELEASE_TAG = "v0.3.43"
-COMFYUI_MANAGER_RELEASE_TAG = "3.33.8"
+COMFYUI_RELEASE_TAG = "v0.3.45"
+COMFYUI_MANAGER_RELEASE_TAG = "3.35"
 
 ANTELOPEV2 = AIResourceModel(
     name="antelopev2",
@@ -50,7 +50,7 @@ BASIC_NODE_LIST = {
         ],
     },
     "comfyui-impact-subpack": {
-        "version": "1.3.3",
+        "version": "1.3.4",
         "models": [
             AIResourceModel(
                 name="face_yolov8m",
@@ -79,17 +79,17 @@ BASIC_NODE_LIST = {
         ],
     },
     "comfyui_ultimatesdupscale": {
-        "version": "1.2.1",
+        "version": "1.3.3",
     },
     "comfyui_instantid": {
         "version": "1.0.0",
         "models": [ANTELOPEV2],
     },
     "efficiency-nodes-comfyui": {
-        "version": "1.0.7",
+        "version": "1.0.8",
     },
     "comfyui-wd14-tagger": {
-        "version": "1.0.0",
+        "version": "1.0.1",
     },
     "comfyui-supir": {
         "version": "1.0.2",
