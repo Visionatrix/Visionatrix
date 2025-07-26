@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.7.0 - 2025-07-25]
+
+### Added
+
+- Ability to remove `workers` from the UI(mostly needed for docker installs). #460
+- Support of `LDAP` as a user backend. #454
+- Ability to disable `User Settings`. #466
+
+### Changed
+
+- ComfyUI and Comfy-Manager updated to the latest versions. #469
+
 ## [2.6.0 - 2025-07-01]
 
 ### Added
