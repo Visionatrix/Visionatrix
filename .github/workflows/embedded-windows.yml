@@ -94,7 +94,7 @@ jobs:
 
       - name: Upload to Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: vix_portable_cuda.7z
           path: vix_portable_cuda.7z
@@ -119,7 +119,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: vix_portable_cuda.7z
 
